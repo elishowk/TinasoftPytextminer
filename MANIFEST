@@ -1,0 +1,13 @@
+Changes
+MANIFEST
+Makefile.PL
+README
+lib/TextMiner.pm
+lib/TextMiner/Corpus.pm
+lib/TextMiner/Document.pm
+lib/TextMiner/Target.pm
+lib/TextMiner/Ngram.pm
+t/00.load.t
+t/perlcritic.t
+t/pod-coverage.t
+t/pod.t
