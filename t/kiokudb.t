@@ -41,8 +41,8 @@ foreach ( @{ $contents->{ documents } } ) {
 		#document => $document,
 		type => 'content',
 		sanitizedTarget => $_->{ 'content' },
-		minSize => 1,
-		maxSize => 1,
+		minSize => 3,
+		maxSize => 3,
 	);
 	my @targets = ( $target );
 	$document->targets( set(@targets) );
@@ -56,8 +56,7 @@ map {
 	map {
 		$_->extract_ngrams();
 		map {
-			warn "TextMiner::Ngram=====";
-#			warn Dump $_->ngram;
+			warn Dump $_->ngram, "where length = ".$_->length;
 		} $_->ngrams->members;
 	} $_->targets->members;
 } $corpus->documents->members;

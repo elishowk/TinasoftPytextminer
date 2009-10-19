@@ -19,31 +19,30 @@ use YAML::Syck;
 #	# Encodage & cleaning
 #	my $content = shift;
 #};
+subtype 'Natural' => as 'Int' => where { $_ > 0 };
 
-#has document		=> ( isa => 'TextMiner::Document', is => 'rw', required => 1, lazy => 1, default => undef );
 has type		=> ( isa => 'Str', is => 'rw', required => 1, lazy => 1, default => undef );
 has sanitizedTarget	=> ( isa => 'Str', is => 'rw', required => 1, lazy => 1, default => undef );
 has ngrams		=> ( does => 'KiokuDB::Set', is => 'rw' );
-has minSize		=> ( isa => 'Int', is => 'rw', required => 1, lazy => 1, default => 1 );
-has maxSize		=> ( isa => 'Int', is => 'rw', required => 1, lazy => 1, default => 3 );
+has minSize		=> ( isa => 'Natural', is => 'rw', required => 1, lazy => 1, default => 1 );
+has maxSize		=> ( isa => 'Natural', is => 'rw', required => 1, lazy => 1, default => 3 );
 
 sub extract_ngrams {
 	my $self = shift;	
 	my $ngrams;
-	if ( $self->maxSize > 0 && $self->maxSize >= $self->minSize ) {
+	if ( $self->maxSize >= 1 && $self->maxSize >= $self->minSize ) {
 		my $ng = Algorithm::NGram->new( ngram_width => $self->maxSize );
 		$ng->add_text( $self->sanitizedTarget );
 		$ng->generate();
 		my $extracted = $ng->token_table;
-		for ( my $l = $self->minSize; $l <= $self->maxSize; $l++) {
-			foreach ( $extracted->{ $l } ) {
-				foreach ( $_ ) {
-					push @$ngrams,
-					TextMiner::Ngram->new(
-						ngram => $_,
-						'length' => $l,
-					);
-				}
+		for my $l ( $self->minSize .. $self->maxSize ) {
+			my $e = $extracted->{$l};
+			while ( my $ngram = each %$e ) {
+				push @$ngrams,
+				TextMiner::Ngram->new(
+					ngram => { $ngram => $e->{$ngram} },
+					'length' => $l,
+				);
 			}
 		}
 	}
