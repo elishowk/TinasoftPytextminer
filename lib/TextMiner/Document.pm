@@ -22,7 +22,7 @@ has 'corpus'	=> ( isa => 'TextMiner::Corpus', is => 'rw', required => 1, default
 has 'title'	=> ( isa => 'Str', is => 'rw', required => 0 );
 has 'content'	=> ( isa => 'Str', is => 'rw', required => 1, lazy => 1, default => "" );
 has 'timestamp'	=> ( isa => 'DateTime', is => 'rw', required => 1, lazy => 1, default => sub{ Datetime->now; });
-has 'targets'	=> ( does => 'KiokuDB::Set', is => 'rw' );
+has 'targets'	=> ( does  => 'KiokuDB::Set', is => 'rw' );
 
 
 1; # Magic true value required at end of module

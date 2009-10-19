@@ -28,7 +28,6 @@ my $corpus_id = $dir->store($corpus);
 my @documents;
 
 foreach ( @{ $contents->{ documents } } ) {
-	#warn Dump $_;
 	my $document = TextMiner::Document->new(
 		corpus => $corpus,
 		title => $_->{ title },
@@ -42,8 +41,8 @@ foreach ( @{ $contents->{ documents } } ) {
 		#document => $document,
 		type => 'content',
 		sanitizedTarget => $_->{ 'content' },
-		minSize => 2,
-		maxSize => 3,
+		minSize => 1,
+		maxSize => 1,
 	);
 	my @targets = ( $target );
 	$document->targets( set(@targets) );
@@ -57,7 +56,8 @@ map {
 	map {
 		$_->extract_ngrams();
 		map {
-			warn $_->ngram;
+			warn "TextMiner::Ngram=====";
+#			warn Dump $_->ngram;
 		} $_->ngrams->members;
 	} $_->targets->members;
 } $corpus->documents->members;

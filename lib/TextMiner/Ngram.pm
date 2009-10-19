@@ -18,8 +18,8 @@ use Moose::Util::TypeConstraints;
 #};
 
 #has document	=> ( isa => 'TextMiner::Document', is => 'rw', required => 1, lazy => 1, default => undef );
-#has 'length'	=> ( isa => 'Str', is => 'rw', required => 1, lazy => 1, default => undef );
-has ngram	=> ( isa => 'Str', is => 'rw', required => 1, default => sub{ die "ngram attr is required"; } );
+has 'length'	=> ( isa => 'Str', is => 'rw', required => 1, lazy => 1, default => undef );
+has ngram	=> ( isa => 'HashRef', is => 'rw', required => 1, default => sub{ die "ngram attr is required"; } );
 
 
 1; # Magic true value required at end of module

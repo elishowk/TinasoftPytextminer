@@ -30,19 +30,22 @@ has maxSize		=> ( isa => 'Int', is => 'rw', required => 1, lazy => 1, default =>
 sub extract_ngrams {
 	my $self = shift;	
 	my $ngrams;
-	for ( my $length = $self->minSize; $length <= $self->maxSize; $length++ ) {
-		my $ng = Algorithm::NGram->new( ngram_width => $length );
+	if ( $self->maxSize > 0 && $self->maxSize >= $self->minSize ) {
+		my $ng = Algorithm::NGram->new( ngram_width => $self->maxSize );
 		$ng->add_text( $self->sanitizedTarget );
+		$ng->generate();
 		my $extracted = $ng->token_table;
-		warn Dump $extracted;
-		map {
-			push @$ngrams,
-			TextMiner::Ngram->new(
-				ngram => $_,
-				'length' => $length,
-				document => $self->document,
-			);
-		} @{$extracted};
+		for ( my $l = $self->minSize; $l <= $self->maxSize; $l++) {
+			foreach ( $extracted->{ $l } ) {
+				foreach ( $_ ) {
+					push @$ngrams,
+					TextMiner::Ngram->new(
+						ngram => $_,
+						'length' => $l,
+					);
+				}
+			}
+		}
 	}
 	$self->ngrams(set(@$ngrams));
 }
