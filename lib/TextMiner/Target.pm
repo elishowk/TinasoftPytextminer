@@ -30,7 +30,8 @@ has maxSize		=> ( isa => 'Natural', is => 'rw', required => 1, lazy => 1, defaul
 sub _build_sanitizedTarget {
 	my $self = shift;
 	my $text = decode_utf8($self->target);# if ( is_sane_utf8( $self->target ) );
-	# TODO some cleaning
+	# cleaning anything except words
+	$text =~ s/\W/ /g;
 	return $text;
 }
 

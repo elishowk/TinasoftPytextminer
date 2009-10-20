@@ -64,9 +64,9 @@ map {
 			warn $ng[0];
 			#unless ( Encode::is_utf8( $ng[0] ) ) {
 			#is_valid_string($ng[0]);
-			is_sane_utf8($ng[0]);
+			#is_sane_utf8($ng[0]);
 			#is_flagged_utf8($ng[0]);
-			is_within_latin_1($ng[0]);
+			#is_within_latin_1($ng[0]);
 			#}
 			my $new_ngram_id = $dir->store($_);
 		} $_->ngrams->members;
