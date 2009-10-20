@@ -11,13 +11,9 @@ use Moose::Util::TypeConstraints;
 #  use Perl6::Slurp;
 #  use Perl6::Say;
 
-#subtype Sanitized => as 'Object' => where { $_->isa( 'Str' ) };
-#coerce Sanitized => from 'Str' => via {
-#	# Extraction & Formatage
-#	my $content = shift;
-#};
 
-#has document	=> ( isa => 'TextMiner::Document', is => 'rw', required => 1, lazy => 1, default => undef );
+
+has occs	=> ( isa => 'Int', is => 'rw', default => undef );
 has 'length'	=> ( isa => 'Str', is => 'rw', required => 1, lazy => 1, default => undef );
 has ngram	=> ( isa => 'HashRef', is => 'rw', required => 1, default => sub{ die "ngram attr is required"; } );
 
@@ -28,7 +24,6 @@ __END__
 =head1 NAME
 
 TextMiner::Ngram - [One line description of module's purpose here]
-
 
 =head1 VERSION
 

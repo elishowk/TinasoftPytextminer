@@ -4,7 +4,6 @@ use warnings;
 use strict;
 use Moose;
 use Moose::Util::TypeConstraints;
-use Encode;
 use DateTime;
 use KiokuDB::Util qw(set);
 
@@ -14,9 +13,7 @@ use KiokuDB::Util qw(set);
 #  use Perl6::Slurp;
 #  use Perl6::Say;
 
-#subtype 'Text' => as 'Object' => where { $_->isa( 'Str' ) };
 
-#coerce 'Text' => from 'Str' => via { encode_utf8( shift ); };
 
 has 'corpus'	=> ( isa => 'TextMiner::Corpus', is => 'rw', required => 1, default => sub{ die "corpus attr is required"; } );
 has 'title'	=> ( isa => 'Str', is => 'rw', required => 0 );

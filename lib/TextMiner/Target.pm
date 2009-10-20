@@ -7,6 +7,9 @@ use Moose::Util::TypeConstraints;
 use KiokuDB::Util qw(set);
 use Algorithm::NGram;
 use YAML::Syck;
+use Test::utf8;
+use Encode;
+use encoding::warnings;
 
 # Other recommended modules (uncomment to use):
 #  use IO::Prompt;
@@ -14,27 +17,32 @@ use YAML::Syck;
 #  use Perl6::Slurp;
 #  use Perl6::Say;
 
-#subtype Sanitized => as 'Object' => where { $_->isa( 'Str' ) };
-#coerce Sanitized => from 'Str' => via {
-#	# Encodage & cleaning
-#	my $content = shift;
-#};
+
 subtype 'Natural' => as 'Int' => where { $_ > 0 };
 
 has type		=> ( isa => 'Str', is => 'rw', required => 1, lazy => 1, default => undef );
-has sanitizedTarget	=> ( isa => 'Str', is => 'rw', required => 1, lazy => 1, default => undef );
+has target		=> ( isa => 'Str', is => 'rw', required => 1 );
+has sanitizedTarget	=> ( isa => 'Str', is => 'rw', required => 1, lazy_build => 1);
 has ngrams		=> ( does => 'KiokuDB::Set', is => 'rw' );
 has minSize		=> ( isa => 'Natural', is => 'rw', required => 1, lazy => 1, default => 1 );
 has maxSize		=> ( isa => 'Natural', is => 'rw', required => 1, lazy => 1, default => 3 );
 
+sub _build_sanitizedTarget {
+	my $self = shift;
+	my $text = decode_utf8($self->target);# if ( is_sane_utf8( $self->target ) );
+	# TODO some cleaning
+	return $text;
+}
+
 sub extract_ngrams {
-	my $self = shift;	
+	my $self = shift;
 	my $ngrams;
 	if ( $self->maxSize >= 1 && $self->maxSize >= $self->minSize ) {
 		my $ng = Algorithm::NGram->new( ngram_width => $self->maxSize );
 		$ng->add_text( $self->sanitizedTarget );
 		$ng->generate();
 		my $extracted = $ng->token_table;
+		#warn Dump $ng->analyze();
 		for my $l ( $self->minSize .. $self->maxSize ) {
 			my $e = $extracted->{$l};
 			while ( my $ngram = each %$e ) {
@@ -43,6 +51,7 @@ sub extract_ngrams {
 					ngram => { $ngram => $e->{$ngram} },
 					'length' => $l,
 				);
+				# TODO Store
 			}
 		}
 	}
