@@ -47,12 +47,17 @@ sub extract_ngrams {
 		for my $l ( $self->minSize .. $self->maxSize ) {
 			my $e = $extracted->{$l};
 			while ( my $ngram = each %$e ) {
+				my $occ = 0;
+				foreach( values %{$e->{$ngram}} ) { $occ += $_; }
 				push @$ngrams,
 				TextMiner::Ngram->new(
-					ngram => { $ngram => $e->{$ngram} },
-					'length' => $l,
+					ngram => $ngram,
+					length => $l,
+					occs => $occ,
+					accents => 0,
+					separator => " ",
 				);
-				# TODO Store
+				# TODO Store using a Moose::Role
 			}
 		}
 	}

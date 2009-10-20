@@ -44,8 +44,8 @@ foreach ( @{ $contents->{ documents } } ) {
 	my $target = TextMiner::Target->new(
 		type => 'content',
 		target => $_->{ 'content' },
-		minSize => 3,
-		maxSize => 3,
+		minSize => 1,
+		maxSize => 1,
 	);
 	my @targets = ( $target );
 	$document->targets( set(@targets) );
@@ -60,8 +60,12 @@ map {
 	map {
 		$_->extract_ngrams();
 		map {
-			my @ng = keys %{$_->ngram};
-			warn $ng[0];
+			if ( $_->occs > 1 ) {
+			warn $_->ngram;
+			warn $_->occs;
+			}
+			#my @ng = keys %{$_->ngram};
+			#warn $ng[0];
 			#unless ( Encode::is_utf8( $ng[0] ) ) {
 			#is_valid_string($ng[0]);
 			#is_sane_utf8($ng[0]);

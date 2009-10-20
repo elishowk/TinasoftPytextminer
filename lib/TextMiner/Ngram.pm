@@ -14,10 +14,21 @@ use Moose::Util::TypeConstraints;
 
 
 has occs	=> ( isa => 'Int', is => 'rw', default => undef );
-has 'length'	=> ( isa => 'Str', is => 'rw', required => 1, lazy => 1, default => undef );
-has ngram	=> ( isa => 'HashRef', is => 'rw', required => 1, default => sub{ die "ngram attr is required"; } );
+has length	=> ( isa => 'Str', is => 'rw', required => 1, lazy => 1, default => undef );
+has ngram	=> ( isa => 'Str', is => 'rw', required => 1, default => sub{ die "ngram attr is required"; } );
+has separator	=> ( isa => 'Str', is => 'rw', required => 1, lazy => 1, default => sub { " " } );
+has accents	=> ( isa => 'Bool', is => 'rw', required => 1, default => sub { 1 } );
 
+# TODO
+sub _remove_accents {
+	my $self = shift;
+	$self->ngram;
+}
 
+sub get_ngram {
+	my $self = shift;
+	
+}
 1; # Magic true value required at end of module
 __END__
 
