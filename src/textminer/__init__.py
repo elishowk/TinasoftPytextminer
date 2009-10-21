@@ -8,9 +8,12 @@ __date__ ="$Oct 20, 2009 5:30:11 PM$"
 # time
 from time import gmtime, mktime
 
-
 # PyTextMiner algorithms
 import algorithms
+
+from shove import Shove
+root = Shove() # default file-based shove
+
 
 class TextMiner:
     """TextMiner"""
@@ -22,7 +25,8 @@ class Corpus:
     def __init__(self, name, documents=[]):
         self.name = name
         self.documents = documents
-        
+
+
 class Document:
     """a single Document"""
     def __init__(self, corpus, content="", title="", timestamp=mktime(gmtime()), targets=[]):
@@ -32,6 +36,7 @@ class Document:
         self.title = title
         self.timestamp = timestamp
         self.targets = targets
+
 
 class NGramExtractor:
     def __init__(self):

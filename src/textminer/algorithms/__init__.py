@@ -12,7 +12,8 @@ def sanitize(input):
 	@return str: text
 	"""
         # create an unicode obj from an input charset detected with heuristics
-        output = unicode(input, detect(input)['encoding'])
+        #output = unicode(input, detect(input)['encoding'])
+        output = input#unicode(input, 'utf-8')
         output = string.strip(output, " ")
         #text = strip(text, " .;") # remove spaces or dot before and after the string
         for p in string.punctuation:
