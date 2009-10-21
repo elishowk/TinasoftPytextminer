@@ -20,7 +20,7 @@ class  TestsTestCase(unittest.TestCase):
         #assert x != y;
         #self.assertEqual(x, y, "Msg");
         #self.fail("TODO: Write test")
-        target = Target("cécî èst un éssàï")
+        target = Target("cécî èst un éssàï; voyons voir si les nombres 12 disparraissent ... mail@mail.com ")
         target.run()
 
 if __name__ == '__main__':

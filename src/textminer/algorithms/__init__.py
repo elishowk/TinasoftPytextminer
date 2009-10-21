@@ -5,25 +5,28 @@ __date__ ="$Oct 20, 2009 6:32:44 PM$"
 
 from chardet import detect
 import string
+import re
 
-def sanitize(input):
+def sanitize( input, separator, forbidenChars ):
         """sanitized a text
 
 	@return str: text
 	"""
         # create an unicode obj from an input charset detected with heuristics
         #output = unicode(input, detect(input)['encoding'])
-        output = input#unicode(input, 'utf-8')
-        output = string.strip(output, " ")
+        #unicode(input, 'utf-8')
         #text = strip(text, " .;") # remove spaces or dot before and after the string
-        for p in string.punctuation:
-            output = output.replace(p,'')
+        striped = string.strip( input )
+	sanitized = re.sub( forbidenChars, separator, striped )
+	output = re.sub( separator + '+', separator, sanitized ) 
 	return output
+        #for p in string.punctuation:
+        #    output = output.replace(p,' ')
+	#return output
 
-def ngrams(data, length=3):
-    def _ngrams(d, n):
-        d = d.split()
-        return [d[i:n+i] for i in range(len(d)) if len(d)>=i+n]
-    return [_ngrams(data,n) for n in range(length)][1:]
-
-
+def tokenize( text, length, separator ):
+    def _ngrams( text, n, separator ):
+	tokens = re.split( separator, text )
+        #d = d.split()
+        return [tokens[i:n+i] for i in range(len(tokens)) if len(tokens)>=i+n]
+    return [ _ngrams(text, n, separator) for n in range(1, length ) ]
