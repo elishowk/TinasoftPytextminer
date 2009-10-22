@@ -41,7 +41,7 @@ class Document:
 
 class Target:
     """a text Target in a Document"""
-    def __init__(self, target, type=None, ngrams=[], minSize=1, maxSize=3):
+    def __init__(self, target, type=None, ngrams=[], minSize=1, maxSize=3, forbidenChars='[^a-zA-Z\-\s\@ÀÁÂÆÄÇÈÉÊËÌÍÎÏÛÜÙÚàáâãäåæçèéêëìíîïĨĩòóôõöÒÓÔÕÖÑùúûü]', separator = " "):
         """Text Target constructor"""
         self.type = type
         self.target = target
@@ -49,17 +49,20 @@ class Target:
         self.ngrams = ngrams
         self.minSize = minSize
         self.maxSize = maxSize
+	self.forbidenChars = forbidenChars
+	self.separator = separator
 
     def _sanitize(self, text):
         """simple wrapper around algorithms"""
-        return algorithms.sanitize(text)
+        return algorithms.sanitize(text, self.separator, self.forbidenChars)
 
     def _ngrammize(self, text):
         """wrapper around algorithms"""
         if self.maxSize >= 1 and self.maxSize >= self.minSize:
             # get the ngrams
             i=0
-            results = algorithms.ngrams(text,self.maxSize)
+            results = algorithms.tokenize(text, self.maxSize, self.separator)
+	# TODO push results in NGram objects
             for ngrams in results:
                 i+=1
                 print "%s-grams:"%i
@@ -86,4 +89,3 @@ class NGram:
     def __len__(self):
         """ return the length of the ngram"""
         return len(self.ngram)
-
