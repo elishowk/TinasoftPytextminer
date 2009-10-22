@@ -3,6 +3,7 @@
 
 __author__="jbilcke"
 __date__ ="$Oct 20, 2009 5:30:11 PM$"
+
 """TextMiner Module"""
 
 # time
@@ -13,7 +14,6 @@ import algorithms
 
 from shove import Shove
 root = Shove() # default file-based shove
-
 
 class TextMiner:
     """TextMiner"""
@@ -29,7 +29,8 @@ class Corpus:
 
 class Document:
     """a single Document"""
-    def __init__(self, corpus, content="", title="", timestamp=mktime(gmtime()), targets=[]):
+    def __init__(self, corpus, content="", title="",
+                       timestamp=mktime(gmtime()), targets=[]):
         """ Document constructor.
         arguments: corpus, content, title, timestamp, targets"""
         self.corpus = corpus
@@ -37,10 +38,6 @@ class Document:
         self.timestamp = timestamp
         self.targets = targets
 
-
-class NGramExtractor:
-    def __init__(self):
-        pass
 
 class Target:
     """a text Target in a Document"""
@@ -89,10 +86,4 @@ class NGram:
     def __len__(self):
         """ return the length of the ngram"""
         return len(self.ngram)
-
-class Project:
-    def __init__(self, name, workflow):
-        self.name = name
-        self.workflow = workflow
-        self.dataset = None
 
