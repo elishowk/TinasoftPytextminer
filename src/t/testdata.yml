@@ -25,3 +25,30 @@ tests:
     ngrams:   [[['mon'], ['email'], ['email@mail'], ['com']],
                [['mon', 'email'], ['email', 'email@mail'], ['email@mail', 'com']],
                [['mon', 'email', 'email@mail'], ['email', 'email@mail', 'com']]]
+
+corpus:
+  -
+    name: testCorpus
+    documents:
+      -
+        title: "DECOVISION® installe le câble à l’heure du design"
+        date: 2009-08-01 08:42:00
+        lf: 26.32
+        accuracy: 0.05
+        permalink: http://www.kosmo-design.org/article-34450389.html
+        website: http://www.kosmo-design.org/
+        author: Stephane .P
+        query: environnement
+        categories: "individualite > apparence > deco_design"
+        content: Diplomé en menuiserie, je n'ai pas persisté dans cette voie et j'ai décidé de me tourner vers des études commerciales. Avec l'apparition des outils de DAO, j'ai commencé à créer les meubles que j'aurai voulu trouver dans le commerce. C'est en autodidacte que je me suis lancé dans la création du mobilier virtuel. Passionné de design, j'ai créé le site www.kosmo-design.org pour partager ma passion avec les internautes et tout naturellement présenter mes réalisations . Assez rapidement, votre engouement pour mes dessins m'a encouragé à développer cette passion créative. J'ai aujourd'hui plusieurs contacts d'entreprises pour mon travail dejà réalisé, et souhaite vivre très prochainement de ma passion pour le design. Mes influences sont très diverses, je puise mon inspiration dans l'environnement de tous les jours. J'interprète les formes et les détourne de leur utilité première afin de créer des objets esthétiques et usuels à la fois. L'influence de la " Table basse studio " était par exemple initialement, un simple bloc LEGO® . Bonne visite sur mon blog.
+      -
+        title: "Acheteur Famille Secteur Automobile H/F - DR33/073/SR"
+        date: 2009-08-01 00:37:44
+        lf: 27.82
+        accuracy: 0.05
+        permalink: http://www.ouestjob.com/fr/data/DetailOffre.aspx?NumOffre=262854&de=decouverte
+        website: http://www.ouestjob.com/
+        author: contact@regionsjob.com
+        query: environnement
+        categories: "societe > rh > ressources_humaines"
+        content: "Notre client, fournisseur privilégié des constructeurs automobiles, a su concentrer tous ses moyens et services pour satisfaire avec rapidité et succès les demandes spécifiques de chacun de ses clients, tout en mettant en place une politique continue d'amélioration et de respect de l'environnement dans un secteur à la pointe de la technologie. L'unité de production, basée en Bretagne, recherche un Acheteur Famille H/F. Sous la responsabilité du responsables des achats, vous définissez et appliquez la stratégie achat de votre famille de produits sur la marché mondial et vos missions consistent à : - Analyser les besoins pour définir les enjeux en terme d'achats. - Prospecter le marché mondial et sélectionner les fournisseurs en respectant les règles société. - Négocier avec vos fournisseurs les conditions techniques et contractuelles et suivre leur performance. - Recommander votre expertise auprès de vos fournisseurs pour les inciter à améliorer la qualité et le coût de production. - Rechercher de nouveaux fournisseurs et piloter les achats de nouvelles matières et composants pour le lancement de nouveaux produits. De formation supérieure, Bac +4/5 achats ou Bac +2/3 de préférence en génie mécanique, productique, électromécanique, vous justifiez d'une expérience acquise dans le secteur automobile sur un poste d'acheteur(se). Vous êtes organisé(e) et rigoureux(se) et possédez un bon niveau d'anglais. Vos qualités en communication, votre gout du challenge et votre pugnacité vous permettent d'évoluer dans une organisation"

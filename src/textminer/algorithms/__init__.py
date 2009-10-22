@@ -7,14 +7,19 @@ from chardet import detect
 import string
 import re
 
+
+def charsertnormalize(s):
+        return unicode(input, detect(input)['encoding'])
+        #input = unicode(input, 'utf-8')
+
 def sanitize( input, separator, forbidenChars ):
         """sanitized a text
 
 	@return str: text
 	"""
         # create an unicode obj from an input charset detected with heuristics
-        #output = unicode(input, detect(input)['encoding'])
-        #unicode(input, 'utf-8')
+        #input = unicode(input, detect(input)['encoding'])
+        #input = unicode(input, 'utf-8')
         #text = strip(text, " .;") # remove spaces or dot before and after the string
         striped = string.strip( input )
 	sanitized = re.sub( forbidenChars, separator, striped )

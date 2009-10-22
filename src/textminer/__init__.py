@@ -20,13 +20,6 @@ class TextMiner:
     def __init__(self):
         pass
 
-class Corpus:
-    """a Corpus of Documents"""
-    def __init__(self, name, documents=[]):
-        self.name = name
-        self.documents = documents
-
-
 class Document:
     """a single Document"""
     def __init__(self, corpus, content="", title="",
@@ -37,6 +30,26 @@ class Document:
         self.title = title
         self.timestamp = timestamp
         self.targets = targets
+        self.content = content
+
+    def __str__(self):
+        return self.title
+
+    def __repr__(self):
+        return "<%s>"%self.title
+
+class Corpus:
+    """a Corpus of Documents"""
+    def __init__(self, name, documents=[]):
+        self.name = algorithms.charsertnormalize(name)
+        self.documents = documents
+
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return "<%s>"%self.name
 
 
 class Target:

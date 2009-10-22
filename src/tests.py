@@ -22,11 +22,25 @@ class  TestsTestCase(unittest.TestCase):
         self.data = yaml.load(f)
         f.close()
     
-    def test_tests(self):
+    def test_ngrams(self):
         for test in self.data['tests']:
             target = Target(test['original'])
             target.run()
             self.assertEqual(target.ngrams, test['ngrams'], test['test'])
+
+    def test_corpus(self):
+        corpora = []
+        for c in self.data['corpus']:
+            corpus = Corpus(name=c['name'])
+            corpus.documents = [Document(corpus=corpus, content=doc['content'], title=doc['title']) for doc in c['documents']]
+            corpora += [corpus]
+
+        for corpus in corpora:
+            for document in corpus.documents:
+                print "document:",document
+                t = Target(document.content)
+                t.run()
+                print "ngrams:",t.ngrams
  
 if __name__ == '__main__':
     unittest.main()
