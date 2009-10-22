@@ -24,9 +24,8 @@ def sanitize( input, separator, forbidenChars ):
         #    output = output.replace(p,' ')
 	#return output
 
-def tokenize( text, length, separator ):
+def tokenize( text, min, max, separator ):
     def _ngrams( text, n, separator ):
 	tokens = re.split( separator, text )
-        #d = d.split()
         return [tokens[i:n+i] for i in range(len(tokens)) if len(tokens)>=i+n]
-    return [ _ngrams(text, n, separator) for n in range(1, length ) ]
+    return [ _ngrams(text, n, separator) for n in range(min, max+1) ]

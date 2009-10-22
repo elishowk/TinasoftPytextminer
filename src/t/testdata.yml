@@ -1,0 +1,27 @@
+# test data for TextMiner
+---
+tests:
+
+  - test:      simple "a b c" test
+    original:  a b c
+    sanitized: ''
+    ngrams:    [[['a'], ['b'], ['c']], [['a', 'b'], ['b', 'c']], [['a', 'b', 'c']]]
+
+  - test:      numbers should be removed
+    original:  1 23 456
+    sanitized: ''
+    ngrams:    [[[''], ['']], [['', '']], []]
+
+  - test:      remove punctuation
+    original:  a.b c,d ...
+    sanitized: ''
+    ngrams:   [[['a'], ['b'], ['c'], ['d'], ['']],
+               [['a', 'b'], ['b', 'c'], ['c', 'd'], ['d', '']],
+               [['a', 'b', 'c'], ['b', 'c', 'd'], ['c', 'd', '']]]
+
+  - test:      email test
+    original:  '  mon email: email@mail.com '
+    sanitized: ''
+    ngrams:   [[['mon'], ['email'], ['email@mail'], ['com']],
+               [['mon', 'email'], ['email', 'email@mail'], ['email@mail', 'com']],
+               [['mon', 'email', 'email@mail'], ['email', 'email@mail', 'com']]]

@@ -59,26 +59,12 @@ class Target:
     def _ngrammize(self, text):
         """wrapper around algorithms"""
         if self.maxSize >= 1 and self.maxSize >= self.minSize:
-            # get the ngrams
-            i=0
-            results = algorithms.tokenize(text, self.maxSize, self.separator)
-	# TODO push results in NGram objects
-            for ngrams in results:
-                i+=1
-                print "%s-grams:"%i
-                for ngram in ngrams:
-                    print ngram
-            return results
+            return algorithms.tokenize(text, self.minSize, self.maxSize, self.separator)
 
     def run(self):
         """Run the workflow"""
-        # FAKE WORKFLOW
-        step0 = self.target
-        print "step0: raw data\n", step0
-        step1 = self._sanitize(step0)
-        print "step1: sanitize\n", step1
-        step2 = self._ngrammize(step1)
-        print "step2: extract ngrams\n", step2
+        self.sanitizedTarget = self._sanitize(self.target)
+        self.ngrams = self._ngrammize(self.sanitizedTarget)
 
 
 class NGram:

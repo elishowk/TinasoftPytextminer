@@ -4,25 +4,30 @@
 __author__="jbilcke"
 __date__ ="$Oct 20, 2009 5:29:16 PM$"
 
+# core modules
 import unittest
+
+# third party modules
+import yaml
+
+# textminer modules
 from textminer import *
 
 class  TestsTestCase(unittest.TestCase):
-    #def setUp(self):
-    #    self.foo = Tests()
-    #
-
-    #def tearDown(self):
-    #    self.foo.dispose()
-    #    self.foo = None
-
+    def setUp(self):
+        try:
+            f = open("src/t/testdata.yml")
+        except:
+            f = open("t/testdata.yml")
+        self.data = yaml.load(f)
+        f.close()
+    
     def test_tests(self):
-        #assert x != y;
-        #self.assertEqual(x, y, "Msg");
-        #self.fail("TODO: Write test")
-        target = Target("cécî èst un éssàï; voyons voir si les nombres 12 disparraissent ... mail@mail.com ")
-        target.run()
-
+        for test in self.data['tests']:
+            target = Target(test['original'])
+            target.run()
+            self.assertEqual(target.ngrams, test['ngrams'], test['test'])
+ 
 if __name__ == '__main__':
     unittest.main()
 
