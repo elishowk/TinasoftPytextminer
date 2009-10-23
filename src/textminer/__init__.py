@@ -67,8 +67,8 @@ class Target:
         self.ngrams = ngrams
         self.minSize = minSize
         self.maxSize = maxSize
-	    self.forbiddenChars = forbiddenChars
-	    self.separator = separator
+        self.forbiddenChars = forbiddenChars
+        self.separator = separator
 
     def sanitize(self, text):
         """simple wrapper around tokenizer"""

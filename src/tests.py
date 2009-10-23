@@ -1,3 +1,4 @@
+import abc
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
@@ -41,6 +42,8 @@ class  TestsTestCase(unittest.TestCase):
                 t = Target(document.content)
                 t.run()
                 print "ngrams:",t.ngrams
+
+
  
 if __name__ == '__main__':
     unittest.main()
