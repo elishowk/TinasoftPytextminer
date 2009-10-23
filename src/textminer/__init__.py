@@ -56,19 +56,31 @@ class Document:
         return
 
 
-
 class Target:
     """Target containing ngrams"""
-    def __init__(self, rawTarget, type=None, ngrams=[], minSize=1, maxSize=3, forbiddenChars='[^a-zA-Z\-\s\@ÀÁÂÆÄÇÈÉÊËÌÍÎÏÛÜÙÚàáâãäåæçèéêëìíîïĨĩòóôõöÒÓÔÕÖÑùúûü]', separator = " "):
+
+    def __init__(self,
+        rawTarget,
+        type=None,
+        ngrams=[],
+        minSize=1,
+        maxSize=3,
+        forbiddenChars='[^a-zA-Z\-\s\@ÀÁÂÆÄÇÈÉÊËÌÍÎÏÛÜÙÚ' \
+                       'àáâãäåæçèéêëìíîïĨĩòóôõöÒÓÔÕÖÑùúûü]',
+        separator = " "):
+
         """Text Target constructor"""
         self.type = type
-        self.rawTarget = target
+        self.rawTarget = rawTarget
         self.sanitizedTarget = None
         self.ngrams = ngrams
         self.minSize = minSize
         self.maxSize = maxSize
         self.forbiddenChars = forbiddenChars
         self.separator = separator
+
+        self.sanitizedTarget = self.sanitize(self.rawTarget)
+        self.ngrams = self.tokenize(self.sanitizedTarget)
 
     def sanitize(self, text):
         """simple wrapper around tokenizer"""
@@ -78,6 +90,9 @@ class Target:
         """wrapper around tokenizer"""
         if self.maxSize >= 1 and self.maxSize >= self.minSize:
             return tokenizer.tokenize(text, self.minSize, self.maxSize, self.separator)
+
+    def __repr__(self):
+        return self.sanitizedTarget
 
 class NGram:
     """an ngram"""
