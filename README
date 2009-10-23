@@ -1,5 +1,4 @@
 
-You need Python 2.4 (at least) and the following libraries :
 
-- Charset Detector (to install with setuptools, type: "sudo easy_install chardet")
-- Shove ("sudo easy_install shove")
+
+You need Python 2.4 (at least)
