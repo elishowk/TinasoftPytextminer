@@ -1,49 +1,25 @@
 # -*- coding: utf-8 -*-
-
-
 __author__="jbilcke"
 __date__ ="$Oct 20, 2009 5:30:11 PM$"
 
-"""TextMiner Module"""
+"""Corpora Module"""
 
 # time
 from time import gmtime, mktime
 
-# PyTextMiner algorithms
-import algorithms
+# PyTextMiner tokenizer
+import tokenizer
 
-from shove import Shove
-root = Shove() # default file-based shove
-
-class TextMiner:
-    """TextMiner"""
-    def __init__(self):
-        pass
-
-class Document:
-    """a single Document"""
-    def __init__(self, corpus, content="", title="",
-                       timestamp=mktime(gmtime()), targets=[]):
-        """ Document constructor.
-        arguments: corpus, content, title, timestamp, targets"""
-        self.corpus = corpus
-        self.title = title
-        self.timestamp = timestamp
-        self.targets = targets
-        self.content = content
-
-    def __str__(self):
-        return self.title
-
-    def __repr__(self):
-        return "<%s>"%self.title
+class Corpora:
+    """Corpora contains a list of a corpus"""
+    def __init__(self, corpora=[]):
+        self.corpora = corpora
 
 class Corpus:
-    """a Corpus of Documents"""
+    """a Corpus containing documents"""
     def __init__(self, name, documents=[]):
-        self.name = algorithms.charsertnormalize(name)
+        self.name = name
         self.documents = documents
-
 
     def __str__(self):
         return self.name
@@ -51,39 +27,62 @@ class Corpus:
     def __repr__(self):
         return "<%s>"%self.name
 
+    def parseDocs(self):
+        return
+    def pushDoc(self):
+        return
+    def getDoc(self, docID):
+        return
+
+class Document:
+    """a Document containing targets"""
+    def __init__(self, rawContent, title="",
+                       timestamp=mktime(gmtime()), targets=[]):
+        """Document constructor.
+        arguments: corpus, content, title, timestamp, targets"""
+        self.title = title
+        self.timestamp = timestamp
+        self.targets = targets
+        self.rawContent = rawContent
+
+    def __str__(self):
+        return self.title
+
+    def __repr__(self):
+        return "<%s>"%self.title
+    def pushTarget(self):
+        return
+    def getTarget(self, targetID):
+        return
+
+
 
 class Target:
-    """a text Target in a Document"""
-    def __init__(self, target, type=None, ngrams=[], minSize=1, maxSize=3, forbidenChars='[^a-zA-Z\-\s\@ÀÁÂÆÄÇÈÉÊËÌÍÎÏÛÜÙÚàáâãäåæçèéêëìíîïĨĩòóôõöÒÓÔÕÖÑùúûü]', separator = " "):
+    """Target containing ngrams"""
+    def __init__(self, rawTarget, type=None, ngrams=[], minSize=1, maxSize=3, forbiddenChars='[^a-zA-Z\-\s\@ÀÁÂÆÄÇÈÉÊËÌÍÎÏÛÜÙÚàáâãäåæçèéêëìíîïĨĩòóôõöÒÓÔÕÖÑùúûü]', separator = " "):
         """Text Target constructor"""
         self.type = type
-        self.target = target
+        self.rawTarget = target
         self.sanitizedTarget = None
         self.ngrams = ngrams
         self.minSize = minSize
         self.maxSize = maxSize
-	self.forbidenChars = forbidenChars
-	self.separator = separator
+	    self.forbiddenChars = forbiddenChars
+	    self.separator = separator
 
-    def _sanitize(self, text):
-        """simple wrapper around algorithms"""
-        return algorithms.sanitize(text, self.separator, self.forbidenChars)
+    def sanitize(self, text):
+        """simple wrapper around tokenizer"""
+        return tokenizer.sanitize(text, self.separator, self.forbiddenChars)
 
-    def _ngrammize(self, text):
-        """wrapper around algorithms"""
+    def tokenize(self, text):
+        """wrapper around tokenizer"""
         if self.maxSize >= 1 and self.maxSize >= self.minSize:
-            return algorithms.tokenize(text, self.minSize, self.maxSize, self.separator)
-
-    def run(self):
-        """Run the workflow"""
-        self.sanitizedTarget = self._sanitize(self.target)
-        self.ngrams = self._ngrammize(self.sanitizedTarget)
-
+            return tokenizer.tokenize(text, self.minSize, self.maxSize, self.separator)
 
 class NGram:
     """an ngram"""
-    def __init__(self, ngram, occurences=0):
-        self.occurences = occurences
+    def __init__(self, ngram, occs=None):
+        self.occs = occs
         self.ngram = ngram
     def __len__(self):
         """ return the length of the ngram"""
