@@ -9,7 +9,7 @@ class Target():
         ngrams=[],
         minSize=1,
         maxSize=3,
-        forbiddenChars=u"[^a-zA-Z\-\s\@ÀÂÆÇÈÉÊÎÛÙàâæçèéêîĨôÔùûü]",
+        forbiddenChars=u"[^a-zA-Z\-\s\@ÀÂÆÇÈÉÊÎÛÙàâæçèéêîĨôÔùûü\']",
         separator=" ",
         sanitizedTarget=None
         ):

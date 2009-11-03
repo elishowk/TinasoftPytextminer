@@ -6,7 +6,7 @@ from Corpus import Corpus
 from Document import Document
 from Target import Target
 from NGram import NGram
-from Parser import Parser
+from Parser import SimpleParser
 
 """PyTextMiner Module"""
 class PyTextMiner:

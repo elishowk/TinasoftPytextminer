@@ -36,14 +36,9 @@ class TestsTestCase(unittest.TestCase):
         for corpus in corpora.corpora:
             for document in corpus.documents:
                 for target in document.targets:
-                    target.sanitizedTarget = PyTextMiner.Parser.sanitize( input=target.rawTarget, separator=target.separator, forbiddenChars=target.forbiddenChars );
+                    target.sanitizedTarget = PyTextMiner.SimpleParser.sanitize( input=target.rawTarget, separator=target.separator, forbiddenChars=target.forbiddenChars );
                     print target.sanitizedTarget
-        #csvfile = open("src/t/data-proposal.csv")
-        #csv = CSV.CSV(name="test-csv-corpus", file=csvfile, title=3, timestamp=9)
-        #csv.parseDocs()
-        #for d in csv.documents:
-        #    print "\n",d
-        #    print d.rawContent
-        #    print d.date
+                    print PyTextMiner.SimpleParser.tokenize( text=target.sanitizedTarget, min=target.minSize, max=target.maxSize, separator=target.separator )
+
 if __name__ == '__main__':
     unittest.main()
