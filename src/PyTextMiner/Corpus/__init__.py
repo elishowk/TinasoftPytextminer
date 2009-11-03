@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-class Corpus:
+class Corpus():
     """a Corpus containing documents"""
     def __init__(self, name, documents=[]):
         self.name = name
@@ -11,7 +11,7 @@ class Corpus:
     def __repr__(self):
         return "<%s>"%self.name
 
-    def parseDocs(self):
-        return
+    #def parseDocs(self):
+    #    return
     #def getDoc(self, docID):
     #    return

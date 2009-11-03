@@ -1,20 +1,19 @@
 # -*- coding: utf-8 -*-
-
 # time
 from datetime import datetime
-import unicode
 
-class Document:
+class Document():
     """a Document containing targets"""
     def __init__(
             self,
-            rawContent=None,
+            rawContent,
             title=None,
             date=None,
             targets=[]):
         """Document constructor.
         arguments: corpus, content, title, date, targets"""
         self.title = title
+        #self.date = date
         if date:
             self.date = datetime.strptime(date, "%Y-%m-%d")
         else:
@@ -23,9 +22,9 @@ class Document:
         self.rawContent = rawContent
 
     def __str__(self):
-        return self.title
+        return self.rawContent
     def __repr__(self):
-        return "<%s>"%self.title
+        return "<%s>"%self.rawContent
     def pushTarget(self):
         return
     def getTarget(self, targetID):

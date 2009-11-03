@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-
-class NGram:
+class NGram():
     """an ngram"""
     def __init__(self, ngram, occs=None):
         self.occs = occs
@@ -8,5 +7,3 @@ class NGram:
     def __len__(self):
         """ return the length of the ngram"""
         return len(self.ngram)
-
-
