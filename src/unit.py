@@ -34,30 +34,13 @@ class TestsTestCase(unittest.TestCase):
         print target
         ngram = PyTextMiner.NGram( ngram='test ngram' )
         print ngram
-        parser = PyTextMiner.Tokenizer.RegexpTokenizer()
-        print parser
+        regtokenizer = PyTextMiner.Tokenizer.RegexpTokenizer()
+        print regtokenizer
+        nltktokenizer = PyTextMiner.Tokenizer.NltkTokenizer()
+        print nltktokenizer
         print "end of unit tests";
 
-#    def setUp(self):
-#        try:
-#            f = open("src/t/testdata.yml")
-#        except:
-#            f = open("t/testdata.yml")
-#        self.data = yaml.load(f)
-#        f.close()
-#    
-#    def test_ngrams(self):
-#        for test in self.data['tests']:
-#            target = Target.Target(test['original'])
-#            self.assertEqual(target.ngrams, test['ngrams'], test['test'])
-#
-#    def test_corpus(self):
-#        corpora = []
-#        for c in self.data['corpus']:
-#            corpus = Corpus.Corpus(name=c['name'])
-#            corpus.documents = [Document.Document(rawContent=doc, title=doc['title']) for doc in c['documents']]
-#            corpora += [corpus]
-#        Corpora.Corpora(corpora)
+
 #
 #    def test_csv(self):
 #        csvfile = open("src/t/data-proposal.csv")
