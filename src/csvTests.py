@@ -5,7 +5,7 @@ from CSVTextMiner import CSVTextMiner
 #open the file
 csvfile = open("t/data-proposal.csv")
 #create CSVTextMiner object application
-csvApp = CSVTextMiner(corpusName="test-csv-corpus", file=csvfile, titleField='proposal_title', timestampField='date', contentField='abstract')
+csvApp = CSVTextMiner(corpusName="test-csv-corpus", file=csvfile, titleField='title', timestampField='date', contentField='summary')
 #run the parsing of the corpus
 corpus = csvApp.createCorpus()
 print corpus

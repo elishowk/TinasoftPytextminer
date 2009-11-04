@@ -39,8 +39,8 @@ class CSVTextMiner:
         corpus = PyTextMiner.Corpus( name=self.corpusName )
         for doc in self.csv:
             content = doc[self.contentField]
-            print content
-            print doc[self.titleField]
+            #print content
+            #print doc[self.titleField]
             corpus.documents += [PyTextMiner.Document(
                 rawContent=doc, 
                 title=doc[self.titleField],

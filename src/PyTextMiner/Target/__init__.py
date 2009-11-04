@@ -8,7 +8,7 @@ class Target():
 
     def __init__(self,
         rawTarget,
-        tokens=[];
+        tokens=[],
         type=None,
         ngrams=[],
         minSize=1,
