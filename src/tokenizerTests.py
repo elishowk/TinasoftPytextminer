@@ -19,10 +19,11 @@ class TestsTestCase(unittest.TestCase):
             f = open("src/t/testdata.yml", 'rU')
         except:
             f = open("t/testdata.yml", 'rU')
+        # yaml automatically decodes from utf8
         self.data = yaml.load(f)
         f.close()
     
-    def test_corpus(self):
+    def test_tokenizers(self):
         corpora = PyTextMiner.Corpora()
         for c in self.data['corpus']:
             corpus = PyTextMiner.Corpus( name=c['name'] )
@@ -37,14 +38,14 @@ class TestsTestCase(unittest.TestCase):
         for corpus in corpora.corpora:
             for document in corpus.documents:
                 for target in document.targets:
-                    #print "----- RegexpTokenizer ----\n"
+                    print "----- RegexpTokenizer ----\n"
                     target.sanitizedTarget = PyTextMiner.Tokenizer.RegexpTokenizer.sanitize( input=target.rawTarget, separator=target.separator, forbiddenChars=target.forbiddenChars );
-                    #print target.sanitizedTarget
-                    #print PyTextMiner.Tokenizer.RegexpTokenizer.tokenize( text=target.sanitizedTarget, length=1, separator=target.separator ) 
-                    print "----- NltkTokenizer ----\n"
-                    target.sanitizedTarget = PyTextMiner.Tokenizer.NltkTokenizer.sanitize( input=target.rawTarget, separator=target.separator, forbiddenChars=target.forbiddenChars );
                     print target.sanitizedTarget
-                    print PyTextMiner.Tokenizer.NltkTokenizer.tokenize( text=target.sanitizedTarget )
+                    print PyTextMiner.Tokenizer.RegexpTokenizer.tokenize( text=target.sanitizedTarget, separator=target.separator ) 
+                    print "----- NltkTokenizer ----\n"
+                    target.sanitizedTarget = PyTextMiner.Tokenizer.WordPunctTokenizer.sanitize( input=target.rawTarget, separator=target.separator, forbiddenChars=target.forbiddenChars );
+                    print target.sanitizedTarget
+                    print PyTextMiner.Tokenizer.WordPunctTokenizer.tokenize( text=target.sanitizedTarget )
 
 if __name__ == '__main__':
     unittest.main()

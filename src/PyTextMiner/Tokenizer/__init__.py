@@ -4,10 +4,14 @@ __author__="jbilcke, Elias Showk"
 __date__ ="$Oct 20, 2009 6:32:44 PM$"
 
 import string, re, pprint
-from nltk import WordPunctTokenizer, sent_tokenize
+import nltk
+
 
 class RegexpTokenizer():
-
+    """
+    A homemade tokenizer that splits a text into tokens
+    given a regexp used as a separator
+    """ 
     @staticmethod
     def sanitize( input, separator, forbiddenChars ):
         """sanitized a text
@@ -15,22 +19,25 @@ class RegexpTokenizer():
         @return str: text
         """
         striped = string.strip( input )
-        # replaces forbidden characters by a separator
+        #replaces forbidden characters by a separator
         sanitized = re.sub( forbiddenChars, separator, striped )
         #removes redundant separators
         output = re.sub( separator + '+', separator, sanitized ) 
         return output
 
     @staticmethod
-    def tokenize( text, length, separator ):
+    def tokenize( text, separator ):
         tokens = re.split( separator, text )
-        return [tokens[i:length+i] for i in range(len(tokens)) if len(tokens)>=i+length]
+        return tokens
 
-class NltkTokenizer(RegexpTokenizer):
-
+class WordPunctTokenizer(RegexpTokenizer):
+    """
+    A tokenizer that divides a text into sentences
+    then into sequences of alphabetic
+    and non-alphabetic characters
+    """
     @staticmethod
     def tokenize( text ):
-        #sentences = sent_tokenize(text)
-        tokens = [WordPunctTokenizer().tokenize(sent) for sent in text]
+        sentences = nltk.sent_tokenize(text)
+        sentences = [nltk.WordPunctTokenizer().tokenize(sent) for sent in sentences]
         return sentences
-        #sentences = 

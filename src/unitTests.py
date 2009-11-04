@@ -16,6 +16,7 @@ import yaml
 #from PyTextMiner import *
 
 import PyTextMiner
+from CSVTextMiner import CSVTextMiner
 
 class TestsTestCase(unittest.TestCase):
     def setUp(self):
@@ -36,20 +37,15 @@ class TestsTestCase(unittest.TestCase):
         print ngram
         regtokenizer = PyTextMiner.Tokenizer.RegexpTokenizer()
         print regtokenizer
-        nltktokenizer = PyTextMiner.Tokenizer.NltkTokenizer()
+        nltktokenizer = PyTextMiner.Tokenizer.WordPunctTokenizer()
         print nltktokenizer
         print "end of unit tests";
 
-
-#
-#    def test_csv(self):
-#        csvfile = open("src/t/data-proposal.csv")
-#        csv = CSV.CSV(name="test-csv-corpus", file=csvfile, title=3, timestamp=9)
-#        csv.parseDocs()
-#        for d in csv.documents:
-#            print "\n",d
-#            print d.rawContent
-#            print d.date
+    def test_csv(self):
+        csvfile = open("t/data-proposal.csv")
+        csvApp = CSVTextMiner(corpusName="test-csv-corpus", file=csvfile, titleField='proposal_title', timestampField='date', contentField='abstract')
+        print csvApp
+        print "end of CSVTextMiner() unit tests";
 
 if __name__ == '__main__':
     unittest.main()

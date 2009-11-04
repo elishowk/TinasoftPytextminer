@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# time
 from datetime import datetime
 
 class Document():
