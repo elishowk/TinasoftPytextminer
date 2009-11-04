@@ -6,7 +6,7 @@ __date__ ="$Oct 20, 2009 6:32:44 PM$"
 import string
 import re
 
-class SimpleParser():
+class RegexpTokenizer():
 
     @staticmethod
     def sanitize( input, separator, forbiddenChars ):

@@ -34,7 +34,7 @@ class TestsTestCase(unittest.TestCase):
         print target
         ngram = PyTextMiner.NGram( ngram='test ngram' )
         print ngram
-        parser = PyTextMiner.Parser()
+        parser = PyTextMiner.Tokenizer.RegexpTokenizer()
         print parser
         print "end of unit tests";
 

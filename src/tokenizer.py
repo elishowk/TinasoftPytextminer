@@ -36,9 +36,9 @@ class TestsTestCase(unittest.TestCase):
         for corpus in corpora.corpora:
             for document in corpus.documents:
                 for target in document.targets:
-                    target.sanitizedTarget = PyTextMiner.SimpleParser.sanitize( input=target.rawTarget, separator=target.separator, forbiddenChars=target.forbiddenChars );
+                    target.sanitizedTarget = PyTextMiner.Tokenizer.RegexpTokenizer.sanitize( input=target.rawTarget, separator=target.separator, forbiddenChars=target.forbiddenChars );
                     print target.sanitizedTarget
-                    print PyTextMiner.SimpleParser.tokenize( text=target.sanitizedTarget, min=target.minSize, max=target.maxSize, separator=target.separator )
+                    print PyTextMiner.Tokenizer.RegexpTokenizer.tokenize( text=target.sanitizedTarget, min=target.minSize, max=target.maxSize, separator=target.separator )
 
 if __name__ == '__main__':
     unittest.main()
