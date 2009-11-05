@@ -14,8 +14,9 @@ class Target():
         minSize=1,
         maxSize=3,
         MyLocale='fr_FR.UTF-8',
-        forbiddenChars=u"[^a-zA-Z\-\s\@\.\,\/\?\!\%\&ÂÆÇÈÉÊÎÛÙàâæçèéêîĨôÔùûü]",
-        separator=" ",
+        forbiddenChars=u"[^a-zA-Z\'\"\-\s\@\.\,\/\?\!\%\&ÂÆÇÈÉÊÎÛÙàâæçèéêîĨôÔùûü]",
+        separator= u"[\s]+",
+        emptyString = " ",
         sanitizedTarget=None
         ):
 
@@ -29,6 +30,7 @@ class Target():
         self.locale=MyLocale
         self.forbiddenChars = forbiddenChars
         self.separator = separator
+        self.emptyString = emptyString
         self.sanitizedTarget = sanitizedTarget
         #try:
         locale.setlocale(locale.LC_ALL, MyLocale)

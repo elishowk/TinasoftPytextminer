@@ -13,17 +13,15 @@ class RegexpTokenizer():
     given a regexp used as a separator
     """ 
     @staticmethod
-    def sanitize( input, separator, forbiddenChars ):
+    def sanitize( input, forbiddenChars, emptyString ):
         """sanitized a text
 
         @return str: text
         """
         striped = string.strip( input )
         #replaces forbidden characters by a separator
-        sanitized = re.sub( forbiddenChars, separator, striped )
-        #removes redundant separators
-        output = re.sub( separator + '+', separator, sanitized ) 
-        return output
+        sanitized = re.sub( forbiddenChars, emptyString, striped )
+        return sanitized
 
     @staticmethod
     def tokenize( text, separator ):
