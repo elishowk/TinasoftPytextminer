@@ -54,7 +54,7 @@ class CSVTextMiner:
     #                    print target.sanitizedTarget
     #                    print PyTextMiner.Tokenizer.RegexpTokenizer.tokenize( text=target.sanitizedTarget, separator=target.separator ) 
     #                    print "----- NltkTokenizer ----\n"
-                target.sanitizedTarget = PyTextMiner.Tokenizer.WordPunctTokenizer.sanitize( input=target.rawTarget, separator=target.separator, forbiddenChars=target.forbiddenChars );
+                target.sanitizedTarget = PyTextMiner.Tokenizer.WordPunctTokenizer.sanitize( input=target.rawTarget, emptyString=target.emptyString, forbiddenChars=target.forbiddenChars );
                 print target.sanitizedTarget
                 target.tokens = PyTextMiner.Tokenizer.WordPunctTokenizer.tokenize( text=target.sanitizedTarget )
                 print target.tokens

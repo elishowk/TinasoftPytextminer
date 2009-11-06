@@ -9,6 +9,7 @@ import unittest
 
 # third party module
 import yaml
+import pprint
 
 # pytextminer package
 import PyTextMiner
@@ -40,12 +41,27 @@ class TestsTestCase(unittest.TestCase):
                 for target in document.targets:
                     print "----- RegexpTokenizer ----\n"
                     target.sanitizedTarget = PyTextMiner.Tokenizer.RegexpTokenizer.sanitize( input=target.rawTarget, forbiddenChars=target.forbiddenChars, emptyString=target.emptyString );
-                    print target.sanitizedTarget
-                    print PyTextMiner.Tokenizer.RegexpTokenizer.tokenize( text=target.sanitizedTarget, separator=target.separator ) 
+                    
+                    #print target.sanitizedTarget
+                    target.tokens = PyTextMiner.Tokenizer.RegexpTokenizer.tokenize( text=target.sanitizedTarget, separator=target.separator )
+                    target.ngrams = PyTextMiner.Tokenizer.RegexpTokenizer.ngrams(
+                        minSize=target.minSize,
+                        maxSize=target.maxSize,
+                        tokens=target.tokens,
+                        emptyString=target.emptyString,
+                    )
                     print "----- NltkTokenizer ----\n"
-                    target.sanitizedTarget = PyTextMiner.Tokenizer.WordPunctTokenizer.sanitize( input=target.rawTarget, forbiddenChars=target.forbiddenChars, emptyString=target.emptyString  );
-                    print target.sanitizedTarget
-                    print PyTextMiner.Tokenizer.WordPunctTokenizer.tokenize( text=target.sanitizedTarget )
+                    #target.sanitizedTarget = PyTextMiner.Tokenizer.WordPunctTokenizer.sanitize( input=target.rawTarget, forbiddenChars=target.forbiddenChars, emptyString=target.emptyString  );
+                    #print target.sanitizedTarget
+                    target.tokens = PyTextMiner.Tokenizer.WordPunctTokenizer.tokenize( text=target.sanitizedTarget )
+                    target.ngrams = PyTextMiner.Tokenizer.WordPunctTokenizer.ngrams(
+                        minSize=target.minSize,
+                        maxSize=target.maxSize,
+                        tokens=target.tokens,
+                        emptyString=target.emptyString,
+                    )
+                    #print(target.ngrams)
+                     
 
 if __name__ == '__main__':
     unittest.main()

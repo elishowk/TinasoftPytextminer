@@ -21,9 +21,11 @@ class Document():
         self.rawContent = rawContent
 
     def __str__(self):
-        return self.rawContent
+        return self.rawContent.encode('utf-8')
+
     def __repr__(self):
-        return "<%s>"%self.rawContent
+        return "<%s>"%self.rawContent.encode('utf-8')
+
     def pushTarget(self):
         return
     def getTarget(self, targetID):
