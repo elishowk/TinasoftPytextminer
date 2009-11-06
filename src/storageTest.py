@@ -4,9 +4,7 @@
 __author__="jbilcke, Elias Showk"
 __date__ ="$Oct 20, 2009 5:29:16 PM$"
 
-# core modules
-import unittest
-
+from tina.storage import Storage
 # third party module
 import yaml
 import pprint
@@ -14,16 +12,9 @@ import pprint
 # pytextminer package
 import PyTextMiner
 
-class TestsTestCase(unittest.TestCase):
-    def setUp(self):
-        try:
-            f = open("src/t/testdata.yml", 'rU')
-        except:
-            f = open("t/testdata.yml", 'rU')
-        # yaml automatically decodes from utf8
-        self.data = yaml.load(f)
-        f.close()
-    
+class StorageTest:
+
+ 
     def test_tokenizers(self):
         corpora = PyTextMiner.Corpora()
         for c in self.data['corpus']:
@@ -63,7 +54,43 @@ class TestsTestCase(unittest.TestCase):
                     #print(target.ngrams)
         return corpora
 
-                     
 
-if __name__ == '__main__':
-    unittest.main()
+
+    def test1_storage(self):
+
+        try:
+            f = open("src/t/testdata.yml", 'rU')
+        except:
+            f = open("t/testdata.yml", 'rU')
+        # yaml automatically decodes from utf8
+        self.data = yaml.load(f)
+        f.close()
+
+
+
+        storage = Storage("file:///tmp/pytext_tests", serializer="yaml")
+        corpora = self.test_tokenizers()
+        storage["corpora"] = corpora
+        storage.save()
+        del storage
+
+        storage2 = Storage("file:///tmp/pytext_tests", serializer="json")
+        corpora = storage2["corpora"]
+        for corpus in corpora.corpora:
+            print corpus
+            for document in corpus.documents:
+                print document
+                for target in document.targets:
+                    print target
+                    for ngram in target.ngrams:
+                        print ngram
+
+
+
+
+
+
+
+test = StorageTest()
+test.test1_storage()
+
