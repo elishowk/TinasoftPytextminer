@@ -9,7 +9,7 @@ setup (
   packages = find_packages(),
 
   # Declare your packages' dependencies here, for eg:
-  install_requires=['shove>=0.2.1b', 'nltk'],
+  install_requires=['tina-storage>=0.1', 'nltk=>2.0b6'],
 
   # Fill in these to make your Egg ready for upload to
   # PyPI
@@ -18,7 +18,7 @@ setup (
 
   summary = 'Just another Python package for the cheese shop',
   url = '',
-  license = 'GPL',
+  license = 'GNU GPL v3',
   long_description= 'A Text Mining module',
 
   # could also include long_description, download_url, classifiers, etc.

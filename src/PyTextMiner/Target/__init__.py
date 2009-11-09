@@ -11,7 +11,7 @@ class Target():
         rawTarget,
         tokens=None,
         type=None,
-        ngrams={},
+        ngrams=None,
         minSize=3,
         maxSize=3,
         MyLocale='fr_FR.UTF-8',
@@ -27,6 +27,8 @@ class Target():
             tokens = []
         self.tokens = tokens
         self.type = type
+        if ngrams is None:
+            ngrams={}
         self.ngrams = ngrams
         self.minSize = minSize
         self.maxSize = maxSize

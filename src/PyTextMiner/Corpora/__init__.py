@@ -4,5 +4,5 @@ class Corpora:
     
     def __init__(self, corpora=None):
         if corpora is None:
-            self.corpora = []
+            corpora = []
         self.corpora = corpora
