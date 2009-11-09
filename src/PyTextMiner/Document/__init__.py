@@ -8,19 +8,20 @@ class Document():
             rawContent,
             title=None,
             date=None,
-            targets=None):
+            targets=None,
+            author=None):
         """Document constructor.
         arguments: corpus, content, title, date, targets"""
+        self.rawContent = rawContent
         self.title = title
-        #self.date = date
-        if date:
-            self.date = datetime.strptime(date, "%Y-%m-%d")
-        else:
+        if date is None:
             self.date = datetime.today()
+        else:
+            self.date = datetime.strptime(date, "%Y-%m-%d")
         if targets is None: 
             targets = []
         self.targets = targets
-        self.rawContent = rawContent
+        self.author = author
 
     def __str__(self):
         #return self.rawContent.encode('utf-8')

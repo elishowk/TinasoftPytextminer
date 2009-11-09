@@ -35,7 +35,7 @@ class TokenizerTests:
         self.data = data
 
     def init_corpus(self, repeatFactor):
-        newcorpora = PyTextMiner.Corpora()
+        newcorpora = PyTextMiner.Corpora(id="TestCorpora1")
         for c in self.data['corpus']:
             corpus = PyTextMiner.Corpus( name=c['name'] )
             for i in range( 0, repeatFactor ):

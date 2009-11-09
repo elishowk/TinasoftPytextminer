@@ -30,8 +30,8 @@ class Tests(unittest.TestCase):
         tokenizerTester = TokenizerTests( self.data )
         corpora = tokenizerTester.regexp_tokenizer( 0 );
         storage = StorageTest()
-        storage.test_storage( "yaml", corpora, "TestCorporaStore1" )
-        retrievedCorpora = storage.test_retrieve( "TestCorporaStore1", "yaml" )
+        storage.test_storage( "json", corpora, "TestCorporaStore1" )
+        retrievedCorpora = storage.test_retrieve( "TestCorporaStore1", "json" )
         print "---Storage Retrieval---\n"
         print retrievedCorpora
         tokenizerTester.print_corpora( retrievedCorpora )
@@ -40,8 +40,8 @@ class Tests(unittest.TestCase):
         tokenizerTester = TokenizerTests( self.data )
         corpora = tokenizerTester.wordpunct_tokenizer( 100 );
         storage = StorageTest()
-        storage.test_storage( "yaml", corpora, "TestCorporaStore2" )
-        retrievedCorpora = storage.test_retrieve( "TestCorporaStore2", "yaml" )
+        storage.test_storage( "json", corpora, "TestCorporaStore2" )
+        retrievedCorpora = storage.test_retrieve( "TestCorporaStore2", "json" )
         print "---Storage Retrieval---\n"
         print retrievedCorpora
         tokenizerTester.print_corpora( retrievedCorpora )
