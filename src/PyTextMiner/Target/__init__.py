@@ -9,7 +9,7 @@ class Target():
 
     def __init__(self,
         rawTarget,
-        tokens=[],
+        tokens=None,
         type=None,
         ngrams={},
         minSize=3,
@@ -23,6 +23,8 @@ class Target():
 
         """Text Target constructor"""
         self.rawTarget = rawTarget
+        if tokens is None:
+            tokens = []
         self.tokens = tokens
         self.type = type
         self.ngrams = ngrams

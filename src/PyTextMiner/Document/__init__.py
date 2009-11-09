@@ -8,7 +8,7 @@ class Document():
             rawContent,
             title=None,
             date=None,
-            targets=[]):
+            targets=None):
         """Document constructor.
         arguments: corpus, content, title, date, targets"""
         self.title = title
@@ -17,6 +17,8 @@ class Document():
             self.date = datetime.strptime(date, "%Y-%m-%d")
         else:
             self.date = datetime.today()
+        if targets is None: 
+            targets = []
         self.targets = targets
         self.rawContent = rawContent
 
