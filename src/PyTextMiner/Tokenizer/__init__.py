@@ -5,7 +5,7 @@ __date__ ="$Oct 20, 2009 6:32:44 PM$"
 
 import string, re, pprint
 import nltk
-from .. import NGram
+from PyTextMiner import NGram
 
 
 class RegexpTokenizer():

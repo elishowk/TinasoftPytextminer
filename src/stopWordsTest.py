@@ -30,13 +30,13 @@ class TestStopWords(unittest.TestCase):
         stopwords = PyTextMiner.StopWord.Collection("t/stopwords/en.txt")
         string = "I like cats but I have a dog"
         cleaned = stopwords.clean(string)
-        print "cleaned:", cleaned
+        self.assertEquals(cleaned, "I cats I a dog")
         
     def test_file_fr(self):
         stopwords = PyTextMiner.StopWord.Collection("t/stopwords/fr.txt")
         string = "J'aime les chats mais ma petite amie a un chien"
         cleaned = stopwords.clean(string)
-        print "cleaned:", cleaned
+        self.assertEquals(cleaned, "J'aime chats ma petite amie a un chien")
         
 if __name__ == '__main__':
     unittest.main()
