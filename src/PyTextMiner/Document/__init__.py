@@ -31,7 +31,5 @@ class Document():
         #return "<%s>"%self.rawContent.encode('utf-8')
         return "<%s>"%self.rawContent
 
-    def pushTarget(self):
-        return
     def getTarget(self, targetID):
         return

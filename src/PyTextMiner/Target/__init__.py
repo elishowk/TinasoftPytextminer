@@ -45,3 +45,4 @@ class Target():
     def __repr__(self):
         return self.rawTarget.encode('utf-8')
 
+    def processCooc

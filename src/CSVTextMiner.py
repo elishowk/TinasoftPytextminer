@@ -9,7 +9,8 @@ class CSVTextMiner:
             titleField,
             timestampField,
             contentField,
-            corpora=PyTextMiner.Corpora(),
+            corporaID,
+            corpora=None,
             delimiter=';',
             quotechar='"',
         ):
@@ -18,7 +19,10 @@ class CSVTextMiner:
         self.titleField = titleField
         self.timestampField = timestampField
         self.contentField = contentField
-        self.corpora=corpora
+        if corpora is None:
+            self.corpora=PyTextMiner.Corpora(id=corporaID)
+        else:
+            self.corpora=corpora
         self.delimiter = delimiter
         self.quotechar = quotechar
         MyCsv = csv.reader(
