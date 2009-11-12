@@ -7,43 +7,36 @@ __date__ ="$Oct 20, 2009 5:29:16 PM$"
 # core modules
 import unittest
 
-# third party modules
-import yaml
-
 # pytextminer modules
 import PyTextMiner.StopWord
-#from PyTextMiner import CSV
-#from PyTextMiner import *
 
-import PyTextMiner
-from CSVTextMiner import CSVTextMiner
-
-class TestsTestCase(unittest.TestCase):
+class TestStopWords(unittest.TestCase):
     def setUp(self):
-        return
-
+        pass
+        
     def test_basic(self):
-        
-        stopwords = PyTextMiner.StopWord.Collection(['cat','dog'])
-        
-        string = "I like cats but I have a dog"
-        
-        print "original string:", string
+        stopwords = PyTextMiner.StopWord.Collection(['cat','I','dogs'])
+        string = "I like cats, but I have a dog"
         cleaned = stopwords.clean(string)
-        print "cleaned string:", cleaned
-        
-        self.assertEquals(cleaned, "I like cats but I have a", "'dog' is removed")
+        self.assertEquals(cleaned, "like cats, but have a dog")
 
     def test_nltk(self):
-        
         stopwords = PyTextMiner.StopWord.NLTKCollection()
-        
-        string = "I like cats but I have a dog"
-
-        print "original string:", string
+        string = "Hello, I like cats, but my girlfriend has a dog"
         cleaned = stopwords.clean(string)
-        print "cleaned string:", cleaned
+        self.assertEquals(cleaned, "Hello, I like cats, girlfriend")
 
-
+    def test_file_en(self):
+        stopwords = PyTextMiner.StopWord.Collection("t/stopwords/en.txt")
+        string = "I like cats but I have a dog"
+        cleaned = stopwords.clean(string)
+        print "cleaned:", cleaned
+        
+    def test_file_fr(self):
+        stopwords = PyTextMiner.StopWord.Collection("t/stopwords/fr.txt")
+        string = "J'aime les chats mais ma petite amie a un chien"
+        cleaned = stopwords.clean(string)
+        print "cleaned:", cleaned
+        
 if __name__ == '__main__':
     unittest.main()

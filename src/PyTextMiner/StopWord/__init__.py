@@ -29,15 +29,19 @@ class Collection (object):
     def __init__(self, arg, lang='en_US', encoding='utf-8'):
         self.lang = lang
         self.encoding = encoding
+        self.words = []
         
-        if arg is str:
-            arg = []
-            file = open(arg, "r")
-            for line in file.readlines():
-                arg += [ line  ]
+        if isinstance(arg, list):
+            self.words += arg
+        
+        else:
+            try:
+                file = open(arg, "r")
+                for line in file.readlines():
+                    self.words += [ line.strip()  ]
+            except exception, err:
+                raise Exception("couldn't read file %s: %s"%(arg,err))
 
-        self.words = arg
-            
 
     def __len__(self):
         """ return the length of the ngram"""
