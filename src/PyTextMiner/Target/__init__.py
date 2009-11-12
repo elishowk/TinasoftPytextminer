@@ -2,7 +2,6 @@
 # PyTextMiner Target class
 import string
 import locale as localization
-from PyTextMiner import NGram
 
 class Target():
     """Target containing ngrams"""
@@ -45,4 +44,3 @@ class Target():
     def __repr__(self):
         return self.rawTarget.encode('utf-8')
 
-    def processCooc
