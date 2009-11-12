@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 class Corpora:
     """Corpora contains a list of a corpus"""
     
