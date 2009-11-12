@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-class Corpus():
+
+class Corpus:
     """a Corpus containing documents"""
     def __init__(self, name, documents=None):
         self.name = name

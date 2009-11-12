@@ -3,16 +3,23 @@ PyTextMiner version 0.1
 A simple text miner
 
 INSTALLATION
+  
+   DEVELOPMENT
+   To install this module on a development machine, run the following commands:
 
-To install this module, run the following commands:
+        sudo python setup.py develop
 
-	python setup.py build
+   PRODUCTION
+   To install this module on a production machine, run the following commands:
+
 	sudo python setup.py install
 
 
 DEPENDENCIES
 
-None.
+ - NLTK - http://www.nltk.org/
+ - Shove 0.21b - http://github.com/jbilcke/shove
+ - tina-storage - http://github.com/jbilcke/tina.storage
 
 COPYRIGHT AND LICENCE
 

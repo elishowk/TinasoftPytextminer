@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
+
+# core modules
 from datetime import datetime
 
-class Document():
+class Document:
     """a Document containing targets"""
     def __init__(
             self,
@@ -10,16 +12,21 @@ class Document():
             date=None,
             targets=None,
             author=None):
+            
         """Document constructor.
         arguments: corpus, content, title, date, targets"""
+        
         self.rawContent = rawContent
         self.title = title
+        
         if date is None:
             self.date = datetime.today()
         else:
             self.date = datetime.strptime(date, "%Y-%m-%d")
+            
         if targets is None: 
             targets = []
+            
         self.targets = targets
         self.author = author
 
