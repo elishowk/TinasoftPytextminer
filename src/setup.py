@@ -9,7 +9,7 @@ setup (
   packages = find_packages(),
 
   # Declare your packages' dependencies here, for eg:
-  install_requires=['tina-storage>=0.1', 'nltk=>2.0b6'],
+  install_requires=['tina-storage>=0.1', 'nltk>=2.0b6'],
 
   # Fill in these to make your Egg ready for upload to
   # PyPI
