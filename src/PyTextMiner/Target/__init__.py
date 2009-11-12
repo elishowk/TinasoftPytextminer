@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # PyTextMiner Target class
 import string
-import locale
+import locale as localization
 from .. import NGram
 
 class Target():
@@ -14,7 +14,7 @@ class Target():
         ngrams=None,
         minSize=3,
         maxSize=3,
-        MyLocale='fr_FR.UTF-8',
+        locale='fr_FR.UTF-8',
         forbiddenChars=u"[^a-zA-Z\'\"\-\s\@\.\,\/\?\!\%\&ÂÆÇÈÉÊÎÛÙàâæçèéêîĨôÔùûü]",
         separator= u"[\s]+",
         emptyString = " ",
@@ -32,13 +32,13 @@ class Target():
         self.ngrams = ngrams
         self.minSize = minSize
         self.maxSize = maxSize
-        self.locale=MyLocale
+        self.locale = locale
         self.forbiddenChars = forbiddenChars
         self.separator = separator
         self.emptyString = emptyString
         self.sanitizedTarget = sanitizedTarget
         #try:
-        locale.setlocale(locale.LC_ALL, MyLocale)
+        localization.setlocale(localization.LC_ALL, self.locale)
 
     def __str__(self):
         return self.rawTarget.encode('utf-8')
