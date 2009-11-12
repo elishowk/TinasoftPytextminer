@@ -6,12 +6,14 @@ __date__ ="$Oct 20, 2009 5:29:16 PM$"
 
 # core modules
 import unittest
+import locale
 
 # third party module
 import yaml
 
 # pytextminer package
 import PyTextMiner
+
 
 class TestsTestCase(unittest.TestCase):
 
@@ -23,16 +25,26 @@ class TestsTestCase(unittest.TestCase):
         # yaml automatically decodes from utf8
         self.data = yaml.load(f)
         f.close()
+        
+        # try to determine the locale of the current system
+        try:
+            self.locale = 'fr_FR.UTF-8'
+            locale.setlocale(locale.LC_ALL, self.locale)
+        except:
+            self.locale = 'en_US.UTF-8'
+            locale.setlocale(locale.LC_ALL, self.locale)
+        
     def test2_regex_tokenizer(self):
-        tokenizerTester = TokenizerTests( self.data )
+        tokenizerTester = TokenizerTests( self.data, self.locale )
         corpora = tokenizerTester.regexp_tokenizer( 1 );
     def test1_wordpunct_tokenizer(self):
-        tokenizerTester = TokenizerTests( self.data )
+        tokenizerTester = TokenizerTests( self.data, self.locale )
         corpora2 = tokenizerTester.wordpunct_tokenizer( 1 );
 
 class TokenizerTests: 
-    def __init__( self, data ):
+    def __init__( self, data, locale ):
         self.data = data
+        self.locale = locale
 
     def init_corpus(self, repeatFactor):
         newcorpora = PyTextMiner.Corpora(id="TestCorpora1")
@@ -44,7 +56,8 @@ class TokenizerTests:
                     corpus.documents += [PyTextMiner.Document(
                         rawContent=doc, 
                         title=doc['title'],
-                        targets=[PyTextMiner.Target(rawTarget=content)],
+                        targets=[PyTextMiner.Target(rawTarget=content,
+                                                        locale=self.locale)],
                         )]
             newcorpora.corpora += [corpus]
         return newcorpora
