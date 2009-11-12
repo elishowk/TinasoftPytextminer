@@ -10,11 +10,6 @@ import unittest
 # third party modules
 import yaml
 
-# pytextminer modules
-#from PyTextMiner import Corpus, Target, Document, NGram, Corpora, Parser
-#from PyTextMiner import CSV
-#from PyTextMiner import *
-
 import PyTextMiner
 from CSVTextMiner import CSVTextMiner
 
@@ -39,11 +34,13 @@ class TestsTestCase(unittest.TestCase):
         print regtokenizer
         nltktokenizer = PyTextMiner.Tokenizer.WordPunctTokenizer()
         print nltktokenizer
+        threadedanalizer = PyTextMiner.CoWord.SimpleAnalysis()
+        print threadedanalizer
         print "end of unit tests";
 
     def test_csv(self):
         csvfile = open("t/data-proposal.csv")
-        csvApp = CSVTextMiner(corpusName="test-csv-corpus", file=csvfile, titleField='proposal_title', timestampField='date', contentField='abstract')
+        csvApp = CSVTextMiner(corpusName="test-csv-corpus", file=csvfile, titleField='proposal_title', timestampField='date', contentField='abstract', corporaID='testCorporaID')
         print csvApp
         print "end of CSVTextMiner() unit tests";
 

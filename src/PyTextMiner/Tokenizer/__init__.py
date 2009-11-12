@@ -5,7 +5,7 @@ __date__ ="$Oct 20, 2009 6:32:44 PM$"
 
 import string, re, pprint
 import nltk
-from .. import NGram
+from PyTextMiner import NGram
 
 
 class RegexpTokenizer():
@@ -31,19 +31,20 @@ class RegexpTokenizer():
 
     @staticmethod
     def ngrams( minSize, maxSize, tokens, emptyString):
-        ngrams={}
+        ngrams = set()
         for n in range( minSize, maxSize +1 ):
             for i in range(len(tokens)):
                 if len(tokens) >= i+n:
                     representation = emptyString.join( tokens[i:n+i] )
-                    if ngrams.has_key( representation ):
-                        ngrams[ representation ].occs += 1
-                    else:
-                        ngrams[ representation ] = NGram(
+                    newngram = NGram(
                                 ngram = tokens[i:n+i],
                                 occs = 1,
-                                str = representation,
-                        )
+                                strRepr = representation,
+                    )
+                    if newngram in ngrams:
+                        ngrams[ newngram ].occs += 1
+                    else:
+                        ngrams.add( newngram )
         return ngrams
 
 class WordPunctTokenizer(RegexpTokenizer):
@@ -61,18 +62,19 @@ class WordPunctTokenizer(RegexpTokenizer):
     # TODO : keep the sentence structure ?
     @staticmethod
     def ngrams( minSize, maxSize, tokens, emptyString):
-        ngrams={}
+        ngrams = set()
         for n in range( minSize, maxSize +1 ):
             for sent in tokens:
                 for i in range(len(sent)):
                     if len(sent) >= i+n:
                         representation = emptyString.join( sent[i:n+i] )
-                        if ngrams.has_key( representation ):
-                            ngrams[ representation ].occs += 1
-                        else:
-                            ngrams[ representation ] = NGram(
+                        newngram = NGram(
                                     ngram = sent[i:n+i],
                                     occs = 1,
-                                    str = representation,
-                            )
+                                    strRepr = representation,
+                        )
+                        if newngram in ngrams:
+                            ngrams[ newngram ].occs += 1
+                        else:
+                            ngrams.add( newngram )
         return ngrams

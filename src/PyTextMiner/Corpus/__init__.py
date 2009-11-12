@@ -12,8 +12,3 @@ class Corpus():
 
     def __repr__(self):
         return "<%s>"%self.name
-
-    #def parseDocs(self):
-    #    return
-    #def getDoc(self, docID):
-    #    return

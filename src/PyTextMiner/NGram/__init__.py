@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
+import hashlib
+
 class NGram():
     """an ngram"""
-    def __init__(self, ngram, occs=None, str=""):
+    def __init__(self, ngram, occs=None, strRepr=''):
         self.occs = occs
         self.ngram = ngram
-        self.strRepr = str
+        self.strRepr = strRepr
     def __len__(self):
         """ return the length of the ngram"""
         return len(self.ngram)
@@ -13,5 +15,5 @@ class NGram():
         return self.strRepr.encode('utf-8')
     def __repr__(self):
         return self.strRepr.encode('utf-8')
-
-
+    def __hash__(self):
+        return id(self.strRepr)

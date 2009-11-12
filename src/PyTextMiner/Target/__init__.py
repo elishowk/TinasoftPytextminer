@@ -2,7 +2,6 @@
 # PyTextMiner Target class
 import string
 import locale as localization
-from .. import NGram
 
 class Target():
     """Target containing ngrams"""
@@ -28,7 +27,7 @@ class Target():
         self.tokens = tokens
         self.type = type
         if ngrams is None:
-            ngrams={}
+            ngrams=set()
         self.ngrams = ngrams
         self.minSize = minSize
         self.maxSize = maxSize
@@ -44,5 +43,3 @@ class Target():
         return self.rawTarget.encode('utf-8')
     def __repr__(self):
         return self.rawTarget.encode('utf-8')
-
-    def processCooc

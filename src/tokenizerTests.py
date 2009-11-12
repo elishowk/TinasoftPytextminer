@@ -56,8 +56,10 @@ class TokenizerTests:
                     corpus.documents += [PyTextMiner.Document(
                         rawContent=doc, 
                         title=doc['title'],
-                        targets=[PyTextMiner.Target(rawTarget=content,
-                                                        locale=self.locale)],
+                        targets=[PyTextMiner.Target(
+                            rawTarget=content,
+                            type='testType',
+                            locale=self.locale)],
                         )]
             newcorpora.corpora += [corpus]
         return newcorpora

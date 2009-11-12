@@ -7,6 +7,7 @@ from Document import Document
 from Target import Target
 from NGram import NGram
 from Tokenizer import *
+from CoWord import *
 
 """PyTextMiner Module"""
 class PyTextMiner:
