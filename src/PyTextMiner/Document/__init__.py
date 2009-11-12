@@ -37,6 +37,6 @@ class Document:
     def __repr__(self):
         #return "<%s>"%self.rawContent.encode('utf-8')
         return "<%s>"%self.rawContent
-       
+
     def getTarget(self, targetID):
         return
