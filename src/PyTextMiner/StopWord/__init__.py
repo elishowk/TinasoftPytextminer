@@ -79,7 +79,6 @@ class Collection (object):
         
         # if we have a file name
         else:
-            #try:
             import codecs
             file = codecs.open("%s"%arg, "r", self.encoding)
             for line in file.readlines():
@@ -90,8 +89,11 @@ class Collection (object):
             raise Exception("%s is not a valid ngram (not a list)"%ngram)
         while len(self.words) < len(ngram) + 1:
             self.words+=[[]]
-
-        self.words[len(ngram)] += [ [word.encode(self.encoding) for word in ngram] ]
+	try:
+	    ngram = [word.encode(self.encoding) for word in ngram] 
+        except:
+            pass
+        self.words[len(ngram)] += [ ngram ]
         
     def __len__(self):
         """ return the length of the ngram"""
@@ -130,30 +132,23 @@ class Collection (object):
                 
         
 class NLTKCollection (Collection):
-    """A StopWord Collection"""
-    
+    """A StopWord Collection based on NLTK"""
     def __init__(self, locale='en_US:UTF-8', **options):
+        words = []
+        lang = locale.split(':')[0]
         try:
             import nltk
         except:
-            raise Exception("you need to install the 'nltk' module to use this collection")
-        from nltk.corpus import stopwords   
-        lang = locale.split(':')[0]
-
-        words = []
-        
-        if lang == 'en_US':
+            raise Exception("you need to install nltk")
+        try:
+            from nltk.corpus import stopwords
+            stopwords_table = {  'en_US' : 'english', 'en_UK' : 'english',
+                                 'fr_FR' : 'french' }
             try:
-                words += stopwords.words('english')
+                words += stopwords.words(stopwords_table[lang])
             except:
-                raise Exception("you need to install the 'Stopwords english' corpus for nltk")
-        elif lang == 'fr_FR':
-            try:
-                words += stopwords.words('french')
-            except:
-                raise Exception("you need to install the 'Stopwords french' corpus for nltk")
-        else:
-            raise Exception("nltk stopword list only support English language")
-            
+                raise Exception("nltk stopwords corpus does not recognize language \"%s\""%lang)
+        except ImportError, err:
+            raise Exception("you need to install the 'stopwords' corpus for nltk")
         Collection.__init__(self, words, locale, **options)
 
