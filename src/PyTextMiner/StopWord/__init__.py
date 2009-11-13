@@ -3,25 +3,6 @@
 #parametres = langue, longueur de ngrams, nombre caractères de chaque mot
 #objet chargeant un fichier stopwords donné à l'initialisation ?
 
-class Word (object):
-    """A stop word"""
-    
-    def __init__(self, word, score=1.0):
-        """construct a new Stopword from a string. 
-        Optional argument: score"""
-        self.word = word
-        self.score = score
-
-    def __str__(self):
-        return self.word.__str__()
-        
-    def __repr__(self):
-        return self.word.__repr__()
-        
-    def __len__(self):
-        """return the number of characters comprised in the word"""
-        return len(self.word)
-
         
 class Collection (object):
     """A StopWord Collection"""
@@ -61,7 +42,6 @@ class Collection (object):
             self.lang, self.encoding = locale.split(':') 
         except:
             self.lang = locale.split(':')[0]
-            import sys
             self.encoding = 'utf-8'
 	self.encoding = self.encoding.lower()
         self.words = [[]]
