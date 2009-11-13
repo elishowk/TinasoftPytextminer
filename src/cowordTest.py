@@ -33,19 +33,15 @@ class Tests(unittest.TestCase):
             self.locale = 'en_US.UTF-8'
             locale.setlocale(locale.LC_ALL, self.locale)
 
-#    def test1_regex_tokenizer_storage(self):
-#        tokenizerTester = TokenizerTests( self.data )
-#        corpora = tokenizerTester.regexp_tokenizer( 0 );
-#        storage = StorageTest()
-#        storage.test_storage( "json", corpora, "TestCorporaStore1" )
-#        retrievedCorpora = storage.test_retrieve( "TestCorporaStore1", "json" )
-#        print "---Storage Retrieval---\n"
-#        print retrievedCorpora
-#        tokenizerTester.print_corpora( retrievedCorpora )
-
     def test1_wordpunct_tokenizer_storage(self):
         tokenizerTester = TokenizerTests( self.data, self.locale )
         corpora = tokenizerTester.wordpunct_tokenizer( 1 );
+        coword = CoWordTest()
+        coword.test_cowords( corpora.corpora[0], type='testType' )
+
+    def test2_regexp_tokenizer_storage(self):
+        tokenizerTester = TokenizerTests( self.data, self.locale )
+        corpora = tokenizerTester.regexp_tokenizer( 1 );
         coword = CoWordTest()
         coword.test_cowords( corpora.corpora[0], type='testType' )
 
