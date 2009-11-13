@@ -22,17 +22,21 @@ class RegexpTokenizer():
         striped = string.strip( input )
         #replaces forbidden characters by a separator
         sanitized = re.sub( forbiddenChars, emptyString, striped )
-        return sanitized
+        return sanitized.lower()
 
     @staticmethod
-    def tokenize( text, separator, minSize=2, maxSize=255 ):
-        tokens = re.split( separator, text )
-        tokens = self.filterBySize( tokens, minSize, maxSize )
-        lowerTokens = [ tok.lower() for tok in tokens ]
-        return lowerTokens
+    def cleanPunct( text, emptyString, punct=u'[\,\.\;\:\!\?\"\'\[\]\{\}\(\)\<\>]' ):
+        noPunct = re.sub( punct, emptyString, text )
+        return noPunct
 
     @staticmethod
-    def filterBySize( words, min, max ):
+    def tokenize( text, separator, emptyString ):
+        noPunct = RegexpTokenizer.cleanPunct( text, emptyString )
+        tokens = re.split( separator, noPunct )
+        return tokens
+
+    @staticmethod
+    def filterBySize( words, min=2, max=255 ):
         """Filter a list of word by size
 
         > filterBySize(["a", "aaa", "aa", "aaaa", "aa"], min=2 , max=3)
@@ -76,10 +80,9 @@ class WordPunctTokenizer(RegexpTokenizer):
     and non-alphabetic characters
     """
     @staticmethod
-    def tokenize( text, minSize=2, maxSize=255 ):
+    def tokenize( text, emptyString ):
         sentences = nltk.sent_tokenize(text)
-        sentences = [nltk.WordPunctTokenizer().tokenize(sent.lower()) for sent in sentences]
-        sentences = self.filterBySize( sentences, minSize, maxSize )
+        sentences = [nltk.WordPunctTokenizer().tokenize(RegexpTokenizer.cleanPunct( sent, emptyString)) for sent in sentences]
         return sentences
     
     # TODO : keep the sentence structure ?

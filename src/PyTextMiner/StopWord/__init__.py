@@ -63,7 +63,7 @@ class Collection (object):
             self.lang = locale.split(':')[0]
             import sys
             self.encoding = 'utf-8'
-	self.encoding = self.encoding.lower()
+	    self.encoding = self.encoding.lower()
         self.words = [[]]
         
         # if we have a list (or nested lists) as argument
