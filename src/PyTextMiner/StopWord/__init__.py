@@ -3,40 +3,31 @@
 #parametres = langue, longueur de ngrams, nombre caractères de chaque mot
 #objet chargeant un fichier stopwords donné à l'initialisation ?
 
-        
-class Collection (object):
-    """A StopWord Collection"""
+import codecs
+
+class StopWords (object):
+    """StopWords"""
     
     def __init__(self, arg, locale='en_US:UTF-8'):
-        """Usage:
-        
+        """
         # you can pass a simple list of words
-        c = Collection(["cat","dog"])
+        c = StopWords(["cat","dog"])
         
         # normally you pass a list of n-grams with consistent length 
         # eg. len = 2 for 2-grams
-        c = Collection([
-                          ["I","like"],
-                          ["you","have"]
-                       ])
+        c = StopWords([  ["I","like"],
+                         ["you","have"] ])
                        
         # but you can also pass a list of n-grams with unconsistent size
-        c = Collection([
-                          ["dog"],
-                          ["I","like"],
-                          ["you","have"]
-                       ])
+        c = StopWords([  ["dog"],
+                         ["I","like"],
+                         ["you","have"] ])
             
         # finally, you can pass a full database of ngrams                
-        c = Collection([
-                         # list of one grams
-                         [["cat"],["dog"]],
+        c = StopWords([    [["cat"],["dog"]],
                          
-                         # list of two-grams
-                         [["I","like"],["you","have"]]
-                       ])
-        """
-        
+                           [["I","like"],["you","have"]]])"""
+ 
         self.locale = locale
         try:
             self.lang, self.encoding = locale.split(':') 
@@ -45,24 +36,44 @@ class Collection (object):
             self.encoding = 'utf-8'
 	self.encoding = self.encoding.lower()
         self.words = [[]]
-        
-        # if we have a list (or nested lists) as argument
+
         if isinstance(arg, list):
-            if isinstance(arg[0], list):
-                if isinstance(arg[0][0], list):
-                    self.words += arg
-                else:
-                    for ngram in arg:
+            self.__list(arg)
+        else:
+            protocol, path = arg.split("://")
+            if protocol == "file":
+                self.__file(path)
+            elif protocol == "nltk":
+                self.__nltk(path)
+
+    def __nltk(self, lang):
+        try:
+            import nltk.corpus
+        except:
+            raise Excpetion("you need to install NLTK library")
+        try:
+            from nltk.corpus import stopwords
+            for word in stopwords.words(lang):
+                self.add([word])
+        except ImportError, err:
+            raise Exception("you need to install the 'stopwords' corpus for nltk")
+
+    def __file(self, arg):
+        for line in codecs.open("%s"%arg, "r", self.encoding).readlines():
+            self.add(line.strip().split(" "))
+
+    def __list(self, lst):
+        if isinstance(lst[0], list):
+            if isinstance(lst[0][0], list):
+                for length in lst:
+                    for ngram in length:
                         self.add(ngram)
             else:
-                self.words += [   [ [w] for w in arg ]   ]
-        
-        # if we have a file name
+                for ngram in lst:
+                    self.add(ngram)
         else:
-            import codecs
-            file = codecs.open("%s"%arg, "r", self.encoding)
-            for line in file.readlines():
-                self.add(line.strip().split(" "))
+            for word in lst:
+                self.add([word])
 
     def add(self, ngram):
         if not isinstance(ngram,list):
@@ -109,26 +120,4 @@ class Collection (object):
             if not self.contains([word]):
                 cleaned += [ word ] 
         return " ".join(cleaned)
-                
-        
-class NLTKCollection (Collection):
-    """A StopWord Collection based on NLTK"""
-    def __init__(self, locale='en_US:UTF-8', **options):
-        words = []
-        lang = locale.split(':')[0]
-        try:
-            import nltk
-        except:
-            raise Exception("you need to install nltk")
-        try:
-            from nltk.corpus import stopwords
-            stopwords_table = {  'en_US' : 'english', 'en_UK' : 'english',
-                                 'fr_FR' : 'french' }
-            try:
-                words += stopwords.words(stopwords_table[lang])
-            except:
-                raise Exception("nltk stopwords corpus does not recognize language \"%s\""%lang)
-        except ImportError, err:
-            raise Exception("you need to install the 'stopwords' corpus for nltk")
-        Collection.__init__(self, words, locale, **options)
 
