@@ -57,7 +57,14 @@ class Collection (object):
         """
         
         self.locale = locale
-
+        try:
+            self.lang, self.encoding = locale.split(':') 
+        except:
+            self.lang = locale.split(':')[0]
+            import sys
+            self.encoding = sys.getdefaultencoding()
+	self.encoding = self.encoding.lower()
+     
         self.words = [[]]
         
         # if we have a list (or nested lists) as argument
@@ -84,17 +91,11 @@ class Collection (object):
         while len(self.words) < len(ngram) + 1:
             self.words+=[[]]
 
-        self.words[len(ngram)] += [ ngram ]
+        self.words[len(ngram)] += [ [word.encode(self.encoding) for word in ngram] ]
         
     def __len__(self):
         """ return the length of the ngram"""
         return len(self.words)
-
-    def __str__(self):
-        return self.str.encode(self.encoding)
-        
-    def __repr__(self):
-        return self.str.encode(self.encoding)
  
     def __getitem__(self, length):
         while len(self.words) < length + 1:
@@ -138,11 +139,8 @@ class NLTKCollection (Collection):
         except:
             raise Exception("you need to install the 'nltk' module to use this collection")
         from nltk.corpus import stopwords   
-        try:
-            lang, encoding = locale.split(':') 
-        except:
-            lang = locale.split(':')[0]
-            encoding = 'UTF-8'
+        lang = locale.split(':')[0]
+
         words = []
         
         if lang == 'en_US':
