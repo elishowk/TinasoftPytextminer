@@ -25,9 +25,24 @@ class RegexpTokenizer():
         return sanitized
 
     @staticmethod
-    def tokenize( text, separator ):
+    def tokenize( text, separator, minSize=2, maxSize=255 ):
         tokens = re.split( separator, text )
+        tokens = self.filterBySize( tokens, minSize, maxSize )
         return tokens
+
+    @staticmethod
+    def filterBySize( words, min, max ):
+        """Filter a list of word by size
+
+        > filterBySize(["a", "aaa", "aa", "aaaa", "aa"], min=2 , max=3)
+        ["aaa", "aa", "aa"]
+        """
+        filtered = []
+        for word in words:
+            length = len(word)
+            if length >= min and length <= max:
+                filtered += [ word ]
+        return filtered
 
     @staticmethod
     def ngrams( minSize, maxSize, tokens, emptyString):
@@ -54,9 +69,10 @@ class WordPunctTokenizer(RegexpTokenizer):
     and non-alphabetic characters
     """
     @staticmethod
-    def tokenize( text ):
+    def tokenize( text, minSize=2, maxSize=255 ):
         sentences = nltk.sent_tokenize(text)
         sentences = [nltk.WordPunctTokenizer().tokenize(sent) for sent in sentences]
+        sentences = self.filterBySize( sentences, minSize, maxSize )
         return sentences
     
     # TODO : keep the sentence structure ?
