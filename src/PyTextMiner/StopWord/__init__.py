@@ -3,95 +3,88 @@
 #parametres = langue, longueur de ngrams, nombre caractères de chaque mot
 #objet chargeant un fichier stopwords donné à l'initialisation ?
 
-class Word (object):
-    """A stop word"""
-    
-    def __init__(self, word, score=1.0):
-        """construct a new Stopword from a string. 
-        Optional argument: score"""
-        self.word = word
-        self.score = score
+import codecs
 
-    def __str__(self):
-        return self.word.__str__()
-        
-    def __repr__(self):
-        return self.word.__repr__()
-        
-    def __len__(self):
-        """return the number of characters comprised in the word"""
-        return len(self.word)
-
-        
-class Collection (object):
-    """A StopWord Collection"""
+class StopWords (object):
+    """StopWords"""
     
     def __init__(self, arg, locale='en_US:UTF-8'):
-        """Usage:
-        
+        """
         # you can pass a simple list of words
-        c = Collection(["cat","dog"])
+        c = StopWords(["cat","dog"])
         
         # normally you pass a list of n-grams with consistent length 
         # eg. len = 2 for 2-grams
-        c = Collection([
-                          ["I","like"],
-                          ["you","have"]
-                       ])
+        c = StopWords([  ["I","like"],
+                         ["you","have"] ])
                        
         # but you can also pass a list of n-grams with unconsistent size
-        c = Collection([
-                          ["dog"],
-                          ["I","like"],
-                          ["you","have"]
-                       ])
+        c = StopWords([  ["dog"],
+                         ["I","like"],
+                         ["you","have"] ])
             
         # finally, you can pass a full database of ngrams                
-        c = Collection([
-                         # list of one grams
-                         [["cat"],["dog"]],
+        c = StopWords([    [["cat"],["dog"]],
                          
-                         # list of two-grams
-                         [["I","like"],["you","have"]]
-                       ])
-        """
-        
+                           [["I","like"],["you","have"]]])"""
+ 
         self.locale = locale
         try:
             self.lang, self.encoding = locale.split(':') 
         except:
             self.lang = locale.split(':')[0]
-            import sys
             self.encoding = 'utf-8'
 	    self.encoding = self.encoding.lower()
         self.words = [[]]
-        
-        # if we have a list (or nested lists) as argument
+
         if isinstance(arg, list):
-            if isinstance(arg[0], list):
-                if isinstance(arg[0][0], list):
-                    self.words += arg
-                else:
-                    for ngram in arg:
+            self.__list(arg)
+        else:
+            protocol, path = arg.split("://")
+            if protocol == "file":
+                self.__file(path)
+            elif protocol == "nltk":
+                self.__nltk(path)
+
+    def __nltk(self, lang):
+        try:
+            import nltk.corpus
+        except:
+            raise Excpetion("you need to install NLTK library")
+        try:
+            from nltk.corpus import stopwords
+            for word in stopwords.words(lang):
+                self.add([word])
+        except ImportError, err:
+            raise Exception("you need to install the 'stopwords' corpus for nltk")
+
+    def __file(self, arg):
+        for line in codecs.open("%s"%arg, "r", self.encoding).readlines():
+            self.add(line.strip().split(" "))
+
+    def __list(self, lst):
+        if isinstance(lst[0], list):
+            if isinstance(lst[0][0], list):
+                for length in lst:
+                    for ngram in length:
                         self.add(ngram)
             else:
-                self.words += [   [ [w] for w in arg ]   ]
-        
-        # if we have a file name
+                for ngram in lst:
+                    self.add(ngram)
         else:
-            #try:
-            import codecs
-            file = codecs.open("%s"%arg, "r", self.encoding)
-            for line in file.readlines():
-                self.add(line.strip().split(" "))
+            for word in lst:
+                self.add([word])
 
     def add(self, ngram):
         if not isinstance(ngram,list):
             raise Exception("%s is not a valid ngram (not a list)"%ngram)
         while len(self.words) < len(ngram) + 1:
             self.words+=[[]]
-
-        self.words[len(ngram)] += [ [word.encode(self.encoding) for word in ngram] ]
+	try:
+	    ngram = [word.encode(self.encoding) for word in ngram] 
+        except:
+            pass
+        self.words[len(ngram)] += [ ngram ]
         
     def __len__(self):
         """ return the length of the ngram"""
@@ -127,33 +120,4 @@ class Collection (object):
             if not self.contains([word]):
                 cleaned += [ word ] 
         return " ".join(cleaned)
-                
-        
-class NLTKCollection (Collection):
-    """A StopWord Collection"""
-    
-    def __init__(self, locale='en_US:UTF-8', **options):
-        try:
-            import nltk
-        except:
-            raise Exception("you need to install the 'nltk' module to use this collection")
-        from nltk.corpus import stopwords   
-        lang = locale.split(':')[0]
-
-        words = []
-        
-        if lang == 'en_US':
-            try:
-                words += stopwords.words('english')
-            except:
-                raise Exception("you need to install the 'Stopwords english' corpus for nltk")
-        elif lang == 'fr_FR':
-            try:
-                words += stopwords.words('french')
-            except:
-                raise Exception("you need to install the 'Stopwords french' corpus for nltk")
-        else:
-            raise Exception("nltk stopword list only support English language")
-            
-        Collection.__init__(self, words, locale, **options)
 
