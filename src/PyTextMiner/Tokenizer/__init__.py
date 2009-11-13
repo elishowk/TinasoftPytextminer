@@ -28,7 +28,8 @@ class RegexpTokenizer():
     def tokenize( text, separator, minSize=2, maxSize=255 ):
         tokens = re.split( separator, text )
         tokens = self.filterBySize( tokens, minSize, maxSize )
-        return tokens
+        lowerTokens = [ tok.lower() for tok in tokens ]
+        return lowerTokens
 
     @staticmethod
     def filterBySize( words, min, max ):
@@ -45,21 +46,27 @@ class RegexpTokenizer():
         return filtered
 
     @staticmethod
-    def ngrams( minSize, maxSize, tokens, emptyString):
+    def ngramize( minSize, maxSize, tokens, emptyString, stopwords ):
         ngrams = set()
+        count=0
         for n in range( minSize, maxSize +1 ):
-            for i in range(len(tokens)):
+            for i in range(len(tokens)): 
                 if len(tokens) >= i+n:
-                    representation = emptyString.join( tokens[i:n+i] )
-                    newngram = NGram(
-                                ngram = tokens[i:n+i],
-                                occs = 1,
-                                strRepr = representation,
-                    )
-                    if newngram in ngrams:
-                        ngrams[ newngram ].occs += 1
+                    if stopwords.contains( tokens[i:n+i] ) is False:
+                        representation = emptyString.join( tokens[i:n+i] )
+                        newngram = NGram(
+                                    ngram = tokens[i:n+i],
+                                    occs = 1,
+                                    strRepr = representation,
+                        )
+                        if newngram in ngrams:
+                            ngrams[ newngram ].occs += 1
+                        else:
+                            ngrams.add( newngram )
                     else:
-                        ngrams.add( newngram )
+                        print "STOP !!"
+                        count += 1
+        print count
         return ngrams
 
 class WordPunctTokenizer(RegexpTokenizer):
@@ -71,26 +78,32 @@ class WordPunctTokenizer(RegexpTokenizer):
     @staticmethod
     def tokenize( text, minSize=2, maxSize=255 ):
         sentences = nltk.sent_tokenize(text)
-        sentences = [nltk.WordPunctTokenizer().tokenize(sent) for sent in sentences]
+        sentences = [nltk.WordPunctTokenizer().tokenize(sent.lower()) for sent in sentences]
         sentences = self.filterBySize( sentences, minSize, maxSize )
         return sentences
     
     # TODO : keep the sentence structure ?
     @staticmethod
-    def ngrams( minSize, maxSize, tokens, emptyString):
+    def ngramize( minSize, maxSize, tokens, emptyString, stopwords ):
         ngrams = set()
+        count =0
         for n in range( minSize, maxSize +1 ):
             for sent in tokens:
                 for i in range(len(sent)):
                     if len(sent) >= i+n:
-                        representation = emptyString.join( sent[i:n+i] )
-                        newngram = NGram(
-                                    ngram = sent[i:n+i],
-                                    occs = 1,
-                                    strRepr = representation,
-                        )
-                        if newngram in ngrams:
-                            ngrams[ newngram ].occs += 1
+                        if stopwords.contains( sent[i:n+i] ) is False:
+                            representation = emptyString.join( sent[i:n+i] )
+                            newngram = NGram(
+                                        ngram = sent[i:n+i],
+                                        occs = 1,
+                                        strRepr = representation,
+                            )
+                            if newngram in ngrams:
+                                ngrams[ newngram ].occs += 1
+                            else:
+                                ngrams.add( newngram )
                         else:
-                            ngrams.add( newngram )
+                            print "STOP !!"
+                            count +=1
+        print count
         return ngrams
