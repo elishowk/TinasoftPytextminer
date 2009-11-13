@@ -59,7 +59,7 @@ class TestStopWords(unittest.TestCase):
         self.assertEquals(
               stopwords.clean(
                  "Hello, I like cats, but my girlfriend has a dog"),
-                 "Hello, like cats, girlfriend dog")
+                 "Hello, I like cats, girlfriend dog")
                  
     def test_nltk_fr(self):    
         stopwords = PyTextMiner.StopWord.NLTKCollection(locale="fr_FR")

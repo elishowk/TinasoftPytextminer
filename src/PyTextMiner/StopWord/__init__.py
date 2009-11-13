@@ -62,9 +62,8 @@ class Collection (object):
         except:
             self.lang = locale.split(':')[0]
             import sys
-            self.encoding = sys.getdefaultencoding()
+            self.encoding = 'utf-8'
 	self.encoding = self.encoding.lower()
-     
         self.words = [[]]
         
         # if we have a list (or nested lists) as argument
@@ -81,7 +80,8 @@ class Collection (object):
         # if we have a file name
         else:
             #try:
-            file = open(arg, "r")
+            import codecs
+            file = codecs.open("%s"%arg, "r", self.encoding)
             for line in file.readlines():
                 self.add(line.strip().split(" "))
 
