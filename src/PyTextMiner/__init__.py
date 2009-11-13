@@ -8,6 +8,7 @@ from Target import Target
 from NGram import NGram
 from Tokenizer import *
 from CoWord import *
+from StopWord import *
 
 """PyTextMiner Module"""
 class PyTextMiner:

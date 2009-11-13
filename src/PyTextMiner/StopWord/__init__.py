@@ -113,10 +113,9 @@ class Collection (object):
             t = ngram[0]
         except:
             raise Exception("%s is not a valid ngram"%ngram)
-            
         for stopngram in self[len(ngram)]:
             for i in range(0, len(ngram)):
-                if stopngram[i].lower() == ngram[i].lower():
+                if stopngram[i] == ngram[i]:
                     return True
         return False
         
