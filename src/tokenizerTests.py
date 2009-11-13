@@ -78,7 +78,8 @@ class TokenizerTests:
                     target.sanitizedTarget = PyTextMiner.Tokenizer.RegexpTokenizer.sanitize( input=target.rawTarget, forbiddenChars=target.forbiddenChars, emptyString=target.emptyString );
                     
                     #print target.sanitizedTarget
-                    target.tokens = PyTextMiner.Tokenizer.RegexpTokenizer.tokenize( text=target.sanitizedTarget, separator=target.separator )
+                    target.tokens = PyTextMiner.Tokenizer.RegexpTokenizer.tokenize( text=target.sanitizedTarget, separator=target.separator, emptyString=target.emptyString )
+                    target.tokens = PyTextMiner.Tokenizer.RegexpTokenizer.filterBySize( target.tokens )
                     target.ngrams = PyTextMiner.Tokenizer.RegexpTokenizer.ngramize(
                         minSize=target.minSize,
                         maxSize=target.maxSize,
@@ -98,7 +99,8 @@ class TokenizerTests:
                     #print target
                     target.sanitizedTarget = PyTextMiner.Tokenizer.WordPunctTokenizer.sanitize( input=target.rawTarget, forbiddenChars=target.forbiddenChars, emptyString=target.emptyString  );
                     #print target.sanitizedTarget
-                    target.tokens = PyTextMiner.Tokenizer.WordPunctTokenizer.tokenize( text=target.sanitizedTarget )
+                    target.tokens = PyTextMiner.Tokenizer.WordPunctTokenizer.tokenize( text=target.sanitizedTarget, emptyString=target.emptyString )
+                    target.tokens = PyTextMiner.Tokenizer.WordPunctTokenizer.filterBySize( target.tokens )
                     target.ngrams = PyTextMiner.Tokenizer.WordPunctTokenizer.ngramize(
                         minSize=target.minSize,
                         maxSize=target.maxSize,

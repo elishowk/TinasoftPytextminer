@@ -31,7 +31,7 @@ class StopWords (object):
         except:
             self.lang = locale.split(':')[0]
             self.encoding = 'utf-8'
-	self.encoding = self.encoding.lower()
+	    self.encoding = self.encoding.lower()
         self.words = [[]]
 
         if isinstance(arg, list):
