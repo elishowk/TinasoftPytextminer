@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 
-#parametres = langue, longueur de ngrams, nombre caractères de chaque mot
-#objet chargeant un fichier stopwords donné à l'initialisation ?
-
 import codecs
 
 class StopWords (object):
@@ -43,6 +40,8 @@ class StopWords (object):
             protocol, path = arg.split("://")
             if protocol == "file":
                 self.__file(path)
+            elif protocol == "http":
+                self.__file("http://"+path)
             elif protocol == "nltk":
                 self.__nltk(path)
 
