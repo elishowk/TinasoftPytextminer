@@ -53,8 +53,8 @@ class CoWordTest:
     def test_cowords(self, corpus, type):
         sa = PyTextMiner.CoWord.SimpleAnalysis()
         cowords = sa.getCowords( corpus, type )
-        #pp = pprint.PrettyPrinter(indent=4)
-        #pp.pprint( cowords )
+        pp = pprint.PrettyPrinter(indent=4)
+        pp.pprint( cowords )
     
 
 if __name__ == '__main__':
