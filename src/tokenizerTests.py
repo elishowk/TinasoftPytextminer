@@ -47,7 +47,7 @@ class TokenizerTests:
         self.locale = locale
         # initialize stopwords object
         try:
-            self.stopwords = PyTextMiner.StopWord.Collection("t/stopwords/fr.txt", locale="fr_FR")
+            self.stopwords = PyTextMiner.StopWords("file://t/stopwords/fr.txt", locale="fr_FR")
         except:
             print "unable to find the stopwords file"
 
