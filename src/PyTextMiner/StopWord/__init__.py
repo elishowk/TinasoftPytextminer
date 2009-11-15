@@ -79,10 +79,10 @@ class StopWords (object):
             raise Exception("%s is not a valid ngram (not a list)"%ngram)
         while len(self.words) < len(ngram) + 1:
             self.words+=[[]]
-	try:
-	    ngram = [word.encode(self.encoding) for word in ngram] 
-        except:
-            pass
+        #try:
+        #    ngram = [word.encode(self.encoding) for word in ngram]
+        #except:
+        #    pass
         self.words[len(ngram)] += [ ngram ]
         
     def __len__(self):
@@ -107,12 +107,15 @@ class StopWords (object):
         except:
             raise Exception("%s is not a valid ngram"%ngram)
         for stopngram in self[len(ngram)]:
+            if " ".join( stopngram ) == " ".join( ngram ):
+                return True
             for i in range(0, len(ngram)):
-                if stopngram[i] == ngram[i]:
-                    return True
+                for j in range(0, len(stopngram)):
+                    if stopngram[j] == ngram[i]:
+                        return True
         return False
         
-    def clean(self, string, length=1):
+    def clean( self, string ):
         """Obsolete - Clean a string from its 1-grams"""
         cleaned = []
         for word in string.split(" "):

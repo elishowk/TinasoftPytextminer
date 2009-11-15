@@ -26,6 +26,7 @@ class RegexpTokenizer():
 
     @staticmethod
     def cleanPunct( text, emptyString, punct=u'[\,\.\;\:\!\?\"\'\[\]\{\}\(\)\<\>]' ):
+        #print text
         noPunct = re.sub( punct, emptyString, text )
         return noPunct
 
@@ -68,7 +69,6 @@ class RegexpTokenizer():
                         else:
                             ngrams.add( newngram )
                     else:
-                        print "STOP !!"
                         count += 1
         print count
         return ngrams
@@ -106,7 +106,6 @@ class WordPunctTokenizer(RegexpTokenizer):
                             else:
                                 ngrams.add( newngram )
                         else:
-                            print "STOP !!"
                             count +=1
         print count
         return ngrams
