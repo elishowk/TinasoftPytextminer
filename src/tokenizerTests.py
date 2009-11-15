@@ -82,7 +82,7 @@ class TokenizerTests:
                     #target.sanitizedTarget = self.stopwords.clean( target.sanitizedTarget )
                     #target.sanitizedTarget = PyTextMiner.Tokenizer.RegexpTokenizer.filterBySize( target.sanitizedTarget )
                     #print target.sanitizedTarget
-                    tokens = PyTextMiner.Tokenizer.RegexpTokenizer.tokenize( text=target.sanitizedTarget, separator=target.separator, emptyString=target.emptyString )
+                    tokens = PyTextMiner.Tokenizer.RegexpTokenizer.tokenize( text=target.sanitizedTarget, separator=target.separator, emptyString=target.emptyString, stopwords=self.stopwords )
                     target.tokens = PyTextMiner.Tokenizer.RegexpTokenizer.filterBySize( tokens )
                     print target.tokens
                     target.ngrams = PyTextMiner.Tokenizer.RegexpTokenizer.ngramize(

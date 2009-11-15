@@ -36,7 +36,7 @@ class RegexpTokenizer():
         tokens = re.split( separator, noPunct )
         cleanTokens = []
         for tok in tokens:
-            if stopwords.contains( tok ) is False:
+            if stopwords.contains( [tok] ) is False:
                 cleanTokens += tok
         return tokens
 

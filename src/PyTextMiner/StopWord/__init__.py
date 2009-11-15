@@ -110,11 +110,15 @@ class StopWords (object):
             # stops if all ngram equals stopngram
             if " ".join( stopngram ) == " ".join( ngram ):
                 return True
-            # stops if one word included in stopngram
-            #for i in range(0, len(ngram)):
+            # stops if all ngram composed of stop1gram
+            stopCount=0
+            stop1gram = self[1]
+            for i in range(0, len(ngram)):
             #    for j in range(0, len(stopngram)):
-            #        if stopngram[j] == ngram[i]:
-            #            return True
+                if stop1gram[0] == ngram[i]:
+                    stopCount +=1
+            if stopCount == len(ngram):
+                return True
         return False
         
     def clean( self, string ):
