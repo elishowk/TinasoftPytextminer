@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import codecs
+#import difflib
 
 class StopWords (object):
     """StopWords"""
@@ -108,17 +109,18 @@ class StopWords (object):
             raise Exception("%s is not a valid ngram"%ngram)
         for stopngram in self[len(ngram)]:
             # stops if all ngram equals stopngram
-            if " ".join( stopngram ) == " ".join( ngram ):
+            if len(list(set(ngram).difference(set(stopngram)))) == 0:
+                list(set(ngram).difference(set(stopngram)))
                 return True
             # stops if all ngram composed of stop1gram
             stopCount=0
-            stop1gram = self[1]
-            for i in range(0, len(ngram)):
+            #stop1gram = self[1]
+            #for i in range(0, len(ngram)):
             #    for j in range(0, len(stopngram)):
-                if stop1gram[0] == ngram[i]:
-                    stopCount +=1
-            if stopCount == len(ngram):
-                return True
+            #    if stop1gram[0] == ngram[i]:
+            #        stopCount +=1
+            #if stopCount == len(ngram):
+            #    return True
         return False
         
     def clean( self, string ):

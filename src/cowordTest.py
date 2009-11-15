@@ -35,13 +35,15 @@ class Tests(unittest.TestCase):
 
     def test1_wordpunct_tokenizer_storage(self):
         tokenizerTester = TokenizerTests( self.data, self.locale )
-        corpora = tokenizerTester.wordpunct_tokenizer( 1 );
+        corpora = tokenizerTester.init_corpus( 1 )
+        corpora = tokenizerTester.wordpunct_tokenizer( corpora );
         coword = CoWordTest()
         coword.test_cowords( corpora.corpora[0], type='testType' )
 
     def test2_regexp_tokenizer_storage(self):
         tokenizerTester = TokenizerTests( self.data, self.locale )
-        corpora = tokenizerTester.regexp_tokenizer( 1 );
+        corpora = tokenizerTester.init_corpus( 1 )
+        corpora = tokenizerTester.regexp_tokenizer( corpora );
         coword = CoWordTest()
         coword.test_cowords( corpora.corpora[0], type='testType' )
 

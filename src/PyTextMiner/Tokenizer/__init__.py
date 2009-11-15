@@ -35,10 +35,13 @@ class RegexpTokenizer():
         noPunct = RegexpTokenizer.cleanPunct( text, emptyString )
         tokens = re.split( separator, noPunct )
         cleanTokens = []
+        count=0
         for tok in tokens:
             if stopwords.contains( [tok] ) is False:
-                cleanTokens += tok
-        return tokens
+                count += 1
+                cleanTokens += [tok]
+        print count
+        return cleanTokens
 
     @staticmethod
     def filterBySize( words, min=2, max=255 ):
@@ -84,9 +87,17 @@ class WordPunctTokenizer(RegexpTokenizer):
     and non-alphabetic characters
     """
     @staticmethod
-    def tokenize( text, emptyString ):
+    def tokenize( text, emptyString, stopwords ):
         sentences = nltk.sent_tokenize(text)
         sentences = [nltk.WordPunctTokenizer().tokenize(RegexpTokenizer.cleanPunct( sent, emptyString)) for sent in sentences]
+        cleanTokens = []
+        count=0
+        for tokens in sentences:
+            for tok in tokens:
+                if stopwords.contains( [tok] ) is False:
+                    count += 1
+                    cleanTokens += [tok]
+        print count
         return sentences
     
     # TODO : keep the sentence structure ?
