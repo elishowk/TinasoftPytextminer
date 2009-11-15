@@ -31,9 +31,13 @@ class RegexpTokenizer():
         return noPunct
 
     @staticmethod
-    def tokenize( text, separator, emptyString ):
+    def tokenize( text, separator, emptyString, stopwords ):
         noPunct = RegexpTokenizer.cleanPunct( text, emptyString )
         tokens = re.split( separator, noPunct )
+        cleanTokens = []
+        for tok in tokens:
+            if stopwords.contains( tok ) is False:
+                cleanTokens += tok
         return tokens
 
     @staticmethod

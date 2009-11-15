@@ -78,8 +78,8 @@ class TokenizerTests:
             for document in corpus.documents:
                 for target in document.targets:
                     print "----- RegexpTokenizer ----\n"
-                    target.sanitizedTarget = PyTextMiner.Tokenizer.RegexpTokenizer.sanitize( input=target.rawTarget, forbiddenChars=target.forbiddenChars, emptyString=target.emptyString );
-                    target.sanitizedTarget = self.stopwords.clean( target.sanitizedTarget )
+                    target.sanitizedTarget = PyTextMiner.Tokenizer.RegexpTokenizer.sanitize( input=target.rawTarget, forbiddenChars=target.forbiddenChars, emptyString=target.emptyString )
+                    #target.sanitizedTarget = self.stopwords.clean( target.sanitizedTarget )
                     #target.sanitizedTarget = PyTextMiner.Tokenizer.RegexpTokenizer.filterBySize( target.sanitizedTarget )
                     #print target.sanitizedTarget
                     tokens = PyTextMiner.Tokenizer.RegexpTokenizer.tokenize( text=target.sanitizedTarget, separator=target.separator, emptyString=target.emptyString )
