@@ -10,7 +10,7 @@ from PyTextMiner import Data
         
 class Model (object):
     def __init__(self, lines):
-	    binds = { 
+        binds = { 
             "TI"  : ("title",str),
             "AB"  : ("abstract",str),
             "AU"  : ("author",str),
@@ -18,9 +18,7 @@ class Model (object):
             "JT"  : ("pubname",str),
             "DP"  : ("pubdate",datetime)
         }
-    
         buff = ""
-
         for line in lines:
             prefix = line[:4].strip().upper()
             raw =  line[6:]
@@ -53,7 +51,7 @@ class Importer (Data.Importer):
         self.locale =  locale
         self.lang,self.encoding = self.locale.split(':')
         file = codecs.open(path, "rU", self.encoding)
-        self.documents = MedlineFile._load_documents(file, self.locale)
+        self.documents = Importer._load_documents(file, self.locale)
         self.corpus = Corpus( name=path, documents=self.documents )
 
     @staticmethod

@@ -4,13 +4,16 @@ import codecs
 import csv
 import PyTextMiner
 
+#corpusID;docID;docAuthor;docTitle;docAbstract;index1;index2
+
 class Importer (PyTextMiner.Data.Importer):
     def __init__(self,
             filepath,
             corpusName='test-csv-corpus',
-            titleField='title',
+            
+            titleField='docTitle',
             timestampField='date',
-            contentField='summary',
+            contentField='docAbstract',
             delimiter=';',
             quotechar='"'
         ):

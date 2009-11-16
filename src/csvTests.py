@@ -16,8 +16,11 @@ class TestDataFET(unittest.TestCase):
         pass
 
     def test_proposal(self):
-        fet = Reader("fet://t/data-proposal.csv", 'data-proposal') 
-        print fet.corpus
- 
+        fet = Reader("fet://t/data-proposal.csv", 'data-proposal')
+        corpus = fet.corpus
+        print "   corpus:",corpus.name
+        for document in corpus.documents:
+            print "document:",document.title
+            
 if __name__ == '__main__':
     unittest.main()
