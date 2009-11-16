@@ -9,8 +9,7 @@ import PyTextMiner
 class Importer (PyTextMiner.Data.Importer):
     def __init__(self,
             filepath,
-            corpusName='test-csv-corpus',
-            
+            corpusName='test-csv-corpus', 
             titleField='docTitle',
             timestampField='date',
             contentField='docAbstract',

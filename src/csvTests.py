@@ -17,15 +17,23 @@ class TestData(unittest.TestCase):
     def setUp(self):
         # try to determine the locale of the current system
         try:
-            self.locale = 'fr_FR.UTF-8'
+            self.locale = 'en_US.UTF-8'
             locale.setlocale(locale.LC_ALL, self.locale)
         except:
-            self.locale = 'en_US.UTF-8'
+            self.locale = 'fr_FR.UTF-8'
             locale.setlocale(locale.LC_ALL, self.locale)
         self.stopwords = "file://t/stopwords/en.txt" 
 
     def test_proposal(self):
-        fet = Reader("fet://t/data-proposal.csv", 'data-proposal')
+        fet = Reader( filepath="fet://t/data-proposal.csv",
+            corpusname="fet://t/data-proposal.csv",
+            titleField='docTitle',
+            datetime='2009-17-11',
+            contentField='docAbstract',
+            locale=self.locale,
+            minSize=1,
+            maxSize=4,
+        )
         corpora = PyTextMiner.Corpora(id="TestCorpora1")
         corpus = fet.corpus
         corpora.corpora = [corpus]
