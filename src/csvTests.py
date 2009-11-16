@@ -30,7 +30,7 @@ class TestData(unittest.TestCase):
 
         fet = PyTextMiner.Data.fet.Importer(
             "t/data-proposal.csv",
-            corpusname="fet://t/data-proposal.csv",
+            corpusName="fet://t/data-proposal.csv",
             corpusNumberField=0,
             titleField='docTitle',
             datetime='2009-11-17',
@@ -42,15 +42,21 @@ class TestData(unittest.TestCase):
         corpora = PyTextMiner.Corpora(id="TestCorpora1")
         corpus = fet.corpus
         corpora.corpora = [corpus]
-        print "   corpus:",corpus.name
+        print "corpus name :",corpus.name
         for document in corpus.documents:
-            print "document:",document.title
+            print "document title:",document.title
         data = None
         tokenizerTester = TokenizerTests( data, self.locale, self.stopwords )
         corpora = tokenizerTester.wordpunct_tokenizer( corpora )
-        storage = Storage("file://t/output/csv_test", serializer="json")
-        storage["corpora"] = corpora
-        #storage.save()
+        storage = Storage("file://t/output", serializer="yaml")
+        storage[corpora.id] = corpora
+        storage.save()
+        del storage
+        del corpora
+        storage2 = Storage("file://t/output", serializer="yaml")
+        corpora2 = storage2[ "TestCorpora1" ]
+        tokenizerTester.print_corpora( corpora2 )
+
             
 if __name__ == '__main__':
     unittest.main()

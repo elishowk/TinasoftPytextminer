@@ -113,9 +113,9 @@ class TokenizerTests:
                         emptyString=target.emptyString, 
                         stopwords=self.stopwords
                     )
-                    print target.ngrams 
-            for ng in corpus.ngramDocFreq( targetType='testType' ):
-                print ng, " = ", ng.occs
+            ngDocFreqTable = corpus.ngramDocFreq( targetType='docAbstract' )
+            #for ng in ngDocCount:
+            #    print ngDocCount[ ng ], " = ", ngDocCount[ ng ].occs
         return corpora2
                      
     def regexp_tokenizer( self, corpora ):
@@ -146,13 +146,16 @@ class TokenizerTests:
 
     def print_corpora(self, corpora):
         for corpus in corpora.corpora:
-            print corpus
+            print corpus, corpus.number
+            for ng in corpus.ngramDocFreqTable.itervalues():
+                print ng, " = ", ng.occs 
             for document in corpus.documents:
-                print document
+                print document.author, document.number, document.date
                 for target in document.targets:
                     print target
-                    for ngram in target.ngrams:
-                        print ngram
+                    for ngram in target.ngrams.itervalues():
+                        print ngram, ngram.occs
+        print "print_corpora FINISHED"
 
 if __name__ == '__main__':
     unittest.main()

@@ -9,6 +9,7 @@ from NGram import NGram
 from Tokenizer import *
 from CoWord import *
 from StopWord import *
+from Data import *
 
 """PyTextMiner Module"""
 class PyTextMiner:

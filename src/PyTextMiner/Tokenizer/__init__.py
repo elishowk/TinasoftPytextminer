@@ -96,7 +96,7 @@ class WordPunctTokenizer(RegexpTokenizer):
     
     @staticmethod
     def ngramize( minSize, maxSize, tokens, emptyString, stopwords ):
-        ngrams = set()
+        ngrams = {}
         for n in range( minSize, maxSize +1 ):
             for sent in tokens:
                 for i in range(len(sent)):
@@ -110,8 +110,8 @@ class WordPunctTokenizer(RegexpTokenizer):
                                     occs = 1,
                                     strRepr = representation,
                         )
-                        if newngram in ngrams:
-                            ngrams[ newngram ].occs += 1
+                        if ngrams.has_key( newngram.id ):
+                            ngrams[ newngram.id ].occs += 1
                         else:
-                            ngrams.add( newngram )
+                            ngrams[ newngram.id ] = newngram
         return ngrams
