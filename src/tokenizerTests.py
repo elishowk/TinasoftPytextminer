@@ -33,23 +33,28 @@ class TestsTestCase(unittest.TestCase):
         except:
             self.locale = 'en_US.UTF-8'
             locale.setlocale(locale.LC_ALL, self.locale)
+        self.stopwords = "file://t/stopwords/en.txt"
                
     #def test2_regex_tokenizer(self):
     #    tokenizerTester = TokenizerTests( self.data, self.locale )
     #    corpora = tokenizerTester.init_corpus( 1 )
     #    corpora = tokenizerTester.regexp_tokenizer( corpora );
     def test1_wordpunct_tokenizer(self):
-        tokenizerTester = TokenizerTests( self.data, self.locale )
+        tokenizerTester = TokenizerTests( self.data, self.locale, self.stopwords )
         corpora2 = tokenizerTester.init_corpus( 1 )
         corpora2 = tokenizerTester.wordpunct_tokenizer( corpora2 );
 
 class TokenizerTests: 
-    def __init__( self, data, locale ):
+    def __init__( self, data, locale, stopwords=None ):
         self.data = data
         self.locale = locale
+        self.stopwords = stopwords
         # initialize stopwords object
         try:
-            self.stopwords = PyTextMiner.StopWords("file://t/stopwords/en.txt", locale="en_US")
+            self.stopwords = PyTextMiner.StopWords(
+                self.stopwords,
+                locale= self.locale
+            )
         except:
             print "unable to find the stopwords file"
 
@@ -71,7 +76,7 @@ class TokenizerTests:
                             type='testType',
                             locale=self.locale,
                             minSize=1,
-                            maxSize=3)],
+                            maxSize=4)],
                         author=doc['author'],
                         number=docnum,
                         )]
@@ -79,6 +84,40 @@ class TokenizerTests:
             newcorpora.corpora += [corpus]
         return newcorpora
 
+    def wordpunct_tokenizer( self, corpora2 ): 
+        for corpus in corpora2.corpora:
+            for document in corpus.documents:
+                for target in document.targets:
+
+                    print "----- WordPunctTokenizer ----\n"
+                    target.sanitizedTarget = PyTextMiner.Tokenizer.WordPunctTokenizer.sanitize(
+                        input=target.rawTarget,
+                        forbiddenChars=target.forbiddenChars,
+                        emptyString=target.emptyString
+                    )
+                    #print target.sanitizedTarget
+                    
+                    target.tokens = PyTextMiner.Tokenizer.WordPunctTokenizer.tokenize(
+                        text=target.sanitizedTarget,
+                        emptyString=target.emptyString,
+                        stopwords=self.stopwords
+                    )
+                    #for sentence in sentenceTokens:
+                    #    target.tokens.append( PyTextMiner.Tokenizer.WordPunctTokenizer.filterBySize( sentence ) )
+                    #print target.tokens
+                    
+                    target.ngrams = PyTextMiner.Tokenizer.WordPunctTokenizer.ngramize(
+                        minSize=target.minSize,
+                        maxSize=target.maxSize,
+                        tokens=target.tokens,
+                        emptyString=target.emptyString, 
+                        stopwords=self.stopwords
+                    )
+                    print target.ngrams 
+            for ng in corpus.ngramDocFreq( targetType='testType' ):
+                print ng, " = ", ng.occs
+        return corpora2
+                     
     def regexp_tokenizer( self, corpora ):
         for corpus in corpora.corpora:
             for document in corpus.documents:
@@ -101,42 +140,10 @@ class TokenizerTests:
                     )
                     #print(target.ngrams)
             corpus.ngramDocFreq()
+            # TODO enlever RAW
+            # TODO STORE
         return corpora
 
-    def wordpunct_tokenizer( self, corpora2 ): 
-        for corpus in corpora2.corpora:
-            for document in corpus.documents:
-                for target in document.targets:
-
-                    print "----- WordPunctTokenizer ----\n"
-                    target.sanitizedTarget = PyTextMiner.Tokenizer.WordPunctTokenizer.sanitize(
-                        input=target.rawTarget,
-                        forbiddenChars=target.forbiddenChars,
-                        emptyString=target.emptyString
-                    )
-                    #print target.sanitizedTarget
-                    
-                    target.tokens = PyTextMiner.Tokenizer.WordPunctTokenizer.tokenize(
-                        text=target.sanitizedTarget,
-                        emptyString=target.emptyString,
-                        stopwords=self.stopwords
-                    )
-                    #for sentence in sentenceTokens:
-                    #    target.tokens.append( PyTextMiner.Tokenizer.WordPunctTokenizer.filterBySize( sentence ) )
-                    print target.tokens
-                    
-                    target.ngrams = PyTextMiner.Tokenizer.WordPunctTokenizer.ngramize(
-                        minSize=target.minSize,
-                        maxSize=target.maxSize,
-                        tokens=target.tokens,
-                        emptyString=target.emptyString, 
-                        stopwords=self.stopwords
-                    )
-                    print target.ngrams 
-            for ng in corpus.ngramDocFreq( targetType='testType' ):
-                print ng, " = ", ng.occs
-        return corpora2
-                     
     def print_corpora(self, corpora):
         for corpus in corpora.corpora:
             print corpus
