@@ -50,7 +50,7 @@ class StopWords (object):
         try:
             import nltk.corpus
         except:
-            raise Excpetion("you need to install NLTK library")
+            raise Exception("you need to install NLTK library")
         try:
             from nltk.corpus import stopwords
             for word in stopwords.words(lang):
@@ -80,10 +80,6 @@ class StopWords (object):
             raise Exception("%s is not a valid ngram (not a list)"%ngram)
         while len(self.words) < len(ngram) + 1:
             self.words+=[[]]
-        #try:
-        #    ngram = [word.encode(self.encoding) for word in ngram]
-        #except:
-        #    pass
         self.words[len(ngram)] += [ ngram ]
         
     def __len__(self):
