@@ -22,7 +22,8 @@ class RegexpTokenizer():
         striped = string.strip( input )
         #replaces forbidden characters by a separator
         sanitized = re.sub( forbiddenChars, emptyString, striped )
-        return sanitized.lower()
+        #return sanitized.lower()
+        return sanitized
 
     @staticmethod
     def cleanPunct( text, emptyString, punct=u'[\,\.\;\:\!\?\"\[\]\{\}\(\)\<\>]' ):
@@ -34,14 +35,15 @@ class RegexpTokenizer():
     def tokenize( text, separator, emptyString, stopwords ):
         noPunct = RegexpTokenizer.cleanPunct( text, emptyString )
         tokens = re.split( separator, noPunct )
-        cleanTokens = []
-        count=0
-        for tok in tokens:
-            if stopwords.contains( [tok] ) is False:
-                count += 1
-                cleanTokens += [tok]
-        print "tokens stopped :", count
-        return cleanTokens
+        #cleanTokens = []
+        #count=0
+        #for tok in tokens:
+        #    if stopwords.contains( [tok] ) is False:
+        #        count += 1
+        #        cleanTokens += [tok]
+        #print "tokens stopped :", count
+        #return cleanTokens
+        return tokens
 
     @staticmethod
     def filterBySize( words, min=2, max=255 ):
@@ -89,38 +91,27 @@ class WordPunctTokenizer(RegexpTokenizer):
     @staticmethod
     def tokenize( text, emptyString, stopwords ):
         sentences = nltk.sent_tokenize(text)
-        sentences = [nltk.WordPunctTokenizer().tokenize(RegexpTokenizer.cleanPunct( sent, emptyString )) for sent in sentences]
-        #cleanTokens = []
-        #count=0
-        #for tokens in sentences:
-        #    for tok in tokens:
-        #        if stopwords.contains( [tok] ) is False:
-        #            count += 1
-        #            cleanTokens += [tok]
-        #print "tokens stopped :", count
+        sentences = [nltk.TreebankWordTokenizer().tokenize(RegexpTokenizer.cleanPunct( sent, emptyString )) for sent in sentences]
         return sentences
     
-    # TODO : keep the sentence structure ?
     @staticmethod
     def ngramize( minSize, maxSize, tokens, emptyString, stopwords ):
         ngrams = set()
-        count =0
         for n in range( minSize, maxSize +1 ):
             for sent in tokens:
                 for i in range(len(sent)):
                     if len(sent) >= i+n:
-                        if stopwords.contains( sent[i:n+i] ) is False:
-                            representation = emptyString.join( sent[i:n+i] )
-                            newngram = NGram(
-                                        ngram = sent[i:n+i],
-                                        occs = 1,
-                                        strRepr = representation,
-                            )
-                            if newngram in ngrams:
-                                ngrams[ newngram ].occs += 1
-                            else:
-                                ngrams.add( newngram )
+                        representation = emptyString.join( sent[i:n+i] )
+                        def lowerCase(w):
+                            return w.lower()
+                        newngram = NGram(
+                                    ngram = map( lowerCase, sent[i:n+i] ),
+                                    origin = sent[i:n+i],
+                                    occs = 1,
+                                    strRepr = representation,
+                        )
+                        if newngram in ngrams:
+                            ngrams[ newngram ].occs += 1
                         else:
-                            count +=1
-        print "ngrams stopped :", count
+                            ngrams.add( newngram )
         return ngrams

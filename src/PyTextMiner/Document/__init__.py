@@ -11,7 +11,8 @@ class Document:
             title=None,
             date=None,
             targets=None,
-            author=None):
+            author=None,
+            number=None):
             
         """Document constructor.
         arguments: corpus, content, title, date, targets"""
@@ -29,6 +30,7 @@ class Document:
             
         self.targets = targets
         self.author = author
+        self.number = number
 
     def __str__(self):
         #return self.rawContent.encode('utf-8')
