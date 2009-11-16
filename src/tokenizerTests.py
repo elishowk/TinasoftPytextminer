@@ -133,7 +133,7 @@ class TokenizerTests:
                         stopwords=self.stopwords
                     )
                     print target.ngrams 
-            corpus.ngramDocFreq( targetType='testType' )
+            print corpus.ngramDocFreq( targetType='testType' )
         return corpora2
                      
     def print_corpora(self, corpora):
