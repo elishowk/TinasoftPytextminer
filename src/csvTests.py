@@ -25,7 +25,7 @@ class TestData(unittest.TestCase):
         self.stopwords = "file://t/stopwords/en.txt" 
 
     def test_proposal(self):
-        fet = Reader("fet://t/data-proposal.csv", 'data-proposal')
+        fet = Reader("fet://t/data-proposal.csv", 'data-proposal', locale='en_US.UTF-8')
         corpora = PyTextMiner.Corpora(id="TestCorpora1")
         corpus = fet.corpus
         corpora.corpora = [corpus]

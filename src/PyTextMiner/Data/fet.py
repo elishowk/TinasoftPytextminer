@@ -11,3 +11,6 @@ from PyTextMiner.Data import basecsv
 
 class Importer (basecsv.Importer):
     pass
+    
+class Exporter (basecsv.Exporter):
+    pass
