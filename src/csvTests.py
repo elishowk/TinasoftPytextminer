@@ -1,24 +1,23 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from CSVTextMiner import CSVTextMiner
+__author__="jbilcke, Elias Showk"
+__date__ ="$Oct 20, 2009 5:29:16 PM$"
 
-#open the file
-csvfile = open("t/data-proposal.csv")
+# core modules
+import unittest
 
-#create CSVTextMiner object application
-csvApp = CSVTextMiner(corpusName="test-csv-corpus", file=csvfile, titleField='title', timestampField='date', contentField='summary', corporaID="csvCorporaTest")
+# pytextminer modules
+import PyTextMiner
+from PyTextMiner.Data import Reader, Writer
 
-#run the parsing of the corpus
-corpus = csvApp.createCorpus()
-print corpus
+class TestDataFET(unittest.TestCase):
+    def setUp(self):
+        pass
 
-print "end of CSVTextMiner usage tests";
-
-
-#        for d in csv.documents:
-#            print "\n",d
-#            print d.rawContent
-#            print d.date
-#
-
+    def test_proposal(self):
+        fet = Reader("fet://t/data-proposal.csv", 'data-proposal') 
+        print fet.corpus
+ 
+if __name__ == '__main__':
+    unittest.main()

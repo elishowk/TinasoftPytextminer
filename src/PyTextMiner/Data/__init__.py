@@ -2,86 +2,54 @@
 
 from datetime import datetime
 import codecs
-
 import PyTextMiner
-from  PyTextMiner import Target, Document, Corpus
 
 class Importer (object):
     def __init__(self):
         pass
 
-class MedlineDocParser (object):
-    def __init__(self, lines):
-	binds = { 
-            "TI"  : ("title",str),
-            "AB"  : ("abstract",str),
-            "AU"  : ("author",str),
-            "FAU" : ("fullname",str),
-            "JT"  : ("pubname",str),
-            "DP"  : ("pubdate",datetime)
-	}
+class Exporter (object):
+    def __init__(self):
+        pass
 
-        buff = ""
+ 
+def _get_locale(locale='en_US:UTF-8'):
+    try:
+        lang, encoding = locale.split(':') 
+        return lang, encoding.lower()
+    except:
+        return locale.split(':')[0], 'utf-8'
 
-        for line in lines:
-            prefix = line[:4].strip().upper()
-            raw =  line[6:]
-
-            if len(buff) > 0 and prefix == "":
-                buff = "%s%s" % (buff,raw)
-
-            elif prefix == "AB":
-                buff = "%s"%raw
-            else:
-
-                # complete the abstract buffer and add it as attribute
-                if len(buff) > 0:
-                    content = "%s" % buff
-		    attribute, type = binds["AB"]
-		    self.__setattr__(attribute, type(content))
-                    buff = ""
-
-                # add the attribute
-                content = "%s" % raw
-                try:
-		    attribute, type = binds[prefix]
-		    self.__setattr__(attribute, type(content))
-		except Exception, exc:
-		    pass
-
-
-class MedlineFile (Importer):
-    def __init__(self, path, locale='en_US:UTF-8'):
-        self.locale =  locale
-        self.lang,self.encoding = self.locale.split(':')
-        file = codecs.open(path, "rU", self.encoding)
-        self.documents = MedlineFile._load_documents(file, self.locale)
-        self.corpus = Corpus( name=path, documents=self.documents )
-
-    @staticmethod
-    def _load_documents(file, locale):
-        docs = []
-        lines = []
-        for line in file.readlines():
-            line = line.rstrip()
-            if line != "":
-                lines.append( line )
-                continue
-
-            tmp = MedlineDocParser(lines)
-            try:
-                concat = "%s"%tmp.title
-                concat += "%s"%tmp.abstract
-            except:
-                pass
-
-            docs += [ Document(
-                rawContent=tmp,
-                title=tmp.title,
-                targets=[ Target(
-                     rawTarget=concat,
-                     type='testType',
-                     locale=locale.replace(":","."))])]
-            lines = []
-        return docs
-
+def _check_protocol(arg):
+    protocol, path = arg.split("://")
+    if protocol == "file+medline" or protocol == "medline":
+        protocol = "medline"
+    elif protocol == "file+fet" or protocol == "fet":
+        protocol = "fet"
+    elif protocol == "csv":
+        protocol = "basecsv"
+    else:
+        raise Exception("unrecognized protocol %s"%protocol)
+    return protocol, path
+    
+def Reader(arg, *args, **kwargs):
+    protocol, path = _check_protocol(arg)
+    try:
+        module = __import__("PyTextMiner.Data.%s"%protocol)
+        importer = None
+        #exec "from "PyTextMiner.Data.%s"%protocol import module.
+        exec ("importer = PyTextMiner.Data.%s.Importer(path,  *args, **kwargs)"%protocol)
+        return importer
+    except Exception, exc:
+        raise Exception("couldn't load reader %s: %s"%(protocol,exc))
+         
+def Writer(arg,  *args, **kwargs):
+    protocol, path = _check_protocol(arg)
+    try:
+        module = __import__("PyTextMiner.Data.%s"%protocol)
+        exporter = None
+        #exec "from "PyTextMiner.Data.%s"%protocol import module.
+        exec ("exporter = PyTextMiner.Data.%s.Exporter(path,  *args, **kwargs)"%protocol)
+        return exporter
+    except Exception, exc:
+        raise Exception("couldn't load writer %s: %s"%(protocol,exc))
