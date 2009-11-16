@@ -16,17 +16,17 @@ class Corpus:
         return "<%s>"%self.name
 
     def ngramDocFreq(self, targetType):
-        freqTable = set()
+        self.freqTable = set()
         for doc in self.documents:
             for target in doc.targets:
                 if target.type == targetType:
                     for ng in target.ngrams:
-                        if ng in freqTable:
-                            freqTable[ ng ].occs += 1
-                            print "OCCS ===", ng.occs
+                        if ng in self.freqTable:
+                            self.freqTable[ ng ].occs += 1
                         else :
                             ng.occs = 1
-                            freqTable.add( ng )
-        return freqTable
+                            self.freqTable.add( ng )
+
+        return self.freqTable
 
 

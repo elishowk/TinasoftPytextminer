@@ -133,7 +133,8 @@ class TokenizerTests:
                         stopwords=self.stopwords
                     )
                     print target.ngrams 
-            print corpus.ngramDocFreq( targetType='testType' )
+            for ng in corpus.ngramDocFreq( targetType='testType' ):
+                print ng, " = ", ng.occs
         return corpora2
                      
     def print_corpora(self, corpora):
