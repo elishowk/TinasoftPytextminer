@@ -8,14 +8,15 @@ __date__ ="$Oct 20, 2009 5:29:16 PM$"
 import unittest
 
 # pytextminer modules
-from PyTextMiner.Data import MedlineFile
+from PyTextMiner.Data import Reader
 
 class TestDataImporter(unittest.TestCase):
     def setUp(self):
         pass
         
     def test_basic(self):
-        corpus = MedlineFile("t/cyto_50.med.txt").corpus
+        medline = Reader("medline://t/cyto_50.med.txt")
+        corpus = medline.corpus
         print "   corpus:",corpus.name
         for document in corpus.documents:
             print "document:",document.title

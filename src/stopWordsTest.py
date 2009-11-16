@@ -20,7 +20,7 @@ class TestStopWords(unittest.TestCase):
            "test_1 I like cats, but you have a dog"),
            "test_1 like cats, but you have")
         
-
+z
         stopwords = StopWords([["I","like"],["you","have"]])
         self.assertEquals(stopwords.clean(
            "test_2 I like cats, but you have a dog"),
