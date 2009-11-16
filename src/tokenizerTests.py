@@ -34,10 +34,10 @@ class TestsTestCase(unittest.TestCase):
             self.locale = 'en_US.UTF-8'
             locale.setlocale(locale.LC_ALL, self.locale)
                
-    def test2_regex_tokenizer(self):
-        tokenizerTester = TokenizerTests( self.data, self.locale )
-        corpora = tokenizerTester.init_corpus( 1 )
-        corpora = tokenizerTester.regexp_tokenizer( corpora );
+    #def test2_regex_tokenizer(self):
+    #    tokenizerTester = TokenizerTests( self.data, self.locale )
+    #    corpora = tokenizerTester.init_corpus( 1 )
+    #    corpora = tokenizerTester.regexp_tokenizer( corpora );
     def test1_wordpunct_tokenizer(self):
         tokenizerTester = TokenizerTests( self.data, self.locale )
         corpora2 = tokenizerTester.init_corpus( 1 )
@@ -49,7 +49,7 @@ class TokenizerTests:
         self.locale = locale
         # initialize stopwords object
         try:
-            self.stopwords = PyTextMiner.StopWords("file://t/stopwords/fr.txt", locale="en_US")
+            self.stopwords = PyTextMiner.StopWords("file://t/stopwords/en.txt", locale="en_US")
         except:
             print "unable to find the stopwords file"
 
@@ -84,7 +84,7 @@ class TokenizerTests:
                     
                     tokens = PyTextMiner.Tokenizer.RegexpTokenizer.tokenize( text=target.sanitizedTarget, separator=target.separator, emptyString=target.emptyString, stopwords=self.stopwords )
                     target.tokens = PyTextMiner.Tokenizer.RegexpTokenizer.filterBySize( tokens )
-                    print target.tokens
+                    #print target.tokens
 
                     target.ngrams = PyTextMiner.Tokenizer.RegexpTokenizer.ngramize(
                         minSize=target.minSize,
@@ -93,7 +93,7 @@ class TokenizerTests:
                         emptyString=target.emptyString,
                         stopwords=self.stopwords
                     )
-                    print(target.ngrams)
+                    #print(target.ngrams)
 
         return corpora
 
@@ -106,9 +106,9 @@ class TokenizerTests:
                     target.sanitizedTarget = PyTextMiner.Tokenizer.WordPunctTokenizer.sanitize( input=target.rawTarget, forbiddenChars=target.forbiddenChars, emptyString=target.emptyString  );
                     #print target.sanitizedTarget
                     
-                    sentenceTokens = PyTextMiner.Tokenizer.WordPunctTokenizer.tokenize( text=target.sanitizedTarget, emptyString=target.emptyString, stopwords=self.stopwords )
-                    for sentence in sentenceTokens:
-                        target.tokens.append( PyTextMiner.Tokenizer.WordPunctTokenizer.filterBySize( sentence ) )
+                    target.tokens = PyTextMiner.Tokenizer.WordPunctTokenizer.tokenize( text=target.sanitizedTarget, emptyString=target.emptyString, stopwords=self.stopwords )
+                    #for sentence in sentenceTokens:
+                    #    target.tokens.append( PyTextMiner.Tokenizer.WordPunctTokenizer.filterBySize( sentence ) )
                     print target.tokens
                     
                     target.ngrams = PyTextMiner.Tokenizer.WordPunctTokenizer.ngramize(
@@ -118,7 +118,7 @@ class TokenizerTests:
                         emptyString=target.emptyString, 
                         stopwords=self.stopwords
                     )
-                    print(target.ngrams)
+                    print target.ngrams
 
         return corpora2
                      

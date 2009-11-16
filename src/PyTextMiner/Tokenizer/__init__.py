@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__author__="jbilcke, Elias Showk"
+__author__="Elias Showk"
 __date__ ="$Oct 20, 2009 6:32:44 PM$"
 
 import string, re, pprint
@@ -40,7 +40,7 @@ class RegexpTokenizer():
             if stopwords.contains( [tok] ) is False:
                 count += 1
                 cleanTokens += [tok]
-        print count
+        print "tokens stopped :", count
         return cleanTokens
 
     @staticmethod
@@ -77,7 +77,7 @@ class RegexpTokenizer():
                             ngrams.add( newngram )
                     else:
                         count += 1
-        print count
+        print "ngrams stopped :", count
         return ngrams
 
 class WordPunctTokenizer(RegexpTokenizer):
@@ -90,14 +90,14 @@ class WordPunctTokenizer(RegexpTokenizer):
     def tokenize( text, emptyString, stopwords ):
         sentences = nltk.sent_tokenize(text)
         sentences = [nltk.WordPunctTokenizer().tokenize(RegexpTokenizer.cleanPunct( sent, emptyString )) for sent in sentences]
-        cleanTokens = []
-        count=0
-        for tokens in sentences:
-            for tok in tokens:
-                if stopwords.contains( [tok] ) is False:
-                    count += 1
-                    cleanTokens += [tok]
-        print count
+        #cleanTokens = []
+        #count=0
+        #for tokens in sentences:
+        #    for tok in tokens:
+        #        if stopwords.contains( [tok] ) is False:
+        #            count += 1
+        #            cleanTokens += [tok]
+        #print "tokens stopped :", count
         return sentences
     
     # TODO : keep the sentence structure ?
@@ -122,5 +122,5 @@ class WordPunctTokenizer(RegexpTokenizer):
                                 ngrams.add( newngram )
                         else:
                             count +=1
-        print count
+        print "ngrams stopped :", count
         return ngrams

@@ -40,19 +40,19 @@ class Tests(unittest.TestCase):
         coword = CoWordTest()
         coword.test_cowords( corpora.corpora[0], type='testType' )
 
-    def test2_regexp_tokenizer_storage(self):
-        tokenizerTester = TokenizerTests( self.data, self.locale )
-        corpora = tokenizerTester.init_corpus( 1 )
-        corpora = tokenizerTester.regexp_tokenizer( corpora );
-        coword = CoWordTest()
-        coword.test_cowords( corpora.corpora[0], type='testType' )
+    #def test2_regexp_tokenizer_storage(self):
+    #    tokenizerTester = TokenizerTests( self.data, self.locale )
+    #    corpora = tokenizerTester.init_corpus( 1 )
+    #    corpora = tokenizerTester.regexp_tokenizer( corpora );
+    #    coword = CoWordTest()
+    #    coword.test_cowords( corpora.corpora[0], type='testType' )
 
 class CoWordTest: 
     def test_cowords(self, corpus, type):
         sa = PyTextMiner.CoWord.SimpleAnalysis()
-        cowords = sa.getCowords( corpus, type )
-        pp = pprint.PrettyPrinter(indent=4)
-        pp.pprint( cowords )
+        cowords = sa.analyze( corpus, type )
+        #pp = pprint.PrettyPrinter(indent=4)
+        #pp.pprint( cowords )
     
 
 if __name__ == '__main__':
