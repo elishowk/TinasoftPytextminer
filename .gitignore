@@ -7,4 +7,5 @@ build/*
 *.swp
 *~
 nbproject*
-
+t/output*
+t/output/*

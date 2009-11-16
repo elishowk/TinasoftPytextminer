@@ -10,7 +10,9 @@ import locale
 
 # pytextminer modules
 import PyTextMiner
-from PyTextMiner.Data import Reader, Writer
+from PyTextMiner.Data import fet, Reader, Writer
+from tina.storage import Storage
+
 from tokenizerTests import TokenizerTests
 
 class TestData(unittest.TestCase):
@@ -26,10 +28,12 @@ class TestData(unittest.TestCase):
 
     def test_proposal(self):
 
-        fet = Reader( filepath="fet://t/data-proposal.csv",
+        fet = PyTextMiner.Data.fet.Importer(
+            "t/data-proposal.csv",
             corpusname="fet://t/data-proposal.csv",
+            corpusNumberField=0,
             titleField='docTitle',
-            datetime='2009-17-11',
+            datetime='2009-11-17',
             contentField='docAbstract',
             locale=self.locale,
             minSize=1,
@@ -43,7 +47,10 @@ class TestData(unittest.TestCase):
             print "document:",document.title
         data = None
         tokenizerTester = TokenizerTests( data, self.locale, self.stopwords )
-        corpora = tokenizerTester.wordpunct_tokenizer( corpora );
+        corpora = tokenizerTester.wordpunct_tokenizer( corpora )
+        storage = Storage("file://t/output/csv_test", serializer="json")
+        storage["corpora"] = corpora
+        #storage.save()
             
 if __name__ == '__main__':
     unittest.main()

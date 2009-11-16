@@ -4,7 +4,6 @@ import codecs
 import csv
 import PyTextMiner
 from datetime import datetime
-
 #corpusID;docID;docAuthor;docTitle;docAbstract;index1;index2
 
 class Importer (PyTextMiner.Data.Importer):
@@ -18,7 +17,8 @@ class Importer (PyTextMiner.Data.Importer):
             authorField='docAuthor',
             corpusNumberField='corpusID',
             docNumberField='docID',
-            
+            minSize='2',
+            maxSize='3',
             delimiter=';',
             quotechar='"',
             locale='en_US.UTF-8',
@@ -37,15 +37,19 @@ class Importer (PyTextMiner.Data.Importer):
         self.authorField = authorField
         self.corpusNumberField = corpusNumberField
         self.docNumberField = docNumberField
+        self.minSize = minSize
+        self.maxSize = maxSize
 
         self.delimiter = delimiter
         self.quotechar = quotechar
 
-        self.fieldNames = csv.reader(
+        tmp = csv.reader(
                 self.file,
                 delimiter=self.delimiter,
                 quotechar=self.quotechar
-        ).next()
+        )
+        self.fieldNames = tmp.next()
+        self.corpusNumber = tmp.next()[corpusNumberField]
         
         self.csv = csv.DictReader(
                 self.file,
@@ -59,7 +63,8 @@ class Importer (PyTextMiner.Data.Importer):
 
             
     def _create_corpus(self):
-        corpus = PyTextMiner.Corpus( name=self.corpusName, number=self.csv[0][corpusNumberField] )
+    
+        corpus = PyTextMiner.Corpus( name=self.corpusName, number=self.corpusNumber )
         for doc in self.csv:
             content = doc[self.contentField]
             

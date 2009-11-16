@@ -32,13 +32,13 @@ def _check_protocol(arg):
         raise Exception("unrecognized protocol %s"%protocol)
     return protocol, path
     
-def Reader(arg, *args, **kwargs):
+def Reader(arg, **kwargs):
     protocol, path = _check_protocol(arg)
     try:
         module = __import__("PyTextMiner.Data.%s"%protocol)
         importer = None
         #exec "from "PyTextMiner.Data.%s"%protocol import module.
-        exec ("importer = PyTextMiner.Data.%s.Importer(path,  *args, **kwargs)"%protocol)
+        exec ("importer = PyTextMiner.Data.%s.Importer(path,  **kwargs)"%protocol)
         return importer
     except Exception, exc:
         raise Exception("couldn't load reader %s: %s"%(protocol,exc))
