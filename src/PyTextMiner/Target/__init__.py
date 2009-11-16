@@ -14,7 +14,7 @@ class Target():
         minSize=3,
         maxSize=3,
         locale='fr_FR.UTF-8',
-        forbiddenChars=u"[^a-zA-Z\s\@ÂÆÇÈÉÊÎÛÙàâæçèéêîĨôÔùûü\,\.\;\:\!\?\"\'\[\]\{\}\(\)\<\>]",
+        forbiddenChars=u"[^a-zA-Z0-9\s\@ÂÆÇÈÉÊÎÛÙàâæçèéêîĨôÔùûü\,\.\;\:\!\?\"\'\[\]\{\}\(\)\<\>]",
         separator= u"[\s]+",
         emptyString = " ",
         sanitizedTarget=None

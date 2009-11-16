@@ -25,7 +25,7 @@ class RegexpTokenizer():
         return sanitized.lower()
 
     @staticmethod
-    def cleanPunct( text, emptyString, punct=u'[\,\.\;\:\!\?\"\'\[\]\{\}\(\)\<\>]' ):
+    def cleanPunct( text, emptyString, punct=u'[\,\.\;\:\!\?\"\[\]\{\}\(\)\<\>]' ):
         #print text
         noPunct = re.sub( punct, emptyString, text )
         return noPunct
@@ -89,7 +89,7 @@ class WordPunctTokenizer(RegexpTokenizer):
     @staticmethod
     def tokenize( text, emptyString, stopwords ):
         sentences = nltk.sent_tokenize(text)
-        sentences = [nltk.WordPunctTokenizer().tokenize(RegexpTokenizer.cleanPunct( sent, emptyString)) for sent in sentences]
+        sentences = [nltk.WordPunctTokenizer().tokenize(RegexpTokenizer.cleanPunct( sent, emptyString )) for sent in sentences]
         cleanTokens = []
         count=0
         for tokens in sentences:
