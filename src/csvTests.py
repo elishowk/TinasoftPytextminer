@@ -28,9 +28,8 @@ class TestData(unittest.TestCase):
 
     def test_proposal(self):
 
-        fet = Reader (
-            "t/data-proposal-1.csv",
-            corpusName="fet://t/data-proposal-1.csv",
+        fet = Reader("fet://t/data-proposal-1.csv",
+            corpusName="t/data-proposal-1.csv",
             corpusNumberField=0,
             titleField='docTitle',
             datetime='2009-11-17',
@@ -58,8 +57,8 @@ class TestData(unittest.TestCase):
         tokenizerTester.print_corpora( corpora2 )
         
         
-        dump = Writer ("fet://t/ngramDocFreq.csv", corpus=corpus, locale=self.locale)
-        dump.ngramDocFreq('x')
+        dump = Writer ("fet://t/output/ngramDocFreq.csv", corpus=corpus, locale=self.locale)
+        dump.ngramDocFreq('testType')
 
             
 if __name__ == '__main__':

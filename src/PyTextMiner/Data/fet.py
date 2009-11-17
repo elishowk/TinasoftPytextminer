@@ -26,12 +26,9 @@ class Exporter (PyTextMiner.Data.Exporter):
     def ngramDocFreq(self, targetType):
         file = codecs.open(self.filepath, "rU")
         writer = csv.writer(file, dialect=self.dialect) 
-        rows = []
         for key, value in self.corpus.ngramDocFreq(targetType).iteritems():
-            rows.append([key, value])
-        writer.writerows(rows) 
-                        
-                    
+            writer.writerow({'ngram' : key, 'freq' : value})
+
                 
 class Importer (PyTextMiner.Data.Importer):
 
@@ -74,16 +71,18 @@ class Importer (PyTextMiner.Data.Importer):
         self.delimiter = delimiter
         self.quotechar = quotechar
 
+        f1 = codecs.open(filepath,'rU')
         tmp = csv.reader(
-                codecs.open(filepath,'rU'),
+                f1,
                 delimiter=self.delimiter,
                 quotechar=self.quotechar
         )
         self.fieldNames = tmp.next()
         self.corpusNumber = tmp.next()[corpusNumberField]
         
+        f2 = codecs.open(filepath,'rU')
         self.csv = csv.DictReader(
-                codecs.open(filepath,'rU'),
+                f2,
                 self.fieldNames,
                 delimiter=self.delimiter,
                 quotechar=self.quotechar)
