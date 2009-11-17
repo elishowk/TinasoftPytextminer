@@ -160,5 +160,24 @@ class TokenizerTests:
                         print ngram, ngram.occs
         print "print_corpora FINISHED"
 
+
+    def clean_corpora(self, corpora):
+        for corpus in corpora.corpora:
+            #print corpus, corpus.number
+            #print "ngramDocFreqTable"
+            #for ng in corpus.ngramDocFreqTable.itervalues():
+            #    if ng.occs > 1:
+            #        #print ng, " = ", ng.occs 
+            #print "List of documents"
+            for document in corpus.documents:
+                del document.rawContent
+                #print document.author, document.number, document.date
+                for target in document.targets:
+                    del target.rawTarget
+                    #print target
+                    #for ngram in target.ngrams.itervalues():
+                    #    print ngram, ngram.occs
+        print "clean_corpora FINISHED"
+        return corpora
 if __name__ == '__main__':
     unittest.main()
