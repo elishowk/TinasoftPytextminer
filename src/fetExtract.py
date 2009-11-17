@@ -28,9 +28,9 @@ class TestFetExtract(unittest.TestCase):
 
     def test_proposal(self):
 
-        fet = Reader("fet://t/data-proposal-1.csv",
+        fet = Reader("fet://t/data-proposal.csv",
             corpusName="fet_batchs.csv",
-            corpusNumberField=0,
+            corpusNumberField='corpusID',
             titleField='docTitle',
             datetime='2009-11-17',
             contentField='docAbstract',
@@ -38,15 +38,17 @@ class TestFetExtract(unittest.TestCase):
             minSize=1,
             maxSize=4,
         )
-        corpora = PyTextMiner.Corpora(id="FetCorpora1")
-        corpus = fet.corpus()
-        corpora.corpora = [corpus]
-        print "corpus name :",corpus.name
-        for document in corpus.documents:
-            print "document title:",document.title
+#        corpora = PyTextMiner.Corpora(id="FetCorpora1")
+        corpora = fet.corpora(corporaID="FetCorpora1")
+#        corpora.corpora = [corpus]
+        for corpus in corpora.corpora:
+            print "corpus name :", corpus.name
+            for document in corpus.documents:
+                print "document title:",document.title
         data = None
         tokenizerTester = TokenizerTests( data, self.locale, self.stopwords )
         corpora = tokenizerTester.wordpunct_tokenizer( corpora )
+        tokenizerTester.print_corpora( corpora )
         corpora = tokenizerTester.clean_corpora( corpora )
                 
         storage = Storage("file://t/output", serializer="yaml")
