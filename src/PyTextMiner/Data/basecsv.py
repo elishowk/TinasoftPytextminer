@@ -3,9 +3,29 @@
 import codecs
 import csv
 import PyTextMiner
+
 from datetime import datetime
 #corpusID;docID;docAuthor;docTitle;docAbstract;index1;index2
 
+class Exporter (PyTextMiner.Data.Exporter):
+
+    def __init__(self,
+                corpus,
+                delimiter=';',
+                quotechar='"',
+                locale='en_US.UTF-8'):
+        pass
+                
+    def ngram_frequency(self, filepath):
+        file = codecs.open(filepath, "rU")
+        writer = csv.writer(file, dialect='excel')
+        rows = []
+        for key, value in ngramDocFreq.iteritems():
+            rows.append([key, value])
+        writer.writerows(rows) 
+                    
+                
+                
 class Importer (PyTextMiner.Data.Importer):
     def __init__(self,
             filepath,

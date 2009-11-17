@@ -114,35 +114,33 @@ class TokenizerTests:
                         stopwords=self.stopwords
                     )
             ngDocFreqTable = corpus.ngramDocFreq( targetType='docAbstract' )
-            #for ng in ngDocCount:
-            #    print ngDocCount[ ng ], " = ", ngDocCount[ ng ].occs
         return corpora2
                      
-    def regexp_tokenizer( self, corpora ):
-        for corpus in corpora.corpora:
-            for document in corpus.documents:
-                for target in document.targets:
-                    
-                    print "----- RegexpTokenizer ----\n"
-                    target.sanitizedTarget = PyTextMiner.Tokenizer.RegexpTokenizer.sanitize( input=target.rawTarget, forbiddenChars=target.forbiddenChars, emptyString=target.emptyString )
-                    #print target.sanitizedTarget
-                    
-                    tokens = PyTextMiner.Tokenizer.RegexpTokenizer.tokenize( text=target.sanitizedTarget, separator=target.separator, emptyString=target.emptyString, stopwords=self.stopwords )
-                    #target.tokens = PyTextMiner.Tokenizer.RegexpTokenizer.filterBySize( tokens )
-                    #print target.tokens
-
-                    target.ngrams = PyTextMiner.Tokenizer.RegexpTokenizer.ngramize(
-                        minSize=target.minSize,
-                        maxSize=target.maxSize,
-                        tokens=target.tokens,
-                        emptyString=target.emptyString,
-                        stopwords=self.stopwords
-                    )
-                    #print(target.ngrams)
-            corpus.ngramDocFreq()
-            # TODO enlever RAW
-            # TODO STORE
-        return corpora
+#    def regexp_tokenizer( self, corpora ):
+#        for corpus in corpora.corpora:
+#            for document in corpus.documents:
+#                for target in document.targets:
+#                    
+#                    print "----- RegexpTokenizer ----\n"
+#                    target.sanitizedTarget = PyTextMiner.Tokenizer.RegexpTokenizer.sanitize( input=target.rawTarget, forbiddenChars=target.forbiddenChars, emptyString=target.emptyString )
+#                    #print target.sanitizedTarget
+#                    
+#                    tokens = PyTextMiner.Tokenizer.RegexpTokenizer.tokenize( text=target.sanitizedTarget, separator=target.separator, emptyString=target.emptyString, stopwords=self.stopwords )
+#                    #target.tokens = PyTextMiner.Tokenizer.RegexpTokenizer.filterBySize( tokens )
+#                    #print target.tokens
+#
+#                    target.ngrams = PyTextMiner.Tokenizer.RegexpTokenizer.ngramize(
+#                        minSize=target.minSize,
+#                        maxSize=target.maxSize,
+#                        tokens=target.tokens,
+#                        emptyString=target.emptyString,
+#                        stopwords=self.stopwords
+#                    )
+#                    #print(target.ngrams)
+#            corpus.ngramDocFreq()
+#            # TODO enlever RAW
+#            # TODO STORE
+#        return corpora
 
     def print_corpora(self, corpora):
         for corpus in corpora.corpora:
@@ -160,5 +158,14 @@ class TokenizerTests:
                         print ngram, ngram.occs
         print "print_corpora FINISHED"
 
+
+    def clean_corpora(self, corpora):
+        for corpus in corpora.corpora:
+            for document in corpus.documents:
+                del document.rawContent
+                for target in document.targets:
+                    del target.rawTarget
+        print "clean_corpora FINISHED"
+        return corpora
 if __name__ == '__main__':
     unittest.main()
