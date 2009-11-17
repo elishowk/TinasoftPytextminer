@@ -147,8 +147,11 @@ class TokenizerTests:
     def print_corpora(self, corpora):
         for corpus in corpora.corpora:
             print corpus, corpus.number
+            print "ngramDocFreqTable"
             for ng in corpus.ngramDocFreqTable.itervalues():
-                print ng, " = ", ng.occs 
+                if ng.occs > 1:
+                    print ng, " = ", ng.occs 
+            print "List of documents"
             for document in corpus.documents:
                 print document.author, document.number, document.date
                 for target in document.targets:
