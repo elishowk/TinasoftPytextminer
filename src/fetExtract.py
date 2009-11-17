@@ -54,7 +54,7 @@ class TestFetExtract(unittest.TestCase):
         storage.save()
         
         dump = Writer ("fet://t/output/ngramDocFreq.csv", corpus=corpus, locale=self.locale)
-        dump.ngramDocFreq('testType')
+        dump.ngramDocFreq('docAbstract')
 
             
 if __name__ == '__main__':

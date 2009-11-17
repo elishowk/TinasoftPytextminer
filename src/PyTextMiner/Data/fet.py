@@ -24,11 +24,12 @@ class Exporter (PyTextMiner.Data.Exporter):
         self.dialect = dialect
    
     def ngramDocFreq(self, targetType):
-        file = codecs.open(self.filepath, "rU")
-        writer = csv.writer(file, dialect=self.dialect) 
+        file = codecs.open(self.filepath, "w")
+        #writer = csv.writer(file, dialect=self.dialect)
+        file.write("ngram;frequency\n") 
         for key, value in self.corpus.ngramDocFreq(targetType).iteritems():
-            writer.writerow({'ngram' : key, 'freq' : value})
-
+            #writer.writerow({'ngram' : key, 'freq' : value})
+            file.write("%s;%s\n"%(key, value))
                 
 class Importer (PyTextMiner.Data.Importer):
 
