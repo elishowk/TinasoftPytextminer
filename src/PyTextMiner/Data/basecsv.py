@@ -49,10 +49,11 @@ class Importer (PyTextMiner.Data.Importer):
                 quotechar=self.quotechar
         )
         self.fieldNames = tmp.next()
-        self.corpusNumber = tmp.next()[corpusNumberField]
-        
+        firstLine =  tmp.next()
+        self.corpusNumber = firstLine[corpusNumberField]
+        newFH = codecs.open(filepath,'rU')
         self.csv = csv.DictReader(
-                self.file,
+                newFH,
                 self.fieldNames,
                 delimiter=self.delimiter,
                 quotechar=self.quotechar)
@@ -66,6 +67,7 @@ class Importer (PyTextMiner.Data.Importer):
     
         corpus = PyTextMiner.Corpus( name=self.corpusName, number=self.corpusNumber )
         for doc in self.csv:
+            print doc
             content = doc[self.contentField]
             
           # time management
