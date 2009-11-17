@@ -29,8 +29,8 @@ class TestData(unittest.TestCase):
     def test_proposal(self):
 
         fet = Reader (
-            "fet://t/data-proposal.csv",
-            corpusName="t/data-proposal.csv",
+            "t/data-proposal-1.csv",
+            corpusName="fet://t/data-proposal-1.csv",
             corpusNumberField=0,
             titleField='docTitle',
             datetime='2009-11-17',
