@@ -10,7 +10,7 @@ import locale
 
 # pytextminer modules
 import PyTextMiner
-from PyTextMiner.Data import fet, Reader, Writer
+from PyTextMiner.Data import Reader, Writer
 from tina.storage import Storage
 
 from tokenizerTests import TokenizerTests
@@ -28,9 +28,9 @@ class TestData(unittest.TestCase):
 
     def test_proposal(self):
 
-        fet = PyTextMiner.Data.fet.Importer(
-            "t/data-proposal.csv",
-            corpusName="fet://t/data-proposal.csv",
+        fet = Reader (
+            "fet://t/data-proposal.csv",
+            corpusName="t/data-proposal.csv",
             corpusNumberField=0,
             titleField='docTitle',
             datetime='2009-11-17',
@@ -40,7 +40,7 @@ class TestData(unittest.TestCase):
             maxSize=4,
         )
         corpora = PyTextMiner.Corpora(id="TestCorpora1")
-        corpus = fet.corpus
+        corpus = fet.corpus()
         corpora.corpora = [corpus]
         print "corpus name :",corpus.name
         for document in corpus.documents:
@@ -56,6 +56,10 @@ class TestData(unittest.TestCase):
         storage2 = Storage("file://t/output", serializer="yaml")
         corpora2 = storage2[ "TestCorpora1" ]
         tokenizerTester.print_corpora( corpora2 )
+        
+        
+        dump = Writer ("fet://t/ngramDocFreq.csv", corpus=corpus, locale=self.locale)
+        dump.ngramDocFreq('x')
 
             
 if __name__ == '__main__':
