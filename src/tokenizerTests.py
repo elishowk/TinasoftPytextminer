@@ -113,7 +113,7 @@ class TokenizerTests:
                         emptyString=target.emptyString, 
                         stopwords=self.stopwords
                     )
-            ngDocFreqTable = corpus.ngramDocFreq( targetType='docAbstract' )
+            ngDocFreqTable = corpus.ngramDocFreq( targetType='abst' )
         return corpora2
                      
 #    def regexp_tokenizer( self, corpora ):
@@ -151,7 +151,7 @@ class TokenizerTests:
                     print ng, " = ", ng.occs 
             print "List of documents"
             for document in corpus.documents:
-                print document.author, document.number, document.date
+                print document.author, document.number, document.date, document.index1, document.index2
                 for target in document.targets:
                     print target
                     for ngram in target.ngrams.itervalues():

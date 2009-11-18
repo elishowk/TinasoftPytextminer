@@ -1,24 +1,20 @@
 # -*- coding: utf-8 -*-
-import hashlib
+# PyTextMiner NGram class
 
-class NGram():
+class NGram(dict):
     """an ngram"""
-    def __init__(self, ngram, strRepr, origin=[], occs=None):
-        self.ngram = ngram
-        self.strRepr = strRepr
-        self.origin = origin
-        self.occs = occs
-        self.id = abs( hash( " ".join( ngram ) ) )
+    def __init__(self, ngram, str, id=None, original=[], occs=None):
+        dict.__init__(self, id=id, ngram=ngram, str=str, occs=occs )
 
-    def __len__(self):
-        """ return the length of the ngram"""
-        return len(self.ngram)
+#    def __len__(self):
+#        """length of the ngram"""
+#        return len(self.ngram)
 
-    def __str__(self):
-        return self.strRepr.encode('utf-8')
-    
-    def __repr__(self):
-        return self.strRepr.encode('utf-8')
-    
-    def __hash__(self):
-        return self.id
+#    def __str__(self):
+#        return self.strRepr.encode('utf-8','replace')
+#    
+#    def __repr__(self):
+#        return self.strRepr.encode('utf-8','replace')
+#    
+#    def __hash__(self):
+#        return self.id

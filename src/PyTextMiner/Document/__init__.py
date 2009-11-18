@@ -1,36 +1,42 @@
 # -*- coding: utf-8 -*-
 
 # core modules
+import time
 from datetime import datetime
 
 class Document:
-    """a Document containing targets"""
+    """a Document containing targets containing ngrams"""
     def __init__(
             self,
             rawContent,
-            title=None,
+            target,
+            id=None,
             date=None,
             targets=None,
+            title=None,
             author=None,
-            number=None):
-            
-        """Document constructor.
-        arguments: corpus, content, title, date, targets"""
-        
+            index1=None,
+            index2=None,
+            keywords=None):
+
         self.rawContent = rawContent
-        self.title = title
-        
-        if date is None:
-            self.date = datetime.today()
-        else:
-            self.date = datetime.strptime(date, "%Y-%m-%d")
-            
-        if targets is None: 
-            targets = []
-            
         self.targets = targets
+        self.id = id
+
+        if date is None:
+            self.date = None
+        else:
+            self.date = datetime.strftime(date, "%Y-%m-%d")
+        # contains targets auto-generated unique IDs
+        if targets is None: 
+            targets = set([]) 
+        self.targets = targets
+        # basic metas
+        self.title = title
         self.author = author
-        self.number = number
+        self.index1 = index1
+        self.index2 = index2
+        self.keywords = keywords
 
     def __str__(self):
         #return self.rawContent.encode('utf-8')
@@ -39,6 +45,3 @@ class Document:
     def __repr__(self):
         #return "<%s>"%self.rawContent.encode('utf-8')
         return "<%s>"%self.rawContent
-
-    def getTarget(self, targetID):
-        return
