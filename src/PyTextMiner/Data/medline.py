@@ -11,12 +11,14 @@ from PyTextMiner import Data
 class Model (object):
     def __init__(self, lines):
         binds = { 
-            "TI"  : ("title",str),
-            "AB"  : ("abstract",str),
-            "AU"  : ("author",str),
-            "FAU" : ("fullname",str),
-            "JT"  : ("pubname",str),
-            "DP"  : ("pubdate",datetime)
+            "TI"  : ("title", str, ""),
+            "AB"  : ("abstract", str, ""),
+            "AU"  : ("author", str, ""),
+            "FAU" : ("fullname", str, ""),
+            "JT"  : ("pubname", str, ""),
+            "DP"  : ("pubdate", datetime, None),
+            "STAT": ("stat", str, "MEDLINE"),
+            "PMID": ("pmid", str, "0"),
         }
         buff = ""
         for line in lines:
@@ -29,27 +31,40 @@ class Model (object):
             elif prefix == "AB":
                 buff = "%s"%raw
             else:
-
                 # complete the abstract buffer and add it as attribute
                 if len(buff) > 0:
                     content = "%s" % buff
-		    attribute, type = binds["AB"]
-		    self.__setattr__(attribute, type(content))
+                    attribute, type, default = binds["AB"]
+                    try:
+                        cont = type(content)
+                        self.__setattr__(attribute, content)
+                    except Exception, exc:
+                        self.__setattr__(attribute, default)
+                        print exc
+                        pass
                     buff = ""
 
                 # add the attribute
                 content = "%s" % raw
                 try:
-		    attribute, type = binds[prefix]
-		    self.__setattr__(attribute, type(content))
-		except Exception, exc:
-		    pass
+                    attribute, type, default = binds[prefix]
+                    try:
+                        cont = type(content)
+                        self.__setattr__(attribute, content)
+                    except Exception, exc:
+                        self.__setattr__(attribute, default)
+                        print exc
+                        pass
+                except Exception, exc:
+                    print exc
+                    pass
+
 
 
 class Importer (Data.Importer):
-    def __init__(self, path, locale='en_US:UTF-8'):
+    def __init__(self, path, locale='en_US.UTF-8'):
         self.locale =  locale
-        self.lang,self.encoding = self.locale.split(':')
+        self.lang,self.encoding = self.locale.split('.')
         file = codecs.open(path, "rU", self.encoding)
         self.documents = Importer._load_documents(file, self.locale)
         self.corpus = Corpus( name=path, documents=self.documents )
@@ -76,8 +91,10 @@ class Importer (Data.Importer):
                 title=model.title,
                 targets=[ Target(
                      rawTarget=concat,
-                     type='testType',
-                     locale=locale.replace(":","."))])]
+                     type=model.abstract,
+                     locale=locale
+                     )]
+                )]
             lines = []
         return docs
         

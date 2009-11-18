@@ -1,45 +1,31 @@
 # -*- coding: utf-8 -*-
 # PyTextMiner Target class
-import string
-import locale as localization
 
-class Target():
+class Target(dict):
     """Target containing ngrams"""
 
     def __init__(self,
         rawTarget,
+        id=None,
         tokens=None,
         type=None,
         ngrams=None,
-        minSize=3,
-        maxSize=3,
-        locale='fr_FR.UTF-8',
-        forbiddenChars=u"[^a-zA-Z0-9\s\@ÂÆÇÈÉÊÎÛÙàâæçèéêîĨôÔùûü\,\.\;\:\!\?\"\'\[\]\{\}\(\)\<\>]",
-        separator= u"[\s]+",
-        emptyString = " ",
-        sanitizedTarget=None
+        ngramMin=1,
+        ngramMax=2,
+        forbChars=u"[^a-zA-Z0-9\s\@ÂÆÇÈÉÊÎÛÙàâæçèéêîĨôÔùûü\,\.\;\:\!\?\"\'\[\]\{\}\(\)\<\>]",
+        ngramSep= u"[\s]+",
+        ngramEmpty = " ",
+        #**opt
         ):
-
         """Text Target constructor"""
-        self.rawTarget = rawTarget
         if tokens is None:
             tokens = []
-        self.tokens = tokens
-        self.type = type
+        # contains ngrams' generated unique IDs
         if ngrams is None:
-            ngrams=set()
-        self.ngrams = ngrams
-        self.minSize = minSize
-        self.maxSize = maxSize
-        self.locale = locale
-        self.forbiddenChars = forbiddenChars
-        self.separator = separator
-        self.emptyString = emptyString
-        self.sanitizedTarget = sanitizedTarget
-        #try:
-        localization.setlocale(localization.LC_ALL, self.locale)
+            ngrams=set([])
+        dict.__init__(self, id=id, rawTarget=rawTarget, tokens=tokens, ngrams=ngrams, forbChars=forbChars, ngramMin=ngramMin, ngramMax=ngramMax, ngramSep=ngramSep, ngramEmpty=ngramEmpty)
 
-    def __str__(self):
-        return self.rawTarget.encode('utf-8')
-    def __repr__(self):
-        return self.rawTarget.encode('utf-8')
+#    def __str__(self):
+#        return self.rawTarget.encode('utf-8')
+#    def __repr__(self):
+#        return self.rawTarget.encode('utf-8')

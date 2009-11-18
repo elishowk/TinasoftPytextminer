@@ -113,36 +113,34 @@ class TokenizerTests:
                         emptyString=target.emptyString, 
                         stopwords=self.stopwords
                     )
-            ngDocFreqTable = corpus.ngramDocFreq( targetType='docAbstract' )
-            #for ng in ngDocCount:
-            #    print ngDocCount[ ng ], " = ", ngDocCount[ ng ].occs
+            ngDocFreqTable = corpus.ngramDocFreq( targetType='abst' )
         return corpora2
                      
-    def regexp_tokenizer( self, corpora ):
-        for corpus in corpora.corpora:
-            for document in corpus.documents:
-                for target in document.targets:
-                    
-                    print "----- RegexpTokenizer ----\n"
-                    target.sanitizedTarget = PyTextMiner.Tokenizer.RegexpTokenizer.sanitize( input=target.rawTarget, forbiddenChars=target.forbiddenChars, emptyString=target.emptyString )
-                    #print target.sanitizedTarget
-                    
-                    tokens = PyTextMiner.Tokenizer.RegexpTokenizer.tokenize( text=target.sanitizedTarget, separator=target.separator, emptyString=target.emptyString, stopwords=self.stopwords )
-                    #target.tokens = PyTextMiner.Tokenizer.RegexpTokenizer.filterBySize( tokens )
-                    #print target.tokens
-
-                    target.ngrams = PyTextMiner.Tokenizer.RegexpTokenizer.ngramize(
-                        minSize=target.minSize,
-                        maxSize=target.maxSize,
-                        tokens=target.tokens,
-                        emptyString=target.emptyString,
-                        stopwords=self.stopwords
-                    )
-                    #print(target.ngrams)
-            corpus.ngramDocFreq()
-            # TODO enlever RAW
-            # TODO STORE
-        return corpora
+#    def regexp_tokenizer( self, corpora ):
+#        for corpus in corpora.corpora:
+#            for document in corpus.documents:
+#                for target in document.targets:
+#                    
+#                    print "----- RegexpTokenizer ----\n"
+#                    target.sanitizedTarget = PyTextMiner.Tokenizer.RegexpTokenizer.sanitize( input=target.rawTarget, forbiddenChars=target.forbiddenChars, emptyString=target.emptyString )
+#                    #print target.sanitizedTarget
+#                    
+#                    tokens = PyTextMiner.Tokenizer.RegexpTokenizer.tokenize( text=target.sanitizedTarget, separator=target.separator, emptyString=target.emptyString, stopwords=self.stopwords )
+#                    #target.tokens = PyTextMiner.Tokenizer.RegexpTokenizer.filterBySize( tokens )
+#                    #print target.tokens
+#
+#                    target.ngrams = PyTextMiner.Tokenizer.RegexpTokenizer.ngramize(
+#                        minSize=target.minSize,
+#                        maxSize=target.maxSize,
+#                        tokens=target.tokens,
+#                        emptyString=target.emptyString,
+#                        stopwords=self.stopwords
+#                    )
+#                    #print(target.ngrams)
+#            corpus.ngramDocFreq()
+#            # TODO enlever RAW
+#            # TODO STORE
+#        return corpora
 
     def print_corpora(self, corpora):
         for corpus in corpora.corpora:
@@ -153,7 +151,7 @@ class TokenizerTests:
                     print ng, " = ", ng.occs 
             print "List of documents"
             for document in corpus.documents:
-                print document.author, document.number, document.date
+                print document.author, document.number, document.date, document.index1, document.index2
                 for target in document.targets:
                     print target
                     for ngram in target.ngrams.itervalues():
@@ -163,20 +161,10 @@ class TokenizerTests:
 
     def clean_corpora(self, corpora):
         for corpus in corpora.corpora:
-            #print corpus, corpus.number
-            #print "ngramDocFreqTable"
-            #for ng in corpus.ngramDocFreqTable.itervalues():
-            #    if ng.occs > 1:
-            #        #print ng, " = ", ng.occs 
-            #print "List of documents"
             for document in corpus.documents:
                 del document.rawContent
-                #print document.author, document.number, document.date
                 for target in document.targets:
                     del target.rawTarget
-                    #print target
-                    #for ngram in target.ngrams.itervalues():
-                    #    print ngram, ngram.occs
         print "clean_corpora FINISHED"
         return corpora
 if __name__ == '__main__':
