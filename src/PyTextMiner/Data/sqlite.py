@@ -1,42 +1,77 @@
 # -*- coding: utf-8 -*-
 
+from PyTextMiner import Data
 import sqlite3
-import jsonpickle
-    
-class SQLiteBackend (object):
-    def __init__(self, path='/tmp/test-sqlite-backend'):
-        self.tables = []
+
+# LOW-LEVEL BACKEND 
+class SQLiteBackend (Data.Importer):
+    def __init__(self, path, **opts):
+ 
+        self.path = path
+        self.locale = self.get_property(opts, 'locale', 'en_US.UTF-8')
+        self.format = self.get_property(opts, 'format', 'json')
+
+        self.lang,self.encoding = self.locale.split('.')
+
         self._db = sqlite3.connect(path)
-        self._cursor = self.conn.cursor()
+        self._cursor = self._db.cursor()
         self.execute = self._cursor.execute
         self.commit = self._db.commit
+        self.tables = []
+        
+        if format == 'yaml':
+            import yaml
+            self.encode = yaml.dump
+            self.decode = yaml.load
+        elif format == 'json':
+
+            self.encode = jsonpickle.encode
+            self.decode = jsonpickle.decode
+        else:
+            try:
+                import cpickle as pickle
+            except:
+                import pickle
+            self.encode = pickle.dumps
+            self.decode = pickle.loads
             
-    def _addClass(self, cName):
+    def getTable(self, obj):
+        cName = obj.__class__.__name__
         if cName in self.tables:
-            return False
+            return cName
         self.tables.append(cName)
-        self.execute('''create table '''+cName+''' (id INTEGER PRIMARY KEY, blob text)''')
-        self.commit()
+        try:
+            self.execute('''create table '''+cName+''' (id INTEGER, blob text)''')
+            self.commit()
+        except sqlite3.OperationalError:
+            # table already exists
+            pass
+        return cName
 
     def insert(self, obj):
-        self.execute("""insert into """ + obj.__class__.__name__ + """ values (%s, "%s")"""%(id(obj),jsonpickle.encode(obj)))
+        self.execute("""insert into """ + self.getTable(obj) + """ values (%s, "%s")"""%(id(obj),self.encode(obj)))
         self.commit()
         return id(obj)
         
     def update(self, obj):
-        self.execute("""update """ + obj.__class__.__name__ + """ SET (blob = "%s") WHERE  (id LIKE %s)"""%(jsonpickle.encode(obj), id(obj)))
+        self.execute("""update """ + self.getTable(obj) + """ SET (blob = "%s") WHERE  (id LIKE %s)"""%(self.encode(obj), id(obj)))
         self.commit()
         return id(obj)
-           
         
-class Importer (Data.Importer):
-    def __init__(self, path, locale='en_US:UTF-8'):
-        self.locale =  locale
-        self.lang,self.encoding = self.locale.split(':')
-        file = codecs.open(path, "rU", self.encoding)
-        self.documents = Importer._load_documents(file, self.locale)
-        self.corpus = Corpus( name=path, documents=self.documents )
+    def fetch(self, clss, id=None):
+        results = []
+        if id is None:
+            results = self.execute("""select * from """ +clss.__name__)
+        else:
+            results = self.execute("""select * from """ + clss.__name__ + """ WHERE  (id == %s) LIMIT 1"""%id)
+        if id is None:
+            return [self.decode(blob) for i, blob in results]
+        else:
+            i, blob = results
+            return self.decode(blob)
 
+
+# APPLICATION LAYER   
 class AssocCorpus (tuple):
     pass
 class AssocDocument (tuple):
@@ -44,31 +79,49 @@ class AssocDocument (tuple):
 class AssocNGram (tuple):
     pass
     
-class Exporter (Data.Importer):
-    def __init__(self, path, locale='en_US:UTF-8'):
-        self.locale =  locale
-        self.lang,self.encoding = self.locale.split(':')
-        self.backend = SQLiteBackend(path)
-      
+class Exporter (SQLiteBackend):
+
     def storeCorpora(self, corpora ):
-        return self.backend.insert( corpora )
+        return self.insert( corpora )
         
     def storeCorpus(self, corpus ):
-        return sself.backend.insert( corpus )
+        return sself.insert( corpus )
 
     def storeDocument(self, document ):
-        return self.backend.insert( document )
+        return self.insert( document )
 
     def storeNGram(self, ngram ):
-        return self.backend.insert( ngram )
+        return self.insert( ngram )
 
     def storeAssocCorpus(self, corpusID, corporaID ):
-        return self.backend.insert( AssocCorpus(corpusID, corporaID) )
+        return self.insert( AssocCorpus(corpusID, corporaID) )
         
     def storeAssocDocument(self, docID, corpusID ):
-        return self.backend.insert( AssocDocument(docID, corpusID) )
+        return self.insert( AssocDocument(docID, corpusID) )
         
     def storeAssocNGram(self, ngramID, docID ):
-        return self.backend.insert( AssocNGram(ngramID, docID) ) 
+        return self.insert( AssocNGram(ngramID, docID) ) 
+
+
+    def loadCorpora(self, id ):
+        return self.backend.fetch( id )
+        
+    def loadCorpus(self, id ):
+        return self.backend.fetch( id )
+        
+    def loadDocument(self, id ):
+        return self.backend.fetch( id )
+        
+    def loadNGram(self, id ):
+        return self.backend.fetch( id )
+        
+    def loadAssocCorpus(self, id ):
+        return self.backend.fetch( id )
+             
+    def loadAssocDocument(self, id ):
+        return self.backend.fetch( id )
+             
+    def loadAssocNGram(self, id ):
+        return self.backend.fetch( id )
         
         
