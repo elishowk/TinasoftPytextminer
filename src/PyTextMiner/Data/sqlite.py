@@ -90,7 +90,7 @@ class SQLiteBackend (Data.Importer):
         return True
         
     def fetch_all(self, clss):
-        req = ('select * from '+clss.__name__)
+        req = ('select * from '+self.getTable(clss))
         reply = self.execute(req)
         results = []
         for i, blob in reply:
