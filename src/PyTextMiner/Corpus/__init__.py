@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+__author__="Elias Showk"
 
 class Corpus:
     """a Corpus containing documents"""

@@ -3,7 +3,7 @@
 __author__="Elias Showk"
 __date__ ="$Oct 20, 2009 6:32:44 PM$"
 
-import string, re, pprint
+import string, re
 import nltk
 from PyTextMiner import NGram
 
@@ -22,7 +22,6 @@ class RegexpTokenizer():
         striped = string.strip( input )
         #replaces forbidden characters by a separator
         sanitized = re.sub( forbiddenChars, emptyString, striped )
-        #return sanitized.lower()
         return sanitized
 
     @staticmethod
@@ -32,9 +31,10 @@ class RegexpTokenizer():
         return noPunct
 
     @staticmethod
-    def tokenize( text, separator, emptyString, stopwords ):
+    def tokenize( text, separator, emptyString, stopwords=None ):
         noPunct = RegexpTokenizer.cleanPunct( text, emptyString )
         tokens = re.split( separator, noPunct )
+        #if stopwords not None
         #cleanTokens = []
         #count=0
         #for tok in tokens:
@@ -60,58 +60,60 @@ class RegexpTokenizer():
         return filtered
 
     @staticmethod
-    def ngramize( minSize, maxSize, tokens, emptyString, stopwords ):
-        ngrams = set()
-        count=0
+    def ngramize( minSize, maxSize, tokens, emptyString, stopwords=None ):
+        ngrams = {}
+        #count=0
         for n in range( minSize, maxSize +1 ):
             for i in range(len(tokens)): 
                 if len(tokens) >= i+n:
-                    if stopwords.contains( tokens[i:n+i] ) is False:
+                    if stopwords is None or stopwords.contains( tokens[i:n+i] ) is False:
                         representation = emptyString.join( tokens[i:n+i] )
                         newngram = NGram(
                                     ngram = tokens[i:n+i],
                                     occs = 1,
                                     strRepr = representation,
                         )
-                        if newngram in ngrams:
-                            ngrams[ newngram ].occs += 1
+                        if ngrams.has_key( newngram.id ):
+                            ngrams[ newngram.id ][occs] += 1
                         else:
-                            ngrams.add( newngram )
+                            ngrams[ newngram.id ] = newngram
                     else:
                         count += 1
         print "ngrams stopped :", count
         return ngrams
 
-class WordPunctTokenizer(RegexpTokenizer):
+class TreeBankWordTokenizer(RegexpTokenizer):
     """
     A tokenizer that divides a text into sentences
-    then into sequences of alphabetic
-    and non-alphabetic characters
+    then into sequences of alphabetic and non-alphabetic chars
     """
     @staticmethod
-    def tokenize( text, emptyString, stopwords ):
+    def tokenize( text, emptyString, stopwords=None ):
         sentences = nltk.sent_tokenize(text)
+        # WARNING : only works on english
         sentences = [nltk.TreebankWordTokenizer().tokenize(RegexpTokenizer.cleanPunct( sent, emptyString )) for sent in sentences]
         return sentences
     
     @staticmethod
-    def ngramize( minSize, maxSize, tokens, emptyString, stopwords ):
+    def ngramize( minSize, maxSize, tokens, emptyString, stopwords=None ):
         ngrams = {}
         for n in range( minSize, maxSize +1 ):
             for sent in tokens:
                 for i in range(len(sent)):
                     if len(sent) >= i+n:
-                        representation = emptyString.join( sent[i:n+i] )
-                        def lowerCase(w):
-                            return w.lower()
+                        # TODO optional stopwords
+                        def normalizePOS(tpl):
+                            return tpl[0].lower()
+                        normalNgram = map( normalizePOS, sent[i:n+i] )
+                        representation = emptyString.join( normalNgram )
                         newngram = NGram(
-                                    ngram = map( lowerCase, sent[i:n+i] ),
-                                    origin = sent[i:n+i],
+                                    ngram = normalNgram,
+                                    original = sent[i:n+i],
                                     occs = 1,
-                                    strRepr = representation,
+                                    str = representation,
                         )
                         if ngrams.has_key( newngram.id ):
-                            ngrams[ newngram.id ].occs += 1
+                            ngrams[ newngram.id ]['occs'] += 1
                         else:
                             ngrams[ newngram.id ] = newngram
         return ngrams

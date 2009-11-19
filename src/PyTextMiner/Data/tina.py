@@ -98,7 +98,7 @@ class Importer (PyTextMiner.Data.Importer):
                 corpusNumber = doc[self.corpusNumberField]
                 #print "CORPUS NUMBER ", corpusNumber
             except Exception, exc:
-                print "document parsing exception : ", exc
+                #print "document parsing exception : ", exc
                 continue
                 pass
             document = self.document( doc )
@@ -108,6 +108,7 @@ class Importer (PyTextMiner.Data.Importer):
             found = 0
             if self.corpusDict.has_key(corpusNumber) and corpusNumber in corpora.corpora:
                 #print "found existing corpus"
+
                 self.corpusDict[ corpusNumber ].documents.add( document.docNum )
                 found = 1
             else:
