@@ -44,28 +44,19 @@ class TestFetExtract(unittest.TestCase):
         corpora = PyTextMiner.Corpora( name="pubmedTest" )
         corpora = tina.corpora( corpora )
         print tina.corpusDict
-        #count = 0
-        #for corpus in corpora.corpora:
-            #print "corpus.id() = ", corpus
-            #while count < 20:
-                #for document in corpus.documents:
-                #    count += 1
-                #    print "document.id() = ", document
-                #    for target in targets:
-                #        print "target.id() = ", target
-        print len(corpora.corpora)
+        sql = Writer("sqlite://src/t/output/"+ corpora.name +".db", locale=self.locale)
+        sql.storeCorpora( corpora, corpora.name )
+        for ( corpusNum, corpus ) in tina.corpusDict.iteritems():
+            sql.storeCorpus( corpus, corpusNum )
+            sql.storeAssocCorpus( corpusNum, corpora.name )
+            for documentNum in corpus.documents:
+                sql.storeDocument( tina.docDict[ documentNum ], documentNum )
+                sql.storeAssocDocument( documentNum, corpusNum )
         #data = None
         #tokenizerTester = TokenizerTests( data, self.locale, self.stopwords )
         #corpora = tokenizerTester.wordpunct_tokenizer( corpora )
         #tokenizerTester.print_corpora( corpora )
         #corpora = tokenizerTester.clean_corpora( corpora )
-        #storage = Storage("file://t/output", serializer="json")
-        #storage[corpora.id] = corpora
-        #storage.save()
-        #for corpus in corpora.corpora:
-        #    dump = Writer ("tina://t/output/"+corpus.number+"ngramDocFreq.csv", corpus=corpus, locale=self.locale)
-        #    dump.ngramDocFreq()
-
             
 if __name__ == '__main__':
     unittest.main()
