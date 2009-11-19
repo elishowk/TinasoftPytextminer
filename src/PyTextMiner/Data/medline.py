@@ -62,8 +62,10 @@ class Model (object):
 
 
 class Importer (Data.Importer):
-    def __init__(self, path, locale='en_US.UTF-8'):
-        self.locale =  locale
+    def __init__(self, path, **options):
+    
+        self.locale = self.get_property(options, 'locale', 'en_US.UTF-8')
+
         self.lang,self.encoding = self.locale.split('.')
         file = codecs.open(path, "rU", self.encoding)
         self.documents = Importer._load_documents(file, self.locale)
