@@ -88,7 +88,7 @@ class SQLiteBackend (Data.Importer):
         self.execute(req, (self.encode(obj), self.encode(id)))
         self.commit()
         return True
-        
+      
     def fetch_all(self, clss):
         req = ('select * from '+self.getTable(clss))
         reply = self.execute(req)
@@ -111,7 +111,15 @@ class SQLiteBackend (Data.Importer):
             break
 
         return blob
-
+        
+    def clean(self):
+        """remove unused tables (empty)"""
+        raise NotImplemented
+        
+    def clear(self):
+        """clear all the tables"""
+        for table in self.tables:
+            self.execute('DROP TABLE '+table)   
 
 # APPLICATION LAYER  
 class Assoc (tuple):
