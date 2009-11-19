@@ -46,17 +46,41 @@ class TestFetExtract(unittest.TestCase):
         print tina.corpusDict
         sql = Writer("sqlite://src/t/output/"+ corpora.name +".db", locale=self.locale)
         sql.storeCorpora( corpora, corpora.name )
+        tokenizer = TokenizerTests( data, self.locale, self.stopwords )
+        corpora = tokenizerTester.wordpunct_tokenizer( corpora )
         for ( corpusNum, corpus ) in tina.corpusDict.iteritems():
             sql.storeCorpus( corpus, corpusNum )
             sql.storeAssocCorpus( corpusNum, corpora.name )
             for documentNum in corpus.documents:
-                sql.storeDocument( tina.docDict[ documentNum ], documentNum )
+                document = tina.docDict[ documentNum ]
+                print "----- WordPunctTokenizer ----\n"
+                sanitizedTarget = PyTextMiner.Tokenizer.WordPunctTokenizer.sanitize(
+                        input = document.rawContent,
+                        forbiddenChars = document.forbiddenChars,
+                        emptyString = document.emptyString
+                    )
+                document.targets.add( sanitizedTarget )
+                #print target.sanitizedTarget
+                document.tokens = PyTextMiner.Tokenizer.WordPunctTokenizer.tokenize(
+                    text = sanitizedTarget,
+                    emptyString = document.emptyString,
+                    #stopwords = self.stopwords
+                )
+                #for sentence in sentenceTokens:
+                #    target.tokens.append( PyTextMiner.Tokenizer.WordPunctTokenizer.filterBySize( sentence ) )
+                #print target.tokens
+                
+                document.ngrams = PyTextMiner.Tokenizer.WordPunctTokenizer.ngramize(
+                    minSize = document.minSize,
+                    maxSize = document.maxSize,
+                    tokens = document.tokens,
+                    emptyString = document.emptyString, 
+                    #stopwords=self.stopwords
+                )
+                # DB Storage
+                # TODO clean document
+                sql.storeDocument( document, documentNum )
                 sql.storeAssocDocument( documentNum, corpusNum )
-        #data = None
-        #tokenizerTester = TokenizerTests( data, self.locale, self.stopwords )
-        #corpora = tokenizerTester.wordpunct_tokenizer( corpora )
-        #tokenizerTester.print_corpora( corpora )
-        #corpora = tokenizerTester.clean_corpora( corpora )
-            
+
 if __name__ == '__main__':
     unittest.main()

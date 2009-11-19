@@ -4,7 +4,7 @@
 class NGram(dict):
     """an ngram"""
     def __init__(self, ngram, str, original=[], occs=None):
-        dict.__init__(self, ngram=ngram, str=str, occs=occs )
+        dict.__init__(self, ngram=ngram, str=str, original=original, occs=occs )
 
 #    def __len__(self):
 #        """length of the ngram"""

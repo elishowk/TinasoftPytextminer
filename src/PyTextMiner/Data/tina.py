@@ -96,22 +96,21 @@ class Importer (PyTextMiner.Data.Importer):
         for doc in self.csv:
             try:
                 corpusNumber = doc[self.corpusNumberField]
-                print "CORPUS NUMBER ", corpusNumber
+                #print "CORPUS NUMBER ", corpusNumber
             except Exception, exc:
-                print "document parsing exception : ", exc
+                #print "document parsing exception : ", exc
                 continue
                 pass
             document = self.document( doc )
             found = 0
             if self.corpusDict.has_key(corpusNumber) and corpusNumber in corpora.corpora:
-                print "found existing corpus"
                 self.corpusDict[ corpusNumber ].documents.add( document.docNum )
                 found = 1
             else:
                 found = 0
             if found == 1:
                 continue
-            print "creating new corpus"
+            #print "creating new corpus"
             corpus = PyTextMiner.Corpus(
                 name = corpusNumber,
             )

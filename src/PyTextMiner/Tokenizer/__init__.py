@@ -89,13 +89,13 @@ class WordPunctTokenizer(RegexpTokenizer):
     and non-alphabetic characters
     """
     @staticmethod
-    def tokenize( text, emptyString, stopwords ):
+    def tokenize( text, emptyString, stopwords=None ):
         sentences = nltk.sent_tokenize(text)
         sentences = [nltk.TreebankWordTokenizer().tokenize(RegexpTokenizer.cleanPunct( sent, emptyString )) for sent in sentences]
         return sentences
     
     @staticmethod
-    def ngramize( minSize, maxSize, tokens, emptyString, stopwords ):
+    def ngramize( minSize, maxSize, tokens, emptyString, stopwords=None ):
         ngrams = {}
         for n in range( minSize, maxSize +1 ):
             for sent in tokens:
@@ -106,9 +106,9 @@ class WordPunctTokenizer(RegexpTokenizer):
                             return w.lower()
                         newngram = NGram(
                                     ngram = map( lowerCase, sent[i:n+i] ),
-                                    origin = sent[i:n+i],
+                                    original = sent[i:n+i],
                                     occs = 1,
-                                    strRepr = representation,
+                                    str = representation,
                         )
                         if ngrams.has_key( newngram.id ):
                             ngrams[ newngram.id ].occs += 1

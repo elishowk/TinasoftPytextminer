@@ -43,6 +43,11 @@ class Document:
         self.index1 = index1
         self.index2 = index2
         self.metas = metas
+        if tokens is None:
+            tokens = []
+        # contains ngrams' generated unique IDs
+        if ngrams is None:
+            ngrams= {}
 
     def __str__(self):
         #return self.rawContent.encode('utf-8')
