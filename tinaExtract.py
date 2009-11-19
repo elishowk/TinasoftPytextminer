@@ -42,10 +42,13 @@ class TestFetExtract(unittest.TestCase):
         )
         corpora = PyTextMiner.Corpora( name="pubmedTest" )
         corpora = tina.corpora( corpora )
-        print tina.corpusDict
+        #print tina.corpusDict
         sql = Writer("sqlite://src/t/output/"+ corpora.name +".db", locale=self.locale)
-        #sql.storeCorpora( corpora, corpora.name )
-        for ( corpusNum, corpus ) in tina.corpusDict.iteritems():
+        # clean the DB contents
+        sql.clear()
+        sql.storeCorpora( corpora, corpora.name )
+        for corpusNum in corpora.corpora:
+            corpus = tina.corpusDict[ corpusNum ]
             sql.storeCorpus( corpusNum, corpus )
             sql.storeAssocCorpus( corpusNum, corpora.name )
             for documentNum in corpus.documents:
@@ -53,30 +56,30 @@ class TestFetExtract(unittest.TestCase):
                 if not sql.fetch_one( PyTextMiner.Document, documentNum ):
                     document = tina.docDict[ documentNum ]
                     print "----- TreebankWordTokenizer on document %s ----\n" % documentNum
-                    sanitizedTarget = PyTextMiner.Tokenizer.TreebankWordTokenizer.sanitize(
+                    sanitizedTarget = PyTextMiner.Tokenizer.TreeBankWordTokenizer.sanitize(
                             document.rawContent,
                             document.forbChars,
                             document.ngramEmpty
                         )
                     document.targets.add( sanitizedTarget )
                     #print target.sanitizedTarget
-                    sentenceTokens = PyTextMiner.Tokenizer.TreebankWordTokenizer.tokenize(
+                    sentenceTokens = PyTextMiner.Tokenizer.TreeBankWordTokenizer.tokenize(
                         text = sanitizedTarget,
                         emptyString = document.ngramEmpty,
                         #stopwords = self.stopwords
                     )
                     for sentence in sentenceTokens:
-                        document.tokens.append( PyTextMiner.Tagger.TreebankPosTagger.posTag( sentence ) )
+                        document.tokens.append( PyTextMiner.Tagger.TreeBankPosTagger.posTag( sentence ) )
                     #print document.tokens
                     
-                    document.ngrams = PyTextMiner.Tokenizer.TreebankWordTokenizer.ngramize(
+                    document.ngrams = PyTextMiner.Tokenizer.TreeBankWordTokenizer.ngramize(
                         minSize = document.ngramMin,
                         maxSize = document.ngramMax,
                         tokens = document.tokens,
                         emptyString = document.ngramEmpty, 
                         #stopwords=self.stopwords,
                     )
-                    print document.ngrams
+                    #print document.ngrams
                     # DB Storage
                     document.rawContent = ""
                     document.tokens = []
