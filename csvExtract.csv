@@ -10,8 +10,7 @@ import locale
 
 # pytextminer modules
 import PyTextMiner
-from PyTextMiner.Data import Reader, Writer
-from tina.storage import Storage
+from PyTextMiner.Data import Reader, Writer, sqlite
 from tokenizerTests import TokenizerTests
 
 class TestFetExtract(unittest.TestCase):
@@ -23,19 +22,19 @@ class TestFetExtract(unittest.TestCase):
         except:
             self.locale = 'fr_FR.UTF-8'
             locale.setlocale(locale.LC_ALL, self.locale)
-        self.stopwords = "file://t/stopwords/en.txt" 
+        self.stopwords = "file://src/t/stopwords/en.txt" 
 
     def test_proposal(self):
 
-        fet = Reader("fet://t/pubmed_AIDS.csv",
-            titleField='prop_titl',
-            datetimeField='date',
-            contentField='abst',
-            authorField='prop_acrnm',
-            corpusNumberField='Batch',
-            docNumberField='prop_num',
-            sumCostField='sum_cost',
-            sumGrantField='sum_grant',
+        tina = Reader("tina://src/t/pubmed_AIDS.csv",
+            titleField='doc_titl',
+            datetimeField='doc_date',
+            contentField='doc_abst',
+            authorField='doc_acrnm',
+            corpusNumberField='corp_num',
+            docNumberField='doc_num',
+            index_1='index_1',
+            index_2='index_2',
             minSize='1',
             maxSize='4',
             delimiter=',',
@@ -43,8 +42,9 @@ class TestFetExtract(unittest.TestCase):
             locale='en_US.UTF-8',
         )
         corpora = PyTextMiner.Corpora( name="pubmedTest" )
-        corpora = fet.corpora( corpora )
-        count = 0
+        corpora = tina.corpora( corpora )
+        print tina.corpusDict
+        #count = 0
         #for corpus in corpora.corpora:
             #print "corpus.id() = ", corpus
             #while count < 20:
@@ -63,7 +63,7 @@ class TestFetExtract(unittest.TestCase):
         #storage[corpora.id] = corpora
         #storage.save()
         #for corpus in corpora.corpora:
-        #    dump = Writer ("fet://t/output/"+corpus.number+"ngramDocFreq.csv", corpus=corpus, locale=self.locale)
+        #    dump = Writer ("tina://t/output/"+corpus.number+"ngramDocFreq.csv", corpus=corpus, locale=self.locale)
         #    dump.ngramDocFreq()
 
             

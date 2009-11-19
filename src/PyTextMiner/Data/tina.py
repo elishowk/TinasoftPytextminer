@@ -34,15 +34,15 @@ class Importer (PyTextMiner.Data.Importer):
 
     def __init__(self,
             filepath,
-            titleField='prop_titl',
-            datetimeField='date',
+            titleField='doc_titl',
+            datetimeField='doc_date',
             datetime=None,
-            contentField='abst',
-            authorField='prop_acrnm',
-            corpusNumberField='Batch',
-            docNumberField='prop_num',
-            sumCostField='sum_cost',
-            sumGrantField='sum_grant',
+            contentField='doc_abst',
+            authorField='doc_acrnm',
+            corpusNumberField='corp_num',
+            docNumberField='doc_num',
+            index1Field='index_1',
+            index2Field='index_2',
             minSize='1',
             maxSize='4',
             delimiter=',',
@@ -63,8 +63,8 @@ class Importer (PyTextMiner.Data.Importer):
         self.authorField = authorField
         self.corpusNumberField = corpusNumberField
         self.docNumberField = docNumberField
-        self.sumCostField = sumCostField
-        self.sumGrantField = sumGrantField
+        self.index1Field = index1Field
+        self.index2Field = index2Field
         self.minSize = minSize
         self.maxSize = maxSize
 
@@ -86,41 +86,45 @@ class Importer (PyTextMiner.Data.Importer):
                 self.fieldNames,
                 delimiter=self.delimiter,
                 quotechar=self.quotechar)
-        del f2
         self.csv.next()
+        del f2
+        self.docDict = {}
+        self.corpusDict = {}
                 
         
     def corpora( self, corpora ):
-        docSet = set([])
         for doc in self.csv:
             try:
                 corpusNumber = doc[self.corpusNumberField]
+                print "CORPUS NUMBER ", corpusNumber
             except Exception, exc:
                 print "document parsing exception : ", exc
                 continue
                 pass
             document = self.document( doc )
             found = 0
-            #for corpus in corpora.corpora:
-                if corpusNumber in corpora.corpora:
-                    print "found existing corpus"
-                    docSet.add( document.docNum )
-                    found = 1
-                    #break
-                else:
-                    found = 0
+            if self.corpusDict.has_key(corpusNumber) and corpusNumber in corpora.corpora:
+                print "found existing corpus"
+                self.corpusDict[ corpusNumber ].documents.add( document.docNum )
+                found = 1
+            else:
+                found = 0
             if found == 1:
                 continue
-            print "create new corpus if not exists :"
+            print "creating new corpus"
             corpus = PyTextMiner.Corpus(
                 name = corpusNumber,
             )
             corpus.documents.add( document.docNum )
-            corpora.corpora.add( corpus.name )
+            self.corpusDict[ corpusNumber ] = corpus
+            corpora.corpora.add( corpusNumber )
         return corpora
             
-    def document(self, doc):
+    def document( self, doc ):
         try:
+            docNum=doc[self.docNumberField]
+            if self.docDict.has_key( docNum ):
+                return self.docDict[ docNum ]
             # TODO time management
             #if self.datetime is None:
             #    date = datetime(doc[self.datetimeField])
@@ -129,32 +133,26 @@ class Importer (PyTextMiner.Data.Importer):
             content = doc[self.contentField]
             title=doc[self.titleField]
             author=doc[self.authorField]
-            docNum=doc[self.docNumberField]
             #keywords=doc[self.keywordsField]
-            index1=doc[self.sumCostField]
-            index2=doc[self.sumGrantField]
+            index1=doc[self.index1Field]
+            index2=doc[self.index2Field]
         except Exception, exc:
             print "document parsing exception : ",exc
             pass
-        print content
-
-        target = PyTextMiner.Target(
-                rawTarget=content,
-                type=self.contentField,
-                ngramMin=1,
-                ngramMax=4,
-        )
 
         document = PyTextMiner.Document(
-            rawContent=doc,
+            rawContent=content,
             title=title,
             author=author,
             docNum=docNum,
             #date=date,
             #keywords=keywords,
             index1=index1,
-            index2=index2
+            index2=index2,
+            ngramMin=1,
+            ngramMax=4,
         )
-        print id(target)
-        document.targets.add( id(target) )
+        #print "TARGET =========", id(target)
+        #document.targets.add( id(target) )
+        self.docDict[ docNum ] = document
         return document

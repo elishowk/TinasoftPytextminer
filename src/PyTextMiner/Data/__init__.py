@@ -23,16 +23,16 @@ class Exporter (object):
 
 def _check_protocol(arg):
     protocol, path = arg.split("://")
-    if protocol == "file+medline" or protocol == "medline":
-        protocol = "medline"
-    elif protocol == "file+fet" or protocol == "fet":
-        protocol = "fet"
-    elif protocol == "csv":
-        protocol = "basecsv"
-    elif protocol == "sqlite" or protocol == "sql":
-        protocol = "sqlite"
-    else:
-        raise Exception("unrecognized protocol %s"%protocol)
+#    if protocol == "file+medline" or protocol == "medline":
+#        protocol = "medline"
+#    elif protocol == "file+tina" or protocol == "tina":
+#        protocol = "fet"
+#    elif protocol == "csv":
+#        protocol = "basecsv"
+#    elif protocol == "sqlite" or protocol == "sql":
+#        protocol = "sqlite"
+#    else:
+#        raise Exception("unrecognized protocol %s"%protocol)
     return protocol, path
     
 def Reader(arg, **options):

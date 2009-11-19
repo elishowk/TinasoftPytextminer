@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # PyTextMiner Target class
 
+# DEPRECATED !!!
+
 class Target(dict):
     """Target containing ngrams"""
 

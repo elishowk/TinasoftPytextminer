@@ -16,7 +16,15 @@ class Document:
             author=None,
             index1=None,
             index2=None,
-            keywords=None):
+            metas=None,
+            tokens=None,
+            ngrams=None,
+            ngramMin=1,
+            ngramMax=2,
+            forbChars=u"[^a-zA-Z0-9\s\@ÂÆÇÈÉÊÎÛÙàâæçèéêîĨôÔùûü\,\.\;\:\!\?\"\'\[\]\{\}\(\)\<\>]",
+            ngramSep= u"[\s]+",
+            ngramEmpty = " ",
+        ):
 
         self.rawContent = rawContent
         self.docNum = docNum
@@ -34,7 +42,7 @@ class Document:
         self.author = author
         self.index1 = index1
         self.index2 = index2
-        self.keywords = keywords
+        self.metas = metas
 
     def __str__(self):
         #return self.rawContent.encode('utf-8')
