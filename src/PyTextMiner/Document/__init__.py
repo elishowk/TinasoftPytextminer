@@ -9,8 +9,7 @@ class Document:
     def __init__(
             self,
             rawContent,
-            target,
-            id=None,
+            docNum=None,
             date=None,
             targets=None,
             title=None,
@@ -20,8 +19,7 @@ class Document:
             keywords=None):
 
         self.rawContent = rawContent
-        self.targets = targets
-        self.id = id
+        self.docNum = docNum
 
         if date is None:
             self.date = None

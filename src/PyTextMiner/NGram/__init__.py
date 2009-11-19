@@ -3,8 +3,8 @@
 
 class NGram(dict):
     """an ngram"""
-    def __init__(self, ngram, str, id=None, original=[], occs=None):
-        dict.__init__(self, id=id, ngram=ngram, str=str, occs=occs )
+    def __init__(self, ngram, str, original=[], occs=None):
+        dict.__init__(self, ngram=ngram, str=str, occs=occs )
 
 #    def __len__(self):
 #        """length of the ngram"""

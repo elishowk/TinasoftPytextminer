@@ -6,7 +6,6 @@ class Target(dict):
 
     def __init__(self,
         rawTarget,
-        id=None,
         tokens=None,
         type=None,
         ngrams=None,
@@ -23,7 +22,7 @@ class Target(dict):
         # contains ngrams' generated unique IDs
         if ngrams is None:
             ngrams=set([])
-        dict.__init__(self, id=id, rawTarget=rawTarget, tokens=tokens, ngrams=ngrams, forbChars=forbChars, ngramMin=ngramMin, ngramMax=ngramMax, ngramSep=ngramSep, ngramEmpty=ngramEmpty)
+        dict.__init__(self, rawTarget=rawTarget, tokens=tokens, ngrams=ngrams, forbChars=forbChars, ngramMin=ngramMin, ngramMax=ngramMax, ngramSep=ngramSep, ngramEmpty=ngramEmpty)
 
 #    def __str__(self):
 #        return self.rawTarget.encode('utf-8')
