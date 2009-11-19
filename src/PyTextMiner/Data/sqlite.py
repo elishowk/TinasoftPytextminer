@@ -18,15 +18,15 @@ class SQLiteBackend (Data.Importer):
         self.execute = self._cursor.execute
         self.commit = self._db.commit
         self.tables = []
-        
-        if format == 'yaml':
+
+        if self.format == 'yaml':
             import yaml
             self.encode = yaml.dump
             self.decode = yaml.load
-        elif format == 'json':
-            import json
-            self.encode = json.dumps
-            self.decode = json.loads
+        elif self.format == 'json' or self.format == 'jsonpickle':
+            import jsonpickle
+            self.encode = jsonpickle.encode
+            self.decode = jsonpickle.decode
         else:
             try:
                 import cpickle as pickle
@@ -44,23 +44,47 @@ class SQLiteBackend (Data.Importer):
             return cName
         self.tables.append(cName)
         try:
-            if cName == 'Corpora':
-                self.execute('''create table '''+cName+''' (id VARCHAR UNIQUE, blob text)''')
+            if cName.startswith('Assoc'):
+                self.execute('''create table '''+cName+''' (id1 VARCHAR, id2 VARCHAR, PRIMARY KEY (id1, id2))''')
             else:
-                self.execute('''create table '''+cName+''' (id INTEGER UNIQUE, blob text)''')
+                self.execute('''create table '''+cName+''' (id VARCHAR PRIMARY KEY, blob text)''')
+
             self.commit()
-        except sqlite3.OperationalError:
+        except sqlite3.OperationalError, exc:
+            print "ERROR:",exc
             # table already exists
             pass
         return cName
 
     def insert(self, id, obj):
-        self.execute("""insert into """ + self.getTable(obj) + """ values (%s, "%s")"""%(id,self.encode(obj)))
-        self.commit()
-        return id
+        req = 'insert into ' + self.getTable(obj) + ' values (?, ?)'
+        try:
+            self.execute(req,(id,self.encode(obj)))
+            self.commit()
+        except sqlite3.IntegrityError, e1:
+            print "OBJECT Integrity error:",e1,req
+            return False
+        except sqlite3.OperationalError, e2:
+            print "OBJECT Operational error:",e2,req
+            return False
+        return True
+        
+    def insertAssoc(self, assoc):
+        i1, i2 = assoc
+        req = 'insert into ' + self.getTable(assoc) + ' values (?, ?)'
+        try:
+            self.execute(req, assoc)
+            self.commit()
+        except sqlite3.IntegrityError, e1:
+            print "ASSOC ntegrity error:",e1,req
+            return False
+        except sqlite3.OperationalError, e2:
+            print "ASSOC Operational error:",e2,req
+            return False
+        return True
         
     def update(self, id, obj):
-        self.execute("""update """ + self.getTable(obj) + """ SET (blob = "%s") WHERE  (id LIKE %s)"""%(self.encode(obj), id))
+        self.execute("""update """ + self.getTable(obj) + """ SET (blob = '%s') WHERE  (id LIKE '%s')"""%(self.encode(obj), id))
         self.commit()
         return True
         
@@ -69,7 +93,7 @@ class SQLiteBackend (Data.Importer):
         if id is None:
             results = self.execute("""select * from """ +clss.__name__)
         else:
-            results = self.execute("""select * from """ + clss.__name__ + """ WHERE  (id == %s) LIMIT 1"""%id)
+            results = self.execute("""select * from """ + clss.__name__ + """ WHERE  (id == '%s') LIMIT 1"""%id)
         if id is None:
             return [self.decode(blob) for i, blob in results]
         else:
@@ -77,38 +101,41 @@ class SQLiteBackend (Data.Importer):
             return self.decode(blob)
 
 
-# APPLICATION LAYER   
-class AssocCorpus (tuple):
+# APPLICATION LAYER  
+class Assoc (tuple):
     pass
-class AssocDocument (tuple):
+class AssocCorpus (Assoc):
     pass
-class AssocNGram (tuple):
+class AssocDocument (Assoc):
+    pass
+class AssocNGram (Assoc):
     pass
     
 class Exporter (SQLiteBackend):
 
-
-
-    def storeCorpora(self, id, corpora ):
+    def storeCorpora(self,  corpora, id ):
         return self.insert( id, corpora )
         
-    def storeCorpus(self, id, corpus ):
-        return sself.insert( id, corpus )
+    def storeCorpus(self, corpus, id ):
+        return self.insert( id, corpus )
 
-    def storeDocument(self, id, document ):
+    def storeDocument(self, document, id ):
         return self.insert( id, document )
 
-    def storeNGram(self, id, ngram ):
+    def storeNGram(self, ngram, id ):
         return self.insert( id, ngram )
 
-    def storeAssocCorpus(self, id, corpusID, corporaID ):
-        return self.insert( id, AssocCorpus(corpusID, corporaID) )
+    def storeAssocCorpus(self, corpusID, corporaID ):
+        assoc = AssocCorpus((corpusID, corporaID)) 
+        return self.insertAssoc( assoc )
         
-    def storeAssocDocument(self, id, docID, corpusID ):
-        return self.insert( id, AssocDocument(docID, corpusID) )
+    def storeAssocDocument(self, docID, corpusID ):
+        assoc = AssocDocument((docID, corpusID)) 
+        return self.insertAssoc( assoc )
         
-    def storeAssocNGram(self, id, ngramID, docID ):
-        return self.insert( id, AssocNGram(ngramID, docID) ) 
+    def storeAssocNGram(self, ngramID, docID ):
+        assoc = AssocNGram((ngramID, docID))
+        return self.insertAssoc( assoc )
 
 
     def loadCorpora(self, id ):
@@ -131,5 +158,4 @@ class Exporter (SQLiteBackend):
              
     def loadAssocNGram(self, id ):
         return self.backend.fetch( id )
-        
-        
+   
