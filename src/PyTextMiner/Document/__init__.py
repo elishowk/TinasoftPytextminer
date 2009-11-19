@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+__author__="Elias Showk"
 # core modules
 import time
 from datetime import datetime

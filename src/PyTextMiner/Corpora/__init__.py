@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+__author__="Elias Showk"
+
 class Corpora:
     """Corpora contains a list of a corpus"""
     

@@ -10,6 +10,7 @@ from Tokenizer import *
 from CoWord import *
 from StopWord import *
 from Data import *
+from Tagger import *
 
 """PyTextMiner Module"""
 class PyTextMiner:

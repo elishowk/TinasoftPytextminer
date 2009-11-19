@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # PyTextMiner NGram class
 
+__author__="Elias Showk"
+
 class NGram(dict):
     """an ngram"""
     def __init__(self, ngram, str, original=[], occs=None):

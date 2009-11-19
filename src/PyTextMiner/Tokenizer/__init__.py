@@ -82,15 +82,15 @@ class RegexpTokenizer():
         print "ngrams stopped :", count
         return ngrams
 
-class WordPunctTokenizer(RegexpTokenizer):
+class TreeBankWordTokenizer(RegexpTokenizer):
     """
     A tokenizer that divides a text into sentences
-    then into sequences of alphabetic
-    and non-alphabetic characters
+    then into sequences of alphabetic and non-alphabetic chars
     """
     @staticmethod
     def tokenize( text, emptyString, stopwords=None ):
         sentences = nltk.sent_tokenize(text)
+        # WARNING : only works on english
         sentences = [nltk.TreebankWordTokenizer().tokenize(RegexpTokenizer.cleanPunct( sent, emptyString )) for sent in sentences]
         return sentences
     
@@ -101,12 +101,13 @@ class WordPunctTokenizer(RegexpTokenizer):
             for sent in tokens:
                 for i in range(len(sent)):
                     if len(sent) >= i+n:
-                        # TODO optionnal stopwords
-                        representation = emptyString.join( sent[i:n+i] )
-                        def lowerCase(w):
-                            return w.lower()
+                        # TODO optional stopwords
+                        def normalizePOS(tpl):
+                            return tpl[0].lower()
+                        normalNgram = map( normalizePOS, sent[i:n+i] )
+                        representation = emptyString.join( normalNgram )
                         newngram = NGram(
-                                    ngram = map( lowerCase, sent[i:n+i] ),
+                                    ngram = normalNgram,
                                     original = sent[i:n+i],
                                     occs = 1,
                                     str = representation,

@@ -11,7 +11,6 @@ import locale
 # pytextminer modules
 import PyTextMiner
 from PyTextMiner.Data import Reader, Writer, sqlite
-from tokenizerTests import TokenizerTests
 
 class TestFetExtract(unittest.TestCase):
     def setUp(self):
@@ -47,45 +46,51 @@ class TestFetExtract(unittest.TestCase):
         sql = Writer("sqlite://src/t/output/"+ corpora.name +".db", locale=self.locale)
         #sql.storeCorpora( corpora, corpora.name )
         for ( corpusNum, corpus ) in tina.corpusDict.iteritems():
-            #sql.storeCorpus( corpus, corpusNum )
-            #sql.storeAssocCorpus( corpusNum, corpora.name )
+            sql.storeCorpus( corpusNum, corpus )
+            sql.storeAssocCorpus( corpusNum, corpora.name )
             for documentNum in corpus.documents:
-                # TODO : check in DB
-                # add Assoc if exists
-                document = tina.docDict[ documentNum ]
-                print "----- WordPunctTokenizer on document %s ----\n" % documentNum
-                sanitizedTarget = PyTextMiner.Tokenizer.WordPunctTokenizer.sanitize(
-                        document.rawContent,
-                        document.forbChars,
-                        document.ngramEmpty
+                # check in DB and insert Assoc if exists
+                if not sql.fetch_one( PyTextMiner.Document, documentNum ):
+                    document = tina.docDict[ documentNum ]
+                    print "----- TreebankWordTokenizer on document %s ----\n" % documentNum
+                    sanitizedTarget = PyTextMiner.Tokenizer.TreebankWordTokenizer.sanitize(
+                            document.rawContent,
+                            document.forbChars,
+                            document.ngramEmpty
+                        )
+                    document.targets.add( sanitizedTarget )
+                    #print target.sanitizedTarget
+                    sentenceTokens = PyTextMiner.Tokenizer.TreebankWordTokenizer.tokenize(
+                        text = sanitizedTarget,
+                        emptyString = document.ngramEmpty,
+                        #stopwords = self.stopwords
                     )
-                document.targets.add( sanitizedTarget )
-                #print target.sanitizedTarget
-                document.tokens = PyTextMiner.Tokenizer.WordPunctTokenizer.tokenize(
-                    text = sanitizedTarget,
-                    emptyString = document.ngramEmpty,
-                    #stopwords = self.stopwords
-                )
-                #for sentence in sentenceTokens:
-                #    target.tokens.append( PyTextMiner.Tokenizer.WordPunctTokenizer.filterBySize( sentence ) )
-                #print target.tokens
-                
-                document.ngrams = PyTextMiner.Tokenizer.WordPunctTokenizer.ngramize(
-                    minSize = document.ngramMin,
-                    maxSize = document.ngramMax,
-                    tokens = document.tokens,
-                    emptyString = document.ngramEmpty, 
-                    #stopwords=self.stopwords,
-                )
-                #print document.ngrams
-                # DB Storage
-                document.rawContent = ""
-                document.tokens = []
-                #sql.storeDocument( document, documentNum )
-                #sql.storeAssocDocument( documentNum, corpusNum )
-                del document
-                del tina.docDict[ documentNum ]
-                print len( tina.docDict )
+                    for sentence in sentenceTokens:
+                        document.tokens.append( PyTextMiner.Tagger.TreebankPosTagger.posTag( sentence ) )
+                    #print document.tokens
+                    
+                    document.ngrams = PyTextMiner.Tokenizer.TreebankWordTokenizer.ngramize(
+                        minSize = document.ngramMin,
+                        maxSize = document.ngramMax,
+                        tokens = document.tokens,
+                        emptyString = document.ngramEmpty, 
+                        #stopwords=self.stopwords,
+                    )
+                    print document.ngrams
+                    # DB Storage
+                    document.rawContent = ""
+                    document.tokens = []
+                    sql.storeDocument( documentNum, document )
+                    
+                    del document
+                    del tina.docDict[ documentNum ]
+                # insert Doc-Corpus association
+                sql.storeAssocDocument( documentNum, corpusNum )
+                print ">> %d documents left to analyse\n" % len( tina.docDict )
+            del corpus
+            del tina.corpusDict[ corpusNum ]
+        del corpora
+        del tina
 
 if __name__ == '__main__':
     unittest.main()
