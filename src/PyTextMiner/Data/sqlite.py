@@ -38,8 +38,8 @@ class SQLiteBackend (Data.Importer):
     def setCallback(self, cb):
         self.callback = cb
           
-    def getTable(self, obj):
-        cName = obj.__class__.__name__
+    def getTable(self, clss):
+        cName = clss.__name__
         if cName in self.tables:
             return cName
         self.tables.append(cName)
@@ -56,7 +56,7 @@ class SQLiteBackend (Data.Importer):
         return cName
 
     def insert(self, id, obj):
-        req = 'insert into ' + self.getTable(obj) + ' values (?, ?)'
+        req = 'insert into ' + self.getTable(obj.__class__) + ' values (?, ?)'
         try:
             self.execute(req,(self.encode(id),self.encode(obj)))
             self.commit()
@@ -71,7 +71,7 @@ class SQLiteBackend (Data.Importer):
     def insertAssoc(self, assoc):
         i1,i2 = assoc
         i1,i2 = self.encode(i1), self.encode(i2)
-        req = 'insert into ' + self.getTable(assoc) + ' values (?, ?)'
+        req = 'insert into ' + self.getTable(assoc.__class__) + ' values (?, ?)'
         try:
             self.execute(req, (i1,i2))
             self.commit()
@@ -84,13 +84,13 @@ class SQLiteBackend (Data.Importer):
         return True
         
     def update(self, id, obj):
-        req = 'update '+ self.getTable(obj) +' SET (blob = ?) WHERE (id LIKE ?)'
+        req = 'update '+ self.getTable(obj.__class__) +' SET (blob = ?) WHERE (id LIKE ?)'
         self.execute(req, (self.encode(obj), self.encode(id)))
         self.commit()
         return True
         
     def fetch_all(self, clss):
-        req = ('select * from '+clss.__name__)
+        req = ('select * from '+self.getTable(clss))
         reply = self.execute(req)
         results = []
         for i, blob in reply:
@@ -98,8 +98,8 @@ class SQLiteBackend (Data.Importer):
         return tuple (results )
         
     def fetch_one(self, clss, id):
-        req = 'select * from '+ clss.__name__ + ' WHERE (id LIKE ?)'#%self.encode(id)
-        print "id=",self.encode(id)
+
+        req = 'select * from '+ self.getTable(clss) + ' WHERE (id LIKE ?)'#%self.encode(id)
         results = self.execute(req, [self.encode(id)])   
 
         i, blob = None, None
