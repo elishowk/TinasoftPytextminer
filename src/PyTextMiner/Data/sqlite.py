@@ -24,9 +24,9 @@ class SQLiteBackend (Data.Importer):
             self.encode = yaml.dump
             self.decode = yaml.load
         elif format == 'json':
-
-            self.encode = jsonpickle.encode
-            self.decode = jsonpickle.decode
+            import json
+            self.encode = json.dumps
+            self.decode = json.loads
         else:
             try:
                 import cpickle as pickle
@@ -34,29 +34,35 @@ class SQLiteBackend (Data.Importer):
                 import pickle
             self.encode = pickle.dumps
             self.decode = pickle.loads
-            
+          
+    def setCallback(self, cb):
+        self.callback = cb
+          
     def getTable(self, obj):
         cName = obj.__class__.__name__
         if cName in self.tables:
             return cName
         self.tables.append(cName)
         try:
-            self.execute('''create table '''+cName+''' (id INTEGER, blob text)''')
+            if cName == 'Corpora':
+                self.execute('''create table '''+cName+''' (id VARCHAR UNIQUE, blob text)''')
+            else:
+                self.execute('''create table '''+cName+''' (id INTEGER UNIQUE, blob text)''')
             self.commit()
         except sqlite3.OperationalError:
             # table already exists
             pass
         return cName
 
-    def insert(self, obj):
-        self.execute("""insert into """ + self.getTable(obj) + """ values (%s, "%s")"""%(id(obj),self.encode(obj)))
+    def insert(self, id, obj):
+        self.execute("""insert into """ + self.getTable(obj) + """ values (%s, "%s")"""%(id,self.encode(obj)))
         self.commit()
-        return id(obj)
+        return id
         
-    def update(self, obj):
-        self.execute("""update """ + self.getTable(obj) + """ SET (blob = "%s") WHERE  (id LIKE %s)"""%(self.encode(obj), id(obj)))
+    def update(self, id, obj):
+        self.execute("""update """ + self.getTable(obj) + """ SET (blob = "%s") WHERE  (id LIKE %s)"""%(self.encode(obj), id))
         self.commit()
-        return id(obj)
+        return True
         
     def fetch(self, clss, id=None):
         results = []
@@ -81,26 +87,28 @@ class AssocNGram (tuple):
     
 class Exporter (SQLiteBackend):
 
-    def storeCorpora(self, corpora ):
-        return self.insert( corpora )
-        
-    def storeCorpus(self, corpus ):
-        return sself.insert( corpus )
 
-    def storeDocument(self, document ):
-        return self.insert( document )
 
-    def storeNGram(self, ngram ):
-        return self.insert( ngram )
+    def storeCorpora(self, id, corpora ):
+        return self.insert( id, corpora )
+        
+    def storeCorpus(self, id, corpus ):
+        return sself.insert( id, corpus )
 
-    def storeAssocCorpus(self, corpusID, corporaID ):
-        return self.insert( AssocCorpus(corpusID, corporaID) )
+    def storeDocument(self, id, document ):
+        return self.insert( id, document )
+
+    def storeNGram(self, id, ngram ):
+        return self.insert( id, ngram )
+
+    def storeAssocCorpus(self, id, corpusID, corporaID ):
+        return self.insert( id, AssocCorpus(corpusID, corporaID) )
         
-    def storeAssocDocument(self, docID, corpusID ):
-        return self.insert( AssocDocument(docID, corpusID) )
+    def storeAssocDocument(self, id, docID, corpusID ):
+        return self.insert( id, AssocDocument(docID, corpusID) )
         
-    def storeAssocNGram(self, ngramID, docID ):
-        return self.insert( AssocNGram(ngramID, docID) ) 
+    def storeAssocNGram(self, id, ngramID, docID ):
+        return self.insert( id, AssocNGram(ngramID, docID) ) 
 
 
     def loadCorpora(self, id ):
