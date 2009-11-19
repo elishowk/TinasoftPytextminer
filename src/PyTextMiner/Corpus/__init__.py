@@ -2,8 +2,7 @@
 
 class Corpus:
     """a Corpus containing documents"""
-    def __init__(self, id=None, name=None, documents=None):
-        self.id = id
+    def __init__(self, name=None, documents=None):
         # contains documents' generated unique IDs
         if documents is None: 
             documents = set([])

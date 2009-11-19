@@ -24,6 +24,7 @@ class TestSQLite(unittest.TestCase):
             locale.setlocale(locale.LC_ALL, self.locale)
 
     def test_proposal(self):
+<<<<<<< HEAD:src/sqliteTest.py
         sql = Writer("sqlite://t/output/sqlite-database", format='json', locale=self.locale)
         sql.storeDocument( random.randint(0,1000000000000000000), {"name":"lala", "targets" : [143234,2342,346356,467568] } )
         px = 0
@@ -34,10 +35,10 @@ class TestSQLite(unittest.TestCase):
                 print x
                 
     def test_exception(self):
-        sql = Writer("sqlite://t/output/sqlite-database", format='json', locale=self.locale)
+        sql = Writer("sqlite://t/output/sqlite-database.db", format='json', locale=self.locale)
         sql.storeDocument( 4444, {"name":"lala", "targets" : [43234,342,4635,7568] } )
         sql.storeDocument( 4444, {"name":"lala", "targets" : [1434,2342,346356,46756] } )
                 
-          
+
 if __name__ == '__main__':
     unittest.main()
