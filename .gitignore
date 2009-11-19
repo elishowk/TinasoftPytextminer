@@ -10,3 +10,5 @@ nbproject*
 src/t/output*
 src/t/output/*
 src/t/output/Corpora1
+src/t/pubmed_AIDS.csv
+

@@ -7,18 +7,19 @@ import PyTextMiner
 class Importer (object):
     def __init__(self):
         pass
+    def get_property(self, options, key, default):
+        if not options.has_key(key): 
+            options[key] = default
+        return options[key]
 
 class Exporter (object):
     def __init__(self):
         pass
-
- 
-def _get_locale(locale='en_US:UTF-8'):
-    try:
-        lang, encoding = locale.split(':') 
-        return lang, encoding.lower()
-    except:
-        return locale.split(':')[0], 'utf-8'
+        
+    def get_property(self, options, key, default):
+        if not options.has_key(key): 
+            options[key] = default
+        return options[key]
 
 def _check_protocol(arg):
     protocol, path = arg.split("://")
@@ -28,28 +29,30 @@ def _check_protocol(arg):
         protocol = "fet"
     elif protocol == "csv":
         protocol = "basecsv"
+    elif protocol == "sqlite" or protocol == "sql":
+        protocol = "sqlite"
     else:
         raise Exception("unrecognized protocol %s"%protocol)
     return protocol, path
     
-def Reader(arg, **kwargs):
+def Reader(arg, **options):
     protocol, path = _check_protocol(arg)
     try:
         module = __import__("PyTextMiner.Data.%s"%protocol)
         importer = None
         #exec "from "PyTextMiner.Data.%s"%protocol import module.
-        exec ("importer = PyTextMiner.Data.%s.Importer(path,  **kwargs)"%protocol)
+        exec ("importer = PyTextMiner.Data.%s.Importer(path, **options)"%protocol)
         return importer
     except Exception, exc:
         raise Exception("couldn't load reader %s: %s"%(protocol,exc))
          
-def Writer(arg,  *args, **kwargs):
+def Writer(arg, **options):
     protocol, path = _check_protocol(arg)
     try:
         module = __import__("PyTextMiner.Data.%s"%protocol)
         exporter = None
         #exec "from "PyTextMiner.Data.%s"%protocol import module.
-        exec ("exporter = PyTextMiner.Data.%s.Exporter(path,  *args, **kwargs)"%protocol)
+        exec ("exporter = PyTextMiner.Data.%s.Exporter(path, **options)"%protocol)
         return exporter
     except Exception, exc:
         raise Exception("couldn't load writer %s: %s"%(protocol,exc))
