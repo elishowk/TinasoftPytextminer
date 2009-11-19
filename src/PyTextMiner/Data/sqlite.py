@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from PyTextMiner import Data
+from PyTextMiner import Corpus, Document, Corpora, NGram, Data
 import sqlite3
 
 # LOW-LEVEL BACKEND 
@@ -51,7 +51,6 @@ class SQLiteBackend (Data.Importer):
 
             self.commit()
         except sqlite3.OperationalError, exc:
-            print "ERROR:",exc
             # table already exists
             pass
         return cName
@@ -59,7 +58,7 @@ class SQLiteBackend (Data.Importer):
     def insert(self, id, obj):
         req = 'insert into ' + self.getTable(obj) + ' values (?, ?)'
         try:
-            self.execute(req,(id,self.encode(obj)))
+            self.execute(req,(self.encode(id),self.encode(obj)))
             self.commit()
         except sqlite3.IntegrityError, e1:
             print "OBJECT Integrity error:",e1,req
@@ -70,10 +69,11 @@ class SQLiteBackend (Data.Importer):
         return True
         
     def insertAssoc(self, assoc):
-        i1, i2 = assoc
+        i1,i2 = assoc
+        i1,i2 = self.encode(i1), self.encode(i2)
         req = 'insert into ' + self.getTable(assoc) + ' values (?, ?)'
         try:
-            self.execute(req, assoc)
+            self.execute(req, (i1,i2))
             self.commit()
         except sqlite3.IntegrityError, e1:
             print "ASSOC ntegrity error:",e1,req
@@ -84,21 +84,33 @@ class SQLiteBackend (Data.Importer):
         return True
         
     def update(self, id, obj):
-        self.execute("""update """ + self.getTable(obj) + """ SET (blob = '%s') WHERE  (id LIKE '%s')"""%(self.encode(obj), id))
+        req = 'update '+ self.getTable(obj) +' SET (blob = ?) WHERE (id LIKE ?)'
+        self.execute(req, (self.encode(obj), self.encode(id)))
         self.commit()
         return True
         
-    def fetch(self, clss, id=None):
+    def fetch_all(self, clss):
+        req = ('select * from '+clss.__name__)
+        reply = self.execute(req)
         results = []
-        if id is None:
-            results = self.execute("""select * from """ +clss.__name__)
-        else:
-            results = self.execute("""select * from """ + clss.__name__ + """ WHERE  (id == '%s') LIMIT 1"""%id)
-        if id is None:
-            return [self.decode(blob) for i, blob in results]
-        else:
-            i, blob = results
-            return self.decode(blob)
+        for i, blob in reply:
+            results.append((self.decode(i), self.decode(blob)))
+        return tuple (results )
+        
+    def fetch_one(self, clss, id):
+        req = 'select * from '+ clss.__name__ + ' WHERE (id LIKE ?)'#%self.encode(id)
+        print "id=",self.encode(id)
+        results = self.execute(req, [self.encode(id)])   
+
+        i, blob = None, None
+       
+        for res in results:
+            i, blob = res
+            i = self.decode(i)
+            blob = self.decode(blob)
+            break
+
+        return blob
 
 
 # APPLICATION LAYER  
@@ -139,23 +151,24 @@ class Exporter (SQLiteBackend):
 
 
     def loadCorpora(self, id ):
-        return self.backend.fetch( id )
+        return self.fetch_one( Corpora, id )
         
     def loadCorpus(self, id ):
-        return self.backend.fetch( id )
+        return self.fetch_one( Corpus, id )
         
     def loadDocument(self, id ):
-        return self.backend.fetch( id )
+        return self.fetch_one( Document, id )
         
     def loadNGram(self, id ):
-        return self.backend.fetch( id )
+        return self.fetch_one( NGram, id )
         
-    def loadAssocCorpus(self, id ):
-        return self.backend.fetch( id )
+        
+    def loadAllAssocCorpus(self):
+        return self.fetch_all( AssocCorpus )
              
-    def loadAssocDocument(self, id ):
-        return self.backend.fetch( id )
+    def loadAllAssocDocument(self):
+        return self.fetch_all( AssocDocument )
              
-    def loadAssocNGram(self, id ):
-        return self.backend.fetch( id )
+    def loadAllAssocNGram(self):
+        return self.fetch_all( AssocNGram )
    

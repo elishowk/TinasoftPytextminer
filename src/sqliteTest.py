@@ -23,22 +23,15 @@ class TestSQLite(unittest.TestCase):
             self.locale = 'fr_FR.UTF-8'
             locale.setlocale(locale.LC_ALL, self.locale)
 
-    def test_proposal(self):
-<<<<<<< HEAD:src/sqliteTest.py
-        sql = Writer("sqlite://t/output/sqlite-database", format='json', locale=self.locale)
-        sql.storeDocument( random.randint(0,1000000000000000000), {"name":"lala", "targets" : [143234,2342,346356,467568] } )
-        px = 0
-        for x in xrange(80):
-            sql.storeNGram( random.randint(0,1000000000000000000), {"occs":random.randint(1,20), "ngram" : ["aaa","bbb","ccccccc","dddd","ii","uyuuououououou"] } )
-            if (x / 100) > px:
-                px = x / 100
-                print x
-                
-    def test_exception(self):
-        sql = Writer("sqlite://t/output/sqlite-database.db", format='json', locale=self.locale)
-        sql.storeDocument( 4444, {"name":"lala", "targets" : [43234,342,4635,7568] } )
-        sql.storeDocument( 4444, {"name":"lala", "targets" : [1434,2342,346356,46756] } )
-                
+    def test_basic(self):
+        backend = Writer("sqlite://t/output/test-sqlite.db", format='json', locale=self.locale)
+        docs = { 32000 : {"name":"lala", "targets" : (143234,2342,346356,467568) },
+                 31000 : {"name":"lala", "targets" : (143234,2342,346356,467568) } }
+        for key, value in docs.iteritems():
+            backend.insert( key, value )
+        assert backend.fetch_one( dict, 30000 ) is None
+ 
+        
 
 if __name__ == '__main__':
     unittest.main()
