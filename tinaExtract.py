@@ -45,25 +45,25 @@ class TestFetExtract(unittest.TestCase):
         corpora = tina.corpora( corpora )
         print tina.corpusDict
         sql = Writer("sqlite://src/t/output/"+ corpora.name +".db", locale=self.locale)
-        sql.storeCorpora( corpora, corpora.name )
-        tokenizer = TokenizerTests( data, self.locale, self.stopwords )
-        corpora = tokenizerTester.wordpunct_tokenizer( corpora )
+        #sql.storeCorpora( corpora, corpora.name )
         for ( corpusNum, corpus ) in tina.corpusDict.iteritems():
-            sql.storeCorpus( corpus, corpusNum )
-            sql.storeAssocCorpus( corpusNum, corpora.name )
+            #sql.storeCorpus( corpus, corpusNum )
+            #sql.storeAssocCorpus( corpusNum, corpora.name )
             for documentNum in corpus.documents:
+                # TODO : check in DB
+                # add Assoc if exists
                 document = tina.docDict[ documentNum ]
-                print "----- WordPunctTokenizer ----\n"
+                print "----- WordPunctTokenizer on document %s ----\n" % documentNum
                 sanitizedTarget = PyTextMiner.Tokenizer.WordPunctTokenizer.sanitize(
-                        input = document.rawContent,
-                        forbiddenChars = document.forbiddenChars,
-                        emptyString = document.emptyString
+                        document.rawContent,
+                        document.forbChars,
+                        document.ngramEmpty
                     )
                 document.targets.add( sanitizedTarget )
                 #print target.sanitizedTarget
                 document.tokens = PyTextMiner.Tokenizer.WordPunctTokenizer.tokenize(
                     text = sanitizedTarget,
-                    emptyString = document.emptyString,
+                    emptyString = document.ngramEmpty,
                     #stopwords = self.stopwords
                 )
                 #for sentence in sentenceTokens:
@@ -71,16 +71,21 @@ class TestFetExtract(unittest.TestCase):
                 #print target.tokens
                 
                 document.ngrams = PyTextMiner.Tokenizer.WordPunctTokenizer.ngramize(
-                    minSize = document.minSize,
-                    maxSize = document.maxSize,
+                    minSize = document.ngramMin,
+                    maxSize = document.ngramMax,
                     tokens = document.tokens,
-                    emptyString = document.emptyString, 
-                    #stopwords=self.stopwords
+                    emptyString = document.ngramEmpty, 
+                    #stopwords=self.stopwords,
                 )
+                #print document.ngrams
                 # DB Storage
-                # TODO clean document
-                sql.storeDocument( document, documentNum )
-                sql.storeAssocDocument( documentNum, corpusNum )
+                document.rawContent = ""
+                document.tokens = []
+                #sql.storeDocument( document, documentNum )
+                #sql.storeAssocDocument( documentNum, corpusNum )
+                del document
+                del tina.docDict[ documentNum ]
+                print len( tina.docDict )
 
 if __name__ == '__main__':
     unittest.main()
