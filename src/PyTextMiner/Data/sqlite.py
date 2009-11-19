@@ -44,10 +44,7 @@ class SQLiteBackend (Data.Importer):
             return cName
         self.tables.append(cName)
         try:
-            if cName == 'Corpora':
-                self.execute('''create table '''+cName+''' (id VARCHAR UNIQUE, blob text)''')
-            else:
-                self.execute('''create table '''+cName+''' (id INTEGER UNIQUE, blob text)''')
+            self.execute('''create table '''+cName+''' (id VARCHAR UNIQUE, blob text)''')
             self.commit()
         except sqlite3.OperationalError:
             # table already exists
@@ -55,12 +52,15 @@ class SQLiteBackend (Data.Importer):
         return cName
 
     def insert(self, id, obj):
-        self.execute("""insert into """ + self.getTable(obj) + """ values (%s, "%s")"""%(id,self.encode(obj)))
-        self.commit()
-        return id
+        try:
+            self.execute("""insert into """ + self.getTable(obj) + """ values ("%s", "%s")"""%(id,self.encode(obj)))
+            self.commit()
+        except IntegrityError:
+            return False
+        return True
         
     def update(self, id, obj):
-        self.execute("""update """ + self.getTable(obj) + """ SET (blob = "%s") WHERE  (id LIKE %s)"""%(self.encode(obj), id))
+        self.execute("""update """ + self.getTable(obj) + """ SET (blob = "%s") WHERE  (id LIKE "%s")"""%(self.encode(obj), id))
         self.commit()
         return True
         
@@ -69,7 +69,7 @@ class SQLiteBackend (Data.Importer):
         if id is None:
             results = self.execute("""select * from """ +clss.__name__)
         else:
-            results = self.execute("""select * from """ + clss.__name__ + """ WHERE  (id == %s) LIMIT 1"""%id)
+            results = self.execute("""select * from """ + clss.__name__ + """ WHERE  (id == "%s") LIMIT 1"""%id)
         if id is None:
             return [self.decode(blob) for i, blob in results]
         else:
