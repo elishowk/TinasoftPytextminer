@@ -10,25 +10,28 @@ class Exporter (PyTextMiner.Data.Exporter):
 
     def __init__(self,
                 filepath,
-                corpus,
-                delimiter=';',
+                #corpus,
+                delimiter=',',
                 quotechar='"',
                 locale='en_US.UTF-8',
                 dialect='excel'):
         self.filepath = filepath
-        self.corpus = corpus
+        #self.corpus = corpus
         self.delimiter = delimiter
         self.quotechar = quotechar
         self.locale = locale
         self.dialect = dialect
    
-    def ngramDocFreq(self):
-        file = codecs.open(self.filepath, "w")
+    def ngramDocFreq(self, ngramDocFreqDict ):
+        enc= self.locale.split('.')[1].lower()
+        print enc
+        file = codecs.open(self.filepath, "w", encoding=enc )
         #writer = csv.writer(file, dialect=self.dialect)
         file.write("ngram;frequency\n") 
-        for ng in self.corpus.ngramDocFreqTable.itervalues():
+        for ng in ngramDocFreqDict.itervalues():
             #writer.writerow({'ngram' : key, 'freq' : value})
-            file.write("%s;%s\n"%(ng.strRepr, ng.occs))
+            print ng['str']
+            file.write("%s;%s\n"%(ng['str'].encode( enc, 'replace' ), ng['occs']))
                 
 class Importer (PyTextMiner.Data.Importer):
 
@@ -54,6 +57,7 @@ class Importer (PyTextMiner.Data.Importer):
         
         # locale management
         self.locale = locale
+        self.encoding = locale.split('.')[1].lower()
         self.datetime = datetime
 
         self.titleField = titleField
@@ -71,7 +75,7 @@ class Importer (PyTextMiner.Data.Importer):
         self.delimiter = delimiter
         self.quotechar = quotechar
 
-        f1 = codecs.open(filepath,'rU')
+        f1 = self.open( filepath )
         tmp = csv.reader(
                 f1,
                 delimiter=self.delimiter,
@@ -80,7 +84,7 @@ class Importer (PyTextMiner.Data.Importer):
         self.fieldNames = tmp.next()
         del f1
         
-        f2 = codecs.open(filepath,'rU')
+        f2 = self.open( filepath )
         self.csv = csv.DictReader(
                 f2,
                 self.fieldNames,
@@ -90,12 +94,17 @@ class Importer (PyTextMiner.Data.Importer):
         del f2
         self.docDict = {}
         self.corpusDict = {}
-                
-        
+
+    def open( self, filepath ):
+        return codecs.open(filepath,'rU', errors='replace' )
+    
+    def unicode( self, text ):
+        return unicode( text, encoding=self.encoding, errors='replace' )
+
     def corpora( self, corpora ):
         for doc in self.csv:
             try:
-                corpusNumber = doc[self.corpusNumberField]
+                corpusNumber = self.unicode(doc[self.corpusNumberField])
                 #print "CORPUS NUMBER ", corpusNumber
             except Exception, exc:
                 #print "document parsing exception : ", exc
@@ -127,7 +136,7 @@ class Importer (PyTextMiner.Data.Importer):
     def document( self, doc ):
     
         try:
-            docNum=doc[self.docNumberField]
+            docNum = self.unicode(doc[self.docNumberField])
             if self.docDict.has_key( docNum ):
                 return self.docDict[ docNum ]
             # TODO time management
@@ -135,12 +144,12 @@ class Importer (PyTextMiner.Data.Importer):
             #    date = datetime(doc[self.datetimeField])
             #else:
             #    date = self.datetime
-            content = doc[self.contentField]
-            title=doc[self.titleField]
-            author=doc[self.authorField]
+            content = self.unicode(doc[self.contentField])
+            title = self.unicode(doc[self.titleField])
+            author = self.unicode(doc[self.authorField])
             #keywords=doc[self.keywordsField]
-            index1=doc[self.index1Field]
-            index2=doc[self.index2Field]
+            index1 = self.unicode(doc[self.index1Field])
+            index2 = self.unicode(doc[self.index2Field])
         except Exception, exc:
             print "document parsing exception : ",exc
             return None

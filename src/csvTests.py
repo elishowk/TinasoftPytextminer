@@ -57,7 +57,7 @@ class TestData(unittest.TestCase):
         tokenizerTester.print_corpora( corpora2 )
         
         
-        dump = Writer ("fet://t/output/ngramDocFreq.csv", corpus=corpus, locale=self.locale)
+        dump = Writer ("tina://t/output/ngramDocFreq.csv", corpus=corpus, locale=self.locale)
         dump.ngramDocFreq('testType')
 
             

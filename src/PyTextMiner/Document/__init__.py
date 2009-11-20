@@ -36,7 +36,7 @@ class Document:
             self.date = datetime.strftime(date, "%Y-%m-%d")
         # contains targets auto-generated unique IDs
         if targets is None: 
-            targets = set([]) 
+            targets = set([])
         self.targets = targets
         # basic metas
         self.title = title
@@ -49,7 +49,7 @@ class Document:
         self.tokens = tokens
         # contains ngrams' generated unique IDs
         if ngrams is None:
-            ngrams= {}
+            ngrams= set([])
         self.ngrams = ngrams
         # tokenization params
         self.ngramMin=ngramMin
