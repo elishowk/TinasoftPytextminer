@@ -8,6 +8,9 @@ __date__ ="$Oct 20, 2009 5:29:16 PM$"
 import unittest
 import locale
 
+# initialize the system path with local dependencies and pre-built libraries
+import bootstrap
+
 # pytextminer modules
 import PyTextMiner
 from PyTextMiner.Data import Reader, Writer, sqlite

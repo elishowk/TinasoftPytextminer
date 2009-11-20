@@ -118,8 +118,23 @@ class SQLiteBackend (Data.Importer):
         
     def clear(self):
         """clear all the tables"""
-        for table in self.tables:
-            self.execute('DROP TABLE '+table)   
+        for table in ['NGram',
+                      'Document',
+                      'Corpus',
+                      'Corpora',
+                      'AssocCorpus',
+                      'AssocDocument',
+                      'AssocNGram']:
+            try:
+                self.execute('DROP TABLE '+table) 
+            except:
+                pass  
+
+    def dump(self, filename):
+        with open(filename, 'w') as f:
+            for line in self._db.iterdump():
+                f.write('%s\n' % line)
+            
 
 # APPLICATION LAYER  
 class Assoc (tuple):
@@ -133,16 +148,16 @@ class AssocNGram (Assoc):
     
 class Exporter (SQLiteBackend):
 
-    def storeCorpora(self,  corpora, id ):
+    def storeCorpora(self,  id, corpora ):
         return self.insert( id, corpora )
         
-    def storeCorpus(self, corpus, id ):
+    def storeCorpus(self, id, corpus ):
         return self.insert( id, corpus )
 
-    def storeDocument(self, document, id ):
+    def storeDocument(self, id, document ):
         return self.insert( id, document )
 
-    def storeNGram(self, ngram, id ):
+    def storeNGram(self, id, ngram ):
         return self.insert( id, ngram )
 
     def storeAssocCorpus(self, corpusID, corporaID ):
