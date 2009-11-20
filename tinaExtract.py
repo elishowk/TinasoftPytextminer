@@ -28,7 +28,7 @@ class TestFetExtract(unittest.TestCase):
 
     def test_proposal(self):
 
-        tina = Reader("tina://src/t/pubmed_tina_test.csv",
+        tina = Reader("tina://src/t/pubmed_AIDS_10_format_original.fet",
             titleField='doc_titl',
             datetimeField='doc_date',
             contentField='doc_abst',
@@ -51,11 +51,14 @@ class TestFetExtract(unittest.TestCase):
         sql.clear()
         if not sql.fetch_one( PyTextMiner.Corpora, corpora.name ) :
             sql.storeCorpora( corpora.name, corpora )
+        ngramDict = {}
+        corpFreq = {}
         for corpusNum in corpora.corpora:
             corpus = tina.corpusDict[ corpusNum ]
             if not sql.fetch_one( PyTextMiner.Corpus, corpusNum ) :
                 sql.storeCorpus( corpusNum, corpus )
             sql.storeAssocCorpus( corpusNum, corpora.name )
+            ngramDict = {  }
             for documentNum in corpus.documents:
                 # check in DB and insert Assoc if exists
                 if not sql.fetch_one( PyTextMiner.Document, documentNum ):
@@ -84,22 +87,37 @@ class TestFetExtract(unittest.TestCase):
                         emptyString = document.ngramEmpty, 
                         #stopwords=self.stopwords,
                     )
-                    #print document.ngrams
+                    for ngid, ng in document.ngrams.iteritems():
+                        if ngramDict.has_key( ngid ):
+                            ngramDict[ ngid ]['occs'] += 1
+                        else:
+                            newngram = PyTextMiner.NGram(
+                                        ngram = ng['ngram'],
+                                        original = ng['original'],
+                                        occs = 1,
+                                        str = ng['str'],
+                            )
+                            newngram['occs'] = 1
+                            ngramDict[ newngram.id ] = newngram
                     # DB Storage
                     document.rawContent = ""
                     document.tokens = []
                     document.targets = set()
                     sql.storeDocument( documentNum, document )
-                    
                     del document
                     del tina.docDict[ documentNum ]
                 # insert Doc-Corpus association
                 sql.storeAssocDocument( documentNum, corpusNum )
+                # TODO modulo 10 docs
                 print ">> %d documents left to analyse\n" % len( tina.docDict )
+
+            dump = Writer ("tina://src/t/output/"+corpusNum+"-ngramOccPerCorpus.csv", locale=self.locale)
+            dump.ngramDocFreq( ngramDict )
             del corpus
             del tina.corpusDict[ corpusNum ]
+            del dump
         del corpora
         del tina
-
+        
 if __name__ == '__main__':
     unittest.main()

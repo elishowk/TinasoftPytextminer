@@ -5,8 +5,11 @@ __author__="Elias Showk"
 
 class NGram(dict):
     """an ngram"""
-    def __init__(self, ngram, str, original=[], occs=None):
-        self.id = abs(hash("".join(ngram)))
+    def __init__(self, ngram, str, original=[], occs=None, id=None):
+        if id is None:
+            self.id = abs(hash("".join(ngram)))
+        else:
+            self.id = id
         dict.__init__(
                 self,
                 ngram = ngram,
