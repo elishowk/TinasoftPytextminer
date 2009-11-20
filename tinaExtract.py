@@ -49,10 +49,12 @@ class TestFetExtract(unittest.TestCase):
         sql = Writer("sqlite://src/t/output/"+ corpora.name +".db", locale=self.locale)
         # clean the DB contents
         sql.clear()
-        sql.storeCorpora( corpora, corpora.name )
+        if not sql.fetch_one( PyTextMiner.Corpora, corpora.name ) :
+            sql.storeCorpora( corpora, corpora.name )
         for corpusNum in corpora.corpora:
             corpus = tina.corpusDict[ corpusNum ]
-            sql.storeCorpus( corpusNum, corpus )
+            if not sql.fetch_one( PyTextMiner.Corpus, corpusNum ) :
+                sql.storeCorpus( corpusNum, corpus )
             sql.storeAssocCorpus( corpusNum, corpora.name )
             for documentNum in corpus.documents:
                 # check in DB and insert Assoc if exists
@@ -86,6 +88,7 @@ class TestFetExtract(unittest.TestCase):
                     # DB Storage
                     document.rawContent = ""
                     document.tokens = []
+                    document.targets = set()
                     sql.storeDocument( documentNum, document )
                     
                     del document
