@@ -40,7 +40,6 @@ class SQLiteBackend (Data.Importer):
           
     def getTable(self, clss):
         cName = clss.__name__
-        print "cName:",cName
         if cName in self.tables:
             return cName
         self.tables.append(cName)
@@ -57,7 +56,6 @@ class SQLiteBackend (Data.Importer):
         return cName
 
     def insert(self, id, obj):
-        print "obj class:",obj.__class__
         req = 'insert into ' + self.getTable(obj.__class__) + ' values (?, ?)'
         try:
             self.execute(req,(self.encode(id),self.encode(obj)))
@@ -120,7 +118,6 @@ class SQLiteBackend (Data.Importer):
         
     def clear(self):
         """clear all the tables"""
-        print "self.tables:",self.tables
         for table in ['NGram',
                       'Document',
                       'Corpus',
@@ -133,6 +130,11 @@ class SQLiteBackend (Data.Importer):
             except:
                 pass  
 
+    def dump(self, filename):
+        with open(filename, 'w') as f:
+            for line in self._db.iterdump():
+                f.write('%s\n' % line)
+            
 
 # APPLICATION LAYER  
 class Assoc (tuple):
@@ -153,7 +155,6 @@ class Exporter (SQLiteBackend):
         return self.insert( id, corpus )
 
     def storeDocument(self, id, document ):
-        print "doc",
         return self.insert( id, document )
 
     def storeNGram(self, id, ngram ):
