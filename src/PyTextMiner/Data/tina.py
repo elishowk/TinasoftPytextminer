@@ -102,8 +102,13 @@ class Importer (PyTextMiner.Data.Importer):
                 continue
                 pass
             document = self.document( doc )
+            if document is None:
+                print "skipping document"
+                continue
             found = 0
             if self.corpusDict.has_key(corpusNumber) and corpusNumber in corpora.corpora:
+                #print "found existing corpus"
+
                 self.corpusDict[ corpusNumber ].documents.add( document.docNum )
                 found = 1
             else:
@@ -120,6 +125,7 @@ class Importer (PyTextMiner.Data.Importer):
         return corpora
             
     def document( self, doc ):
+    
         try:
             docNum=doc[self.docNumberField]
             if self.docDict.has_key( docNum ):
@@ -137,7 +143,8 @@ class Importer (PyTextMiner.Data.Importer):
             index2=doc[self.index2Field]
         except Exception, exc:
             print "document parsing exception : ",exc
-            pass
+            return None
+            
 
         document = PyTextMiner.Document(
             rawContent=content,
