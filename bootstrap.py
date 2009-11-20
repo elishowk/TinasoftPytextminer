@@ -13,4 +13,7 @@ libdir = "lib/python-%s.%s_%s%s" % (sys.version_info[0],sys.version_info[1], sys
 sys.path = [libdir, 'src'] + sys.path
 #print "Python environnment initialized:", sys.path
 
+import nltk
+nltk.data.path = ['shared/nltk_data']
+
 import json
