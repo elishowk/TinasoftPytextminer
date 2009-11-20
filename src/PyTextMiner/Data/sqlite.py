@@ -40,6 +40,7 @@ class SQLiteBackend (Data.Importer):
           
     def getTable(self, clss):
         cName = clss.__name__
+        print "cName:",cName
         if cName in self.tables:
             return cName
         self.tables.append(cName)
@@ -56,6 +57,7 @@ class SQLiteBackend (Data.Importer):
         return cName
 
     def insert(self, id, obj):
+        print "obj class:",obj.__class__
         req = 'insert into ' + self.getTable(obj.__class__) + ' values (?, ?)'
         try:
             self.execute(req,(self.encode(id),self.encode(obj)))
@@ -118,8 +120,19 @@ class SQLiteBackend (Data.Importer):
         
     def clear(self):
         """clear all the tables"""
-        for table in self.tables:
-            self.execute('DROP TABLE '+table)   
+        print "self.tables:",self.tables
+        for table in ['NGram',
+                      'Document',
+                      'Corpus',
+                      'Corpora',
+                      'AssocCorpus',
+                      'AssocDocument',
+                      'AssocNGram']:
+            try:
+                self.execute('DROP TABLE '+table) 
+            except:
+                pass  
+
 
 # APPLICATION LAYER  
 class Assoc (tuple):
@@ -133,16 +146,17 @@ class AssocNGram (Assoc):
     
 class Exporter (SQLiteBackend):
 
-    def storeCorpora(self,  corpora, id ):
+    def storeCorpora(self,  id, corpora ):
         return self.insert( id, corpora )
         
-    def storeCorpus(self, corpus, id ):
+    def storeCorpus(self, id, corpus ):
         return self.insert( id, corpus )
 
-    def storeDocument(self, document, id ):
+    def storeDocument(self, id, document ):
+        print "doc",
         return self.insert( id, document )
 
-    def storeNGram(self, ngram, id ):
+    def storeNGram(self, id, ngram ):
         return self.insert( id, ngram )
 
     def storeAssocCorpus(self, corpusID, corporaID ):
