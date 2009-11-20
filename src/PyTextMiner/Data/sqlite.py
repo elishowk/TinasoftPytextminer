@@ -130,12 +130,27 @@ class SQLiteBackend (Data.Importer):
             except:
                 pass  
 
-    def dump(self, filename):
+    def dump(self, filename, compress=None):
         with open(filename, 'w') as f:
             for line in self._db.iterdump():
                 f.write('%s\n' % line)
-            
 
+        if compress is 'gzip' or compress is 'gz' or compress is 'zip':
+            try:
+                import gzip
+                f = open(filename,'r')
+                content.read()
+                f.close()
+                del f
+                
+                f = gzip.open(filename, 'wb')
+                f.write(content)
+                f.close()
+            except Exception, exc:
+                print "Couldn't save gzipped version:",exc
+                pass
+
+           
 # APPLICATION LAYER  
 class Assoc (tuple):
     pass
@@ -173,6 +188,8 @@ class Exporter (SQLiteBackend):
         return self.insertAssoc( assoc )
 
 
+    
+    
     def loadCorpora(self, id ):
         return self.fetch_one( Corpora, id )
         
@@ -195,3 +212,11 @@ class Exporter (SQLiteBackend):
     def loadAllAssocNGram(self):
         return self.fetch_all( AssocNGram )
    
+    
+    def getCorpora(self):
+        corpora = self.fetch_all( Corpora )[0]
+        print "corpora:",corpora
+        
+        
+        
+        
