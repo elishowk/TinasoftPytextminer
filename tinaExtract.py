@@ -28,7 +28,7 @@ class TestFetExtract(unittest.TestCase):
 
     def test_proposal(self):
 
-        tina = Reader("tina://src/t/pubmed_AIDS_mini.csv",
+        tina = Reader("tina://src/t/pubmed_AIDS.csv",
             titleField='doc_titl',
             datetimeField='doc_date',
             contentField='doc_abst',
