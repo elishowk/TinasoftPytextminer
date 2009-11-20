@@ -11,7 +11,7 @@ class Exporter (PyTextMiner.Data.Exporter):
     def __init__(self,
                 filepath,
                 corpus,
-                delimiter=';',
+                delimiter=',',
                 quotechar='"',
                 locale='en_US.UTF-8',
                 dialect='excel'):

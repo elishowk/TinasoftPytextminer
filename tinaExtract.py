@@ -25,7 +25,7 @@ class TestFetExtract(unittest.TestCase):
 
     def test_proposal(self):
 
-        tina = Reader("tina://src/t/pubmed_AIDS.csv",
+        tina = Reader("tina://src/t/pubmed_tina_test.csv",
             titleField='doc_titl',
             datetimeField='doc_date',
             contentField='doc_abst',
@@ -47,7 +47,7 @@ class TestFetExtract(unittest.TestCase):
         # clean the DB contents
         sql.clear()
         if not sql.fetch_one( PyTextMiner.Corpora, corpora.name ) :
-            sql.storeCorpora( corpora, corpora.name )
+            sql.storeCorpora( corpora.name, corpora )
         for corpusNum in corpora.corpora:
             corpus = tina.corpusDict[ corpusNum ]
             if not sql.fetch_one( PyTextMiner.Corpus, corpusNum ) :
