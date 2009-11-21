@@ -29,9 +29,8 @@ class Exporter (PyTextMiner.Data.Exporter):
         #writer = csv.writer(file, dialect=self.dialect)
         file.write("ngram;frequency\n") 
         for ng in ngramDocFreqDict.itervalues():
-            #writer.writerow({'ngram' : key, 'freq' : value})
-            print ng['str']
-            file.write("%s;%s\n"%(ng['str'].encode( enc, 'replace' ), ng['occs']))
+            if ng['occs'] > 1:
+                file.write("%s;%s\n"%(codecs.encode( ng['str'], enc, 'replace' ), ng['occs']))
                 
 class Importer (PyTextMiner.Data.Importer):
 
@@ -99,7 +98,7 @@ class Importer (PyTextMiner.Data.Importer):
         return codecs.open(filepath,'rU', errors='replace' )
     
     def unicode( self, text ):
-        return unicode( text, encoding=self.encoding, errors='replace' )
+        return unicode( text, errors='replace' )
 
     def corpora( self, corpora ):
         for doc in self.csv:
@@ -107,7 +106,7 @@ class Importer (PyTextMiner.Data.Importer):
                 corpusNumber = self.unicode(doc[self.corpusNumberField])
                 #print "CORPUS NUMBER ", corpusNumber
             except Exception, exc:
-                #print "document parsing exception : ", exc
+                print "document parsing exception : ", exc
                 continue
                 pass
             document = self.document( doc )
