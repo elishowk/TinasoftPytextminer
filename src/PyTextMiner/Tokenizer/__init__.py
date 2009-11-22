@@ -62,7 +62,7 @@ class RegexpTokenizer():
     @staticmethod
     def ngramize( minSize, maxSize, tokens, emptyString, stopwords=None ):
         ngrams = {}
-        #count=0
+        count=0
         for n in range( minSize, maxSize +1 ):
             for i in range(len(tokens)): 
                 if len(tokens) >= i+n:
@@ -101,19 +101,19 @@ class TreeBankWordTokenizer(RegexpTokenizer):
             for sent in tokens:
                 for i in range(len(sent)):
                     if len(sent) >= i+n:
-                        # TODO optional stopwords
                         def normalizePOS(tpl):
                             return tpl[0].lower()
                         normalNgram = map( normalizePOS, sent[i:n+i] )
-                        representation = emptyString.join( normalNgram )
-                        newngram = NGram(
-                                    ngram = normalNgram,
-                                    original = sent[i:n+i],
-                                    occs = 1,
-                                    str = representation,
-                        )
-                        if ngrams.has_key( newngram.id ):
-                            ngrams[ newngram.id ]['occs'] += 1
-                        else:
-                            ngrams[ newngram.id ] = newngram
+                        if stopwords is None or stopwords.contains( normalNgram ) is False:
+                            representation = emptyString.join( normalNgram )
+                            newngram = NGram(
+                                        ngram = normalNgram,
+                                        original = sent[i:n+i],
+                                        occs = 1,
+                                        str = representation,
+                            )
+                            if ngrams.has_key( newngram.id ):
+                                ngrams[ newngram.id ]['occs'] += 1
+                            else:
+                                ngrams[ newngram.id ] = newngram
         return ngrams

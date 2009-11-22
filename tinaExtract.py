@@ -24,11 +24,11 @@ class TestFetExtract(unittest.TestCase):
         except:
             self.locale = 'fr_FR.UTF-8'
             locale.setlocale(locale.LC_ALL, self.locale)
-        self.stopwords = "file://src/t/stopwords/en.txt" 
+        self.stopwords = PyTextMiner.StopWords("file://src/t/stopwords/en.txt" )
 
     def test_proposal(self):
 
-        tina = Reader("tina://src/t/pubmed_AIDS_10_format_original.fet",
+        tina = Reader("tina://src/t/pubmed_tina_test.csv",
             titleField='doc_titl',
             datetimeField='doc_date',
             contentField='doc_abst',
@@ -74,7 +74,6 @@ class TestFetExtract(unittest.TestCase):
                     sentenceTokens = PyTextMiner.Tokenizer.TreeBankWordTokenizer.tokenize(
                         text = sanitizedTarget,
                         emptyString = document.ngramEmpty,
-                        #stopwords = self.stopwords
                     )
                     for sentence in sentenceTokens:
                         document.tokens.append( PyTextMiner.Tagger.TreeBankPosTagger.posTag( sentence ) )
@@ -85,7 +84,7 @@ class TestFetExtract(unittest.TestCase):
                         maxSize = document.ngramMax,
                         tokens = document.tokens,
                         emptyString = document.ngramEmpty, 
-                        #stopwords=self.stopwords,
+                        stopwords = self.stopwords,
                     )
                     for ngid, ng in document.ngrams.iteritems():
                         if ngramDict.has_key( ngid ):

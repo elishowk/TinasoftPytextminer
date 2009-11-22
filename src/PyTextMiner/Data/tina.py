@@ -20,17 +20,26 @@ class Exporter (PyTextMiner.Data.Exporter):
         self.delimiter = delimiter
         self.quotechar = quotechar
         self.locale = locale
+        self.encoding =  self.locale.split('.')[1].lower()
         self.dialect = dialect
-   
+
+    #def encode( self, text ):
+    #    return text.encode( self.encoding, 'xmlcharrefreplace' )
+
     def ngramDocFreq(self, ngramDocFreqDict ):
-        enc= self.locale.split('.')[1].lower()
-        print enc
-        file = codecs.open(self.filepath, "w", encoding=enc )
-        #writer = csv.writer(file, dialect=self.dialect)
-        file.write("ngram;frequency\n") 
+        file = codecs.open(self.filepath, "w", encoding=self.encoding )
+        file.write("ngram,documents,tagged ngram\n")
         for ng in ngramDocFreqDict.itervalues():
             if ng['occs'] > 1:
-                file.write("%s;%s\n"%(codecs.encode( ng['str'], enc, 'replace' ), ng['occs']))
+                ngram = self.encode( ng['str'] )
+                occs = ng['occs']
+                tag = []
+                for tup in ng['original']:
+                    tag.append( "_".join( map( self.encode, tup ) ) )
+                tag = " ".join( tag )
+                file.write(
+                        "%s,%s,%s\n"%(ngram, occs, tag)
+                )
                 
 class Importer (PyTextMiner.Data.Importer):
 
@@ -98,12 +107,13 @@ class Importer (PyTextMiner.Data.Importer):
         return codecs.open(filepath,'rU', errors='replace' )
     
     def unicode( self, text ):
-        return unicode( text, errors='replace' )
+        # replacement char = \ufffd
+        return unicode( text, self.encoding, 'xmlcharrefreplace' )
 
     def corpora( self, corpora ):
         for doc in self.csv:
             try:
-                corpusNumber = self.unicode(doc[self.corpusNumberField])
+                corpusNumber = self.decode(doc[self.corpusNumberField])
                 #print "CORPUS NUMBER ", corpusNumber
             except Exception, exc:
                 print "document parsing exception : ", exc
@@ -135,7 +145,7 @@ class Importer (PyTextMiner.Data.Importer):
     def document( self, doc ):
     
         try:
-            docNum = self.unicode(doc[self.docNumberField])
+            docNum = self.decode(doc[self.docNumberField])
             if self.docDict.has_key( docNum ):
                 return self.docDict[ docNum ]
             # TODO time management
@@ -143,12 +153,12 @@ class Importer (PyTextMiner.Data.Importer):
             #    date = datetime(doc[self.datetimeField])
             #else:
             #    date = self.datetime
-            content = self.unicode(doc[self.contentField])
-            title = self.unicode(doc[self.titleField])
-            author = self.unicode(doc[self.authorField])
+            content = self.decode(doc[self.contentField])
+            title = self.decode(doc[self.titleField])
+            author = self.decode(doc[self.authorField])
             #keywords=doc[self.keywordsField]
-            index1 = self.unicode(doc[self.index1Field])
-            index2 = self.unicode(doc[self.index2Field])
+            index1 = self.decode(doc[self.index1Field])
+            index2 = self.decode(doc[self.index2Field])
         except Exception, exc:
             print "document parsing exception : ",exc
             return None

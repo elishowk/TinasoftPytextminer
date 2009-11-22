@@ -22,7 +22,7 @@ class Document:
             ngrams=None,
             ngramMin=1,
             ngramMax=2,
-            forbChars="[^a-zA-Z0-9\s\@ÂÆÇÈÉÊÎÛÙàâæçèéêîĨôÔùûü\,\.\;\:\!\?\"\'\[\]\{\}\(\)\<\>]",
+            forbChars="[^a-zA-Z\s\@ÂÆÇÈÉÊÎÛÙàâæçèéêîĨôÔùûü\,\.\;\:\!\?\"\'\[\]\{\}\(\)\<\>]",
             ngramSep= u"[\s]+",
             ngramEmpty = " ",
         ):

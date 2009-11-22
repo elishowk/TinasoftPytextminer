@@ -5,17 +5,26 @@ import codecs
 import PyTextMiner
 
 class Importer (object):
-    def __init__(self):
-        pass
+    def __init__(self, encoding='utf-8'):
+        self.encoding = encoding
+
+    def decode(self, toDecode):
+        # replacement char = \ufffd        
+        return unicode( toDecode, self.encoding, 'xmlcharrefreplace' )
+
     def get_property(self, options, key, default):
         if not options.has_key(key): 
             options[key] = default
         return options[key]
 
 class Exporter (object):
-    def __init__(self):
-        pass
-        
+    def __init__(self, encoding='utf-8'):
+        self.encoding = encoding
+
+    def encode(self, toEncode):
+        # replacement utf-8 char = \xef\xbf\xbd
+        return toEncode.encode( self.encoding, 'xmlcharrefreplace')
+
     def get_property(self, options, key, default):
         if not options.has_key(key): 
             options[key] = default
@@ -56,3 +65,6 @@ def Writer(arg, **options):
         return exporter
     except Exception, exc:
         raise Exception("couldn't load writer %s: %s"%(protocol,exc))
+
+def Encode(str):
+    return codecs.encode( str, enc, 'replace' )
