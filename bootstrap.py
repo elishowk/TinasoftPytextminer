@@ -7,5 +7,11 @@ except:
     arch = ""
 import sys
 sys.path = ["lib/python-%s.%s_%s%s" % (sys.version_info[0],sys.version_info[1], sys.platform, arch)  , 'src'] + sys.path
+
+# import nltk data
 import nltk
 nltk.data.path = ['shared/nltk_data']
+
+# disable warnings
+import warnings 
+warnings.filterwarnings("ignore") 
