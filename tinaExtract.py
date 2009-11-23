@@ -27,8 +27,8 @@ class TestFetExtract(unittest.TestCase):
         self.stopwords = PyTextMiner.StopWords("file://src/t/stopwords/en.txt" )
 
     def test_proposal(self):
-
-        tina = Reader("tina://src/t/pubmed_tina_test.csv",
+        # init of the file reader & parser
+        tina = Reader("tina://src/t/pubmed_AIDS_10_format_original_badchars.fet",
             titleField='doc_titl',
             datetimeField='doc_date',
             contentField='doc_abst',
@@ -46,22 +46,25 @@ class TestFetExtract(unittest.TestCase):
         corpora = PyTextMiner.Corpora( name="pubmedTest" )
         corpora = tina.corpora( corpora )
         #print tina.corpusDict
-        sql = Writer("sqlite://src/t/output/"+ corpora.name +".db", locale=self.locale)
+        #sql = Writer("sqlite://src/t/output/"+corpora.name+".db", locale=self.locale)
+        sql = Writer("sqlite://:memory:", locale=self.locale)
         # clean the DB contents
         sql.clear()
+        # stores Corpora
         if not sql.fetch_one( PyTextMiner.Corpora, corpora.name ) :
             sql.storeCorpora( corpora.name, corpora )
-        ngramDict = {}
-        corpFreq = {}
+        
         for corpusNum in corpora.corpora:
+            # get the Corpus object
             corpus = tina.corpusDict[ corpusNum ]
-            if not sql.fetch_one( PyTextMiner.Corpus, corpusNum ) :
-                sql.storeCorpus( corpusNum, corpus )
+            # stores it
+            sql.storeCorpus( corpusNum, corpus )
             sql.storeAssocCorpus( corpusNum, corpora.name )
-            ngramDict = {  }
+            # Documents processing
             for documentNum in corpus.documents:
-                # check in DB and insert Assoc if exists
+                # only process document if unavailable in DB
                 if not sql.fetch_one( PyTextMiner.Document, documentNum ):
+                    # get the document object
                     document = tina.docDict[ documentNum ]
                     print "----- TreebankWordTokenizer on document %s ----\n" % documentNum
                     sanitizedTarget = PyTextMiner.Tokenizer.TreeBankWordTokenizer.sanitize(
@@ -77,7 +80,6 @@ class TestFetExtract(unittest.TestCase):
                     )
                     for sentence in sentenceTokens:
                         document.tokens.append( PyTextMiner.Tagger.TreeBankPosTagger.posTag( sentence ) )
-                    #print document.tokens
                     
                     document.ngrams = PyTextMiner.Tokenizer.TreeBankWordTokenizer.ngramize(
                         minSize = document.ngramMin,
@@ -87,36 +89,72 @@ class TestFetExtract(unittest.TestCase):
                         stopwords = self.stopwords,
                     )
                     for ngid, ng in document.ngrams.iteritems():
-                        if ngramDict.has_key( ngid ):
-                            ngramDict[ ngid ]['occs'] += 1
-                        else:
-                            newngram = PyTextMiner.NGram(
-                                        ngram = ng['ngram'],
-                                        original = ng['original'],
-                                        occs = 1,
-                                        str = ng['str'],
-                            )
-                            newngram['occs'] = 1
-                            ngramDict[ newngram.id ] = newngram
+                        occs = ng['occs']
+                        del ng['occs']
+                        sql.storeNGram( ngid, ng )
+                        sql.storeAssocNGram( ngid, documentNum, occs )
+                    # get the list of keys
+                    document.ngrams = document.ngrams.keys()
                     # DB Storage
                     document.rawContent = ""
                     document.tokens = []
                     document.targets = set()
+                    
                     sql.storeDocument( documentNum, document )
                     del document
                     del tina.docDict[ documentNum ]
-                # insert Doc-Corpus association
+                # else insert a new Doc-Corpus association
                 sql.storeAssocDocument( documentNum, corpusNum )
                 # TODO modulo 10 docs
                 print ">> %d documents left to analyse\n" % len( tina.docDict )
-
+            # EXPORT filter ngrams by corpus occs
+            req='select count(asn.id1), ng.blob from AssocNGram as asn, NGram as ng JOIN AssocDocument as asd ON asd.id1 = asn.id2 AND asn.id1 = ng.id WHERE ( asd.id2 = ? ) GROUP BY asn.id1 HAVING count (asn.id1) > 1'
+            result = sql.execute(req, [sql.encode(corpusNum)])
             dump = Writer ("tina://src/t/output/"+corpusNum+"-ngramOccPerCorpus.csv", locale=self.locale)
-            dump.ngramDocFreq( ngramDict )
+            # prepares csv export
+            def prepareRows( row ):
+                ng = sql.decode( row[1] )
+                tag = []
+                for toklist in ng['original']:
+                    tag.append( dump.encode( "_".join( toklist ) ) )
+                tag = " ".join( tag )
+                return [ ng['str'], row[0], tag ]
+
+            filtered = map( prepareRows, result )
+            print "writes a corpus-wide ngram synthesis"
+            dump.csvFile( ['ngram','documents','POS tagged'], filtered )
+
+            # destroys Corpus object
             del corpus
             del tina.corpusDict[ corpusNum ]
-            del dump
-        del corpora
-        del tina
+        print "Dumping SQL db"
+        sql.dump( "src/t/output/dump_"+corpora.name+".sql" )
         
+        print "export a sample from document db"
+        reader = PyTextMiner.Importer()
+        ngramFetch = 'SELECT ng.blob FROM NGram as ng JOIN AssocNGram as asn ON asn.id1 = ng.id WHERE ( asn.id2 = ? )'
+        select = 'SELECT doc.id, doc.blob from Document as doc LIMIT 10'
+        result = sql.execute(select)
+        print result
+        docList = []
+        for document in result:
+            docid = document[0]
+            doc = sql.decode( document[1] )
+            ngFetch = sql.execute(ngramFetch, [docid])
+            ngList = []
+            for ng in ngFetch:
+                ngObj = sql.decode( ng[0] )
+                #print type(dump.encode(ngObj['str']))
+                ngList += [ ngObj['str'] ]
+                #ngList += [ dump.encode(ngObj['str']) ]
+            doc.ngrams = ", ".join(ngList)
+            #print doc.ngrams
+            import jsonpickle
+            docList += [jsonpickle.encode(doc)]
+        #dump.objectToCsv( docList, [ 'docNum', 'rawContent', 'targets', 'title', 'author', 'index1', 'index2', 'metas', 'date', 'tokens', 'ngrams' ] )
+        import codecs
+        file = codecs.open("src/t/output/documentSample.csv", "w", 'utf-8', 'xmlcharrefreplace' )
+        for doc in docList:
+            file.write( doc + "\n" )
 if __name__ == '__main__':
     unittest.main()

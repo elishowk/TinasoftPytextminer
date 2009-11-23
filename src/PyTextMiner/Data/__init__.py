@@ -23,6 +23,7 @@ class Exporter (object):
 
     def encode(self, toEncode):
         # replacement utf-8 char = \xef\xbf\xbd
+        print toEncode
         return toEncode.encode( self.encoding, 'xmlcharrefreplace')
 
     def get_property(self, options, key, default):

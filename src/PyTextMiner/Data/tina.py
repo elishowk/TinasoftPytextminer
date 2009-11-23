@@ -11,10 +11,10 @@ class Exporter (PyTextMiner.Data.Exporter):
     def __init__(self,
                 filepath,
                 #corpus,
-                delimiter=',',
-                quotechar='"',
-                locale='en_US.UTF-8',
-                dialect='excel'):
+                delimiter = u',',
+                quotechar = '"',
+                locale = 'en_US.UTF-8',
+                dialect = 'excel'):
         self.filepath = filepath
         #self.corpus = corpus
         self.delimiter = delimiter
@@ -23,24 +23,27 @@ class Exporter (PyTextMiner.Data.Exporter):
         self.encoding =  self.locale.split('.')[1].lower()
         self.dialect = dialect
 
-    #def encode( self, text ):
-    #    return text.encode( self.encoding, 'xmlcharrefreplace' )
 
-    def ngramDocFreq(self, ngramDocFreqDict ):
+    def objectToCsv( self, objlist, columns ):
+        file = codecs.open(self.filepath, "w", self.encoding, 'xmlcharrefreplace' )
+        file.write( self.delimiter.join( columns ) + "\n" )
+        def mapping( att ) :
+            print type(att)
+            print att
+            s = str(att)
+            return self.encode( s )
+        for obj in objlist:
+            attributes = [getattr(obj, col) for col in columns]
+            file.write( self.delimiter.join( map( mapping, attributes ) ) + "\n" )
+            #file.write( self.delimiter.join( map( self.encode, map( str, attributes ) ) ) + "\n" )
+
+    def csvFile( self, columns, rows ):
         file = codecs.open(self.filepath, "w", encoding=self.encoding )
-        file.write("ngram,documents,tagged ngram\n")
-        for ng in ngramDocFreqDict.itervalues():
-            if ng['occs'] > 1:
-                ngram = self.encode( ng['str'] )
-                occs = ng['occs']
-                tag = []
-                for tup in ng['original']:
-                    tag.append( "_".join( map( self.encode, tup ) ) )
-                tag = " ".join( tag )
-                file.write(
-                        "%s,%s,%s\n"%(ngram, occs, tag)
-                )
-                
+        file.write( self.delimiter.join( columns ) + "\n" )
+        for row in rows:
+            file.write( self.delimiter.join( map( self.encode, map( str, row ) ) ) + "\n" )
+
+
 class Importer (PyTextMiner.Data.Importer):
 
     def __init__(self,

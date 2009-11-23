@@ -9,7 +9,7 @@ class SQLiteBackend (Data.Importer):
  
         self.path = path
         self.locale = self.get_property(opts, 'locale', 'en_US.UTF-8')
-        self.format = self.get_property(opts, 'format', 'json')
+        self.format = self.get_property(opts, 'format', 'pickle')
 
         self.lang,self.encoding = self.locale.split('.')
 
@@ -21,19 +21,25 @@ class SQLiteBackend (Data.Importer):
 
         if self.format == 'yaml':
             import yaml
-            self.encode = yaml.dump
-            self.decode = yaml.load
+            self.encoder = yaml.dump
+            self.decoder = yaml.load
         elif self.format == 'json' or self.format == 'jsonpickle':
             import jsonpickle
-            self.encode = jsonpickle.encode
-            self.decode = jsonpickle.decode
+            self.encoder = jsonpickle.encode
+            self.decoder = jsonpickle.decode
         else:
             try:
                 import cpickle as pickle
             except:
                 import pickle
-            self.encode = pickle.dumps
-            self.decode = pickle.loads
+            self.encoder = pickle.dumps
+            self.decoder = pickle.loads
+
+    def encode( self, data ):
+       return sqlite3.Binary( self.encoder(data) ) 
+
+    def decode( self, data ):
+        return self.decoder(data)
           
     def setCallback(self, cb):
         self.callback = cb
@@ -44,10 +50,12 @@ class SQLiteBackend (Data.Importer):
             return cName
         self.tables.append(cName)
         try:
-            if cName.startswith('Assoc'):
+            if cName == 'AssocNGram' :
+                self.execute('''create table '''+cName+''' (id1 VARCHAR, id2 VARCHAR, occs INTEGER, PRIMARY KEY (id1, id2))''')
+            elif cName.startswith('Assoc'):
                 self.execute('''create table '''+cName+''' (id1 VARCHAR, id2 VARCHAR, PRIMARY KEY (id1, id2))''')
             else:
-                self.execute('''create table '''+cName+''' (id VARCHAR PRIMARY KEY, blob text)''')
+                self.execute('''create table '''+cName+''' (id VARCHAR PRIMARY KEY, blob BLOB)''')
 
             self.commit()
         except sqlite3.OperationalError, exc:
@@ -58,34 +66,35 @@ class SQLiteBackend (Data.Importer):
     def insert(self, id, obj):
         req = 'insert into ' + self.getTable(obj.__class__) + ' values (?, ?)'
         try:
-            self.execute(req,(self.encode(id),self.encode(obj)))
+            #self.execute(req,(self.encode(id),self.encode(obj)))
+            self.execute(req,(id,self.encode(obj)))
             self.commit()
         except sqlite3.IntegrityError, e1:
-            print "OBJECT Integrity error:",e1,req
+            #print "OBJECT Integrity error:",e1,req
             return False
         except sqlite3.OperationalError, e2:
-            print "OBJECT Operational error:",e2,req
+            #print "OBJECT Operational error:",e2,req
             return False
         return True
         
     def insertAssoc(self, assoc):
         i1,i2 = assoc
-        i1,i2 = self.encode(i1), self.encode(i2)
+        #i1,i2 = self.encode(i1), self.encode(i2)
         req = 'insert into ' + self.getTable(assoc.__class__) + ' values (?, ?)'
         try:
             self.execute(req, (i1,i2))
             self.commit()
         except sqlite3.IntegrityError, e1:
-            print "ASSOC ntegrity error:",e1,req
+            #print "ASSOC ntegrity error:",e1,req
             return False
         except sqlite3.OperationalError, e2:
-            print "ASSOC Operational error:",e2,req
+            #print "ASSOC Operational error:",e2,req
             return False
         return True
         
     def update(self, id, obj):
         req = 'update '+ self.getTable(obj.__class__) +' SET (blob = ?) WHERE (id LIKE ?)'
-        self.execute(req, (self.encode(obj), self.encode(id)))
+        self.execute(req, (self.encode(obj), id))
         self.commit()
         return True
       
@@ -94,19 +103,19 @@ class SQLiteBackend (Data.Importer):
         reply = self.execute(req)
         results = []
         for i, blob in reply:
-            results.append((self.decode(i), self.decode(blob)))
+            results.append( (id, self.decode(blob)) )
         return tuple (results )
         
     def fetch_one(self, clss, id):
 
         req = 'select * from '+ self.getTable(clss) + ' WHERE (id LIKE ?)'#%self.encode(id)
-        results = self.execute(req, [self.encode(id)])   
+        results = self.execute(req, [id])   
 
         i, blob = None, None
        
         for res in results:
             i, blob = res
-            i = self.decode(i)
+            #i = self.decode(i)
             blob = self.decode(blob)
             break
 
@@ -183,9 +192,21 @@ class Exporter (SQLiteBackend):
         assoc = AssocDocument((docID, corpusID)) 
         return self.insertAssoc( assoc )
         
-    def storeAssocNGram(self, ngramID, docID ):
-        assoc = AssocNGram((ngramID, docID))
-        return self.insertAssoc( assoc )
+    def storeAssocNGram(self, ngramID, docID, occs ):
+        assoc = AssocNGram((ngramID, docID, occs))
+        i1,i2,i3 = assoc
+        #i1,i2,i3 = self.encode(i1), self.encode(i2), self.encode(i3)
+        req = 'insert into ' + self.getTable(assoc.__class__) + ' values (?, ?, ?)'
+        try:
+            self.execute(req, (i1,i2,i3))
+            self.commit()
+        except sqlite3.IntegrityError, e1:
+            print "ASSOC ntegrity error:",e1,req
+            return False
+        except sqlite3.OperationalError, e2:
+            print "ASSOC Operational error:",e2,req
+            return False
+        return True
 
 
     

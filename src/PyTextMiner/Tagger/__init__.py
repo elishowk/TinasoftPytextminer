@@ -13,4 +13,4 @@ class TreeBankPosTagger():
 
     @staticmethod
     def posTag( tokens ):
-        return pos_tag( tokens )
+        return map( list, pos_tag( tokens ) )
