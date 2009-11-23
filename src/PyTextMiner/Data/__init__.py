@@ -4,45 +4,34 @@ from datetime import datetime
 import codecs
 import PyTextMiner
 
-class Importer (object):
+class Handler (object):
+    options = { 'compression' : None,
+                'encoding' : 'utf-8' }
+                
     def __init__(self, encoding='utf-8'):
         self.encoding = encoding
-
-    def decode(self, toDecode):
-        # replacement char = \ufffd        
-        return unicode( toDecode, self.encoding, 'xmlcharrefreplace' )
-
-    def get_property(self, options, key, default):
-        if not options.has_key(key): 
-            options[key] = default
-        return options[key]
-
-class Exporter (object):
-    def __init__(self, encoding='utf-8'):
-        self.encoding = encoding
-
+  
+    def load_options(self, options):
+        for attr, default in self.options.iteritems():
+            try:
+                self.__setattr__(attr,options[attr])
+            except:
+                self.__setattr__(attr,default)
+                
     def encode(self, toEncode):
-        # replacement utf-8 char = \xef\xbf\xbd
-        print toEncode
         return toEncode.encode( self.encoding, 'xmlcharrefreplace')
 
-    def get_property(self, options, key, default):
-        if not options.has_key(key): 
-            options[key] = default
-        return options[key]
+    def decode(self, toDecode):    
+        return unicode( toDecode, self.encoding, 'xmlcharrefreplace' )
+
+class Importer (Handler):
+    pass
+
+class Exporter (Handler):
+    pass
 
 def _check_protocol(arg):
     protocol, path = arg.split("://")
-#    if protocol == "file+medline" or protocol == "medline":
-#        protocol = "medline"
-#    elif protocol == "file+tina" or protocol == "tina":
-#        protocol = "fet"
-#    elif protocol == "csv":
-#        protocol = "basecsv"
-#    elif protocol == "sqlite" or protocol == "sql":
-#        protocol = "sqlite"
-#    else:
-#        raise Exception("unrecognized protocol %s"%protocol)
     return protocol, path
     
 def Reader(arg, **options):

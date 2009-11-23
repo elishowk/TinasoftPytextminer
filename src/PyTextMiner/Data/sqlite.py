@@ -5,17 +5,25 @@ import sqlite3
 
 # LOW-LEVEL BACKEND 
 class SQLiteBackend (Data.Importer):
+
+    options = {
+        'locale'     : 'en_US.UTF-8',
+        'format'     : 'pickle',
+        'dieOnError' : False,
+        'debug'      : False,
+        'compression': None
+    }
+
     def __init__(self, path, **opts):
  
         self.path = path
-        self.locale = self.get_property(opts, 'locale', 'en_US.UTF-8')
-        self.format = self.get_property(opts, 'format', 'pickle')
 
+        self.load_options(opts)
+  
         self.lang,self.encoding = self.locale.split('.')
 
         self._db = sqlite3.connect(path)
-        self._cursor = self._db.cursor()
-        self.execute = self._cursor.execute
+        self.cursor = self._db.cursor
         self.commit = self._db.commit
         self.tables = []
 
@@ -159,6 +167,8 @@ class SQLiteBackend (Data.Importer):
                 print "Couldn't save gzipped version:",exc
                 pass
 
+    def execute(self, *args):
+        return self.cursor().execute(*args)
            
 # APPLICATION LAYER  
 class Assoc (tuple):

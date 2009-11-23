@@ -30,8 +30,8 @@ class Program:
         parser.add_option("-o", "--output", dest="output", default='data.zip',
             help="zip data to FILE (default: data.zip)", metavar="FILE")
              
-        parser.add_option("-z", "--zip", dest="zip", default='None',
-            help="compression algorithm (default: None)", metavar="FILE")
+        parser.add_option("-z", "--zip", dest="zip", default='zip',
+            help="compression algorithm (default: zip) (no compression: None)", metavar="FILE")
              
         parser.add_option("-c", "--corpora", dest="corpora", default="pubmedTest",
             help="corpora name (default: pubmedTest)", metavar="NAME")     
@@ -169,8 +169,8 @@ class Program:
         ngramFetch = 'SELECT ng.blob FROM NGram as ng JOIN AssocNGram as asn ON asn.id1 = ng.id WHERE ( asn.id2 = ? )'
         select = 'SELECT doc.id, doc.blob from Document as doc LIMIT 10'
         result = sql.execute(select)
-        print result
         docList = []
+        
         for document in result:
             docid = document[0]
             doc = sql.decode( document[1] )
@@ -178,20 +178,16 @@ class Program:
             ngList = []
             for ng in ngFetch:
                 ngObj = sql.decode( ng[0] )
-                #print type(dump.encode(ngObj['str']))
                 ngList += [ ngObj['str'] ]
-                #ngList += [ dump.encode(ngObj['str']) ]
             doc.ngrams = ", ".join(ngList)
-            #print doc.ngrams
-            import jsonpickle
-            docList += [jsonpickle.encode(doc)]
-        #dump.objectToCsv( docList, [ 'docNum', 'rawContent', 'targets', 'title', 'author', 'index1', 'index2', 'metas', 'date', 'tokens', 'ngrams' ] )
+            docList += [doc]
         import codecs
         file = codecs.open(self.config.directory+"/documentSample.csv", "w", 'utf-8', 'xmlcharrefreplace' )
         for doc in docList:
-            file.write( doc + "\n" )
+            file.write( "%s,\"%s\"\n" % (doc.docNum, doc.ngrams ) )
             
         if self.config.zip == "zip":
+            print "zipping project files.."
             try:
                 os.system("zip -r %s %s"%(self.config.output, self.config.directory))
                 print "project successfully zipped to", self.config.output
