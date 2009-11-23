@@ -7,8 +7,11 @@ src/build/*
 *.swp
 *.swo
 *~
-nbproject*
-src/t/output*
+nbproject
+nbproject/*
+output
+output/*
+src/t/output
 src/t/output/*
 src/t/pubmed_AIDS.csv
 src/t/*.tar.gz
