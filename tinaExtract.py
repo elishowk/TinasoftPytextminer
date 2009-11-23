@@ -27,8 +27,8 @@ class Program:
         parser.add_option("-d", "--dir", dest="directory", default='output',
             help="write temporary files to DIR (default: 'output/')", metavar="DIR")    
             
-        parser.add_option("-o", "--output", dest="output", default='donnees.zip',
-            help="zip data to FILE (default: donnees.zip)", metavar="FILE")
+        parser.add_option("-o", "--output", dest="output", default='data.zip',
+            help="zip data to FILE (default: data.zip)", metavar="FILE")
              
         parser.add_option("-z", "--zip", dest="zip", default='None',
             help="compression algorithm (default: None)", metavar="FILE")
@@ -191,7 +191,7 @@ class Program:
         for doc in docList:
             file.write( doc + "\n" )
             
-        if self.config.compression == "zip":
+        if self.config.zip == "zip":
             try:
                 os.system("zip -r %s %s"%(self.config.output, self.config.directory))
                 print "project successfully zipped to", self.config.output
