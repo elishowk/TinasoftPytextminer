@@ -5,8 +5,9 @@ __author__="jbilcke, Elias Showk"
 __date__ ="$Oct 20, 2009 5:29:16 PM$"
 
 # core modules
-import unittest
+import os, sys
 import locale
+from optparse import OptionParser
 
 # initialize the system path with local dependencies and pre-built libraries
 import bootstrap
@@ -15,8 +16,35 @@ import bootstrap
 import PyTextMiner
 from PyTextMiner.Data import Reader, Writer, sqlite
 
-class TestFetExtract(unittest.TestCase):
-    def setUp(self):
+class Program:
+    def __init__(self):
+    
+        parser = OptionParser()
+        
+        parser.add_option("-i", "--input", dest="input", default="src/t/pubmed_tina_test.csv",
+           help="read data from FILE", metavar="FILE")
+                          
+        parser.add_option("-d", "--dir", dest="directory", default='output',
+            help="write temporary files to DIR (default: 'output/')", metavar="DIR")    
+            
+        parser.add_option("-o", "--output", dest="output", default='donnees.zip',
+            help="zip data to FILE (default: donnees.zip)", metavar="FILE")
+             
+        parser.add_option("-z", "--zip", dest="zip", default='None',
+            help="compression algorithm (default: None)", metavar="FILE")
+             
+        parser.add_option("-c", "--corpora", dest="corpora", default="pubmedTest",
+            help="corpora name (default: pubmedTest)", metavar="NAME")     
+            
+        parser.add_option("-s", "--store", dest="store", default="sqlite://:memory:",
+            help="storage engine (default: sqlite://:memory:)", metavar="ENGINE")     
+                                      
+        parser.add_option("-w", "--stopwords", dest="stopwords", default="src/t/stopwords/en.txt",
+            help="loads stopwords from FILE (default: src/t/stopwords/en.txt)", metavar="FILE")                 
+
+        (options, args) = parser.parse_args()
+        self.config = options
+        
         # try to determine the locale of the current system
         try:
             self.locale = 'en_US.UTF-8'
@@ -24,11 +52,17 @@ class TestFetExtract(unittest.TestCase):
         except:
             self.locale = 'fr_FR.UTF-8'
             locale.setlocale(locale.LC_ALL, self.locale)
-        self.stopwords = PyTextMiner.StopWords("file://src/t/stopwords/en.txt" )
+        self.stopwords = PyTextMiner.StopWords( "file://%s" % self.config.stopwords )
 
-    def test_proposal(self):
+    def main(self):
         # init of the file reader & parser
-        tina = Reader("tina://src/t/pubmed_AIDS_10_format_original_badchars.fet",
+        try:
+            os.mkdir(self.config.directory)
+        except:
+            pass
+            
+        inputpath = "tina://%s"%self.config.input
+        tina = Reader(inputpath,
             titleField='doc_titl',
             datetimeField='doc_date',
             contentField='doc_abst',
@@ -43,11 +77,11 @@ class TestFetExtract(unittest.TestCase):
             quotechar='"',
             locale='en_US.UTF-8',
         )
-        corpora = PyTextMiner.Corpora( name="pubmedTest" )
+        corpora = PyTextMiner.Corpora( name=self.config.corpora )
         corpora = tina.corpora( corpora )
         #print tina.corpusDict
         #sql = Writer("sqlite://src/t/output/"+corpora.name+".db", locale=self.locale)
-        sql = Writer("sqlite://:memory:", locale=self.locale)
+        sql = Writer(self.config.store, locale=self.locale)
         # clean the DB contents
         sql.clear()
         # stores Corpora
@@ -110,7 +144,7 @@ class TestFetExtract(unittest.TestCase):
             # EXPORT filter ngrams by corpus occs
             req='select count(asn.id1), ng.blob from AssocNGram as asn, NGram as ng JOIN AssocDocument as asd ON asd.id1 = asn.id2 AND asn.id1 = ng.id WHERE ( asd.id2 = ? ) GROUP BY asn.id1 HAVING count (asn.id1) > 1'
             result = sql.execute(req, [sql.encode(corpusNum)])
-            dump = Writer ("tina://src/t/output/"+corpusNum+"-ngramOccPerCorpus.csv", locale=self.locale)
+            dump = Writer ("tina://"+self.config.directory+"/"+corpusNum+"-ngramOccPerCorpus.csv", locale=self.locale)
             # prepares csv export
             def prepareRows( row ):
                 ng = sql.decode( row[1] )
@@ -128,7 +162,7 @@ class TestFetExtract(unittest.TestCase):
             del corpus
             del tina.corpusDict[ corpusNum ]
         print "Dumping SQL db"
-        sql.dump( "src/t/output/dump_"+corpora.name+".sql" )
+        sql.dump( self.config.directory+"/dump_"+corpora.name+".sql" )
         
         print "export a sample from document db"
         reader = PyTextMiner.Importer()
@@ -153,8 +187,16 @@ class TestFetExtract(unittest.TestCase):
             docList += [jsonpickle.encode(doc)]
         #dump.objectToCsv( docList, [ 'docNum', 'rawContent', 'targets', 'title', 'author', 'index1', 'index2', 'metas', 'date', 'tokens', 'ngrams' ] )
         import codecs
-        file = codecs.open("src/t/output/documentSample.csv", "w", 'utf-8', 'xmlcharrefreplace' )
+        file = codecs.open(self.config.directory+"/documentSample.csv", "w", 'utf-8', 'xmlcharrefreplace' )
         for doc in docList:
             file.write( doc + "\n" )
+            
+        if self.config.compression == "zip":
+            try:
+                os.system("zip -r %s %s"%(self.config.output, self.config.directory))
+                print "project successfully zipped to", self.config.output
+            except:
+                print "couldn't zip project folder '%s'. please do it manually" % self.config.directory
 if __name__ == '__main__':
-    unittest.main()
+    program = Program()
+    program.main()
