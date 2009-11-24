@@ -15,6 +15,8 @@ import bootstrap
 # pytextminer modules
 import PyTextMiner
 from PyTextMiner.Data import Reader, Writer, sqlite
+import yaml
+import codecs
 
 class Program:
     def __init__(self):
@@ -24,8 +26,8 @@ class Program:
         parser.add_option("-i", "--input", dest="input", default="src/t/pubmed_tina_test.csv",
            help="read data from FILE", metavar="FILE")
                           
-        parser.add_option("-d", "--dir", dest="directory", default='output',
-            help="write temporary files to DIR (default: 'output/')", metavar="DIR")    
+        parser.add_option("-d", "--dir", dest="directory", default='src/t/output',
+            help="write temporary files to DIR (default: 'src/t/output/')", metavar="DIR")    
             
         parser.add_option("-o", "--output", dest="output", default='data.zip',
             help="zip data to FILE (default: data.zip)", metavar="FILE")
@@ -33,8 +35,8 @@ class Program:
         parser.add_option("-z", "--zip", dest="zip", default='zip',
             help="compression algorithm (default: zip) (no compression: None)", metavar="FILE")
              
-        parser.add_option("-c", "--corpora", dest="corpora", default="pubmedTest",
-            help="corpora name (default: pubmedTest)", metavar="NAME")     
+        parser.add_option("-n", "--name", dest="corpora", default="TINA",
+            help="corpora name (default: TINA)", metavar="NAME")     
             
         parser.add_option("-s", "--store", dest="store", default="sqlite://:memory:",
             help="storage engine (default: sqlite://:memory:)", metavar="ENGINE")     
@@ -42,15 +44,25 @@ class Program:
         parser.add_option("-w", "--stopwords", dest="stopwords", default="src/t/stopwords/en.txt",
             help="loads stopwords from FILE (default: src/t/stopwords/en.txt)", metavar="FILE")                 
 
+        parser.add_option("-c", "--config", dest="configFile", default="config.yaml",
+            help="loads configuration from FILE (default: config.yaml)", metavar="FILE")                 
+        
         (options, args) = parser.parse_args()
         self.config = options
-        
+
+        try:
+            self.configFile = yaml.safe_load( file( self.config.configFile, 'rU' ) )
+        except yaml.YAMLError, exc:
+            print "\n Unable to read Config YAML file \n", exc
+        print yaml.safe_dump(self.configFile, allow_unicode=True)
+
         # try to determine the locale of the current system
         try:
-            self.locale = 'en_US.UTF-8'
+            self.locale = self.configFile['locale']
             locale.setlocale(locale.LC_ALL, self.locale)
         except:
-            self.locale = 'fr_FR.UTF-8'
+            self.locale = 'en_US.UTF-8'
+            print "locale %s was not found, switching to en_US.UTF-8 by default", self.configFile['locale']
             locale.setlocale(locale.LC_ALL, self.locale)
         self.stopwords = PyTextMiner.StopWords( "file://%s" % self.config.stopwords )
 
@@ -63,24 +75,25 @@ class Program:
             
         inputpath = "tina://%s"%self.config.input
         tina = Reader(inputpath,
-            titleField='doc_titl',
-            datetimeField='doc_date',
-            contentField='doc_abst',
-            authorField='doc_acrnm',
-            corpusNumberField='corp_num',
-            docNumberField='doc_num',
-            index1Field='index_1',
-            index2Field='index_2',
-            minSize='1',
-            maxSize='4',
-            delimiter=',',
-            quotechar='"',
-            locale='en_US.UTF-8',
+            titleField = self.configFile['titleField'],
+            dateStartField = self.configFile['dateStartField'],
+            dateEndField = self.configFile['dateendField'],
+            contentField = self.configFile['contentField'],
+            authorField = self.configFile['authorField'],
+            corpusNumberField = self.configFile['corpusNumberField'],
+            docNumberField = self.configFile['docNumberField'],
+            index1Field = self.configFile['index1Field'],
+            index2Field = self.configFile['index2Field'],
+            keywordsField = self.configFile['keywordsField'],
+            minSize = self.configFile['minSize'],
+            maxSize = self.configFile['maxSize'],
+            delimiter = self.configFile['delimiter'],
+            quotechar = self.configFile['quotechar'],
+            locale = self.configFile['locale'],
         )
         corpora = PyTextMiner.Corpora( name=self.config.corpora )
         corpora = tina.corpora( corpora )
         #print tina.corpusDict
-        #sql = Writer("sqlite://src/t/output/"+corpora.name+".db", locale=self.locale)
         sql = Writer(self.config.store, locale=self.locale)
         # clean the DB contents
         sql.clear()
@@ -155,7 +168,7 @@ class Program:
                 tag = " ".join( tag )
                 filtered.append([ ng['str'], row[0], tag ])
 
-            print filtered
+            #print filtered
             print "writes a corpus-wide ngram synthesis"
             dump.csvFile( ['ngram','documents','POS tagged'], filtered )
 
