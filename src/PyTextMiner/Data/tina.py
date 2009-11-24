@@ -46,17 +46,24 @@ class Exporter (PyTextMiner.Data.Exporter):
 
 class Importer (PyTextMiner.Data.Importer):
 
+    options = {
+            'fields' : {
+                'titleField' : 'doc_titl',
+                'dateEndField' : None,
+                'dateStartField' : None,
+                'contentField' : 'doc_abst',
+                'authorField' : 'doc_acrnm',
+                'corpusNumberField' : 'corp_num',
+                'docNumberField' : 'doc_num',
+                'index1Field' : 'index_1',
+                'index2Field' : 'index_2',
+                'keywordsField' : None,
+            }
+
+    }
+
     def __init__(self,
             filepath,
-            titleField='doc_titl',
-            datetimeField='doc_date',
-            datetime=None,
-            contentField='doc_abst',
-            authorField='doc_acrnm',
-            corpusNumberField='corp_num',
-            docNumberField='doc_num',
-            index1Field='index_1',
-            index2Field='index_2',
             minSize='1',
             maxSize='4',
             delimiter=',',
@@ -65,27 +72,17 @@ class Importer (PyTextMiner.Data.Importer):
             **kwargs 
         ):
         self.filepath = filepath
-        
+        self.load_options( kwargs )
         # locale management
         self.locale = locale
         self.encoding = locale.split('.')[1].lower()
-        self.datetime = datetime
-
-        self.titleField = titleField
-        # TODO
-        #self.datetimeField = timestampField
-        self.contentField = contentField
-        self.authorField = authorField
-        self.corpusNumberField = corpusNumberField
-        self.docNumberField = docNumberField
-        self.index1Field = index1Field
-        self.index2Field = index2Field
-        self.minSize = minSize
-        self.maxSize = maxSize
-
+        # CSV format
         self.delimiter = delimiter
         self.quotechar = quotechar
-
+        # Tokenizer args
+        self.minSize = minSize
+        self.maxSize = maxSize
+        
         f1 = self.open( filepath )
         tmp = csv.reader(
                 f1,
@@ -109,27 +106,27 @@ class Importer (PyTextMiner.Data.Importer):
     def open( self, filepath ):
         return codecs.open(filepath,'rU', errors='replace' )
     
-    def unicode( self, text ):
-        # replacement char = \ufffd
-        return unicode( text, self.encoding, 'xmlcharrefreplace' )
+    #def decode( self, text ):
+    #    # replacement char = \ufffd
+    #    return decode( text, self.encoding, 'xmlcharrefreplace' )
 
     def corpora( self, corpora ):
         for doc in self.csv:
+            tmpfields=dict(self.fields)
             try:
-                corpusNumber = self.decode(doc[self.corpusNumberField])
-                #print "CORPUS NUMBER ", corpusNumber
+                corpusNumber = self.decode( doc[self.fields['corpusNumberField']] )
+                del tmpfields['corpusNumberField']
             except Exception, exc:
                 print "document parsing exception : ", exc
                 continue
                 pass
-            document = self.document( doc )
+            document = self.parseDocument( doc, tmpfields )
             if document is None:
                 print "skipping document"
                 continue
             found = 0
             if self.corpusDict.has_key(corpusNumber) and corpusNumber in corpora.corpora:
-                #print "found existing corpus"
-
+                #print "existing coprus, adding document :", document.docNum
                 self.corpusDict[ corpusNumber ].documents.add( document.docNum )
                 found = 1
             else:
@@ -145,41 +142,39 @@ class Importer (PyTextMiner.Data.Importer):
             corpora.corpora.add( corpusNumber )
         return corpora
             
-    def document( self, doc ):
+    def parseDocument( self, doc, tmpfields ):
     
-        try:
-            docNum = self.decode(doc[self.docNumberField])
-            if self.docDict.has_key( docNum ):
-                return self.docDict[ docNum ]
-            # TODO time management
-            #if self.datetime is None:
-            #    date = datetime(doc[self.datetimeField])
-            #else:
-            #    date = self.datetime
-            content = self.decode(doc[self.contentField])
-            title = self.decode(doc[self.titleField])
-            author = self.decode(doc[self.authorField])
-            #keywords=doc[self.keywordsField]
-            index1 = self.decode(doc[self.index1Field])
-            index2 = self.decode(doc[self.index2Field])
+        docArgs = {}
+        try: 
+            # get required fields
+            docNum = self.decode( doc[tmpfields[ 'docNumberField' ]] )
+            content = self.decode( doc[tmpfields[ 'contentField' ]] )
+            del tmpfields['docNumberField']
+            del tmpfields['contentField']
+            try:
+                # get optional fields
+                for key, field in tmpfields.iteritems():
+                    docArgs[ key ] = self.decode( doc[ field ] )
+            except:
+                pass
         except Exception, exc:
-            print "document parsing exception : ",exc
+            print "document parsing exception : ", exc
             return None
-            
+            pass
 
         document = PyTextMiner.Document(
             rawContent=content,
-            title=title,
-            author=author,
+            #title=title,
+            #author=author,
             docNum=docNum,
             #date=date,
             #keywords=keywords,
-            index1=index1,
-            index2=index2,
-            ngramMin=1,
-            ngramMax=4,
+            #index1=index1,
+            #index2=index2,
+            ngramMin=self.minSize,
+            ngramMax=self.maxSize,
+            **docArgs
         )
-        #print "TARGET =========", id(target)
-        #document.targets.add( id(target) )
+        #print document.ngramMin, document.ngramMax, document.docNum, document.rawContent
         self.docDict[ docNum ] = document
         return document
