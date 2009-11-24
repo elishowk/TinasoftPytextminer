@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#!/usr/bin/env python
 """
 
 f2py2e - Fortran to Python C/API generator. 2nd Edition.

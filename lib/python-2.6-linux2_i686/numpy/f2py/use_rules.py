@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#!/usr/bin/env python
 """
 
 Build 'use others module data' mechanism for f2py2e.

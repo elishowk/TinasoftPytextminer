@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#! python
 # encoding: utf-8
 
 import timeit

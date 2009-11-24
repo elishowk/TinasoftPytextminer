@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#!/usr/bin/env python
 """
 
 Copyright 1999,2000 Pearu Peterson all rights reserved,

@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#!/usr/bin/env python
 
 fib3_f = '''
 C FILE: FIB3.F

@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#!/usr/bin/env python
 
 from numpy.testing import *
 from numpy.distutils.misc_util import appendpath, minrelpath, gpaths, rel_path

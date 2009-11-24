@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#!/usr/bin/env python
 from os.path import join as pjoin
 
 def configuration(parent_package='', top_path=None):

@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#!/usr/bin/env python
 """
 setup.py for installing F2PY
 
@@ -40,7 +40,7 @@ def configuration(parent_package='',top_path=None):
     config.make_svn_version_py()
 
     def generate_f2py_py(build_dir):
-        f2py_exe = 'f2py'+sys.version[:3]
+        f2py_exe = 'f2py'+os.path.basename(sys.executable)[6:]
         if f2py_exe[-4:]=='.exe':
             f2py_exe = f2py_exe[:-4] + '.py'
         if 'bdist_wininst' in sys.argv and f2py_exe[-3:] != '.py':

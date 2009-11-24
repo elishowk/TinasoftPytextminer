@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#!/usr/bin/env python
 def configuration(parent_package='',top_path=None):
     from numpy.distutils.misc_util import Configuration
     config = Configuration('f2py_ext',parent_package,top_path)

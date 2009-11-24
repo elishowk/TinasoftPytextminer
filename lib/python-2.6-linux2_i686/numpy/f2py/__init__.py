@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#!/usr/bin/env python
 
 __all__ = ['run_main','compile','f2py_testing']
 
