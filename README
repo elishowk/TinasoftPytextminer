@@ -2,25 +2,27 @@ PyTextMiner version 0.3
 
 A simple text miner for CoWord analysis
 
-INSTALLATION
-  
-   DEVELOPMENT
-   To install this module on a development machine, run the following commands:
-
-    sudo python setup.py develop
-
-   PRODUCTION
-   To install this module on a production machine, run the following commands:
-
-	sudo python setup.py install
-
-
-DEPENDENCIES
-
- - NLTK - http://www.nltk.org/
- - Shove 0.21b - http://github.com/jbilcke/shove
- - tina-storage - http://github.com/jbilcke/tina.storage
-
+USAGE
+   
+   ON LINUX
+   
+      simply type "python tinaExtract.py" in a the folder where you unzipped PyTextMiner.
+         
+      it will generate a statistics.zip file containing only statistical data on ngrams
+      
+      notice that you need Python and Numpy. You can install them safely from your package
+      manager by typing:
+      
+         "sudo apt-get install python-numpy"
+          
+      in a shell under debian/ubuntu
+         
+       or
+       
+         "sudo urpmi python-scipy" 
+         
+      in a shell on mandriva.
+     
 COPYRIGHT AND LICENSE
 
 Copyright (C) 2009, Julian Bilcke, Elias Showk

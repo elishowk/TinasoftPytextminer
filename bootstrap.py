@@ -11,12 +11,12 @@ except:
 import sys
 
 
-sys.path = ['src'] + sys.path +  [
+sys.path = ['src'] + [
    "lib/python-%s.%s_%s%s" % (sys.version_info[0],sys.version_info[1], sys.platform, arch), 
-   "lib/universal" ] 
-         
+   "lib/universal" ] + sys.path 
+print sys.path   
 import warnings 
-warnings.filterwarnings("ignore") 
+#warnings.filterwarnings("ignore") 
 import nltk
 nltk.data.path = ['shared/nltk_data']
 
