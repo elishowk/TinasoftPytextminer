@@ -27,8 +27,8 @@ class Program:
         parser.add_option("-d", "--dir", dest="directory", default='output',
             help="write temporary files to DIR (default: 'output/')", metavar="DIR")    
             
-        parser.add_option("-o", "--output", dest="output", default='data.zip',
-            help="zip data to FILE (default: data.zip)", metavar="FILE")
+        parser.add_option("-o", "--output", dest="output", default='statistics.zip',
+            help="zip statistics to FILE (default: statistics.zip)", metavar="FILE")
              
         parser.add_option("-z", "--zip", dest="zip", default='zip',
             help="compression algorithm (default: zip) (no compression: None)", metavar="FILE")
