@@ -14,7 +14,7 @@ import sys
 sys.path = ['src'] + [
    "lib/python-%s.%s_%s%s" % (sys.version_info[0],sys.version_info[1], sys.platform, arch), 
    "lib/universal" ] + sys.path 
-print sys.path   
+#print sys.path   
 import warnings 
 #warnings.filterwarnings("ignore") 
 import nltk

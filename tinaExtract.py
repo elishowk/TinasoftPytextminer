@@ -26,7 +26,7 @@ class Program:
         parser.add_option("-i", "--input", dest="input", default="src/t/pubmed_tina_test.csv",
            help="read data from FILE", metavar="FILE")
                           
-        parser.add_option("-d", "--dir", dest="directory", default='src/t/output',
+        parser.add_option("-d", "--dir", dest="directory", default='output',
             help="write temporary files to DIR (default: 'src/t/output/')", metavar="DIR")    
             
         parser.add_option("-o", "--output", dest="output", default='statistics.zip',
@@ -172,12 +172,11 @@ class Program:
         sql.dump( self.config.directory+"/dump_"+corpora.name+".sql" )
         
         print "export a sample from document db"
-        reader = PyTextMiner.Importer()
         ngramFetch = 'SELECT ng.blob FROM NGram as ng JOIN AssocNGram as asn ON asn.id1 = ng.id WHERE ( asn.id2 = ? )'
-        select = 'SELECT doc.id, doc.blob from Document as doc LIMIT 10'
+        select = 'SELECT doc.id, doc.blob from Document as doc LIMIT 18'
         result = sql.execute(select)
-        docList = []
-        
+        # format data
+        docList = [] 
         for document in result:
             docid = document[0]
             doc = sql.decode( document[1] )
