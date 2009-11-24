@@ -18,16 +18,16 @@ class TestMedlineToCSV(unittest.TestCase):
         try:
             self.locale = 'en_US.UTF-8'
             locale.setlocale(locale.LC_ALL, self.locale)
-            self.lang,self.encoding = self.locale.split('.')
-            self.file = codecs.open("t/pubmed_result_AIDS.txt", "rU", self.encoding)
-            self.output = codecs.open("t/output/pubmed_AIDS.csv", "w", self.encoding)
+            self.lang, self.encoding = self.locale.split('.')
+            self.file = codecs.open("pubmed_result.txt", "rU", self.encoding)
+            self.output = codecs.open("t/output/pubmed_result.csv", "w", self.encoding)
         except:
             print "error setting locale or reading file"
             pass
         
     def test1_import(self):
         writer = csv.writer(self.output, dialect='excel')
-        rows = [['Batch','prop_num','prop_titl','prop_acrnm','abst','sum_cost','sum_grant']]
+        rows = [['corp_num','doc_num','doc_titl','doc_acrnm','doc_abst','index1','index2']]
         lines=[]
         for line in self.file.readlines():
             line = line.rstrip()

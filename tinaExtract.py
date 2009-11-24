@@ -69,8 +69,8 @@ class Program:
             authorField='doc_acrnm',
             corpusNumberField='corp_num',
             docNumberField='doc_num',
-            index_1='index_1',
-            index_2='index_2',
+            index1Field='index_1',
+            index2Field='index_2',
             minSize='1',
             maxSize='4',
             delimiter=',',
@@ -143,18 +143,19 @@ class Program:
                 print ">> %d documents left to analyse\n" % len( tina.docDict )
             # EXPORT filter ngrams by corpus occs
             req='select count(asn.id1), ng.blob from AssocNGram as asn, NGram as ng JOIN AssocDocument as asd ON asd.id1 = asn.id2 AND asn.id1 = ng.id WHERE ( asd.id2 = ? ) GROUP BY asn.id1 HAVING count (asn.id1) > 1'
-            result = sql.execute(req, [sql.encode(corpusNum)])
+            result = sql.execute(req, [corpusNum])
             dump = Writer ("tina://"+self.config.directory+"/"+corpusNum+"-ngramOccPerCorpus.csv", locale=self.locale)
             # prepares csv export
-            def prepareRows( row ):
-                ng = sql.decode( row[1] )
+            filtered = []
+            for row in result:
                 tag = []
+                ng = sql.decode( row[1] )
                 for toklist in ng['original']:
                     tag.append( dump.encode( "_".join( toklist ) ) )
                 tag = " ".join( tag )
-                return [ ng['str'], row[0], tag ]
+                filtered.append([ ng['str'], row[0], tag ])
 
-            filtered = map( prepareRows, result )
+            print filtered
             print "writes a corpus-wide ngram synthesis"
             dump.csvFile( ['ngram','documents','POS tagged'], filtered )
 
