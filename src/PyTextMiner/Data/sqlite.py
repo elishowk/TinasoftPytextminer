@@ -148,18 +148,21 @@ class SQLiteBackend (Data.Importer):
                 pass  
 
     def dump(self, filename, compress=None):
-        with open(filename, 'w') as f:
+        try:
+            f = open(filename, 'w')
             for line in self._db.iterdump():
                 f.write('%s\n' % line)
-
+            f.close()
+        except:
+            print "Couldn't open output file to dump the SQL"
+            return None
+            
         if compress is 'gzip' or compress is 'gz' or compress is 'zip':
             try:
                 import gzip
                 f = open(filename,'r')
                 content.read()
-                f.close()
-                del f
-                
+                f.close()                   
                 f = gzip.open(filename, 'wb')
                 f.write(content)
                 f.close()

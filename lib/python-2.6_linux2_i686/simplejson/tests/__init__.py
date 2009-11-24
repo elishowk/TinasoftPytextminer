@@ -1,1 +1,0 @@
-/usr/share/pyshared/simplejson/tests/__init__.py
