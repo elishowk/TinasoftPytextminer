@@ -12,11 +12,9 @@ class Handler (object):
         self.encoding = encoding
   
     def load_options(self, options):
-        for attr, default in self.options.iteritems():
-            try:
-                self.__setattr__(attr,options[attr])
-            except:
-                self.__setattr__(attr,default)
+        self.options.update( options )
+        for attr, value in self.options.iteritems():
+                setattr(self,attr,value)
                 
     def encode(self, toEncode):
         return toEncode.encode( self.encoding, 'xmlcharrefreplace')

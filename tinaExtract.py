@@ -14,7 +14,7 @@ import bootstrap
 
 # pytextminer modules
 import PyTextMiner
-from PyTextMiner.Data import Reader, Writer, sqlite
+from PyTextMiner.Data import Reader, Writer, sqlite, tina
 import yaml
 import codecs
 
@@ -54,7 +54,7 @@ class Program:
             self.configFile = yaml.safe_load( file( self.config.configFile, 'rU' ) )
         except yaml.YAMLError, exc:
             print "\n Unable to read Config YAML file \n", exc
-        print yaml.safe_dump(self.configFile, allow_unicode=True)
+        #print yaml.safe_dump(self.configFile, allow_unicode=True)
 
         # try to determine the locale of the current system
         try:
@@ -75,21 +75,13 @@ class Program:
             
         inputpath = "tina://%s"%self.config.input
         tina = Reader(inputpath,
-            titleField = self.configFile['titleField'],
-            dateStartField = self.configFile['dateStartField'],
-            dateEndField = self.configFile['dateendField'],
-            contentField = self.configFile['contentField'],
-            authorField = self.configFile['authorField'],
-            corpusNumberField = self.configFile['corpusNumberField'],
-            docNumberField = self.configFile['docNumberField'],
-            index1Field = self.configFile['index1Field'],
-            index2Field = self.configFile['index2Field'],
-            keywordsField = self.configFile['keywordsField'],
+        #tina = tina.Importer(self.config.input,
             minSize = self.configFile['minSize'],
             maxSize = self.configFile['maxSize'],
             delimiter = self.configFile['delimiter'],
             quotechar = self.configFile['quotechar'],
             locale = self.configFile['locale'],
+            fields = self.configFile['fields']
         )
         corpora = PyTextMiner.Corpora( name=self.config.corpora )
         corpora = tina.corpora( corpora )
@@ -135,6 +127,7 @@ class Program:
                         emptyString = document.ngramEmpty, 
                         stopwords = self.stopwords,
                     )
+                    #print document.ngrams
                     for ngid, ng in document.ngrams.iteritems():
                         occs = ng['occs']
                         del ng['occs']
@@ -164,7 +157,7 @@ class Program:
                 tag = []
                 ng = sql.decode( row[1] )
                 for toklist in ng['original']:
-                    tag.append( dump.encode( "_".join( toklist ) ) )
+                    tag.append( dump.encode( "_".join( reversed(toklist) ) ) )
                 tag = " ".join( tag )
                 filtered.append([ ng['str'], row[0], tag ])
 
@@ -197,6 +190,7 @@ class Program:
             docList += [doc]
         import codecs
         file = codecs.open(self.config.directory+"/documentSample.csv", "w", 'utf-8', 'xmlcharrefreplace' )
+        file.write( "document id,ngrams extracted\n" )
         for doc in docList:
             file.write( "%s,\"%s\"\n" % (doc.docNum, doc.ngrams ) )
             
