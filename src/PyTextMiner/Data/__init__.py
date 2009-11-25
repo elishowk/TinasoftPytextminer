@@ -17,10 +17,10 @@ class Handler (object):
                 setattr(self,attr,value)
                 
     def encode(self, toEncode):
-        return toEncode.encode( self.encoding, 'xmlcharrefreplace')
+        return toEncode.encode( self.encoding, 'replace')
 
     def decode(self, toDecode):    
-        return unicode( toDecode, self.encoding, 'xmlcharrefreplace' )
+        return unicode( toDecode, self.encoding, 'replace' )
 
 class Importer (Handler):
     pass

@@ -85,7 +85,11 @@ class RegexpTokenizer():
 class TreeBankWordTokenizer(RegexpTokenizer):
     """
     A tokenizer that divides a text into sentences
-    then into sequences of alphabetic and non-alphabetic chars
+    then cleans punctuation 
+    then into tokens of alphabetic and non-alphabetic chars
+    A NGramizer that gets a list of (token, POSTAG_token) tuples
+    and constructs a dictionary of NGram objects
+    using the optional stopwords object to filter by ngram length
     """
     @staticmethod
     def tokenize( text, emptyString, stopwords=None ):
@@ -93,7 +97,7 @@ class TreeBankWordTokenizer(RegexpTokenizer):
         # WARNING : only works on english
         sentences = [nltk.TreebankWordTokenizer().tokenize(RegexpTokenizer.cleanPunct( sent, emptyString )) for sent in sentences]
         return sentences
-    
+
     @staticmethod
     def ngramize( minSize, maxSize, tokens, emptyString, stopwords=None ):
         ngrams = {}
