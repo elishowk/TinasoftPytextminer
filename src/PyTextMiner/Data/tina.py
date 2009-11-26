@@ -117,7 +117,7 @@ class Importer (PyTextMiner.Data.Importer):
             try:
                 corpusNumber = self.decodeField( doc[self.fields['corpusNumberField']], 'corpusNumberField', None, None )
                 del tmpfields['corpusNumberField']
-            except Exception, exc:
+            except Exception as exc:
                 print "document parsing exception (no corpus number avalaible) : ", exc
                 continue
                 #pass
@@ -129,7 +129,7 @@ class Importer (PyTextMiner.Data.Importer):
             found = 0
             if self.corpusDict.has_key(corpusNumber) and corpusNumber in corpora.corpora:
                 #print "existing coprus, adding document :", document.docNum
-                self.corpusDict[ corpusNumber ].documents.add( document.docNum )
+                self.corpusDict[ corpusNumber ].documents.append( document.docNum )
                 found = 1
             else:
                 found = 0
@@ -139,7 +139,7 @@ class Importer (PyTextMiner.Data.Importer):
             corpus = PyTextMiner.Corpus(
                 name = corpusNumber,
             )
-            corpus.documents.add( document.docNum )
+            corpus.documents.append( document.docNum )
             self.corpusDict[ corpusNumber ] = corpus
             corpora.corpora.add( corpusNumber )
         return corpora
@@ -154,18 +154,16 @@ class Importer (PyTextMiner.Data.Importer):
             content = self.decodeField( doc[tmpfields[ 'contentField' ]], 'contentField', docNum, corpusNum )
             del tmpfields['docNumberField']
             del tmpfields['contentField']
-        except Exception, exc:
+        except Exception as exc:
             print "Error parsing doc %d from corpus %d : %s\n", docNum, corpusNum, exc
             return None
-            #pass
             
         # parsing optional fields loop and TRY
         for key, field in tmpfields.iteritems():
             try:
                 docArgs[ key ] = self.decodeField( doc[ field ], field, docNum, corpusNum )
-            except Exception, exc:
+            except Exception as exc:
                 print "warning : unable to parse optional field",  docNum, corpusNum, exc
-                #pass
 
         document = PyTextMiner.Document(
             rawContent=content,
@@ -181,7 +179,7 @@ class Importer (PyTextMiner.Data.Importer):
     def decodeField( self, field, fieldName, docNum=None, corpusNumber=None ):
         try:
             return self.decode( field )
-        except UnicodeDecodeError, uexc:
-            print "Error decoding field %s in document %s from corpus %s : %s\n", fieldName, docNum, corpusNumber, uexc
+        # TODO NOT used because of errors arg in self.decode
+        except UnicodeDecodeError as uexc:
+            print "Error decoding field in document from corpus\n", fieldName, docNum, corpusNumber, uexc
             return u'\ufffd'
-            #pass

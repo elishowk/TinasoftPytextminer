@@ -86,23 +86,21 @@ class Program:
         corpora = PyTextMiner.Corpora( name=self.config.corpora )
         corpora = tina.corpora( corpora )
         #print tina.corpusDict
-        sql = Writer(self.config.store, locale=self.locale)
+        sql = Writer(self.config.store, locale=self.locale, format="json")
         # clean the DB contents
         sql.clear()
         # stores Corpora
-        if not sql.fetch_one( PyTextMiner.Corpora, corpora.name ) :
+        if not sql.loadCorpora( corpora.name ) :
             sql.storeCorpora( corpora.name, corpora )
-        
+        corpusngrams = {}
         for corpusNum in corpora.corpora:
             # get the Corpus object
             corpus = tina.corpusDict[ corpusNum ]
-            # stores it
-            sql.storeCorpus( corpusNum, corpus )
-            sql.storeAssocCorpus( corpusNum, corpora.name )
             # Documents processing
             for documentNum in corpus.documents:
+                ngrams = {}
                 # only process document if unavailable in DB
-                if not sql.fetch_one( PyTextMiner.Document, documentNum ):
+                if not sql.loadDocument( documentNum ):
                     # get the document object
                     document = tina.docDict[ documentNum ]
                     print "----- TreebankWordTokenizer on document %s ----\n" % documentNum
@@ -120,26 +118,30 @@ class Program:
                     for sentence in sentenceTokens:
                         document.tokens.append( PyTextMiner.Tagger.TreeBankPosTagger.posTag( sentence ) )
                     
-                    document.ngrams = PyTextMiner.Tokenizer.TreeBankWordTokenizer.ngramize(
+                    ngrams = PyTextMiner.Tokenizer.TreeBankWordTokenizer.ngramize(
                         minSize = document.ngramMin,
                         maxSize = document.ngramMax,
                         tokens = document.tokens,
                         emptyString = document.ngramEmpty, 
                         stopwords = self.stopwords,
                     )
-                    #print document.ngrams
-                    for ngid, ng in document.ngrams.iteritems():
-                        occs = ng['occs']
-                        del ng['occs']
-                        sql.storeNGram( ngid, ng )
-                        sql.storeAssocNGram( ngid, documentNum, occs )
-                    # get the list of keys
-                    document.ngrams = document.ngrams.keys()
-                    # DB Storage
+                    # store document-wide ngrams list
+                    for id in ngrams.iterkeys():
+                        # transfers doc-occs to corpus-occs
+                        docOccs = ngrams[ id ]['occs']
+                        ngrams[ id ]['occs'] = 1
+                        sql.storeAssocNGram( id, documentNum, docOccs )
+                        # update corpus-wide ngram dict
+                        # if ngrams already exists in corpus, only increments occs
+                        if id in corpusngrams:
+                            corpusngrams[ id ]['occs'] += 1
+                        else:
+                            corpusngrams[ id ] = ngrams[ id ]
+                    del ngrams
+                    # clean full text before DB storage
                     document.rawContent = ""
                     document.tokens = []
                     document.targets = set()
-                    
                     sql.storeDocument( documentNum, document )
                     del document
                     del tina.docDict[ documentNum ]
@@ -147,23 +149,28 @@ class Program:
                 sql.storeAssocDocument( documentNum, corpusNum )
                 # TODO modulo 10 docs
                 print ">> %d documents left to analyse\n" % len( tina.docDict )
-            # EXPORT filter ngrams by corpus occs
-            req='select count(asn.id1), ng.blob from AssocNGram as asn, NGram as ng JOIN AssocDocument as asd ON asd.id1 = asn.id2 AND asn.id1 = ng.id WHERE ( asd.id2 = ? ) GROUP BY asn.id1 HAVING count (asn.id1) > 1'
-            result = sql.execute(req, [corpusNum])
+
+            corpusngrams = PyTextMiner.NGram.filterUnique( corpusngrams, 2 )
+            # stores the corpus
+            sql.storeCorpus( corpusNum, corpus, corpusngrams )
+            sql.storeAssocCorpus( corpusNum, corpora.name )
+            del corpusngrams
+            
+            # EXPORT ngrams of current corpus FROM DATABASE
+            ngrams = sql.loadCorpusNgrams( corpusNum )
             dump = Writer ("tina://"+self.config.directory+"/"+corpusNum+"-ngramOccPerCorpus.csv", locale=self.locale)
             # prepares csv export
-            filtered = []
-            for row in result:
-                tag = []
-                ng = sql.decode( row[1] )
-                for toklist in ng['original']:
-                    tag.append( dump.encode( "_".join( reversed(toklist) ) ) )
+            rows = []
+            for ngid, ng in ngrams.iteritems():
+                tag=[]
+                for tok_tag in ng['original']:
+                    tag.append( dump.encode( "_".join( reversed(tok_tag) ) ) )
                 tag = " ".join( tag )
-                filtered.append([ ng['str'], row[0], tag ])
+                rows.append([ ngid, ng['str'], ng['occs'], tag ])
 
-            #print filtered
-            print "writes a corpus-wide ngram synthesis"
-            dump.csvFile( ['ngram','documents','POS tagged'], filtered )
+            # print rows to file
+            print "writing a corpus ngrams summary", corpusNum
+            dump.csvFile( ['db id','ngram','documents occs','POS tagged'], rows )
 
             # destroys Corpus object
             del corpus
@@ -171,27 +178,27 @@ class Program:
         print "Dumping SQL db"
         sql.dump( self.config.directory+"/dump_"+corpora.name+".sql" )
         
-        print "export a sample from document db"
+        #print "export a sample from document db"
         ngramFetch = 'SELECT ng.blob FROM NGram as ng JOIN AssocNGram as asn ON asn.id1 = ng.id WHERE ( asn.id2 = ? )'
-        select = 'SELECT doc.id, doc.blob from Document as doc LIMIT 18'
-        result = sql.execute(select)
-        # format data
-        docList = [] 
-        for document in result:
-            docid = document[0]
-            doc = sql.decode( document[1] )
-            ngFetch = sql.execute(ngramFetch, [docid])
-            ngList = []
-            for ng in ngFetch:
-                ngObj = sql.decode( ng[0] )
-                ngList += [ ngObj['str'] ]
-            doc.ngrams = ", ".join(ngList)
-            docList += [doc]
-        import codecs
-        file = codecs.open(self.config.directory+"/documentSample.csv", "w", 'utf-8', 'xmlcharrefreplace' )
-        file.write( "document id,ngrams extracted\n" )
-        for doc in docList:
-            file.write( "%s,\"%s\"\n" % (doc.docNum, doc.ngrams ) )
+        #select = 'SELECT doc.id, doc.blob from Document as doc LIMIT 18'
+        #result = sql.execute(select)
+        ## format data
+        #docList = [] 
+        #for document in result:
+        #    docid = document[0]
+        #    doc = sql.decode( document[1] )
+        #    ngFetch = sql.execute(ngramFetch, [docid])
+        #    ngList = []
+        #    for ng in ngFetch:
+        #        ngObj = sql.decode( ng[0] )
+        #        ngList += [ ngObj['str'] ]
+        #    doc.ngrams = ", ".join(ngList)
+        #    docList += [doc]
+        #import codecs
+        #file = codecs.open(self.config.directory+"/documentSample.csv", "w", 'utf-8', 'xmlcharrefreplace' )
+        #file.write( "document id,ngrams extracted\n" )
+        #for doc in docList:
+        #    file.write( "%s,\"%s\"\n" % (doc.docNum, doc.ngrams ) )
             
         if self.config.zip == "zip":
             print "zipping project files.."

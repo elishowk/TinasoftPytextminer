@@ -53,6 +53,3 @@ def Writer(arg, **options):
         return exporter
     except Exception, exc:
         raise Exception("couldn't load writer %s: %s"%(protocol,exc))
-
-def Encode(str):
-    return codecs.encode( str, enc, 'replace' )
