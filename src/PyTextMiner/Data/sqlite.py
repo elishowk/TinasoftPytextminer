@@ -312,10 +312,16 @@ class Exporter (SQLiteBackend):
         reply = self.execute(req, [corpusid]).fetchall()
         results = []
         for id, blob in reply:
-            print blob, type(blob)
             results.append( (id, self.decode(blob)) )
         return results
         
+    def fetchDocumentNGram( self, documentid ):
+        req = ('select ng.blob from NGram as ng JOIN AssocNGramDocument as assoc ON assoc.id1=ng.id AND assoc.id2 = ?')
+        reply = self.execute(req, [documentid]).fetchall()
+        results = []
+        for blob in reply:
+            results.append( self.decode(blob[0]))
+        return results
         
     def loadAllAssocCorpus(self):
         return self.fetch_all( AssocCorpus )

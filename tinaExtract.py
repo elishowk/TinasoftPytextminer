@@ -175,38 +175,37 @@ class Program:
                 rows.append([ ngid, ng['str'], ng['occs'], tag ])
 
             # print rows to file
-            print "writing a corpus ngrams summary", corpusNum
+            print "Writing a corpus ngrams summary", corpusNum
             dump.csvFile( ['db id','ngram','documents occs','POS tagged'], rows )
-
+            del ngrams
             # destroys Corpus object
             del corpusngrams
             del corpus
             del tina.corpusDict[ corpusNum ]
-        #print "Dumping SQL db"
-        #sql.dump( self.config.directory+"/dump_"+corpora.name+".sql" )
+        print "Saving SQL db"
+        sql.dump( self.config.directory+"/dump_"+corpora.name+".sql" )
         
-        #print "export a sample from document db"
-        ngramFetch = 'SELECT ng.blob FROM NGram as ng JOIN AssocNGram as asn ON asn.id1 = ng.id WHERE ( asn.id2 = ? )'
-        #select = 'SELECT doc.id, doc.blob from Document as doc LIMIT 18'
-        #result = sql.execute(select)
-        ## format data
-        #docList = [] 
-        #for document in result:
-        #    docid = document[0]
-        #    doc = sql.decode( document[1] )
-        #    ngFetch = sql.execute(ngramFetch, [docid])
-        #    ngList = []
-        #    for ng in ngFetch:
-        #        ngObj = sql.decode( ng[0] )
-        #        ngList += [ ngObj['str'] ]
-        #    doc.ngrams = ", ".join(ngList)
-        #    docList += [doc]
-        #import codecs
-        #file = codecs.open(self.config.directory+"/documentSample.csv", "w", 'utf-8', 'xmlcharrefreplace' )
-        #file.write( "document id,ngrams extracted\n" )
-        #for doc in docList:
-        #    file.write( "%s,\"%s\"\n" % (doc.docNum, doc.ngrams ) )
-            
+        print "Exporting a sample from document db"
+        select = 'SELECT assoc.id1, doc.blob from AssocDocument as assoc JOIN Document as doc ON doc.id = assoc.id1 LIMIT 10'
+        result = sql.execute(select).fetchall()
+
+        # format data
+        docList = [] 
+        for id in result:
+            doc = sql.decode(id[1])
+            ngrams = sql.fetchDocumentNGram( id[0] )
+            ngList = []
+            for ng in ngrams:
+                ngList += [ ng['str'] ]
+            doc['ngrams'] = ", ".join(ngList)
+            docList += [doc]
+
+        import codecs
+        file = codecs.open(self.config.directory+"/documentSample.csv", "w", 'utf-8', 'replace' )
+        file.write( "document_id,document_title,ngrams extracted\n" )
+        for doc in docList:
+            file.write( "%s,\"%s,\"%s\"\n" % (doc['docNum'], doc['titleField'], doc['ngrams'] ) )
+        del docList    
         if self.config.zip == "zip":
             print "zipping project files.."
             try:
