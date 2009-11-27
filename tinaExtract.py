@@ -164,18 +164,19 @@ class Program:
             sql.cleanAssocNGramDocument( corpusNum )
             # EXPORT ngrams of current corpus FROM DATABASE
             dump = Writer ("tina://"+self.config.directory+"/"+corpusNum+"-ngramOccPerCorpus.csv", locale=self.locale)
+            ngrams = sql.fetchCorpusNGram( corpusNum )
             # prepares csv export
-            #rows = []
-            #for ngid, ng in ngrams.iteritems():
-            #    tag=[]
-            #    for tok_tag in ng['original']:
-            #        tag.append( dump.encode( "_".join( reversed(tok_tag) ) ) )
-            #    tag = " ".join( tag )
-            #    rows.append([ ngid, ng['str'], ng['occs'], tag ])
+            rows = []
+            for ngid, ng in ngrams:
+                tag=[]
+                for tok_tag in ng['original']:
+                    tag.append( dump.encode( "_".join( reversed(tok_tag) ) ) )
+                tag = " ".join( tag )
+                rows.append([ ngid, ng['str'], ng['occs'], tag ])
 
             # print rows to file
             print "writing a corpus ngrams summary", corpusNum
-            #dump.csvFile( ['db id','ngram','documents occs','POS tagged'], rows )
+            dump.csvFile( ['db id','ngram','documents occs','POS tagged'], rows )
 
             # destroys Corpus object
             del corpusngrams

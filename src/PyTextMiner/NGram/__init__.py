@@ -30,7 +30,7 @@ class NGramHelpers():
                 delList.append( ngid )
             else:
                 assocNGramCorpus.append( ( ngid, corpusNum, rawDict[ ngid ]['occs'] ) )
-                del rawDict[ ngid ]['occs']
+                #del rawDict[ ngid ]['occs']
                 if mapping is not None:
                     item = mapping( rawDict[ ngid ] )
                 else:

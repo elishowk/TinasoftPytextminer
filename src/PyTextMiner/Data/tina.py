@@ -128,7 +128,6 @@ class Importer (PyTextMiner.Data.Importer):
                 continue
             found = 0
             if self.corpusDict.has_key(corpusNumber) and corpusNumber in corpora.corpora:
-                #print "existing coprus, adding document :", document.docNum
                 self.corpusDict[ corpusNumber ].documents.append( document.docNum )
                 found = 1
             else:

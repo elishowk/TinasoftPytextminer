@@ -47,7 +47,7 @@ class SQLiteBackend (Data.Importer):
        return sqlite3.Binary( self.encoder(data) ) 
 
     def decode( self, data ):
-        return self.decoder(data)
+        return self.decoder(str(data))
           
     def setCallback(self, cb):
         self.callback = cb
@@ -86,7 +86,6 @@ class SQLiteBackend (Data.Importer):
         
     def insertmany(self, obj, iter):
         req = 'insert into ' + self.getTable( obj.__class__ ) + ' values (?, ?)'
-        print req
         #def encodeObj( item ):
         #    return ( item[0], self.encode( item[1] ) )
         try:
@@ -307,6 +306,15 @@ class Exporter (SQLiteBackend):
         
     def loadNGram(self, id ):
         return self.fetch_one( NGram, id )
+
+    def fetchCorpusNGram( self, corpusid ):
+        req = ('select id, blob from NGram as ng JOIN AssocNGramCorpus as assoc ON assoc.id1=ng.id AND assoc.id2 = ?')
+        reply = self.execute(req, [corpusid]).fetchall()
+        results = []
+        for id, blob in reply:
+            print blob, type(blob)
+            results.append( (id, self.decode(blob)) )
+        return results
         
         
     def loadAllAssocCorpus(self):
@@ -314,7 +322,7 @@ class Exporter (SQLiteBackend):
              
     def loadAllAssocDocument(self):
         return self.fetch_all( AssocDocument )
-             
+
     def loadAllAssocNGramDocument(self):
         return self.fetch_all( AssocNGramDocument )
    
