@@ -5,7 +5,7 @@ __date__ ="$Oct 20, 2009 6:32:44 PM$"
 
 import string, re
 import nltk
-from PyTextMiner import NGram
+from PyTextMiner import NGramHelpers
 
 
 class RegexpTokenizer():
@@ -107,10 +107,10 @@ class TreeBankWordTokenizer(RegexpTokenizer):
                     if len(sent) >= i+n:
                         def normalizePOS(tpl):
                             return tpl[0].lower()
-                        normalNgram = NGram.normalize( sent[i:n+i] )
+                        normalNgram = NGramHelpers.normalize( sent[i:n+i] )
                         if stopwords is None or stopwords.contains( normalNgram ) is False:
                             representation = emptyString.join( normalNgram )
-                            id = NGram.generateID(normalNgram)
+                            id = NGramHelpers.generateID(normalNgram)
 
                             # if ngrams already exists in document, only increments occs
                             if id in ngrams:

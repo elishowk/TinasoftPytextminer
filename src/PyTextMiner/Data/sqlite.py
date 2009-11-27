@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from PyTextMiner import Corpus, Document, Corpora, NGram, Data
+from PyTextMiner import Corpus, Document, Corpora, Data, NGram
 import sqlite3
 
 # LOW-LEVEL BACKEND 
@@ -29,25 +29,25 @@ class SQLiteBackend (Data.Importer):
 
         if self.format == 'yaml':
             import yaml
-            self.serializer = yaml.dump
-            self.deserializer = yaml.load
+            self.encoder = yaml.dump
+            self.decoder = yaml.load
         elif self.format == 'json' or self.format == 'jsonpickle':
             import jsonpickle
-            self.serializer = jsonpickle.encode
-            self.deserializer = jsonpickle.decode
+            self.encoder = jsonpickle.encode
+            self.decoder = jsonpickle.decode
         else:
             try:
                 import cpickle as pickle
             except:
                 import pickle
-            self.serializer = pickle.dumps
-            self.deserializer = pickle.loads
+            self.encoder = pickle.dumps
+            self.decoder = pickle.loads
 
-    def binary( self, data ):
-       return sqlite3.Binary( self.serializer(data) ) 
+    def encode( self, data ):
+       return sqlite3.Binary( self.encoder(data) ) 
 
     def decode( self, data ):
-        return self.deserializer(data)
+        return self.decoder(data)
           
     def setCallback(self, cb):
         self.callback = cb
@@ -58,9 +58,7 @@ class SQLiteBackend (Data.Importer):
             return cName
         self.tables.append(cName)
         try:
-            if cName == 'Corpus' :
-                self.execute('''create table '''+cName+''' (id VARCHAR PRIMARY KEY, blob BLOB, ngrams BLOB)''')
-            elif cName == 'AssocNGram' :
+            if cName.startswith('AssocNGram') :
                 self.execute('''create table '''+cName+''' (id1 VARCHAR, id2 VARCHAR, occs INTEGER, PRIMARY KEY (id1, id2))''')
             elif cName.startswith('Assoc'):
                 self.execute('''create table '''+cName+''' (id1 VARCHAR, id2 VARCHAR, PRIMARY KEY (id1, id2))''')
@@ -73,10 +71,10 @@ class SQLiteBackend (Data.Importer):
             pass
         return cName
 
-    def insert(self, id, obj ):
+    def insert(self, id, obj):
         req = 'insert into ' + self.getTable(obj.__class__) + ' values (?, ?)'
         try:
-            self.execute(req,(id,self.binary(obj)))
+            self.execute(req,(id,self.encode(obj)))
             self.commit()
         except sqlite3.IntegrityError, e1:
             #print "OBJECT Integrity error:",e1,req
@@ -86,9 +84,25 @@ class SQLiteBackend (Data.Importer):
             return False
         return True
         
+    def insertmany(self, obj, iter):
+        req = 'insert into ' + self.getTable( obj.__class__ ) + ' values (?, ?)'
+        print req
+        #def encodeObj( item ):
+        #    return ( item[0], self.encode( item[1] ) )
+        try:
+            self.executemany( req, iter )
+            self.commit()
+        except sqlite3.IntegrityError, e1:
+            #print "OBJECT Integrity error:",e1,req
+            return False
+        except sqlite3.OperationalError, e2:
+            #print "OBJECT Operational error:",e2,req
+            return False
+        return True
+
     def insertAssoc(self, assoc):
         i1,i2 = assoc
-        #i1,i2 = self.binary(i1), self.encode(i2)
+        #i1,i2 = self.encode(i1), self.encode(i2)
         req = 'insert into ' + self.getTable(assoc.__class__) + ' values (?, ?)'
         try:
             self.execute(req, (i1,i2))
@@ -101,9 +115,43 @@ class SQLiteBackend (Data.Importer):
             return False
         return True
         
+    def insertmanyAssoc(self, iter, assoc):
+        myclass = self.getTable(assoc)
+        if myclass.startswith('AssocNGram'):
+            req = 'insert into ' + myclass + ' values (?, ?, ?)'
+        else:
+            req = 'insert into ' + myclass + ' values (?, ?)'
+        try:
+            self.executemany(req, iter)
+            self.commit()
+        except sqlite3.IntegrityError, e1:
+            #print "ASSOC ntegrity error:",e1,req
+            return False
+        except sqlite3.OperationalError, e2:
+            #print "ASSOC Operational error:",e2,req
+            return False
+        return True
+
+    def deletemanyAssoc( self, iter, assoc ): 
+        myclass = self.getTable(assoc.__class__)
+        if myclass.startswith('AssocNGram'):
+            req = 'delete from ' +  + ' where id1 = ?'
+        else:
+            req = 'delete from ' + myclass + ' where id1 = ?'
+        try:
+            self.executemany(req, iter)
+            self.commit()
+        except sqlite3.IntegrityError, e1:
+            #print "ASSOC ntegrity error:",e1,req
+            return False
+        except sqlite3.OperationalError, e2:
+            #print "ASSOC Operational error:",e2,req
+            return False
+        return True
+
     def update(self, id, obj):
         req = 'update '+ self.getTable(obj.__class__) +' SET (blob = ?) WHERE (id LIKE ?)'
-        self.execute(req, (self.binary(obj), id))
+        self.execute(req, (self.encode(obj), id))
         self.commit()
         return True
       
@@ -117,13 +165,14 @@ class SQLiteBackend (Data.Importer):
         
     def fetch_one(self, clss, id):
 
-        req = 'select * from '+ self.getTable(clss) + ' WHERE (id LIKE ?)'
+        req = 'select * from '+ self.getTable(clss) + ' WHERE (id LIKE ?)'#%self.encode(id)
         results = self.execute(req, [id])   
 
         i, blob = None, None
        
         for res in results:
             i, blob = res
+            #i = self.decode(i)
             blob = self.decode(blob)
             break
 
@@ -135,12 +184,14 @@ class SQLiteBackend (Data.Importer):
         
     def clear(self):
         """clear all the tables"""
-        for table in ['Document',
+        for table in ['NGram',
+                      'Document',
                       'Corpus',
                       'Corpora',
                       'AssocCorpus',
                       'AssocDocument',
-                      ]:
+                      'AssocNGramDocument',
+                      'AssocNGramCorpus']:
             try:
                 self.execute('DROP TABLE '+table) 
             except:
@@ -171,41 +222,39 @@ class SQLiteBackend (Data.Importer):
 
     def execute(self, *args):
         return self.cursor().execute(*args)
+    
+    def executemany(self, *args):
+        return self.cursor().executemany(*args)
            
-# APPLICATION LAYER  
+# APPLICATION LAYER
 class Assoc (tuple):
     pass
 class AssocCorpus (Assoc):
     pass
 class AssocDocument (Assoc):
     pass
-class AssocNGram (Assoc):
+class AssocNGramDocument (Assoc):
     pass
-    
+class AssocNGramCorpus (Assoc):
+    pass
+
 class Exporter (SQLiteBackend):
 
     def storeCorpora(self,  id, corpora ):
         return self.insert( id, corpora )
         
+    def storeCorpus(self, id, corpus ):
+        return self.insert( id, corpus )
+
     def storeDocument(self, id, document ):
         return self.insert( id, document )
 
-    def storeCorpus(self, id, corpus, ngrams ):
-        req = 'insert into ' + self.getTable(corpus.__class__) + ' values (?, ?, ?)'
-        try:
-            self.execute( req,( id, self.binary(corpus), self.binary(ngrams) ) )
-            self.commit()
-        except sqlite3.IntegrityError, e1:
-            #print "OBJECT Integrity error:",e1,req
-            return False
-        except sqlite3.OperationalError, e2:
-            #print "OBJECT Operational error:",e2,req
-            return False
-        return True
+    def storeNGram(self, id, ngram ):
+        return self.insert( id, ngram )
+    
+    def storemanyNGram( self, iter ):
+        return self.insertmany( NGram(), iter)
 
-#    def storeNGram(self, id, ngram ):
-#        return self.insert( id, ngram )
-#
     def storeAssocCorpus(self, corpusID, corporaID ):
         assoc = AssocCorpus((corpusID, corporaID)) 
         return self.insertAssoc( assoc )
@@ -214,50 +263,51 @@ class Exporter (SQLiteBackend):
         assoc = AssocDocument((docID, corpusID)) 
         return self.insertAssoc( assoc )
         
-    def storeAssocNGram(self, ngramID, docID, occs ):
-        assoc = AssocNGram((ngramID, docID, occs))
-        i1,i2,i3 = assoc
-        #i1,i2,i3 = self.binary(i1), self.encode(i2), self.encode(i3)
-        req = 'insert into ' + self.getTable(assoc.__class__) + ' values (?, ?, ?)'
+    def storeAssocNGramDocument(self, ngramID, docID, occs ):
+        assoc = AssocNGramDocument((ngramID, docID, occs))
+        return self.insertAssoc( assoc )
+
+    def storeAssocNGramCorpus(self, ngramID, corpID, occs ):
+        assoc = AssocNGramCorpus((ngramID, corpID, occs))
+        return self.insertAssoc( assoc )
+
+    def storemanyAssocNGramDocument( self, iter ):
+        return self.insertmanyAssoc( iter, AssocNGramDocument )
+    
+    def storemanyAssocNGramCorpus( self, iter ):
+        return self.insertmanyAssoc( iter, AssocNGramCorpus )
+    
+    def deletemanyAssocNGramDocument( self, iter ):
+        return self.deletemanyAssoc( iter, AssocNGramDocument )
+    
+    def deletemanyAssocNGramCorpus( self, iter ):
+        return self.deletemanyAssoc( iter, AssocNGramCorpus )
+
+    def cleanAssocNGramDocument( self, corpusNum ):
+        req = 'delete from AssocNGramDocument where id1 not in (select id1 from AssocNGramCorpus where id2 = ?)'
         try:
-            self.execute(req, (i1,i2,i3))
+            self.execute(req, [corpusNum])
             self.commit()
         except sqlite3.IntegrityError, e1:
-            print "ASSOC ntegrity error:",e1,req
+            #print "ASSOC ntegrity error:",e1,req
             return False
         except sqlite3.OperationalError, e2:
-            print "ASSOC Operational error:",e2,req
+            #print "ASSOC Operational error:",e2,req
             return False
         return True
-
+    
     def loadCorpora(self, id ):
         return self.fetch_one( Corpora, id )
         
-    def loadDocument(self, id ):
+    def loadCorpus(self, id ):
         return self.fetch_one( Corpus, id )
         
-    def loadCorpus(self, id ):
-        req = 'select * from '+ self.getTable( Corpus ) + ' WHERE (id = ?)'
-        results = self.execute(req, [id]).fetchone()
-        if results is None:
-            return None
-
-        i, blob, ngrams = None, None, None
-        i, blob, ngrams = results
-        blob = self.decode(blob)
-        ngrams = self.decode(ngrams)
-        return {
-            'id': i,
-            'blob': blob,
-            'ngrams': ngrams,
-        }
+    def loadDocument(self, id ):
+        return self.fetch_one( Document, id )
         
-    def loadCorpusNgrams(self, id ):
-        req = 'select ngrams from '+ self.getTable( Corpus ) + ' WHERE (id = ?)'
-        results = self.execute(req, [id]).fetchone()
-        if results is None:
-            return None
-        return self.decode(str(results[0]))
+    def loadNGram(self, id ):
+        return self.fetch_one( NGram, id )
+        
         
     def loadAllAssocCorpus(self):
         return self.fetch_all( AssocCorpus )
@@ -265,14 +315,12 @@ class Exporter (SQLiteBackend):
     def loadAllAssocDocument(self):
         return self.fetch_all( AssocDocument )
              
-    def loadAllAssocNGram(self):
-        return self.fetch_all( AssocNGram )
+    def loadAllAssocNGramDocument(self):
+        return self.fetch_all( AssocNGramDocument )
    
+    def loadAllAssocNGramCorpus(self):
+        return self.fetch_all( AssocNGramCorpus )
     
     def getCorpora(self):
         corpora = self.fetch_all( Corpora )[0]
         print "corpora:",corpora
-        
-        
-        
-        

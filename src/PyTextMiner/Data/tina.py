@@ -141,7 +141,7 @@ class Importer (PyTextMiner.Data.Importer):
             )
             corpus.documents.append( document.docNum )
             self.corpusDict[ corpusNumber ] = corpus
-            corpora.corpora.add( corpusNumber )
+            corpora.corpora.append( corpusNumber )
         return corpora
             
     def parseDocument( self, doc, tmpfields, corpusNum ):

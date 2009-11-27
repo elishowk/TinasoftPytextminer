@@ -92,13 +92,13 @@ class Program:
         # stores Corpora
         if not sql.loadCorpora( corpora.name ) :
             sql.storeCorpora( corpora.name, corpora )
-        corpusngrams = {}
         for corpusNum in corpora.corpora:
+            corpusngrams = {}
             # get the Corpus object
             corpus = tina.corpusDict[ corpusNum ]
             # Documents processing
             for documentNum in corpus.documents:
-                ngrams = {}
+                docngrams = {}
                 # only process document if unavailable in DB
                 if not sql.loadDocument( documentNum ):
                     # get the document object
@@ -118,65 +118,71 @@ class Program:
                     for sentence in sentenceTokens:
                         document.tokens.append( PyTextMiner.Tagger.TreeBankPosTagger.posTag( sentence ) )
                     
-                    ngrams = PyTextMiner.Tokenizer.TreeBankWordTokenizer.ngramize(
+                    docngrams = PyTextMiner.Tokenizer.TreeBankWordTokenizer.ngramize(
                         minSize = document.ngramMin,
                         maxSize = document.ngramMax,
                         tokens = document.tokens,
                         emptyString = document.ngramEmpty, 
                         stopwords = self.stopwords,
                     )
-                    # store document-wide ngrams list
-                    for id in ngrams.iterkeys():
-                        # transfers doc-occs to corpus-occs
-                        docOccs = ngrams[ id ]['occs']
-                        ngrams[ id ]['occs'] = 1
-                        sql.storeAssocNGram( id, documentNum, docOccs )
-                        # update corpus-wide ngram dict
-                        # if ngrams already exists in corpus, only increments occs
-                        if id in corpusngrams:
-                            corpusngrams[ id ]['occs'] += 1
+                    #sql.storemanyNGram( docngrams.values() )
+                    assocDocIter = []
+                    for ngid, ng in docngrams.iteritems():
+                        docOccs = ng['occs']
+                        del ng['occs']
+                        assocDocIter.append( ( ngid, int(documentNum), docOccs ) )
+                        # update corpusngrams index
+                        if ngid in corpusngrams:
+                            corpusngrams[ ngid ]['occs'] += 1
                         else:
-                            corpusngrams[ id ] = ngrams[ id ]
-                    del ngrams
+                            corpusngrams[ ngid ] = ng
+                            corpusngrams[ ngid ]['occs'] = 1
+                    sql.storemanyAssocNGramDocument( assocDocIter )
                     # clean full text before DB storage
                     document.rawContent = ""
                     document.tokens = []
-                    document.targets = set()
+                    document.targets = []
                     sql.storeDocument( documentNum, document )
                     del document
                     del tina.docDict[ documentNum ]
-                # else insert a new Doc-Corpus association
+                # anyway, insert a new Doc-Corpus association
                 sql.storeAssocDocument( documentNum, corpusNum )
                 # TODO modulo 10 docs
                 print ">> %d documents left to analyse\n" % len( tina.docDict )
-
-            corpusngrams = PyTextMiner.NGram.filterUnique( corpusngrams, 2 )
-            # stores the corpus
-            sql.storeCorpus( corpusNum, corpus, corpusngrams )
+                del docngrams
+            # end of document extraction
+            # clean NGrams
+            ( corpusngrams, delList, assocNgramIter ) = PyTextMiner.NGramHelpers.filterUnique( corpusngrams, 2, corpusNum, sql.encode )
+            # stores the corpus, ngrams and corpus-ngrams associations
+            sql.storemanyNGram( corpusngrams.items() )
+            #print corpusngrams.values()
+            #assocNgramIter = [( ngid, int(corpusNum), corpusngrams[ ngid ]['occs'] ) for ngid in corpusngrams.iterkeys()]
+            sql.storemanyAssocNGramCorpus( assocNgramIter )
+            sql.storeCorpus( corpusNum, corpus )
             sql.storeAssocCorpus( corpusNum, corpora.name )
-            del corpusngrams
-            
+            # removes inexistant ngram-document associations
+            sql.cleanAssocNGramDocument( corpusNum )
             # EXPORT ngrams of current corpus FROM DATABASE
-            ngrams = sql.loadCorpusNgrams( corpusNum )
             dump = Writer ("tina://"+self.config.directory+"/"+corpusNum+"-ngramOccPerCorpus.csv", locale=self.locale)
             # prepares csv export
-            rows = []
-            for ngid, ng in ngrams.iteritems():
-                tag=[]
-                for tok_tag in ng['original']:
-                    tag.append( dump.encode( "_".join( reversed(tok_tag) ) ) )
-                tag = " ".join( tag )
-                rows.append([ ngid, ng['str'], ng['occs'], tag ])
+            #rows = []
+            #for ngid, ng in ngrams.iteritems():
+            #    tag=[]
+            #    for tok_tag in ng['original']:
+            #        tag.append( dump.encode( "_".join( reversed(tok_tag) ) ) )
+            #    tag = " ".join( tag )
+            #    rows.append([ ngid, ng['str'], ng['occs'], tag ])
 
             # print rows to file
             print "writing a corpus ngrams summary", corpusNum
-            dump.csvFile( ['db id','ngram','documents occs','POS tagged'], rows )
+            #dump.csvFile( ['db id','ngram','documents occs','POS tagged'], rows )
 
             # destroys Corpus object
+            del corpusngrams
             del corpus
             del tina.corpusDict[ corpusNum ]
-        print "Dumping SQL db"
-        sql.dump( self.config.directory+"/dump_"+corpora.name+".sql" )
+        #print "Dumping SQL db"
+        #sql.dump( self.config.directory+"/dump_"+corpora.name+".sql" )
         
         #print "export a sample from document db"
         ngramFetch = 'SELECT ng.blob FROM NGram as ng JOIN AssocNGram as asn ON asn.id1 = ng.id WHERE ( asn.id2 = ? )'
