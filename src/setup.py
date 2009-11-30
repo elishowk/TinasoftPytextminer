@@ -1,27 +1,51 @@
-__author__="elishowk, jbilcke"
-__date__ ="$Nov 6, 2009 3:08:00 PM$"
+#!/usr/bin/env python
+#
+# Distutils setup script for PyTextMiner
+#
+# Copyright (C) 2009-2011 TINA Project CNR
+# Authors: elias showk <elishowk@nonutc.fr>
+#         julian bilcke <julian.bilcke@iscpif.fr>
+# URL: <http://github.com/elishowk/PyTextMiner>
+# For license information, see LICENSE.TXT
 
-from setuptools import setup,find_packages
+from distutils.core import setup
+import PyTextMiner
 
-setup (
-  name = 'PyTextMiner',
-  version = '0.1',
-  packages = find_packages(),
+setup(
+    #############################################
+    ## Distribution Metadata
+    name = 'PyTextMiner',
+    version = '0.4.1',
+    description = "Python text-mining module for co-word analysis",
+    
+    version = PyTextMiner.__version__,
+    url = PyTextMiner.__url__,
+    long_description = PyTextMiner.__longdescr__,
+    license = PyTextMiner.__license__,
+    keywords = PyTextMiner.__keywords__,
+    maintainer = PyTextMiner.__maintainer__,
+    maintainer_email = PyTextMiner.__maintainer_email__,
+    author = PyTextMiner.__author__,
+    author_email = PyTextMiner.__author__,
+    classifiers = PyTextMiner.__classifiers__,
+    # platforms = <platforms>,
+    
+    #############################################
+    ## Package Data
+    #package_data = {'nltk': ['nltk.jar', 'test/*.doctest']},
+    
+    #############################################
+    ## Package List
+    packages = [
+                'numpy',
+                'nltk',
+                'simplejson',
+                'sqlite3',
+                'jsonpickle',
+                'PyTextMiner',
+                ],
+    # package dependencies :
+    #requires = ['csv', 'codecs', 'nltk>=2.0', 'datetime', 'optparse', 'locale', 'os', 'sys', 'simplejson', 'jsonpickle', 'sqlite3', 'string', 're' ],
+    )
 
-  # Declare your packages' dependencies here, for eg:
-  install_requires=['tina-storage>=0.1', 'nltk>=2.0b6'],
 
-  # Fill in these to make your Egg ready for upload to
-  # PyPI
-  author = 'jbilcke',
-  author_email = 'julian.bilcke@iscpif.fr',
-
-  summary = 'Just another Python package for the cheese shop',
-  url = '',
-  license = 'GNU GPL v3',
-  long_description= 'A Text Mining module',
-
-  # could also include long_description, download_url, classifiers, etc.
-
-  
-)
