@@ -22,7 +22,26 @@ USAGE
          "sudo urpmi python-scipy" 
          
       in a shell on mandriva.
-     
+
+PLATFORMS
+
+   For the moment PyTextMiner was only tested on these Linux platforms:
+    
+      Linux 64 bits (AMD64) with Python 2.5
+      Linux 64 bits (AMD64) with Python 2.6
+
+      Linux 32 bits (i686) with Python 2.5
+      Linux 32 bits (i686) with Python 2.6 
+ 
+   However, if you experience problems, see "MANUAL INSTALL" section.
+    
+MANUAL INSTALL
+   For other platforms, PyTextMiner should works if you install:
+
+     - Python 2.6  : http://python.org
+      
+     - Numpy : http://www.scipy.org/Download
+
 COPYRIGHT AND LICENSE
 
 Copyright (C) 2009, Julian Bilcke, Elias Showk
