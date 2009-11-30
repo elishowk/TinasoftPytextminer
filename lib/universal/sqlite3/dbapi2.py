@@ -1,7 +1,7 @@
 #-*- coding: ISO-8859-1 -*-
 # pysqlite2/dbapi2.py: the DB-API 2.0 interface
 #
-# Copyright (C) 2004-2005 Gerhard Häring <gh@ghaering.de>
+# Copyright (C) 2004-2007 Gerhard Häring <gh@ghaering.de>
 #
 # This file is part of pysqlite.
 #
@@ -24,7 +24,7 @@
 import datetime
 import time
 
-from _sqlite3 import *
+from pysqlite2._sqlite import *
 
 paramstyle = "qmark"
 
@@ -39,13 +39,13 @@ Time = datetime.time
 Timestamp = datetime.datetime
 
 def DateFromTicks(ticks):
-    return Date(*time.localtime(ticks)[:3])
+    return apply(Date, time.localtime(ticks)[:3])
 
 def TimeFromTicks(ticks):
-    return Time(*time.localtime(ticks)[3:6])
+    return apply(Time, time.localtime(ticks)[3:6])
 
 def TimestampFromTicks(ticks):
-    return Timestamp(*time.localtime(ticks)[:6])
+    return apply(Timestamp, time.localtime(ticks)[:6])
 
 version_info = tuple([int(x) for x in version.split(".")])
 sqlite_version_info = tuple([int(x) for x in sqlite_version.split(".")])
