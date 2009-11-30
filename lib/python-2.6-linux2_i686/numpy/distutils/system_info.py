@@ -1,4 +1,4 @@
-#!/bin/env python
+#! /usr/bin/python
 """
 This file defines a set of system_info classes for getting
 information about various resources (libraries, library directories,

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#! /usr/bin/python
 # Copied from fftpack.helper by Pearu Peterson, October 2005
 """ Test functions for fftpack.helper module
 """

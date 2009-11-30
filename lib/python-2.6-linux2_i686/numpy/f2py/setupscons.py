@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#! /usr/bin/python
 """
 setup.py for installing F2PY
 

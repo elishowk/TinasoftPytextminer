@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#! /usr/bin/python
 """
 
 Build common block mechanism for f2py2e.

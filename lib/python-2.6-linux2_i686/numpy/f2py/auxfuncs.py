@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#! /usr/bin/python
 """
 
 Auxiliary functions for f2py2e.

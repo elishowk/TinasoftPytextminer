@@ -100,7 +100,7 @@ def deprecate(func, oldname=None, newname=None):
         str1 = "%s is deprecated" % (oldname,)
         depdoc = "%s is DEPRECATED!!" % (oldname,)
     else:
-        str1 = "%s is deprecated, use %s" % (oldname, newname),
+        str1 = "%s is deprecated, use %s" % (oldname, newname)
         depdoc = '%s is DEPRECATED!! -- use %s instead' % (oldname, newname,)
 
     def newfunc(*args,**kwds):

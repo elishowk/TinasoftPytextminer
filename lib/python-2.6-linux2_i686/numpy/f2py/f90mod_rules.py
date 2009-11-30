@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#! /usr/bin/python
 """
 
 Build F90 module support for f2py2e.

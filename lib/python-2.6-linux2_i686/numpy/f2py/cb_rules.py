@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#! /usr/bin/python
 """
 
 Build call-back mechanism for f2py2e.

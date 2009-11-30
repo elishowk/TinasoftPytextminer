@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#! /usr/bin/python
 """
 crackfortran --- read fortran (77,90) code and extract declaration information.
     Usage is explained in the comment block below.
