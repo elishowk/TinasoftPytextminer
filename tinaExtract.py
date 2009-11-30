@@ -85,7 +85,7 @@ class Program:
         )
         corpora = PyTextMiner.Corpora( name=self.config.corpora )
         corpora = tina.corpora( corpora )
-        #print tina.corpusDict
+        # print tina.corpusDict
         sql = Writer(self.config.store, locale=self.locale, format="json")
         # clean the DB contents
         sql.clear()
