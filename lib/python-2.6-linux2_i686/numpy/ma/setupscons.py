@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#!/usr/bin/env python
 __author__ = "Pierre GF Gerard-Marchant ($Author: jarrod.millman $)"
 __version__ = '1.0'
 __revision__ = "$Revision: 3473 $"
