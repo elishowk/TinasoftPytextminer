@@ -17,7 +17,6 @@ class SQLiteBackend (Data.Importer):
     def __init__(self, path, **opts):
  
         self.path = path
-
         self.load_options(opts)
   
         self.lang,self.encoding = self.locale.split('.')
