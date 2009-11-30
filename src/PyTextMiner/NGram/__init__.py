@@ -1,32 +1,41 @@
 # -*- coding: utf-8 -*-
-# PyTextMiner NGram class
+# PyTextMiner NGram static helpers class
 
 __author__="Elias Showk"
 
-class NGram(dict):
-    """an ngram"""
-    def __init__(self, ngram, str, original=[], occs=None, id=None):
-        if id is None:
-            self.id = abs(hash("".join(ngram)))
-        else:
-            self.id = id
-        dict.__init__(
-                self,
-                ngram = ngram,
-                str = str,
-                original = original,
-                occs = occs
-        )
+class NGram():
+    pass
 
-#    def __len__(self):
-#        """length of the ngram"""
-#        return len(self.ngram)
+class NGramHelpers():
+    """ngram static method helpers"""
 
-#    def __str__(self):
-#        return self.strRepr.encode('utf-8','replace')
-#    
-#    def __repr__(self):
-#        return self.strRepr.encode('utf-8','replace')
-#    
-#    def __hash__(self):
-#        return self.id
+    @staticmethod
+    def normalize( ng ):
+        def normalizePOS(lst):
+            return lst[0].lower()
+        return map( normalizePOS, ng )
+
+    @staticmethod
+    def generateID( lst ):
+        return abs(hash("".join( lst )))
+
+    @staticmethod
+    def filterUnique( rawDict, threshold, corpusNum, mapping=None ):
+        delList = []
+        filteredDict = {}
+        assocNGramCorpus = []
+        for ngid in rawDict.keys():
+            if rawDict[ ngid ]['occs'] < threshold:
+                del rawDict[ ngid ]
+                delList.append( ngid )
+            else:
+                assocNGramCorpus.append( ( ngid, corpusNum, rawDict[ ngid ]['occs'] ) )
+                #del rawDict[ ngid ]['occs']
+                if mapping is not None:
+                    item = mapping( rawDict[ ngid ] )
+                else:
+                    item = rawDict[ ngid ]
+                filteredDict[ ngid ] = item
+
+        return ( filteredDict, delList, assocNGramCorpus )
+

@@ -8,7 +8,7 @@ class Corpora:
     def __init__(self, corpora=None, name=None):
         # set of corpus' generated unique IDs
         if corpora is None:
-            corpora = set([])
+            corpora = []
         self.corpora = corpora
         # metas
         self.name = name

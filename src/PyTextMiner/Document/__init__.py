@@ -33,9 +33,9 @@ class Document:
             tokens = []
         self.tokens = tokens
         # ngrams unique IDs
-        if ngrams is None:
-            ngrams= set([])
-        self.ngrams = ngrams
+        #if ngrams is None:
+        #    ngrams= set([])
+        #self.ngrams = ngrams
         # tokenization params
         self.ngramMin=ngramMin
         self.ngramMax=ngramMax
