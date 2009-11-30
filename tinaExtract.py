@@ -27,7 +27,7 @@ class Program:
            help="read data from FILE", metavar="FILE")
                           
         parser.add_option("-d", "--dir", dest="directory", default='output',
-            help="write temporary files to DIR (default: 'src/t/output/')", metavar="DIR")    
+            help="write output files to DIR (default: 'output/')", metavar="DIR")    
             
         parser.add_option("-o", "--output", dest="output", default='statistics.zip',
             help="zip statistics to FILE (default: statistics.zip)", metavar="FILE")
@@ -38,8 +38,8 @@ class Program:
         parser.add_option("-n", "--name", dest="corpora", default="TINA",
             help="corpora name (default: TINA)", metavar="NAME")     
             
-        parser.add_option("-s", "--store", dest="store", default="sqlite://:memory:",
-            help="storage engine (default: sqlite://:memory:)", metavar="ENGINE")     
+        parser.add_option("-s", "--store", dest="store", default="sqlite://output/out.db",
+            help="storage engine (default: sqlite://output/out.db)", metavar="ENGINE")     
                                       
         parser.add_option("-w", "--stopwords", dest="stopwords", default="src/t/stopwords/en.txt",
             help="loads stopwords from FILE (default: src/t/stopwords/en.txt)", metavar="FILE")                 
@@ -182,8 +182,8 @@ class Program:
             del corpusngrams
             del corpus
             del tina.corpusDict[ corpusNum ]
-        print "Saving SQL db"
-        sql.dump( self.config.directory+"/dump_"+corpora.name+".sql" )
+        #print "Saving SQL db"
+        #sql.dump( self.config.directory+"/dump_"+corpora.name+".sql" )
         
         print "Exporting a sample from document db"
         select = 'SELECT assoc.id1, doc.blob from AssocDocument as assoc JOIN Document as doc ON doc.id = assoc.id1 LIMIT 10'
