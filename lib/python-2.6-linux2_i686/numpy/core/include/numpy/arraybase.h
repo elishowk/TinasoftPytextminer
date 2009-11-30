@@ -1,1 +1,0 @@
-../../../numarray/numpy/arraybase.h
