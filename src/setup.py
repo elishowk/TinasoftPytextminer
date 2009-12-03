@@ -15,19 +15,18 @@ setup(
     #############################################
     ## Distribution Metadata
     name = 'PyTextMiner',
-    version = '0.4.1',
     description = "Python text-mining module for co-word analysis",
     
-    version = PyTextMiner.__version__,
-    url = PyTextMiner.__url__,
-    long_description = PyTextMiner.__longdescr__,
-    license = PyTextMiner.__license__,
-    keywords = PyTextMiner.__keywords__,
-    maintainer = PyTextMiner.__maintainer__,
-    maintainer_email = PyTextMiner.__maintainer_email__,
-    author = PyTextMiner.__author__,
-    author_email = PyTextMiner.__author__,
-    classifiers = PyTextMiner.__classifiers__,
+    #version = PyTextMiner.__version__,
+    #url = PyTextMiner.__url__,
+    #long_description = PyTextMiner.__longdescr__,
+    #license = PyTextMiner.__license__,
+    #keywords = PyTextMiner.__keywords__,
+    #maintainer = PyTextMiner.__maintainer__,
+    #maintainer_email = PyTextMiner.__maintainer_email__,
+    #author = PyTextMiner.__author__,
+    #author_email = PyTextMiner.__author__,
+    #classifiers = PyTextMiner.__classifiers__,
     # platforms = <platforms>,
     
     #############################################
@@ -36,11 +35,10 @@ setup(
     
     #############################################
     ## Package List
-    packages = [
-                'numpy',
+    packages = ['numpy',
                 'nltk',
                 'simplejson',
-                'sqlite3',
+                'pysqlite',
                 'jsonpickle',
                 'PyTextMiner',
                 ],
