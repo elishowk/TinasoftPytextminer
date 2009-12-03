@@ -32,18 +32,27 @@ setup(
     #############################################
     ## Package Data
     #package_data = {'nltk': ['nltk.jar', 'test/*.doctest']},
-    
     #############################################
     ## Package List
-    packages = ['numpy',
-                'nltk',
-                'simplejson',
-                'pysqlite',
-                'jsonpickle',
+    packages = [
+                #'numpy',
+                #'nltk',
+                #'simplejson',
+                #'pysqlite',
+                #'jsonpickle',
                 'PyTextMiner',
                 ],
+    package_dir = {
+        #'numpy': 'numpy/numpy',
+        #'nltk': 'nltk/nltk',
+        #'simplejson': 'simplejson/simplejson',
+        #'pysqlite': 'pysqlite/lib',
+        #'jsonpickle': 'jsonpickle/jsonpickle',
+        'PyTextMiner': 'PyTextMiner',
+    },
+
     # package dependencies :
-    #requires = ['csv', 'codecs', 'nltk>=2.0', 'datetime', 'optparse', 'locale', 'os', 'sys', 'simplejson', 'jsonpickle', 'sqlite3', 'string', 're' ],
+    requires = [ 'csv', 'codecs', 'nltk', 'simplejson', 'jsonpickle', 'pysqlite', 'numpy' ],
     )
 
 
