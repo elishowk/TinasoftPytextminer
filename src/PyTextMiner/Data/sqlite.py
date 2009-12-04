@@ -337,3 +337,4 @@ class Exporter (SQLiteBackend):
     def getCorpora(self):
         corpora = self.fetch_all( Corpora )[0]
         print "corpora:",corpora
+

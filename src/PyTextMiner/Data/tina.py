@@ -5,110 +5,101 @@ import csv
 from datetime import datetime
 
 import PyTextMiner
+from PyTextMiner.Data import sqlite, basecsv
 
-class Exporter (PyTextMiner.Data.Exporter):
+class Exporter (sqlite.Exporter):
 
-    def __init__(self,
-                filepath,
-                #corpus,
-                delimiter = u',',
-                quotechar = '"',
-                locale = 'en_US.UTF-8',
-                dialect = 'excel'):
-        self.filepath = filepath
-        #self.corpus = corpus
-        self.delimiter = delimiter
-        self.quotechar = quotechar
-        self.locale = locale
-        self.encoding =  self.locale.split('.')[1].lower()
-        self.dialect = dialect
+    def importDocument(self, 
+        tokenizer, 
+        tagger,
+        stopwords,
+        document,
+        documentNum,
+        corpusngrams,
+        corpusNum):
+        # only process document if unavailable in DB
+        if not self.loadDocument( documentNum ):
+
+            print "----- %s on document %s ----\n" % (tokenizer.__name__, documentNum)      
+            sanitizedTarget = tokenizer.sanitize(
+                document.rawContent,
+                document.forbChars,
+                document.ngramEmpty
+            )
+            #document.targets.append( sanitizedTarget )
+            #print target.sanitizedTarget
+            sentenceTokens = tokenizer.tokenize(
+                text = sanitizedTarget,
+                emptyString = document.ngramEmpty,
+            )
+            for sentence in sentenceTokens:
+                document.tokens.append( tagger.posTag( sentence ) )
+
+            docngrams = tokenizer.ngramize(
+                minSize = document.ngramMin,
+                maxSize = document.ngramMax,
+                tokens = document.tokens,
+                emptyString = document.ngramEmpty, 
+                stopwords = stopwords,
+            )
+            #self.storemanyNGram( docngrams.values() )
+            assocDocIter = []
+            for ngid, ng in docngrams.iteritems():
+                docOccs = ng['occs']
+                del ng['occs']
+                assocDocIter.append( ( ngid, int(documentNum), docOccs ) )
+                # update corpusngrams index
+                if ngid in corpusngrams:
+                    corpusngrams[ ngid ]['occs'] += 1
+                else:
+                    corpusngrams[ ngid ] = ng
+                    corpusngrams[ ngid ]['occs'] = 1
+            del docngrams
+            self.storemanyAssocNGramDocument( assocDocIter )
+            # clean full text before DB storage
+            document.rawContent = ""
+            document.tokens = []
+            #document.targets = []
+            self.storeDocument( documentNum, document )
+
+        # anyway, insert a new Doc-Corpus association
+        self.storeAssocDocument( documentNum, corpusNum )
+        return corpusngrams
+
+    def importCorpus(self,
+        corpus,
+        corpusNum,
+        tokenizer, 
+        tagger,
+        stopwords,
+        corpora,
+        docDict):
+        corpusngrams = {}
+        # Documents processing
+        for documentNum in corpus.documents:
+            # get the document object
+            document = docDict[ documentNum ]
+            corpusngrams = self.importDocument( tokenizer, tagger, stopwords, document, documentNum, corpusngrams, corpusNum )
+            del document
+            del docDict[ documentNum ]
+            # TODO modulo 10 docs
+            print ">> %d documents left to import\n" % len( docDict )
+        # end of document extraction
+        # clean NGrams
+        ( corpusngrams, delList, assocNgramIter ) = PyTextMiner.NGramHelpers.filterUnique( corpusngrams, 2, corpusNum, self.encode )
+        # stores the corpus, ngrams and corpus-ngrams associations
+        self.storemanyNGram( corpusngrams.items() )
+        self.storemanyAssocNGramCorpus( assocNgramIter )
+        self.storeCorpus( corpusNum, corpus )
+        self.storeAssocCorpus( corpusNum, corpora.name )
+        # removes inexistant ngram-document associations
+        self.cleanAssocNGramDocument( corpusNum )
+        # destroys Corpus object
+        del corpusngrams
+        return docDict
 
 
-    def objectToCsv( self, objlist, columns ):
-        file = codecs.open(self.filepath, "w", self.encoding, 'xmlcharrefreplace' )
-        file.write( self.delimiter.join( columns ) + "\n" )
-        def mapping( att ) :
-            print type(att)
-            print att
-            s = str(att)
-            return self.encode( s )
-        for obj in objlist:
-            attributes = [getattr(obj, col) for col in columns]
-            file.write( self.delimiter.join( map( mapping, attributes ) ) + "\n" )
-            #file.write( self.delimiter.join( map( self.encode, map( str, attributes ) ) ) + "\n" )
-
-    def csvFile( self, columns, rows ):
-        file = codecs.open(self.filepath, "w", encoding=self.encoding )
-        file.write( self.delimiter.join( columns ) + "\n" )
-        for row in rows:
-            file.write( self.delimiter.join( map( self.encode, map( str, row ) ) ) + "\n" )
-
-
-class Importer (PyTextMiner.Data.Importer):
-
-    options = {
-            'fields' : {
-                'titleField' : 'doc_titl',
-                'dateEndField' : None,
-                'dateStartField' : None,
-                'contentField' : 'doc_abst',
-                'authorField' : 'doc_acrnm',
-                'corpusNumberField' : 'corp_num',
-                'docNumberField' : 'doc_num',
-                'index1Field' : 'index_1',
-                'index2Field' : 'index_2',
-                'keywordsField' : None,
-            }
-
-    }
-
-    def __init__(self,
-            filepath,
-            minSize='1',
-            maxSize='4',
-            delimiter=',',
-            quotechar='"',
-            locale='en_US.UTF-8',
-            **kwargs 
-        ):
-        self.filepath = filepath
-        self.load_options( kwargs )
-        # locale management
-        self.locale = locale
-        self.encoding = locale.split('.')[1].lower()
-        # CSV format
-        self.delimiter = delimiter
-        self.quotechar = quotechar
-        # Tokenizer args
-        self.minSize = minSize
-        self.maxSize = maxSize
-        
-        f1 = self.open( filepath )
-        tmp = csv.reader(
-                f1,
-                delimiter=self.delimiter,
-                quotechar=self.quotechar
-        )
-        self.fieldNames = tmp.next()
-        del f1
-        
-        f2 = self.open( filepath )
-        self.csv = csv.DictReader(
-                f2,
-                self.fieldNames,
-                delimiter=self.delimiter,
-                quotechar=self.quotechar)
-        self.csv.next()
-        del f2
-        self.docDict = {}
-        self.corpusDict = {}
-
-    def open( self, filepath ):
-        return codecs.open(filepath,'rU', errors='replace' )
-    
-    #def decode( self, text ):
-    #    # replacement char = \ufffd
-    #    return decode( text, self.encoding, 'xmlcharrefreplace' )
+class Importer (basecsv.Importer):
 
     def corpora( self, corpora ):
         for doc in self.csv:

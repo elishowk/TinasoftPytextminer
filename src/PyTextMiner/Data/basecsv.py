@@ -3,111 +3,89 @@
 import codecs
 import csv
 import PyTextMiner
-
 from datetime import datetime
 #corpusID;docID;docAuthor;docTitle;docAbstract;index1;index2
 
 class Exporter (PyTextMiner.Data.Exporter):
 
     def __init__(self,
-                corpus,
-                delimiter=';',
-                quotechar='"',
-                locale='en_US.UTF-8'):
-        pass
+        filepath,
+        #corpus,
+        delimiter = u',',
+        quotechar = '"',
+        locale = 'en_US.UTF-8',
+        dialect = 'excel'
+        ):
+        self.filepath = filepath
+        self.delimiter = delimiter
+        self.quotechar = quotechar
+        self.locale = locale
+        self.encoding =  self.locale.split('.')[1].lower()
+        self.dialect = dialect
                 
-    def ngram_frequency(self, filepath):
-        file = codecs.open(filepath, "rU")
-        writer = csv.writer(file, dialect='excel')
-        rows = []
-        for key, value in ngramDocFreq.iteritems():
-            rows.append([key, value])
-        writer.writerows(rows) 
-                    
-                
+
+    def objectToCsv( self, objlist, columns ):
+        file = codecs.open(self.filepath, "w", self.encoding, 'xmlcharrefreplace' )
+        file.write( self.delimiter.join( columns ) + "\n" )
+        def mapping( att ) :
+            print type(att)
+            print att
+            s = str(att)
+            return self.encode( s )
+        for obj in objlist:
+            attributes = [getattr(obj, col) for col in columns]
+            file.write( self.delimiter.join( map( mapping, attributes ) ) + "\n" )
+            #file.write( self.delimiter.join( map( self.encode, map( str, attributes ) ) ) + "\n" )
+
+    def csvFile( self, columns, rows ):
+        file = codecs.open(self.filepath, "w", encoding=self.encoding )
+        file.write( self.delimiter.join( columns ) + "\n" )
+        for row in rows:
+            file.write( self.delimiter.join( map( self.encode, map( str, row ) ) ) + "\n" )
+              
                 
 class Importer (PyTextMiner.Data.Importer):
+
     def __init__(self,
             filepath,
-            corpusName='test-csv-corpus', 
-            titleField='docTitle',
-            timestampField='date',
-            datetime=None,
-            contentField='docAbstract',
-            authorField='docAuthor',
-            corpusNumberField='corpusID',
-            docNumberField='docID',
-            minSize='2',
-            maxSize='3',
-            delimiter=';',
+            minSize='1',
+            maxSize='4',
+            delimiter=',',
             quotechar='"',
             locale='en_US.UTF-8',
             **kwargs 
         ):
-        self.corpusName=corpusName
-        self.file=codecs.open(filepath,'rU')
-        
+        self.filepath = filepath
+        self.load_options( kwargs )
         # locale management
         self.locale = locale
-        self.datetime = datetime
-
-        self.titleField = titleField
-        self.timestampField = timestampField
-        self.contentField = contentField
-        self.authorField = authorField
-        self.corpusNumberField = corpusNumberField
-        self.docNumberField = docNumberField
-        self.minSize = minSize
-        self.maxSize = maxSize
-
+        self.encoding = locale.split('.')[1].lower()
+        # CSV format
         self.delimiter = delimiter
         self.quotechar = quotechar
-
+        # Tokenizer args
+        self.minSize = minSize
+        self.maxSize = maxSize
+        
+        f1 = self.open( filepath )
         tmp = csv.reader(
-                self.file,
+                f1,
                 delimiter=self.delimiter,
                 quotechar=self.quotechar
         )
         self.fieldNames = tmp.next()
-        firstLine =  tmp.next()
-        self.corpusNumber = firstLine[corpusNumberField]
-        newFH = codecs.open(filepath,'rU')
+        del f1
+        
+        f2 = self.open( filepath )
         self.csv = csv.DictReader(
-                newFH,
+                f2,
                 self.fieldNames,
                 delimiter=self.delimiter,
                 quotechar=self.quotechar)
-                
-        self.corpus = self._create_corpus()
-        
+        self.csv.next()
+        del f2
+        self.docDict = {}
+        self.corpusDict = {}
 
-
-            
-    def _create_corpus(self):
-    
-        corpus = PyTextMiner.Corpus( name=self.corpusName, number=self.corpusNumber )
-        for doc in self.csv:
-            print doc
-            content = doc[self.contentField]
-            
-          # time management
-            if self.datetime is None:
-                date = datetime(doc[self.timestampField])
-            else:
-                date = self.datetime
-
-            corpus.documents += [PyTextMiner.Document(
-                rawContent=doc, 
-                title=doc[self.titleField],
-                author=doc[self.authorField],
-                number=doc[self.docNumberField],
-                targets=[PyTextMiner.Target(
-                    rawTarget=content,  
-                    locale=self.locale,
-                    minSize=self.minSize,
-                    maxSize=self.maxSize,
-                    type=self.contentField
-                    )],
-                date=date
-                )]
-        return corpus
+    def open( self, filepath ):
+        return codecs.open(filepath,'rU', errors='replace' )

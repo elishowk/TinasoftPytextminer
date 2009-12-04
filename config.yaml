@@ -15,7 +15,14 @@ fields:
 # csv format
 delimiter: ','
 quotechar: '"'
-# application settings
+# required and default application settings
 locale: 'en_US.UTF-8'
 minSize: 1
 maxSize: 4
+input: "src/t/pubmed_tina_test.csv"
+directory: "output"
+output: "statistics.zip"
+zip: "zip"
+name: "TINA"
+store: "out.db"
+stopwords: "src/t/stopwords/en.txt"

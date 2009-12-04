@@ -26,16 +26,16 @@ class Document:
         self.docNum = docNum
         # sanitized targets
         if targets is None: 
-            targets = set([])
+            targets = []
         self.targets = targets
-        # tokens = words
+        # tokens are words
         if tokens is None:
             tokens = []
         self.tokens = tokens
         # ngrams unique IDs
-        #if ngrams is None:
-        #    ngrams= set([])
-        #self.ngrams = ngrams
+        if ngrams is None:
+            ngrams = []
+        self.ngrams = ngrams
         # tokenization params
         self.ngramMin=ngramMin
         self.ngramMax=ngramMax

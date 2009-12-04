@@ -35,24 +35,27 @@ setup(
     #############################################
     ## Package List
     packages = [
-                #'numpy',
-                #'nltk',
-                #'simplejson',
-                #'pysqlite',
-                #'jsonpickle',
+                'numpy',
+                'nltk',
+                'simplejson',
+                'pysqlite',
+                'jsonpickle',
                 'PyTextMiner',
+                'PyTextMiner.Data'
                 ],
-    package_dir = {
-        #'numpy': 'numpy/numpy',
-        #'nltk': 'nltk/nltk',
-        #'simplejson': 'simplejson/simplejson',
-        #'pysqlite': 'pysqlite/lib',
-        #'jsonpickle': 'jsonpickle/jsonpickle',
-        'PyTextMiner': 'PyTextMiner',
-    },
+    #package_dir = {
+    #    'numpy': 'numpy/numpy',
+    #    'nltk': 'nltk/nltk',
+    #    'simplejson': 'simplejson/simplejson',
+    #    'pysqlite': 'pysqlite/lib',
+    #    'jsonpickle': 'jsonpickle/jsonpickle',
+    #    'PyTextMiner': 'PyTextMiner',
+    #},
 
     # package dependencies :
     requires = [ 'csv', 'codecs', 'nltk', 'simplejson', 'jsonpickle', 'pysqlite', 'numpy' ],
+    #ext_modules=[Extension('foo', ['foo.c'])],
+
     )
 
 
