@@ -31,13 +31,23 @@ class Exporter (Handler):
 def _check_protocol(arg):
     protocol, path = arg.split("://")
     return protocol, path
-    
+
+
+def Engine(arg, **options):
+    protocol, path = _check_protocol(arg)
+    try:
+        module = __import__("PyTextMiner.Data.%s"%protocol)
+        engine = None
+        exec ("engine = PyTextMiner.Data.%s.Engine(path, **options)"%protocol)
+        return engine
+    except Exception, exc:
+        raise Exception("couldn't load engine %s: %s"%(protocol,exc))
+
 def Reader(arg, **options):
     protocol, path = _check_protocol(arg)
     try:
         module = __import__("PyTextMiner.Data.%s"%protocol)
         importer = None
-        #exec "from "PyTextMiner.Data.%s"%protocol import module.
         exec ("importer = PyTextMiner.Data.%s.Importer(path, **options)"%protocol)
         return importer
     except Exception, exc:
@@ -48,7 +58,6 @@ def Writer(arg, **options):
     try:
         module = __import__("PyTextMiner.Data.%s"%protocol)
         exporter = None
-        #exec "from "PyTextMiner.Data.%s"%protocol import module.
         exec ("exporter = PyTextMiner.Data.%s.Exporter(path, **options)"%protocol)
         return exporter
     except Exception, exc:

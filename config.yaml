@@ -26,3 +26,4 @@ zip: "zip"
 name: "TINA"
 store: "out.db"
 stopwords: "src/t/stopwords/en.txt"
+corpus: 7

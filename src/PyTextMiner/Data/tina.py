@@ -7,7 +7,7 @@ from datetime import datetime
 import PyTextMiner
 from PyTextMiner.Data import sqlite, basecsv
 
-class Exporter (sqlite.Exporter):
+class Exporter (sqlite.Engine):
 
     def importDocument(self, 
         tokenizer, 

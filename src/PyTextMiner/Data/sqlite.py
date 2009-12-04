@@ -4,7 +4,7 @@ from PyTextMiner import Corpus, Document, Corpora, Data, NGram
 import sqlite3
 
 # LOW-LEVEL BACKEND 
-class SQLiteBackend (Data.Importer):
+class SQLiteBackend (Data.Handler):
 
     options = {
         'locale'     : 'en_US.UTF-8',
@@ -236,7 +236,7 @@ class AssocNGramDocument (Assoc):
 class AssocNGramCorpus (Assoc):
     pass
 
-class Exporter (SQLiteBackend):
+class Engine(SQLiteBackend):
 
     def storeCorpora(self,  id, corpora ):
         return self.insert( id, corpora )
@@ -313,7 +313,15 @@ class Exporter (SQLiteBackend):
         for id, blob in reply:
             results.append( (id, self.decode(blob)) )
         return results
-        
+ 
+    def fetchCorpusNGramID( self, corpusid ):
+        req = ('select id1 from AssocNGramCorpus where id2 = ?')
+        reply = self.execute(req, [corpusid]).fetchall()
+        results = []
+        for id in reply:
+            results.append( self.decode(id[0]) )
+        return results      
+
     def fetchDocumentNGram( self, documentid ):
         req = ('select ng.blob from NGram as ng JOIN AssocNGramDocument as assoc ON assoc.id1=ng.id AND assoc.id2 = ?')
         reply = self.execute(req, [documentid]).fetchall()
@@ -321,7 +329,23 @@ class Exporter (SQLiteBackend):
         for blob in reply:
             results.append( self.decode(blob[0]))
         return results
-        
+
+    def fetchDocumentNGramID( self, documentid ):
+        req = ('select id1 from AssocNGramDocument where id2 = ?')
+        reply = self.execute(req, [documentid]).fetchall()
+        results = []
+        for id in reply:
+            results.append( id[0] )
+        return results
+
+    def fetchCorpusDocumentID( self, corpusid ): 
+        req = ('select id1 from AssocDocument where id2 = ?')
+        reply = self.execute(req, [corpusid]).fetchall()
+        results = []
+        for id in reply:
+            results.append( id[0] )
+        return results
+
     def loadAllAssocCorpus(self):
         return self.fetch_all( AssocCorpus )
              
