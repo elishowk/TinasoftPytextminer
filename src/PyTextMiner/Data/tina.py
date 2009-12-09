@@ -2,7 +2,7 @@
 
 import codecs
 import csv
-from datetime import datetime
+import time
 
 import PyTextMiner
 from PyTextMiner.Data import sqlite, basecsv
@@ -18,7 +18,7 @@ class Exporter (sqlite.Engine):
         corpusngrams,
         corpusNum):
         # only process document if unavailable in DB
-        if not self.loadDocument( documentNum ):
+        if self.loadDocument( documentNum ) is None:
 
             print "----- %s on document %s ----\n" % (tokenizer.__name__, documentNum)      
             sanitizedTarget = tokenizer.sanitize(
@@ -60,7 +60,8 @@ class Exporter (sqlite.Engine):
             document.rawContent = ""
             document.tokens = []
             #document.targets = []
-            self.storeDocument( documentNum, document )
+            datestamp = document.datestamp
+            self.storeDocument( documentNum, datestamp, document )
 
         # anyway, insert a new Doc-Corpus association
         self.storeAssocDocument( documentNum, corpusNum )
@@ -90,11 +91,15 @@ class Exporter (sqlite.Engine):
         # stores the corpus, ngrams and corpus-ngrams associations
         self.storemanyNGram( corpusngrams.items() )
         self.storemanyAssocNGramCorpus( assocNgramIter )
-        self.storeCorpus( corpusNum, corpus )
+        self.storeCorpus( corpusNum, corpus.period_start, corpus.period_end, corpus )
         self.storeAssocCorpus( corpusNum, corpora.name )
         # removes inexistant ngram-document associations
         self.cleanAssocNGramDocument( corpusNum )
-        # destroys Corpus object
+        # process CoWord analysis
+        #coword = PyTextMiner.CoWord.SimpleAnalysis()
+        #matrix = coword.processCorpus( self, corpusNum )
+        #self.insertmanyCooc( matrix.values() )
+        # destroys Corpus-NGram dict
         del corpusngrams
         return docDict
 
@@ -128,6 +133,8 @@ class Importer (basecsv.Importer):
             #print "creating new corpus"
             corpus = PyTextMiner.Corpus(
                 name = corpusNumber,
+                period_start = None,
+                period_end = None
             )
             corpus.documents.append( document.docNum )
             self.corpusDict[ corpusNumber ] = corpus
@@ -147,17 +154,21 @@ class Importer (basecsv.Importer):
         except Exception, exc:
             print "Error parsing doc %d from corpus %d : %s\n", docNum, corpusNum, exc
             return None
-            
         # parsing optional fields loop and TRY
         for key, field in tmpfields.iteritems():
             try:
                 docArgs[ key ] = self.decodeField( doc[ field ], field, docNum, corpusNum )
             except Exception, exc:
-                print "warning : unable to parse optional field",  docNum, corpusNum, exc
+                print "warning : unable to parse optional field %s in document %s : %s" % (field, docNum, exc)
+        if 'dateField' in docArgs:
+            datestamp = docArgs[ 'dateField' ]
+        else:
+            datestamp = None
 
         document = PyTextMiner.Document(
             rawContent=content,
             docNum=docNum,
+            datestamp=datestamp,
             ngramMin=self.minSize,
             ngramMax=self.maxSize,
             **docArgs

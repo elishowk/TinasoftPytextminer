@@ -109,6 +109,9 @@ class Program:
                 tag = " ".join( tag )
                 rows.append([ ngid, ng['str'], ng['occs'], tag ])
 
+            #coword = PyTextMiner.CoWord.SimpleAnalysis()
+            #matrix = coword.processCorpus( tinasqlite, self.options.corpus );
+            #tinasqlite.insertmanyCooc( matrix.values() )
             # print rows to file
             print "Writing a corpus ngrams summary", corpusNum
             csvdumper.csvFile( ['db id','ngram','documents occs','POS tagged'], rows )

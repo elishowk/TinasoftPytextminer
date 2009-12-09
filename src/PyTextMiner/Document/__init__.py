@@ -2,8 +2,7 @@
 
 __author__="Elias Showk"
 # core modules
-import time
-from datetime import datetime
+from datetime import date
 
 class Document:
     """a Document containing targets containing ngrams"""
@@ -11,6 +10,7 @@ class Document:
     def __init__(
             self,
             rawContent,
+            datestamp=None,
             docNum=None,
             targets=None,
             tokens=None,
@@ -23,6 +23,12 @@ class Document:
             **opt
         ):
         self.rawContent = rawContent
+        self.datestamp = datestamp
+        #else:
+        #    try:
+        #    date = datetime.strptime(string,"%Y%m%d").date().isoformat()
+        #    except:
+        #       log malformed
         self.docNum = docNum
         # sanitized targets
         if targets is None: 
