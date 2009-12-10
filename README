@@ -1,50 +1,111 @@
 PyTextMiner version 0.4
 
-A simple text miner for CoWord analysis
+A simple text miner for CoWord analysis for Python 2.6
+
+INSTALL
+
+	For all platforms, local installs are the best way to get the job done
+	First, you need a Python 2.6 interpreter : http://python.org/
+	Then, install PyTextMiner's dependencies of the following source packages typing:
+		$ sudo python setup.py install
+		from each of the following directories:
+			PyTextMiner/src/numpy/
+			PyTextMiner/src/pysqlite/
+			PyTextMiner/src/simplejson/
+
+CONFIGURATION
+
+	config.yaml is YAML
+
+	declare each column name of your csv file into the corresponding field name of the configuration file, otherwise they will be ignored by the software
+
+		titleField: document title
+		contentField: document content
+		authorField: document acronyme
+		corpusNumberField: corpus number
+		docNumberField: document number
+		index1Field: document index 1
+		index2Field: document index 2
+		dateStartField: corpus start date
+		dateEndField: corpus end date
+		dateField: document publication date
+		keywordsField: document keywords
+
+	check out the format of your csv file (encoding, delimiter, quoting character) and write them into fields "locale", "delimiter", "quotechar"
+	"minSize", and "maxSize" means the length of n-grams extracted
+	all other fields are the script configuration, or the default values for testing purpose
+
+	WARNING : config.yaml is written in YAML format, as a consequence all tabulations are spaces, all string values must be quoted (eg : 'prop_title'). Further information at http://en.wikipedia.org/wiki/YAML
 
 USAGE
-   
-   ON LINUX
-   
-      simply type "python tinaExtract.py" in a the folder where you unzipped PyTextMiner.
-         
-      it will generate a statistics.zip file containing only statistical data on ngrams
-      
-      notice that you need Python and Numpy. You can install them safely from your package
-      manager by typing:
-      
-         "sudo apt-get install python-numpy"
-          
-      in a shell under debian/ubuntu
-         
-       or
-       
-         "sudo urpmi python-scipy" 
-         
-      in a shell on mandriva.
 
-PLATFORMS
+	Command-line help : $ python tinaExtract.py --help
 
-   For the moment PyTextMiner was only tested on these Linux platforms:
+	$ cd PyTextMiner/
+
+	first check fields value in config.yaml
+	then type the following command-line
+
+	$ python tinaExtract.py -i path_to/myfile.csv
+
+	it will generate a statistics.zip file containing contents of the output directory
+	without a input file specified, the software processes the default input (src/t/pubmed_tina_test.csv)
+
+TESTED PLATFORMS
+
+	PyTextMiner was tested on the following Linux platforms:
     
-      Linux 64 bits (AMD64) with Python 2.5
-      Linux 64 bits (AMD64) with Python 2.6
+		Linux 64 bits (AMD64) with Python 2.5
+		Linux 64 bits (AMD64) with Python 2.6
 
-      Linux 32 bits (i686) with Python 2.5
-      Linux 32 bits (i686) with Python 2.6 
+		Linux 32 bits (i686) with Python 2.5
+		Linux 32 bits (i686) with Python 2.6
  
-   However, if you experience problems, see "MANUAL INSTALL" section.
-    
-MANUAL INSTALL
-   For other platforms, PyTextMiner should works if you install:
+	However, if you experience problems, see "MANUAL INSTALL" section.
 
-     - Python 2.6  : http://python.org
-      
-     - Numpy : http://www.scipy.org/Download
+OUTPUTS
+
+	An output directory
+
+	Results of the process are stored into a new directory 'output', created by default into "$WORKDIR/PyTextMiner".
+
+	This output contains three different kind of files:
+
+		"out.db": is the relational database with n-grams and projects ids
+		"documentSample.csv": provides a 10 projects sample in easy to read format of the kind of information stored in "out.db". You thus can check on a sample that this information is compatible with your needs.
+		A set of csv files named "corpus_id-ngramOccPerCorpus.csv" that provides statistics for each batch.
+
+	Here is an example of the content of sample csv file.
+
+		document id,ngrams extracted
+		"16710584","lesions displayed, which indicates, associated with,
+		was detected, to valproate after, a case of, systemic, her skin,[etc]"
+
+
+	Here is an example of the statistics on a corpus where are listed the n-grams extracted with their occurence within the batch and the part-of-speech tagged version of the n-grams: 
+
+		"ngram","documents","POS tagged"
+		"defects","9","NNS_defects"
+		"defence","3","NN_defence"
+		"staphylococcus","2","NNP_Staphylococcus"
+		"cd t cells","2","NNP_CD NNP_T VBZ_cells"
+		"blood vessels","4","NN_blood NNS_vessels"
+
+	A zipped output directory
+
+		All the above files are zipped into a single file that can be directly sent to your coworkers. This file is named 'statistics.zip' and can be found in current $WORKDIR/PyTextMiner directory.
+
+PUBLIC REPOSITORY
+
+	http://github.com/elishowk/PyTextMiner/
+
+SUPPORT AND FEEDBACK 
+
+	elishowk@nonutc.fr
 
 COPYRIGHT AND LICENSE
 
-Copyright (C) 2009, Julian Bilcke, Elias Showk
+Copyright (C) 2009-2011, CREA (CNRS UMR 7656)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by

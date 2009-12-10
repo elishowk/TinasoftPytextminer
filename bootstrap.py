@@ -9,13 +9,11 @@ except:
     arch = ""
 import sys
 
-sys.path = ['src'] + [
-   "lib/python-%s.%s-%s%s" % (sys.version_info[0],sys.version_info[1], sys.platform, arch), 
-   "lib/universal" ] + sys.path 
+sys.path = ['src'] + [ "lib/universal" ] + sys.path 
 
 #sys.path = [ "src/lib/python" ] + sys.path
 #print sys.path
-#import warnings 
-#warnings.filterwarnings("ignore") 
+import warnings 
+warnings.filterwarnings("ignore") 
 import nltk
 nltk.data.path = ['shared/nltk_data']

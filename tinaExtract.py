@@ -107,14 +107,14 @@ class Program:
                 for tok_tag in ng['original']:
                     tag.append( csvdumper.encode( "_".join( reversed(tok_tag) ) ) )
                 tag = " ".join( tag )
-                rows.append([ ngid, ng['str'], ng['occs'], tag ])
+                rows.append([ '"'+ngid+'"', '"'+ng['str']+'"', ng['occs'], '"'+tag+'"' ])
 
             #coword = PyTextMiner.CoWord.SimpleAnalysis()
             #matrix = coword.processCorpus( tinasqlite, self.options.corpus );
             #tinasqlite.insertmanyCooc( matrix.values() )
             # print rows to file
             print "Writing a corpus ngrams summary", corpusNum
-            csvdumper.csvFile( ['db id','ngram','documents occs','POS tagged'], rows )
+            csvdumper.csvFile( ['"ngram db id"','"ngram"','"num of docs occurences"','"POS tag"'], rows )
             del rows
             del csvdumper
             del ngrams
@@ -134,14 +134,14 @@ class Program:
             ngList = []
             for ng in ngrams:
                 ngList += [ ng['str'] ]
-            doc['ngrams'] = ", ".join(ngList)
+            doc['ngrams'] = '"'+", ".join(ngList)+'"'
             docList += [doc]
         docSampleDumper = Writer ("basecsv://"+self.options.directory+"/documentSample.csv", locale=self.locale)
         rows = []
         for doc in docList:
-            rows.append([ doc['docNum'], doc['titleField'], doc['ngrams']  ])
+            rows.append([ '"'+doc['docNum']+'"', '"'+doc['titleField']+'"', doc['ngrams']  ])
         del docList
-        docSampleDumper.csvFile( ['doc id','doc_title','extracted ngrams'], rows )
+        docSampleDumper.csvFile( ['"doc id"','"doc title"','"extracted ngrams"'], rows )
         # zip the output directory
         if self.options.zip == "zip":
             print "zipping project files.."
