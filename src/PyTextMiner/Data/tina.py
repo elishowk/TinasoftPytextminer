@@ -86,7 +86,7 @@ class Exporter (sqlite.Engine):
             # TODO modulo 10 docs
             print ">> %d documents left to import\n" % len( docDict )
         # end of document extraction
-        # clean NGrams
+        # filter NGrams, keeps the corpus-wide value in ng ['occs']
         ( corpusngrams, delList, assocNgramIter ) = PyTextMiner.NGramHelpers.filterUnique( corpusngrams, 2, corpusNum, self.encode )
         # stores the corpus, ngrams and corpus-ngrams associations
         self.storemanyNGram( corpusngrams.items() )
@@ -152,7 +152,7 @@ class Importer (basecsv.Importer):
             del tmpfields['docNumberField']
             del tmpfields['contentField']
         except Exception, exc:
-            print "Error parsing doc %d from corpus %d : %s\n", docNum, corpusNum, exc
+            print "Error parsing doc %d from corpus %d : %s\n" % (docNum, corpusNum, exc)
             return None
         # parsing optional fields loop and TRY
         for key, field in tmpfields.iteritems():
@@ -178,9 +178,9 @@ class Importer (basecsv.Importer):
         return document
 
     def decodeField( self, field, fieldName, docNum=None, corpusNumber=None ):
-        try:
+        #try:
             return self.decode( field )
-        # TODO NOT used because of errors arg in self.decode
-        except UnicodeDecodeError, uexc:
-            print "Error decoding field in document from corpus\n", fieldName, docNum, corpusNumber, uexc
-            return u'\ufffd'
+        # TODO NOT used because of errors arg replace in Handler.self.decode()
+        #except UnicodeDecodeError, uexc:
+        #    print "Error decoding field in document from corpus\n", fieldName, docNum, corpusNumber, uexc
+        #    return u'\ufffd'

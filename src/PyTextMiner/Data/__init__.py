@@ -19,7 +19,7 @@ class Handler (object):
     def encode(self, toEncode):
         return toEncode.encode( self.encoding, 'replace')
 
-    def decode(self, toDecode):    
+    def decode(self, toDecode):
         return unicode( toDecode, self.encoding, 'replace' )
 
 class Importer (Handler):

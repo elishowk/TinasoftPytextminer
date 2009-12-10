@@ -26,5 +26,5 @@ output: "statistics.zip"
 zip: "zip"
 name: "fet open"
 store: "out.db"
-stopwords: "src/t/stopwords/en.txt"
+stopwords: "shared/stopwords/en.txt"
 corpus: 7

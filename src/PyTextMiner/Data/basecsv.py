@@ -11,7 +11,7 @@ class Exporter (PyTextMiner.Data.Exporter):
     def __init__(self,
         filepath,
         #corpus,
-        delimiter = u',',
+        delimiter = ',',
         quotechar = '"',
         locale = 'en_US.UTF-8',
         dialect = 'excel'
@@ -23,25 +23,31 @@ class Exporter (PyTextMiner.Data.Exporter):
         self.encoding =  self.locale.split('.')[1].lower()
         self.dialect = dialect
                 
-
+    # deprecated
     def objectToCsv( self, objlist, columns ):
-        file = codecs.open(self.filepath, "w", self.encoding, 'xmlcharrefreplace' )
+        file = codecs.open(self.filepath, "w", self.encoding, errors='replace' )
         file.write( self.delimiter.join( columns ) + "\n" )
         def mapping( att ) :
             print type(att)
             print att
             s = str(att)
-            return self.encode( s )
+            return s
         for obj in objlist:
             attributes = [getattr(obj, col) for col in columns]
             file.write( self.delimiter.join( map( mapping, attributes ) ) + "\n" )
             #file.write( self.delimiter.join( map( self.encode, map( str, attributes ) ) ) + "\n" )
 
     def csvFile( self, columns, rows ):
-        file = codecs.open(self.filepath, "w", encoding=self.encoding )
+        file = codecs.open(self.filepath, "w", encoding=self.encoding, errors='replace' )
         file.write( self.delimiter.join( columns ) + "\n" )
         for row in rows:
-            file.write( self.delimiter.join( map( self.encode, map( str, row ) ) ) + "\n" )
+            # TODO factorize try in Exporter.export()
+            #try:
+                file.write( self.delimiter.join( row ) + "\n" )
+            #except UnicodeEncodeError, ue:
+            #    print "warning exporting a csv line ", row, ue
+            #except UnicodeDecodeError, ud:
+            #    print "warning exporting a csv line ", row, ud
               
                 
 class Importer (PyTextMiner.Data.Importer):

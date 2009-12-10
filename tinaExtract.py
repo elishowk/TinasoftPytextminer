@@ -107,13 +107,15 @@ class Program:
                 for tok_tag in ng['original']:
                     tag.append( csvdumper.encode( "_".join( reversed(tok_tag) ) ) )
                 tag = " ".join( tag )
-                rows.append([ '"'+ngid+'"', '"'+ng['str']+'"', ng['occs'], '"'+tag+'"' ])
+		#print type( ng['occs'] )
+		#print type( ngid )
+                rows.append([ '"'+ngid+'"', '"'+ng['str']+'"', str(ng['occs']), '"'+tag+'"' ])
 
             #coword = PyTextMiner.CoWord.SimpleAnalysis()
             #matrix = coword.processCorpus( tinasqlite, self.options.corpus );
             #tinasqlite.insertmanyCooc( matrix.values() )
             # print rows to file
-            print "Writing a corpus ngrams summary", corpusNum
+            print "Writing corpus num %s ngrams summary" % corpusNum
             csvdumper.csvFile( ['"ngram db id"','"ngram"','"num of docs occurences"','"POS tag"'], rows )
             del rows
             del csvdumper
