@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 __author__="Elias Showk"
 from itertools import *
-from multiprocessing import Process, Queue
+from multiprocessing import Process, Queue, Manager
 
 
 
@@ -20,7 +20,7 @@ class ThreadedAnalysis():
             else:
                 result_queue.put( 0 )
 
-    def processPair( self, result_queue, task_queue, number_processes ):
+    def processPair( self, result_queue, task_queue, number_processes=1 ):
         while task_queue.empty() is False:
             ( key, pair, documents, period_start, period_end ) = task_queue.get()
             print "starting processPair", pair
@@ -28,6 +28,8 @@ class ThreadedAnalysis():
             doc_result_queue = Queue()
             doc_task_queue = Queue()
             for docngrams in documents:
+                print docngrams
+                print pair
                 if pair[0] in docngrams and pair[1] in docngrams:
                     matrixcell += 1
                 # add a task
@@ -54,21 +56,28 @@ class ThreadedAnalysis():
         # TODO : thread it !
         for docNum in docList:
             documents.append( store.fetchDocumentNGramID( docNum )  )
+        manager = Manager()
+        docmanager = manager.list( documents )
+        del documents
+        del docList
         ngpairs = combinations( ngrams, 2 )
+        del ngrams
         print "end of fetching ng pairs and doc ngrams"
         pair_task_queue = Queue()
         pair_result_queue = Queue()
         for pair in ngpairs:
             # add a task
             key = str(period_start)+"::"+str(period_end)+"::"+str(pair[0])+"::"+str(pair[1])
-            print key
-            pair_task_queue.put( ( key, pair, documents, period_start, period_end ) )
+            pair_task_queue.put( ( key, pair, docmanager, period_start, period_end ) )
+            break
+        pair_task_queue.close()
         # launch threads
+        del ngpairs
         threadPair = [Process(target=self.processPair, args=( pair_result_queue, pair_task_queue )).start() for i in range(number_processes)]
         # get results
         for i in range( len(threadPair) ):
             pairGet = pair_result_queue.get()
-            print "pair thread get ", pairGet
+            print "got pair thread ", pairGet
             if pairGet[5] > 0:
                 print "inserting a new Cooc row", pairGet
             #    store.insertCooc( pairGet )
