@@ -1,4 +1,4 @@
-PyTextMiner version 0.4
+PyTextMiner version 0.5
 
 A simple text miner for CoWord analysis for Python 2.6
 
@@ -38,6 +38,8 @@ CONFIGURATION
 	WARNING : config.yaml is written in YAML format, as a consequence all tabulations are spaces, all string values must be quoted (eg : 'prop_title'). Further information at http://en.wikipedia.org/wiki/YAML
 
 USAGE
+
+    you can try analysing a csv file to database using tinaExtract.py
 
 	Command-line help : $ python tinaExtract.py --help
 
