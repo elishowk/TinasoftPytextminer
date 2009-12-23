@@ -2,7 +2,7 @@
 #
 # Setuptools setup script for tinasoft.PyTextMiner
 #
-# Copyright (C) 2009-2011 TINA Project FET(eu)/CNRS(fr)
+# Copyright (C) 2009-2011 TINA Project FET (euro commision INFSO) / CNRS UMR 7656 CREA (fr)
 # Authors: elias showk <elishowk@nonutc.fr>
 #         julian bilcke <julian.bilcke@iscpif.fr>
 # URL: <http://github.com/elishowk/PyTextMiner>

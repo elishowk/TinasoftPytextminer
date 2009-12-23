@@ -1,17 +1,16 @@
 PyTextMiner version 0.5
 
-A simple text miner for CoWord analysis for Python 2.6
+A text-mining module providing CoWord analysis for Python 2.6, using multiprocessing
+Based on the following publications : http://arxiv.org/abs/0904.3154v1 & http://www.springerlink.com/content/v57686u275653nt4/
 
 INSTALL
 
-	For all platforms, local installs are the best way to get the job done
-	First, you need a Python 2.6 interpreter : http://python.org/
+	First of all, you'll need Python 2.6 interpreter : http://python.org/
 	Then, install PyTextMiner's dependencies of the following source packages typing:
 		$ sudo python setup.py install
-		from each of the following directories:
-			PyTextMiner/src/numpy/
-			PyTextMiner/src/pysqlite/
-			PyTextMiner/src/simplejson/
+        or
+        $ sudo python setup.py develop
+	Dependencies will be checked : numpy, nltk, tinasoft.data (for data storage)
 
 CONFIGURATION
 
@@ -101,13 +100,19 @@ PUBLIC REPOSITORY
 
 	http://github.com/elishowk/PyTextMiner/
 
-SUPPORT AND FEEDBACK 
+AUTHORS
 
-	elishowk@nonutc.fr
+    elias showk <elishowk@nonutc.fr>
+    julian bilcke <julian.bilcke@iscpif.fr>
+
+SUPPORT AND FEEDBACK
+
+    http://github.com/elishowk/PyTextMiner/issues
+	elias showk <elishowk@nonutc.fr>
 
 COPYRIGHT AND LICENSE
 
-Copyright (C) 2009-2011, CREA (CNRS UMR 7656)
+Copyright (C) 2009-2011 TINA Project FET (euro commision INFSO) / CNRS UMR 7656 CREA (fr)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
