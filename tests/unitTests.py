@@ -6,6 +6,7 @@ __date__ ="$Oct 20, 2009 5:29:16 PM$"
 
 # core modules
 import unittest
+import codecs
 
 # third party modules
 #import yaml
@@ -17,22 +18,18 @@ class TestsTestCase(unittest.TestCase):
         return
 
     def test_unit(self):
-        from tinasoft.pytextminer import PyTextMiner
-        pytextminer = PyTextMiner()
-        print pytextminer
         print corpora.Corpora( name='test' )
-        print corpus.Corpus( name='test' )
-        print document.Document( rawContent='testcontent' )
-        print ngram.NGram( original=['test', 'ngram'] )
+        print corpus.Corpus( name='test' ).id
+        print document.Document( content='testcontent', docNum=1 ).id
+        print ngram.NGram( content=['test', 'ngram'] ).id
         print tokenizer.TreeBankWordTokenizer()
         print coword.ThreadedAnalysis()
         print tagger.TreeBankPosTagger()
         print stopwords.StopWords( arg="file://shared/stopwords/en.txt" )
         print "end of unit tests";
 
-    def test_csv(self):
-        csvfile = open("tests/pubmed_tina_test.csv")
-        print "end of CSVTextMiner() unit tests";
+    def test_import_csv(self):
+        csvfile = "tests/pubmed_tina_test.csv"
 
 if __name__ == '__main__':
     unittest.main()

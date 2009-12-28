@@ -13,18 +13,29 @@ __all__ = ["corpora", "corpus", "document", "ngram", "tokenizer", "tagger", "cow
 """
 class PyTextMiner:
 
+    """ defaults """
+    options = { }
+
+    def __init__(self, content, id=None, **metas):
+        self.content = content
+        if id is None:
+            self.id = self.getId( content )
+        else:
+            self.id = id
+        self.loadOptions( metas )
+
     # TODO dict getter (for blob storage in tinasoft.data)
 
     def loadOptions(self, options):
-        if options is not None:
-            for attr, value in options.iteritems():
-                setattr(attr,value)
+        self.options.update(options)
+        for attr, value in self.options.iteritems():
+            setattr(self,attr,value)
 
-    def getId(self, root):
-        if type(root).__name__ == 'list':
-            return abs( hash( "".join(root) ) )
-        elif type(root).__name__ == 'str' or type(root).__name__ == 'unicode':
-            return abs( hash( root ) )
+    def getId(self, content):
+        if type(content).__name__ == 'list':
+            return abs( hash( "".join(content) ) )
+        elif type(content).__name__ == 'str' or type(content).__name__ == 'unicode':
+            return abs( hash( content ) )
         else:
             raise ValueError
             return None

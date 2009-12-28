@@ -9,33 +9,26 @@ class Document(PyTextMiner):
 
     def __init__(
             self,
-            rawContent,
+            content,
             datestamp=None,
             docNum=None,
-            targets=None,
-            tokens=None,
-            ngrams=None,
+            targets=[],
+            tokens=[],
+            ngrams=[],
             ngramMin=1,
-            ngramMax=2,
+            ngramMax=3,
             forbChars="[^a-zA-Z\s\@ÂÆÇÈÉÊÎÛÙàâæçèéêîĨôÔùûü\,\.\;\:\!\?\"\'\[\]\{\}\(\)\<\>]",
             ngramSep= u"[\s]+",
             ngramEmpty = " ",
-            **opt
+            **metas
         ):
-        self.id = str(docNum)
+        PyTextMiner.__init__(self, content=content, id=docNum, **metas)
         self.date = datestamp
-        self.rawContent = rawContent
         # sanitized targets are a list of sanitzed texts
-        if targets is None:
-            targets = []
         self.targets = targets
         # tokens are words
-        if tokens is None:
-            tokens = []
         self.tokens = tokens
         # ngrams is a list of ngram's IDs
-        if ngrams is None:
-            ngrams = []
         self.ngrams = ngrams
         # these are tokenization paramaters
         self.ngramMin=ngramMin
@@ -43,8 +36,6 @@ class Document(PyTextMiner):
         self.forbChars=forbChars
         self.ngramSep= ngramSep
         self.ngramEmpty = ngramEmpty
-        # optional document fields
-        self.loadOptions( opt )
     
     def getDate(self):
         if self.date is not None:

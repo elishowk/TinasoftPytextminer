@@ -6,8 +6,8 @@ from tinasoft.pytextminer import PyTextMiner
 
 class NGram(PyTextMiner):
     """NGram class"""
-    def __init__(self, original, **opt):
-        self.loadOptions( opt )
+    def __init__(self, content, **metas):
+        PyTextMiner.__init__(self, content=content, id=None, **metas)
 
 #class NGramHelpers():
 #    """ngram static method helpers"""
