@@ -2,7 +2,7 @@
 __author__="Julian Bilcke, Elias Showk"
 __date__ ="$Oct 20, 2009 5:30:11 PM$"
 
-__all__ = ["corpora", "corpus", "document", "ngram", "tokenizer", "tagger", "coword", "stopwords"]
+__all__ = ["app", "corpora", "corpus", "document", "ngram", "tokenizer", "tagger", "coword", "stopwords"]
 
 
 """

@@ -20,11 +20,11 @@ quotechar: '"'
 locale: 'en_US.UTF-8'
 minSize: 1
 maxSize: 4
-input: "src/t/pubmed_tina_test.csv"
+input: "tests/pubmed_tina_test.csv"
 directory: "output"
 output: "statistics.zip"
 zip: "zip"
-name: "fet open"
+name: "test tinaExtract"
 store: "out.db"
 stopwords: "shared/stopwords/en.txt"
 corpus: 7
