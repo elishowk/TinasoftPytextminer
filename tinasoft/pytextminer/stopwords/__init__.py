@@ -52,7 +52,8 @@ class StopWords(object):
 
     def __pickle(self, path):
         file = codecs.open( path , "r" )
-        self = pickle.load( file )
+        self.words = pickle.load( file )
+        print self.words
 
     def __nltk(self, lang):
         try:
@@ -113,6 +114,8 @@ class StopWords(object):
             raise Exception("%s is not a valid ngram"%ngram)
         for stopngram in self[len(ngram)]:
             # stops if the ngram equals stopngram
+            # do not stops if types are unicode and str
+            # prefered is unicode against unicode
             if len(list(set(ngram).difference(set(stopngram)))) == 0:
                 return True
         return False
@@ -128,4 +131,4 @@ class StopWords(object):
     def savePickle( self, filepath ):
         """copy the stopwords in-memory database to file"""
         file = codecs.open( filepath, "w" )
-        pickle.dump( self, file )
+        pickle.dump( self.words, file )

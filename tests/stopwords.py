@@ -6,10 +6,6 @@ __date__ ="$Oct 20, 2009 5:29:16 PM$"
 
 # core modules
 import unittest
-import codecs
-
-# third party modules
-#import yaml
 
 from tinasoft.pytextminer import *
 
@@ -20,9 +16,10 @@ class TestsTestCase(unittest.TestCase):
     def test_unit(self):
         stop = stopwords.StopWords( arg="file://shared/stopwords/en.txt" )
         print stop
-        testngram=['i', 'am', 'a', 'test']
+        testngram = ['i', 'am', 'a', 'test']
         stop.add( testngram )
         stop.savePickle( 'tests/stopwords_save_test.pickle' )
+        del stop
         fromPickle = stopwords.StopWords( arg="pickle://tests/stopwords_save_test.pickle" )
         self.assertEqual( fromPickle.contains(testngram), True )
 
