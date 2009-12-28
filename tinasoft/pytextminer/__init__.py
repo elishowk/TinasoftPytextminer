@@ -24,7 +24,8 @@ class PyTextMiner:
             self.id = id
         self.loadOptions( metas )
 
-    # TODO dict getter (for blob storage in tinasoft.data)
+    def __str__(self):
+        return self.id
 
     def loadOptions(self, options):
         self.options.update(options)

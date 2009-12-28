@@ -20,6 +20,3 @@ class Corpus(PyTextMiner):
         PyTextMiner.__init__(self, content=self.documents, id=self.name, **metas)
         self.period_start = period_start
         self.period_end = period_end
-
-    def __str__(self):
-        return self.name

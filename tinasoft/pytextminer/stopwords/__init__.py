@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import codecs
-#import difflib
+import pickle
 
 class StopWords(object):
     """StopWords"""
@@ -45,6 +45,14 @@ class StopWords(object):
                 self.__file("http://"+path)
             elif protocol == "nltk":
                 self.__nltk(path)
+            elif protocol == "pickle":
+                self.__pickle(path)
+                
+            self.protocol = protocol
+
+    def __pickle(self, path):
+        file = codecs.open( path , "r" )
+        self = pickle.load( file )
 
     def __nltk(self, lang):
         try:
@@ -109,7 +117,7 @@ class StopWords(object):
                 return True
         return False
         
-    def clean( self, string ):
+    def cleanText( self, string ):
         """Obsolete - Clean a string from its 1-grams"""
         cleaned = []
         for word in string.split(" "):
@@ -117,3 +125,7 @@ class StopWords(object):
                 cleaned += [ word ] 
         return " ".join(cleaned)
 
+    def savePickle( self, filepath ):
+        """copy the stopwords in-memory database to file"""
+        file = codecs.open( filepath, "w" )
+        pickle.dump( self, file )
