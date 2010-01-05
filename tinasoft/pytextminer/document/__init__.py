@@ -10,8 +10,9 @@ class Document(PyTextMiner):
     def __init__(
             self,
             content,
-            datestamp=None,
-            docNum=None,
+            datestamp,
+            docNum,
+            title,
             targets=[],
             tokens=[],
             ngrams=[],
@@ -22,7 +23,7 @@ class Document(PyTextMiner):
             ngramEmpty = " ",
             **metas
         ):
-        PyTextMiner.__init__(self, content=content, id=docNum, **metas)
+        PyTextMiner.__init__(self, content=content, id=docNum, label=title, **metas)
         self.date = datestamp
         # sanitized targets are a list of sanitzed texts
         self.targets = targets

@@ -2,18 +2,17 @@
 __author__="Julian Bilcke, Elias Showk"
 __date__ ="$Oct 20, 2009 5:30:11 PM$"
 
-__all__ = ["app", "corpora", "corpus", "document", "ngram", "tokenizer", "tagger", "coword", "stopwords"]
+__all__ = ["indexer","app", "corpora", "corpus", "document", "ngram", "tokenizer", "tagger", "coword", "stopwords"]
 
 
-"""
-    PyTextMiner class
-    parent of classes analyzed by this module
-    common to all analysed objects in this software :
-    ngram, document, etc
-"""
 class PyTextMiner:
 
-    """ defaults """
+    """
+        PyTextMiner class
+        parent of classes analyzed by this module
+        common to all analysed objects in this software :
+        ngram, document, etc
+    """
     options = {}
 
     def __init__(self, content, id=None, label=None, **metas):
