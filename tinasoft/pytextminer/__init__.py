@@ -14,18 +14,16 @@ __all__ = ["app", "corpora", "corpus", "document", "ngram", "tokenizer", "tagger
 class PyTextMiner:
 
     """ defaults """
-    options = { }
+    options = {}
 
-    def __init__(self, content, id=None, **metas):
+    def __init__(self, content, id=None, label=None, **metas):
         self.content = content
         if id is None:
             self.id = self.getId( content )
         else:
             self.id = id
+        self.label = label
         self.loadOptions( metas )
-
-    def __str__(self):
-        return self.id
 
     def loadOptions(self, options):
         self.options.update(options)

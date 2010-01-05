@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from tinasoft.pytextminer import corpora, corpus, document, ngram, stopwords, tokenizer, tagger
+from tinasoft.pytextminer import corpora, corpus, document, ngram, tokenizer, tagger, coword, stopwords
+
 from tinasoft.data import *
 from tinasoft.data import Reader, Writer, Engine
 
@@ -8,12 +9,59 @@ from tinasoft.data import Reader, Writer, Engine
 import os
 import locale
 from optparse import OptionParser
+import shutil
 
-# initialize the system path with local dependencies and pre-built libraries
+# bootstrapper
 import bootstrap
 
 # configuration file
 import yaml
+
+class TinaAnalyze:
+    def __init__(self):
+        # import config yaml
+        try:
+            self.config = yaml.safe_load( file( "config.yaml", 'rU' ) )
+        except yaml.YAMLError, exc:
+            print "\nUnable to read ./config.yaml file : ", exc
+            return
+
+        # command-line parser
+        parser = OptionParser()
+        parser.add_option("-i", "--input", dest="input", default="out_1000.db", help="imput database file", metavar="FILE")
+        parser.add_option("-o", "--output", dest="output", default="tests/out-test.db",
+            help="output database file", metavar="FILE")
+        parser.add_option("-w", "--stopwords", dest="stopwords", default="shared/stopwords/en.txt", help="stopwords file", metavar="FILE")
+        parser.add_option("-f", "--output-stopwords", dest="outputstopwords", default="tests/output-stopwords.pickle", help="output stopwords file", metavar="FILE")
+        parser.add_option("-l", "--locale", dest="locale", default=self.config['locale'], help="Locale (text encoding), default: "+self.config['locale'])
+        
+        (cmdoptions, args) = parser.parse_args()
+        self.options = cmdoptions
+        
+        # tries support of the locale by the host system
+        try:
+            self.locale = self.options.locale
+            locale.setlocale(locale.LC_ALL, self.locale)
+        except:
+            self.locale = 'en_US.UTF-8'
+            print "locale %s was not found, switching to en_US.UTF-8 by default", self.options.locale
+            locale.setlocale(locale.LC_ALL, self.locale)
+        # load Stopwords object
+        self.stopwords = stopwords.StopWords( "file://%s" % self.options.stopwords )
+        # copy input to output, and format both dbi strings
+        shutil.copy( self.options.input, self.options.output )
+        self.options.input = "sqlite://"+self.options.input
+        self.options.output = "sqlite://"+self.options.output
+        # connection to both databases
+        self.read = Engine(self.options.input)
+        self.write = Engine(self.options.output)
+
+    def walkCorpora(self):
+        result = self.read.loadCorpora("TINA")
+        print type(result[1])
+
+    def saveStopwords(self):
+        self.stopwords.savePickle( self.options.outputstopwords )
 
 class TinaExtract:
     def __init__(self):

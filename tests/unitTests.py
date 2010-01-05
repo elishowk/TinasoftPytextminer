@@ -18,7 +18,7 @@ class TestsTestCase(unittest.TestCase):
         return
 
     def test_unit(self):
-        print corpora.Corpora( name='test' )
+        #print corpora.Corpora( name='test' )
         print corpus.Corpus( name='test' ).id
         print document.Document( content='testcontent', docNum=1 ).id
         print ngram.NGram( content=['test', 'ngram'] ).id
