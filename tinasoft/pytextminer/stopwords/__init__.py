@@ -53,7 +53,6 @@ class StopWords(object):
     def __pickle(self, path):
         file = codecs.open( path , "r" )
         self.words = pickle.load( file )
-        print self.words
 
     def __nltk(self, lang):
         try:

@@ -28,21 +28,24 @@ class TestsTestCase(unittest.TestCase):
             locale.setlocale(locale.LC_ALL, self.locale)
         self.indexer =  indexer.TinaIndex( "tests/" )
 
-    def testRun(self):
-        csvinputpath = "tina://%s"%self.options['input']
-        tinaImporter = Reader(csvinputpath,
-            delimiter = self.options['delimiter'],
-            quotechar = self.options['quotechar'],
-            locale = self.locale,
-            fields = self.options['fields']
-        )
-        corps = corpora.Corpora( name=self.options['name'] )
-        corps = tinaImporter.corpora( corps )
-        print self.indexer.indexDocs( tinaImporter.docDict )
-        notIndexedTwoTimes = self.indexer.indexDocs( tinaImporter.docDict )
-        for doc in notIndexedTwoTimes:
-
-        del tinaImporter
+	def testRun(self):
+		csvinputpath = "tina://%s"%self.options['input']
+		tinaImporter = Reader(csvinputpath,
+			delimiter = self.options['delimiter'],
+			quotechar = self.options['quotechar'],
+			locale = self.locale,
+			fields = self.options['fields']
+		)
+		corps = corpora.Corpora( name=self.options['name'] )
+		corps = tinaImporter.corpora( corps )
+		# first indexation
+		self.indexer.indexDocs( tinaImporter.docDict )
+		# second indexation with overwrite=False (default)
+		notIndexedTwoTimes = self.indexer.indexDocs( tinaImporter.docDict.values() )
+		len( notIndexedTwoTimes )
+		for doc in notIndexedTwoTimes:
+			compare = ( doc in tinaImporter.docDict.values() )
+			self.assertEqual( compare, True )
 
 if __name__ == '__main__':
     os.system('rm -rf tests/_MAIN_*')

@@ -52,12 +52,16 @@ class TinaIndex():
         notIndexedDocs = []
         searcher = self.index.searcher()
         writer = self.index.writer()
-        for document in docList.itervalues():
-            if overwrite is False:
-                if len( searcher.find( "id", document.id ) ) == 0:
-                    docDict = self.documentToDict( document )
-                    writer.add_document( **docDict )
-                else:
-                    notIndexedDocs += [ docDict ]
+        for document in docList:
+			if overwrite is True:	
+				docDict = self.documentToDict( document )
+				writer.add_document( **docDict )
+			else:
+				res = searcher.find( "id", document.id )
+				if len( res ) == 0:
+					docDict = self.documentToDict( document )
+					writer.add_document( **docDict )
+				else:
+					notIndexedDocs += [ document ]
         writer.commit()
         return notIndexedDocs

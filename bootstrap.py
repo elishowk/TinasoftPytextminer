@@ -7,8 +7,8 @@
 #    arch = "_%s"%commands.getoutput('uname -m')
 #except:
 #    arch = ""
-import sys
-sys.path = ['src'] + [ "lib/universal" ] + sys.path 
+#import sys
+#sys.path = ['src'] + [ "lib/universal" ] + sys.path 
 
 #import warnings 
 #warnings.filterwarnings("ignore")
