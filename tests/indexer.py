@@ -8,7 +8,7 @@ import os
 import unittest
 import yaml
 import locale
-from tinasoft.data import Reader, Writer, Engine
+from tinasoft.data import Reader
 from tinasoft.pytextminer import *
 
 class TestsTestCase(unittest.TestCase):
@@ -28,24 +28,31 @@ class TestsTestCase(unittest.TestCase):
             locale.setlocale(locale.LC_ALL, self.locale)
         self.indexer =  indexer.TinaIndex( "tests/" )
 
-	def testRun(self):
-		csvinputpath = "tina://%s"%self.options['input']
-		tinaImporter = Reader(csvinputpath,
-			delimiter = self.options['delimiter'],
-			quotechar = self.options['quotechar'],
-			locale = self.locale,
-			fields = self.options['fields']
-		)
-		corps = corpora.Corpora( name=self.options['name'] )
-		corps = tinaImporter.corpora( corps )
-		# first indexation
-		self.indexer.indexDocs( tinaImporter.docDict )
-		# second indexation with overwrite=False (default)
-		notIndexedTwoTimes = self.indexer.indexDocs( tinaImporter.docDict.values() )
-		len( notIndexedTwoTimes )
-		for doc in notIndexedTwoTimes:
-			compare = ( doc in tinaImporter.docDict.values() )
-			self.assertEqual( compare, True )
+    def testindex(self):
+        csvinputpath = "tina://%s"%self.options['input']
+        tinaImporter = Reader(csvinputpath,
+            delimiter = self.options['delimiter'],
+            quotechar = self.options['quotechar'],
+            locale = self.locale,
+            fields = self.options['fields']
+        )
+        corps = corpora.Corpora( name=self.options['name'] )
+        corps = tinaImporter.corpora( corps )        # first indexation
+        self.indexer.indexDocs( tinaImporter.docDict.values() )
+        # second indexation with overwrite=False (default)
+
+        notIndexedTwoTimes = self.indexer.indexDocs( tinaImporter.docDict.values() )
+        for doc in notIndexedTwoTimes:
+            compare = ( doc in tinaImporter.docDict.values() )
+            self.assertEqual( compare, True )
+        return
+
+    def testsearch(self):
+        docId = u"16462412"
+        content = u'issues\ufffd\xee\ufffd\u07eb\ufffdh\ufffd\ufffd\ufffd \ufffd\xee\ufffd\u07eb\ufffdh\ufffd\ufffd\ufffd? ? ? ?\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\x125fV\ufffd\ufffd\ufffdtV2E#\ufffdTW\x03E\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd.002; control = 71 \xb1 8.2 ng/mL; ACTH-immune = 43 \xb1 4.9 ng/mL)'
+        for res in self.indexer.search( docId ):
+            self.assertEqual(res['content'], content)
+        return
 
 if __name__ == '__main__':
     os.system('rm -rf tests/_MAIN_*')

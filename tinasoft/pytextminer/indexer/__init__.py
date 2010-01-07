@@ -40,6 +40,10 @@ class TinaIndex():
             print "index LockError %s : "%self.indexdir, le
             raise LockError(le)
 
+    def search( self, documentId ):
+        searcher = self.index.searcher()
+        return searcher.find( "id", documentId )
+
     def documentToDict( self, document ):
         return {
             'label' : document.label,
@@ -48,20 +52,22 @@ class TinaIndex():
             'date' : document.date,
         }
 
+    def write( self, document, writer ):
+        docDict = self.documentToDict( document )
+        writer.add_document( **docDict )
+
     def indexDocs( self, docList, overwrite=False ):
         notIndexedDocs = []
-        searcher = self.index.searcher()
         writer = self.index.writer()
         for document in docList:
-			if overwrite is True:	
-				docDict = self.documentToDict( document )
-				writer.add_document( **docDict )
-			else:
-				res = searcher.find( "id", document.id )
-				if len( res ) == 0:
-					docDict = self.documentToDict( document )
-					writer.add_document( **docDict )
-				else:
-					notIndexedDocs += [ document ]
+            if overwrite is True:
+				self.write( document, writer )
+            else:
+                res = self.search( document.id )
+                if len( res ) == 0:
+                    docDict = self.documentToDict( document )
+                    writer.add_document( **docDict )
+                else:
+                    notIndexedDocs += [ document ]
         writer.commit()
         return notIndexedDocs
