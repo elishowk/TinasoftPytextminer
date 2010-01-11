@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from tinasoft.pytextminer import corpora, corpus, document, ngram, tokenizer, tagger, cooccurrences, stopwords
-
-from tinasoft.data import *
+from tinasoft.pytextminer import stopwords, corpora, corpus, document, ngram, cooccurrences, tokenizer, tagger, indexer
 from tinasoft.data import Reader, Writer, Engine
 
 # core modules
@@ -17,23 +15,22 @@ import bootstrap
 # configuration file
 import yaml
 
-class TinaAnalyze:
-    def __init__(self):
+class TinaApp:
+    """ base class for a tinasoft.pytextminer application"""
+    def __init__(self, configFile='config.yaml'):
         # import config yaml
         try:
-            self.config = yaml.safe_load( file( "config.yaml", 'rU' ) )
+            self.config = yaml.safe_load( file( configFile, 'rU' ) )
         except yaml.YAMLError, exc:
             print "\nUnable to read ./config.yaml file : ", exc
             return
 
         # command-line parser
         parser = OptionParser()
-        parser.add_option("-i", "--input", dest="input", default="out_1000.db", help="imput database file", metavar="FILE")
-        parser.add_option("-o", "--output", dest="output", default="tests/out-test.db",
-            help="output database file", metavar="FILE")
-        parser.add_option("-w", "--stopwords", dest="stopwords", default="shared/stopwords/en.txt", help="stopwords file", metavar="FILE")
-        parser.add_option("-f", "--output-stopwords", dest="outputstopwords", default="tests/output-stopwords.pickle", help="output stopwords file", metavar="FILE")
+        parser.add_option("-s", "--storage", dest="storage", default=self.config['storage'], help="sqlite database file", metavar="FILE")
+        parser.add_option("-w", "--stopwords", dest="stopwords", default=self.config['stopwords'], help="stopwords file or pickle or nltk stopwords", metavar="FILE")
         parser.add_option("-l", "--locale", dest="locale", default=self.config['locale'], help="Locale (text encoding), default: "+self.config['locale'])
+        parser.add_option("-i", "--index", dest="index", default=self.config['index'], help="Text Index"+self.config['index'])
 
         (cmdoptions, args) = parser.parse_args()
         self.options = cmdoptions
@@ -46,14 +43,26 @@ class TinaAnalyze:
             self.locale = 'en_US.UTF-8'
             print "locale %s was not found, switching to en_US.UTF-8 by default", self.options.locale
             locale.setlocale(locale.LC_ALL, self.locale)
+
         # load Stopwords object
         self.stopwords = stopwords.StopWords( "file://%s" % self.options.stopwords )
+
+        # connect sqlite database
+        self.options.storage = "sqlite://"+self.options.storage
+        self.storage = Engine(self.options.storage)
+
+        # connect to text-index
+        self.index = indexer.TinaIndex(self.options.index)
+
+
+class TinaAnalyze(TinaApp):
+    def __init__(self):
+        TinaApp.__init__(self)
         # copy input to output, and format both dbi strings
         shutil.copy( self.options.input, self.options.output )
-        self.options.input = "sqlite://"+self.options.input
         self.options.output = "sqlite://"+self.options.output
         # connection to both databases
-        self.read = Engine(self.options.input)
+        self.read = self.options.storage
         self.write = Engine(self.options.output)
 
     def walkCorpora(self):
@@ -63,15 +72,9 @@ class TinaAnalyze:
     def saveStopwords(self):
         self.stopwords.savePickle( self.options.outputstopwords )
 
-class TinaExtract:
+class TinaExtract(TinaApp):
     def __init__(self):
-
-        # import config yaml
-        try:
-            self.config = yaml.safe_load( file( "config.yaml", 'rU' ) )
-        except yaml.YAMLError, exc:
-            print "\nUnable to read ./config.yaml file : ", exc
-            return
+        TinaApp.__init__(self)
 
         # command-line parser
         parser = OptionParser()
@@ -88,26 +91,12 @@ class TinaExtract:
 
         parser.add_option("-s", "--store", dest="store", default=self.config['store'], help="storage engine, default: "+self.config['store'], metavar="ENGINE")
 
-        parser.add_option("-w", "--stopwords", dest="stopwords", default=self.config['stopwords'], help="loads stopwords from FILE, default: "+self.config['stopwords'], metavar="FILE")
-
         parser.add_option("-m", "--min", dest="minSize", default=self.config['minSize'], help="n-gram minimum size extraction, default: "+ str(self.config['minSize']))
 
         parser.add_option("-x", "--max", dest="maxSize", default=self.config['maxSize'], help="n-gram maximum size extraction, default: "+ str(self.config['maxSize']))
 
-        parser.add_option("-l", "--locale", dest="locale", default=self.config['locale'], help="Locale (text encoding), default: "+self.config['locale'])
-
         (cmdoptions, args) = parser.parse_args()
         self.options = cmdoptions
-        # tries support of the locale by the host system
-        try:
-            self.locale = self.options.locale
-            locale.setlocale(locale.LC_ALL, self.locale)
-        except:
-            self.locale = 'en_US.UTF-8'
-            print "locale %s was not found, switching to en_US.UTF-8 by default", self.options.locale
-            locale.setlocale(locale.LC_ALL, self.locale)
-        # load Stopwords object
-        self.stopwords = stopwords.StopWords( "file://%s" % self.options.stopwords )
         # format sqlite dbi string
         if not self.options.store == ":memory:":
             self.options.store = "tina://"+self.options.directory+"/"+self.options.store
@@ -197,5 +186,3 @@ class TinaExtract:
                 print "couldn't zip project folder '%s'. please do it manually" % self.options.directory
 
 
-class TinaCoword():
-    pass

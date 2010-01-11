@@ -4,7 +4,6 @@ __date__ ="$Oct 20, 2009 5:30:11 PM$"
 
 __all__ = ["indexer","app", "corpora", "corpus", "document", "ngram", "tokenizer", "tagger", "cooccurrences", "stopwords"]
 
-
 class PyTextMiner:
 
     """

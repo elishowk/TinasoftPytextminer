@@ -20,6 +20,7 @@ class TinaSchema(Schema):
 class TinaIndex():
     """
     Open or Create a whoosh index
+    Provides searching methods
     """
 
     def __init__( self, indexdir ):

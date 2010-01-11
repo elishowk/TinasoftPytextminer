@@ -25,6 +25,7 @@ directory: "output"
 output: "statistics.zip"
 zip: "zip"
 name: "test tinaExtract"
-store: "out.db"
+storage: "out.db"
 stopwords: "shared/stopwords/en.txt"
 corpus: 7
+index: 'index/'

@@ -18,14 +18,17 @@ class TestsTestCase(unittest.TestCase):
         return
 
     def test_unit(self):
-        #print corpora.Corpora( name='test' )
-        print corpus.Corpus( name='test' ).id
-        print document.Document( content='testcontent', docNum=1 ).id
-        print ngram.NGram( content=['test', 'ngram'] ).id
+        print corpora.Corpora( 'testName' )
+        print corpus.Corpus( 'testId' ).id
+        print document.Document( 'testcontent', 'testDocNum', 'testTitle' ).id
+        print ngram.NGram( ['test', 'ngram'] ).id
+        print tokenizer.RegexpTokenizer()
         print tokenizer.TreeBankWordTokenizer()
-        print coword.ThreadedAnalysis()
+        print cooccurrences.ThreadedAnalysis()
         print tagger.TreeBankPosTagger()
         print stopwords.StopWords( arg="file://shared/stopwords/en.txt" )
+        print indexer.TinaIndex('tests/')
+        print app.TinaApp()
         print "end of unit tests";
 
     def test_import_csv(self):
