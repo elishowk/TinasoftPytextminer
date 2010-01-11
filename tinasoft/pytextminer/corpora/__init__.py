@@ -1,16 +1,13 @@
 # -*- coding: utf-8 -*-
 __author__="Elias Showk"
 
-class Corpora:
+from tinasoft.pytextminer import PyTextMiner
+
+class Corpora(PyTextMiner):
     """Corpora contains a list of a corpus"""
-    
-    def __init__(self, name, corpora=None):
-        # by convention, name is a primary key
-        self.name = name
+
+    def __init__(self, name, corpora=None, **metas):
         # list of corpus id
         if corpora is None:
             corpora = []
-        self.corpora = corpora
-        
-    def __str__(self):
-        return self.name
+        PyTextMiner.__init__(self, corpora, name, name, **metas)

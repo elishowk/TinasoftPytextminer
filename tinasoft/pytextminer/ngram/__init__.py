@@ -6,8 +6,10 @@ from tinasoft.pytextminer import PyTextMiner
 
 class NGram(PyTextMiner):
     """NGram class"""
-    def __init__(self, content, **metas):
-        PyTextMiner.__init__(self, content=content, id=None, **metas)
+    def __init__(self, content, id=None, label=None, **metas):
+        if label is None:
+            label = " ".join(content)
+        PyTextMiner.__init__(self, content, id, label, **metas)
 
 
 # WARNING : OBSOLETE !!!

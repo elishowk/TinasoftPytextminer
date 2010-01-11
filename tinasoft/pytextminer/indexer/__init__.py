@@ -5,15 +5,16 @@ import os, os.path
 from whoosh.index import *
 from whoosh.fields import *
 from whoosh.filedb.filestore import FileStorage
+from whoosh.query import *
 
 
 class TinaSchema(Schema):
     def __init__(self):
-       Schema.__init__( self,
-               label=TEXT(stored=True),
-               id=ID(unique=True, stored=True),
-               content=TEXT(stored=True),
-               date=TEXT(stored=True),
+        Schema.__init__( self,
+            label=TEXT(stored=True),
+            id=ID(unique=True, stored=True),
+            content=TEXT(stored=True),
+            date=TEXT(stored=True),
             )
 
 class TinaIndex():
@@ -40,11 +41,22 @@ class TinaIndex():
             print "index LockError %s : "%self.indexdir, le
             raise LockError(le)
 
-    def search( self, documentId ):
-        searcher = self.index.searcher()
-        return searcher.find( "id", documentId )
+    def getSearcher( self ):
+        return self.index.searcher()
 
-    def documentToDict( self, document ):
+    def searchDoc( self, documentId, field='id' ):
+        searcher = self.getSearcher()
+        return searcher.find( field, documentId )
+
+    def searchCooc( self, ngrams, field='content' ):
+        searcher = self.getSearcher()
+        coocReq = And( [Phrase(field, ngram) for ngram in ngrams] )
+        return searcher.search(coocReq)
+
+    def countCooc( self, ngrams, field='content' ):
+        return len(self.searchCooc( ngrams, field ))
+
+    def objectToDict( self, document ):
         return {
             'label' : document.label,
             'id' : document.id,
@@ -61,11 +73,11 @@ class TinaIndex():
         writer = self.index.writer()
         for document in docList:
             if overwrite is True:
-				self.write( document, writer )
+                self.write( document, writer )
             else:
-                res = self.search( document.id )
+                res = self.searchDoc( document.id, 'id' )
                 if len( res ) == 0:
-                    docDict = self.documentToDict( document )
+                    docDict = self.objectToDict( document )
                     writer.add_document( **docDict )
                 else:
                     notIndexedDocs += [ document ]

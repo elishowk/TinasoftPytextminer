@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from tinasoft.pytextminer import corpora, corpus, document, ngram, tokenizer, tagger, coword, stopwords
+from tinasoft.pytextminer import corpora, corpus, document, ngram, tokenizer, tagger, cooccurrences, stopwords
 
 from tinasoft.data import *
 from tinasoft.data import Reader, Writer, Engine
@@ -34,10 +34,10 @@ class TinaAnalyze:
         parser.add_option("-w", "--stopwords", dest="stopwords", default="shared/stopwords/en.txt", help="stopwords file", metavar="FILE")
         parser.add_option("-f", "--output-stopwords", dest="outputstopwords", default="tests/output-stopwords.pickle", help="output stopwords file", metavar="FILE")
         parser.add_option("-l", "--locale", dest="locale", default=self.config['locale'], help="Locale (text encoding), default: "+self.config['locale'])
-        
+
         (cmdoptions, args) = parser.parse_args()
         self.options = cmdoptions
-        
+
         # tries support of the locale by the host system
         try:
             self.locale = self.options.locale
@@ -76,7 +76,7 @@ class TinaExtract:
         # command-line parser
         parser = OptionParser()
         parser.add_option("-i", "--input", dest="input", default=self.config['input'], help="read input data from FILE, default: "+self.config['input'], metavar="FILE")
-               
+
         parser.add_option("-d", "--dir", dest="directory", default=self.config['directory'], help="write output files to DIR, default: "+self.config['directory'], metavar="DIR")
 
         parser.add_option("-o", "--output", dest="output", default=self.config['output'],
@@ -87,7 +87,7 @@ class TinaExtract:
         parser.add_option("-n", "--name", dest="corpora", default=self.config['name'], help="Corpora identifier or name, default: "+self.config['name'], metavar="NAME")
 
         parser.add_option("-s", "--store", dest="store", default=self.config['store'], help="storage engine, default: "+self.config['store'], metavar="ENGINE")
-         
+
         parser.add_option("-w", "--stopwords", dest="stopwords", default=self.config['stopwords'], help="loads stopwords from FILE, default: "+self.config['stopwords'], metavar="FILE")
 
         parser.add_option("-m", "--min", dest="minSize", default=self.config['minSize'], help="n-gram minimum size extraction, default: "+ str(self.config['minSize']))
@@ -111,7 +111,7 @@ class TinaExtract:
         # format sqlite dbi string
         if not self.options.store == ":memory:":
             self.options.store = "tina://"+self.options.directory+"/"+self.options.store
-        else:     
+        else:
             self.options.store = "tina://"+self.options.store
         # init of the file reader & parser
         try:
@@ -153,8 +153,8 @@ class TinaExtract:
                 for tok_tag in ng['original']:
                     tag.append( csvdumper.encode( "_".join( reversed(tok_tag) ) ) )
                 tag = " ".join( tag )
-		#print type( ng['occs'] )
-		#print type( ngid )
+        #print type( ng['occs'] )
+        #print type( ngid )
                 rows.append([ '"'+ngid+'"', '"'+ng['str']+'"', str(ng['occs']), '"'+tag+'"' ])
 
             # print rows to file
@@ -172,7 +172,7 @@ class TinaExtract:
         print "Exporting a sample from document db"
         select = 'SELECT assoc.id1, doc.blob from AssocDocument as assoc JOIN Document as doc ON doc.id = assoc.id1 LIMIT 10'
         result = tinasqlite.execute(select).fetchall()
-        docList = [] 
+        docList = []
         for id in result:
             doc = tinasqlite.decode(id[1])
             ngrams = tinasqlite.fetchDocumentNGram( id[0] )
