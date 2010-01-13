@@ -13,13 +13,13 @@ from setuptools import setup,find_packages
 setup(
     #############################################
     ## Distribution Metadata
-    name = 'tinasoft.pytextminer',
+    name = 'tinasoft',
     version = '0.5',
     packages = find_packages(),
     namespace_packages = ['tinasoft'],
 
     # Declare your packages' dependencies here, for eg:
-    install_requires=['numpy', 'nltk'],
+    install_requires=['numpy', 'nltk', 'jsonpickle', 'pysqlite'],
 
     # Fill in these to make your Egg ready for upload to
     # PyPI
@@ -28,7 +28,7 @@ setup(
 
     summary = "Tinasoft's Text-Mining module providing Co-Word analysis",
     url = 'http://github.com/elishowk/PyTextMiner',
-    license = 'GPLv3',
+    license = 'GNU GPL v3',
 
     #url = PyTextMiner.__url__,
     #long_description = PyTextMiner.__longdescr__,

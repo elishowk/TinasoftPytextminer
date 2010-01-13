@@ -9,51 +9,8 @@ import locale
 from optparse import OptionParser
 import shutil
 
-# bootstrapper
-import bootstrap
-
 # configuration file
 import yaml
-
-class TinaApp:
-    """ base class for a tinasoft.pytextminer application"""
-    def __init__(self, configFile='config.yaml'):
-        # import config yaml
-        try:
-            self.config = yaml.safe_load( file( configFile, 'rU' ) )
-        except yaml.YAMLError, exc:
-            print "\nUnable to read ./config.yaml file : ", exc
-            return
-
-        # command-line parser
-        parser = OptionParser()
-        parser.add_option("-s", "--storage", dest="storage", default=self.config['storage'], help="sqlite database file", metavar="FILE")
-        parser.add_option("-w", "--stopwords", dest="stopwords", default=self.config['stopwords'], help="stopwords file or pickle or nltk stopwords", metavar="FILE")
-        parser.add_option("-l", "--locale", dest="locale", default=self.config['locale'], help="Locale (text encoding), default: "+self.config['locale'])
-        parser.add_option("-i", "--index", dest="index", default=self.config['index'], help="Text Index"+self.config['index'])
-
-        (cmdoptions, args) = parser.parse_args()
-        self.options = cmdoptions
-
-        # tries support of the locale by the host system
-        try:
-            self.locale = self.options.locale
-            locale.setlocale(locale.LC_ALL, self.locale)
-        except:
-            self.locale = 'en_US.UTF-8'
-            print "locale %s was not found, switching to en_US.UTF-8 by default", self.options.locale
-            locale.setlocale(locale.LC_ALL, self.locale)
-
-        # load Stopwords object
-        self.stopwords = stopwords.StopWords( "file://%s" % self.options.stopwords )
-
-        # connect sqlite database
-        self.options.storage = "sqlite://"+self.options.storage
-        self.storage = Engine(self.options.storage)
-
-        # connect to text-index
-        self.index = indexer.TinaIndex(self.options.index)
-
 
 class TinaAnalyze(TinaApp):
     def __init__(self):

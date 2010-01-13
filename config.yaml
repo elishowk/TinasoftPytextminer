@@ -17,7 +17,6 @@ fields:
 delimiter: ','
 quotechar: '"'
 # required and default application settings
-locale: 'en_US.UTF-8'
 minSize: 1
 maxSize: 4
 input: "tests/pubmed_tina_test.csv"
@@ -25,7 +24,9 @@ directory: "output"
 output: "statistics.zip"
 zip: "zip"
 name: "test tinaExtract"
+corpus: 7
+# TinaApp() core params
+locale: 'en_US.UTF-8'
 storage: "out.db"
 stopwords: "shared/stopwords/en.txt"
-corpus: 7
 index: 'index/'

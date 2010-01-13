@@ -5,34 +5,34 @@ import pickle
 
 class StopWords(object):
     """StopWords"""
-    
+
     def __init__(self, arg, locale='en_US.UTF-8'):
         """
         # you can pass a simple list of words
         c = StopWords(["cat","dog"])
-        
-        # normally you pass a list of n-grams with consistent length 
+
+        # normally you pass a list of n-grams with consistent length
         # eg. len = 2 for 2-grams
         c = StopWords([  ["I","like"],
                          ["you","have"] ])
-                       
+
         # but you can also pass a list of n-grams with unconsistent size
         c = StopWords([  ["dog"],
                          ["I","like"],
                          ["you","have"] ])
-            
-        # finally, you can pass a full database of ngrams                
+
+        # finally, you can pass a full database of ngrams
         c = StopWords([    [["cat"],["dog"]],
-                         
+
                            [["I","like"],["you","have"]]])"""
- 
+
         self.locale = locale
         try:
-            self.lang, self.encoding = locale.split('.') 
+            self.lang, self.encoding = locale.split('.')
         except:
             self.lang = locale.split('.')[0]
             self.encoding = 'utf-8'
-	    self.encoding = self.encoding.lower()
+        self.encoding = self.encoding.lower()
         self.words = [[]]
 
         if isinstance(arg, list):
@@ -47,7 +47,7 @@ class StopWords(object):
                 self.__nltk(path)
             elif protocol == "pickle":
                 self.__pickle(path)
-                
+
             self.protocol = protocol
 
     def __pickle(self, path):
@@ -60,6 +60,8 @@ class StopWords(object):
         except:
             raise Exception("you need to install NLTK library")
         try:
+            import nltk
+            nltk.data.path = ['shared/nltk_data']
             from nltk.corpus import stopwords
             for word in stopwords.words(lang):
                 self.add([word])
@@ -89,16 +91,16 @@ class StopWords(object):
         while len(self.words) < len(ngram) + 1:
             self.words+=[[]]
         self.words[len(ngram)] += [ ngram ]
-        
+
     def __len__(self):
         """ return the length of the ngram"""
         return len(self.words)
- 
+
     def __getitem__(self, length):
         while len(self.words) < length + 1:
             self.words+=[[]]
         return self.words[length]
-        
+
     def __contains__(self, word):
         for w in self.words:
             if w == word:
@@ -118,13 +120,13 @@ class StopWords(object):
             if len(list(set(ngram).difference(set(stopngram)))) == 0:
                 return True
         return False
-        
+
     def cleanText( self, string ):
         """Obsolete - Clean a string from its 1-grams"""
         cleaned = []
         for word in string.split(" "):
             if not self.contains([word]):
-                cleaned += [ word ] 
+                cleaned += [ word ]
         return " ".join(cleaned)
 
     def savePickle( self, filepath ):

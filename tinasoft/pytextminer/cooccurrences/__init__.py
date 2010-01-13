@@ -2,10 +2,34 @@
 __author__="Elias Showk"
 from itertools import *
 from multiprocessing import Process, Queue, Manager
+import tinasoft
 
-class ThreadedAnalysis():
+class Simple(tinasoft.TinaApp):
     """
-    A homemade coword analyzer
+    A homemade cooccurrences processor for TinaIndex()
+    """
+
+    def getCombinations(self):
+        pass
+
+    def getCorpusDocuments(self, corpus_id):
+        corpus = self.storage.loadCorpus( corpus_id )
+        if corpus is None:
+            return None
+        self.period_start = corpus[1]
+        self.period_end = corpus[2]
+        docList = self.storage.fetchCorpusDocumentID( corpus_id )
+
+        ngrams = self.storage.fetchCorpusNGramID( corpus_id )
+        documents = []
+        # TODO : thread it !
+        for docNum in docList:
+            documents.append( self.storage.fetchDocumentNGramID( docNum )  )
+
+
+class Multiprocessing(Simple):
+    """
+    Multiprocessing cooccurrences processor based on Simple()
     """
     def processDoc( self, result_queue, task_queue ):
         while task_queue.empty() is False:
@@ -42,18 +66,8 @@ class ThreadedAnalysis():
             # put a new result
             result_queue.put( newRow )
 
-    def analyseCorpus( self, store, corpusID, number_processes ):
-        corpus = store.loadCorpus( corpusID )
-        if corpus is None:
-            return None
-        period_start = corpus[1]
-        period_end = corpus[2]
-        ngrams = store.fetchCorpusNGramID( corpusID )
-        docList = store.fetchCorpusDocumentID( corpusID )
-        documents = []
-        # TODO : thread it !
-        for docNum in docList:
-            documents.append( store.fetchDocumentNGramID( docNum )  )
+    def analyseCorpus( self, store, corpus_id, number_processes ):
+        documents = self.getCorpusDocuments( corpus_id )
         manager = Manager()
         docmanager = manager.list( documents )
         del documents
@@ -82,5 +96,5 @@ class ThreadedAnalysis():
 
     def analysePeriod( self, period_start, period_end ):
         pass
-    
+
 
