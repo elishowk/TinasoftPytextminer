@@ -7,7 +7,7 @@ import string, re
 # warning : nltk imports it's own copy of pyyaml
 import nltk
 nltk.data.path = ['shared/nltk_data']
-from tinasoft.pytextminer import PyTextMiner
+from tinasoft.pytextminer import ngram
 
 class RegexpTokenizer():
     """
@@ -103,27 +103,25 @@ class TreeBankWordTokenizer(RegexpTokenizer):
 
     @staticmethod
     def ngramize( minSize, maxSize, tokens, emptyString, stopwords=None ):
+        """
+            tokens is a list of sentences
+            containing a list of words = [word,postag]
+        """
         ngrams = {}
-        ptm = PyTextMiner()
         for n in range( minSize, maxSize +1 ):
             for sent in tokens:
                 for i in range(len(sent)):
                     if len(sent) >= i+n:
-                        normalNgram = ptm.normalizeList( sent[i:n+i] )
-                        if stopwords is None or stopwords.contains( normalNgram ) is False:
-                            representation = emptyString.join( normalNgram )
-                            id = ptm.getId(normalNgram)
+                        postaggedContent = sent[i:n+i]
 
+                        ng = ngram.NGram( postaggedContent, occs = 1, postag = postaggedContent )
+                        #normalNgram = ptm.normalizeList( sent[i:n+i] )
+                        if stopwords is None or stopwords.contains( ng.content ) is False:
+                            #representation = emptyString.join( normalNgram )
+                            #id = ptm.getId(normalNgram)
                             # if ngrams already exists in document, only increments occs
-                            if id in ngrams:
-                                ngrams[ id ]['occs'] += 1
+                            if ng.id in ngrams:
+                                ngrams[ ng.id ].occs += 1
                             else:
-                                newngram = {
-                                    'ngram' : normalNgram,
-                                    'original' : sent[i:n+i],
-                                    'occs' : 1,
-                                    'str' : representation,
-                                }
-                                newngram['id'] = id
-                                ngrams[ newngram['id'] ] = newngram
+                                ngrams[ ng.id ] = ng
         return ngrams

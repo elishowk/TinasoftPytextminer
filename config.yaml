@@ -12,7 +12,7 @@ fields:
   dateField: 'date'
 #  dateStartField: 'doc_date_start'
 #  dateEndField: 'doc_date_end'
-  keywordsField: 'doc_keywords'
+  #keywordsField: 'doc_keywords'
 # csv format
 delimiter: ','
 quotechar: '"'
@@ -23,10 +23,11 @@ input: "tests/pubmed_tina_test.csv"
 directory: "output"
 output: "statistics.zip"
 zip: "zip"
-name: "test tinaExtract"
+name: "tina extract test"
 corpus: 7
 # TinaApp() core params
 locale: 'en_US.UTF-8'
-storage: "out.db"
+storage: "tests/out.db"
+outdb: "out.db"
 stopwords: "shared/stopwords/en.txt"
 index: 'index/'

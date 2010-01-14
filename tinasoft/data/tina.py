@@ -40,29 +40,28 @@ class Exporter (sqlite.Engine):
                 emptyString = document.ngramEmpty,
                 stopwords = stopwords,
             )
-            #self.storemanyNGram( docngrams.values() )
             assocDocIter = []
             for ngid, ng in docngrams.iteritems():
-                docOccs = ng['occs']
-                del ng['occs']
-                assocDocIter.append( ( ngid, int(documentNum), docOccs ) )
-                # update corpusngrams index
+                # save doc occs and delete
+                docOccs = ng.occs
+                del ng.occs
+                assocDocIter.append( ( ng.id, document.id, docOccs ) )
+                # update corpusngrams index, replacing occs with corpus occs
                 if ngid in corpusngrams:
-                    corpusngrams[ ngid ]['occs'] += 1
+                    corpusngrams[ ngid ].occs += 1
                 else:
+                    ng.occs = 1
                     corpusngrams[ ngid ] = ng
-                    corpusngrams[ ngid ]['occs'] = 1
             del docngrams
-            self.storemanyAssocNGramDocument( assocDocIter )
+            self.insertmanyAssocNGramDocument( assocDocIter )
             # clean full text before DB storage
             document.content = ""
             document.tokens = []
-            #document.targets = []
-            datestamp = document.datestamp
-            self.storeDocument( documentNum, datestamp, document )
+            document.targets = []
+            self.insertDocument( document.id, document.date, document )
 
         # anyway, insert a new Doc-Corpus association
-        self.storeAssocDocument( documentNum, corpusNum )
+        self.insertAssocDocument( documentNum, corpusNum )
         return corpusngrams
 
     def importCorpus(self,
@@ -75,7 +74,7 @@ class Exporter (sqlite.Engine):
         docDict):
         corpusngrams = {}
         # Documents processing
-        for documentNum in corpus.documents:
+        for documentNum in corpus.content:
             # get the document object
             document = docDict[ documentNum ]
             corpusngrams = self.importDocument( tokenizer, tagger, stopwords, document, documentNum, corpusngrams, corpusNum )
@@ -85,20 +84,27 @@ class Exporter (sqlite.Engine):
             print ">> %d documents left to import\n" % len( docDict )
         # end of document extraction
         # filter NGrams, keeps the corpus-wide value in ng ['occs']
+        print "NGRAMS BEFORE BAD FILTER ", len(corpusngrams.items())
         ( corpusngrams, delList, assocNgramIter ) = ngram.NGramHelpers.filterUnique( corpusngrams, 1, corpusNum, self.encode )
+        #print "NGRAMS THAT WILL BE DELETED ", len(delList)
         # stores the corpus, ngrams and corpus-ngrams associations
-        self.storemanyNGram( corpusngrams.items() )
-        self.storemanyAssocNGramCorpus( assocNgramIter )
-        self.storeCorpus( corpusNum, corpus.period_start, corpus.period_end, corpus )
-        self.storeAssocCorpus( corpusNum, corpora.name )
+        print "NGRAMS THAT WILL BE STORED ", len(corpusngrams.items())
+        self.insertmanyNGram( corpusngrams.items() )
+        print "AssocNGramCorpus THAT WILL BE STORED ", len(assocNgramIter)
+        self.insertmanyAssocNGramCorpus( assocNgramIter )
+        self.insertCorpus( corpusNum, corpus.period_start, corpus.period_end, corpus )
+        self.insertAssocCorpus( corpus.id, corpora.id )
         # removes inexistant ngram-document associations
-        self.cleanAssocNGramDocument( corpusNum )
+        #self.cleanAssocNGramDocument( corpusNum )
         # destroys Corpus-NGram dict
         del corpusngrams
         return docDict
 
 
 class Importer (basecsv.Importer):
+
+    docDict = {}
+    corpusDict = {}
 
     def corpora( self, corpora ):
         for doc in self.csv:
@@ -151,21 +157,21 @@ class Importer (basecsv.Importer):
             print "Error parsing doc %d from corpus %d : %s\n" % (docNum, corpusNum, exc)
             return None
         # parsing optional fields loop and TRY
-        for key, field in tmpfields.iteritems():
+        for field in tmpfields.itervalues():
             try:
-                docArgs[ key ] = self.decode( doc[ field ] )
+                docArgs[ field ] = self.decode( doc[ field ] )
             except Exception, exc:
                 print "warning : unable to parse optional field %s in document %s : %s" % (field, docNum, exc)
-        if 'dateField' in docArgs:
-            datestamp = docArgs[ 'dateField' ]
-        else:
-            datestamp = None
+        #if 'dateField' in docArgs:
+        #    datestamp = docArgs[ 'dateField' ]
+        #else:
+        #    datestamp = None
 
         doc = document.Document(
             content,
-            datestamp,
             docNum,
             title,
+            #datestamp=datestamp,
             ngramMin=self.minSize,
             ngramMax=self.maxSize,
             **docArgs

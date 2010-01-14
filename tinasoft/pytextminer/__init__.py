@@ -35,7 +35,7 @@ class PyTextMiner:
             raise ValueError
             return None
 
-    def normalizeList(self, lst):
-        def normalizePOS(lst):
-            return lst[0].lower()
-        return map( normalizePOS, lst )
+    #def normalizeList(self, lst):
+    #    def normalizePOS(lst):
+    #        return lst[0].lower()
+    #    return map( normalizePOS, lst )

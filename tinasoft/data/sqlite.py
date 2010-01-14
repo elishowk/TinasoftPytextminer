@@ -26,6 +26,7 @@ class Backend(Handler):
         self.path = path
         self.loadOptions(opts)
         self.lang,self.encoding = self.locale.split('.')
+        print "connecting to %s"%path
         self._db = sqlite3.connect(path)
         self.cursor = self._db.cursor
         self.commit = self._db.commit
@@ -163,21 +164,22 @@ class Engine(Backend, Api):
         req = self.insertNGramStmt()
         self.safewritemany( req, iter )
 
-    # storeXXX() are deprecated
-    def storeCorpora(self,  id, corpora ):
-        return self.insertCorpora( id, corpora )
+    ### storeXXX() are deprecated
+    #def storeCorpora(self,  id, corpora ):
+    #    return self.insertCorpora( id, corpora )
 
-    def storeCorpus(self, id, period_start, period_end, corpus ):
-        return self.insertCorpus( id, period_start, period_end, corpus )
+    #def storeCorpus(self, id, period_start, period_end, corpus ):
+    #    return self.insertCorpus( id, period_start, period_end, corpus )
 
-    def storeDocument(self, id, datestamp, document ):
-        return self.insertDocument( id, datestamp, document )
+    #def storeDocument(self, id, datestamp, document ):
+    #    return self.insertDocument( id, datestamp, document )
 
-    def storeNGram(self, id, ngram ):
-        return self.insertNGram( id, ngram )
+    #def storeNGram(self, id, ngram ):
+    #    return self.insertNGram( id, ngram )
 
-    def storemanyNGram( self, iter ):
-        return self.insertmanyNGram( iter )
+    #def storemanyNGram( self, iter ):
+    #    return self.insertmanyNGram( iter )
+    ###
 
     def insertAssoc(self, assocname, tuple ):
         req = self.insertAssocStmt( assocname )
@@ -219,10 +221,10 @@ class Engine(Backend, Api):
     def deletemanyAssocNGramCorpus( self, iter ):
         return self.deletemanyAssoc( iter, 'AssocNGramCorpus' )
 
-    def cleanAssocNGramDocument( self, corpusNum ):
-        req = self.cleanAssocNGramDocumentStmt()
-        arg = [corpusNum]
-        return self.safewrite(req, arg)
+    #def cleanAssocNGramDocument( self, corpusNum ):
+    #    req = self.cleanAssocNGramDocumentStmt()
+    #    arg = [corpusNum]
+    #    return self.safewrite(req, arg)
 
     def loadCorpora(self, id ):
         req = self.loadCorporaStmt()
@@ -311,3 +313,17 @@ class Engine(Backend, Api):
         #        results.append( id[0] )
         #return results
 
+    def dropTables( self ):
+        for drop in self.dropTablesStmt():
+            self.execute( drop )
+        self.commit()
+
+
+    def createTables( self ):
+        for create in self.createTablesStmt():
+            self.execute( create )
+        self.commit()
+
+    def clear( self ):
+        self.dropTables()
+        self.createTables()

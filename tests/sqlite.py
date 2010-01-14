@@ -22,11 +22,19 @@ class TestsTestCase(unittest.TestCase):
         print self.tinasoft.storage.loadDocument( u'200440' )
         print self.tinasoft.storage.loadNGram( u'1837760514' )
         # corpus 2
-        rep = self.tinasoft.storage.fetchCorpusNGram( u'2' ).fetchall()
-        self.assertEqual( len(rep), 2333)
+        repJoin = self.tinasoft.storage.fetchCorpusNGram( u'2' ).fetchall()
+        self.assertEqual( len(repJoin), 2333)
         # corpus 2
-        rep = self.tinasoft.storage.fetchCorpusNGramID( u'2' ).fetchall()
-        self.assertEqual( len(rep), 5123)
+        repAssoc = self.tinasoft.storage.fetchCorpusNGramID( u'2' ).fetchall()
+        self.assertEqual( len(repAssoc), 5123)
+
+        for idFromAssoc in repAssoc:
+            #print idFromAssoc[0]
+            try:
+                self.assertEqual( (idFromAssoc in repJoin), True  )
+            except AssertionError, ae:
+                print "NGram %s is NOT in repJoin\n"%idFromAssoc[0]
+                print self.tinasoft.storage.loadNGram( idFromAssoc[0] )
         # document 200440
         rep = self.tinasoft.storage.fetchDocumentNGram( u'200440' ).fetchall()
         self.assertEqual( len(rep), 144)

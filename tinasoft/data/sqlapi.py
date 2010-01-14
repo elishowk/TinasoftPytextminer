@@ -4,8 +4,8 @@ class Api():
     """
     SQL API, defines sql statements and abstract methods
     """
-    def __init__(self):
-        self.tables = ['Corpora', 'Corpus', 'Document', 'NGram', 'AssocCorpus', 'AssocDocument', 'AssocNGramDocument', 'AssocNGramCorpus']
+
+    tables = ['Corpora', 'Corpus', 'Document', 'NGram', 'AssocCorpus', 'AssocDocument', 'AssocNGramDocument', 'AssocNGramCorpus']
 
     def createTablesStmt(self):
         tables = []
@@ -60,7 +60,7 @@ class Api():
         raise NotImplementedError
 
     def insertNGramStmt(self):
-        req = 'insert into NGram values (?1, ?2, ?3)'
+        req = 'insert into NGram values (?1, ?2)'
         return req
 
     def insertNGram(self, id, obj):
@@ -134,7 +134,7 @@ class Api():
         raise NotImplementedError
 
     def fetchCorpusNGramStmt(self):
-        req = ('select ng.blob from NGram as ng' \
+        req = ('select ng.id from NGram as ng' \
                 +' JOIN AssocNgramCorpus as assoc' \
                 +' ON assoc.id1=ng.id WHERE assoc.id2 = ?1')
         return req
