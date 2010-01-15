@@ -17,11 +17,11 @@ class TestsTestCase(unittest.TestCase):
         stop = stopwords.StopWords( arg="file://shared/stopwords/en.txt" )
         print stop
         testngram = ['i', 'am', 'a', 'test']
-        stop.add( testngram )
+        obj = stop.add( testngram )
         stop.savePickle( 'tests/stopwords_save_test.pickle' )
         del stop
         fromPickle = stopwords.StopWords( arg="pickle://tests/stopwords_save_test.pickle" )
-        self.assertEqual( fromPickle.contains(testngram), True )
+        self.assertEqual( fromPickle.contains(obj), True )
 
 
 if __name__ == '__main__':

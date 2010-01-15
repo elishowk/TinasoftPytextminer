@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__all__ = ['basecsv', 'mozstorage', 'sqlite', 'sqlapi', 'tina']
+__all__ = ['basecsv', 'mozstorage', 'sqlite', 'sqlapi', 'tina', 'tinabsddb']
 
 import jsonpickle
 
@@ -52,8 +52,10 @@ def _check_protocol(arg):
 def Engine(arg, **options):
     protocol, path = _check_protocol(arg)
     try:
-        exec("import %s as module"%protocol)
-        return module.Engine(path, **options)
+        import tinabsddb as module
+        return module.Engine(path)
+        #exec("import %s as module"%protocol)
+        #return module.Engine(path, **options)
     except Exception, exc:
         raise Exception("couldn't load engine %s: %s"%(protocol,exc))
 

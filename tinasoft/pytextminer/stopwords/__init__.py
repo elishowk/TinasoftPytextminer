@@ -2,8 +2,9 @@
 
 import codecs
 import pickle
+from tinasoft.pytextminer import ngram as NG
 
-class StopWords(object):
+class StopWords( object ):
     """StopWords"""
 
     def __init__(self, arg, locale='en_US.UTF-8'):
@@ -33,7 +34,7 @@ class StopWords(object):
             self.lang = locale.split('.')[0]
             self.encoding = 'utf-8'
         self.encoding = self.encoding.lower()
-        self.words = [[]]
+        self.words = [{}]
 
         if isinstance(arg, list):
             self.__list(arg)
@@ -85,12 +86,16 @@ class StopWords(object):
             for word in lst:
                 self.add([word])
 
-    def add(self, ngram):
-        if not isinstance(ngram,list):
-            raise Exception("%s is not a valid ngram (not a list)"%ngram)
-        while len(self.words) < len(ngram) + 1:
-            self.words+=[[]]
-        self.words[len(ngram)] += [ ngram ]
+    def add(self, stopng):
+        """ngram must be a list of words"""
+        if not isinstance(stopng,list):
+            raise Exception("%s is not a valid ngram (not a list)"%stopng)
+        while len(self.words) < len(stopng) + 1:
+            self.words+=[{}]
+        stopngobj = NG.StopNGram( stopng )
+        #print stopngobj.id, type(stopngobj.id), stopngobj.label
+        self.words[len(stopng)][ stopngobj.id ] = stopngobj
+        return stopngobj
 
     def __len__(self):
         """ return the length of the ngram"""
@@ -98,29 +103,18 @@ class StopWords(object):
 
     def __getitem__(self, length):
         while len(self.words) < length + 1:
-            self.words+=[[]]
+            self.words+=[{}]
         return self.words[length]
 
-    def __contains__(self, word):
-        for w in self.words:
-            if w == word:
-                return True
-        return False
+    def contains(self, ngramobj):
+        """Check if a ngram match the base given its unique NGram.id"""
+        # stops if the ngramid equals stopngid
+        if ngramobj.id in self[len(ngramobj.content)]:
+            return True
+        else:
+            return False
 
-    def contains(self, ngram):
-        """Check if a given ngram match the base"""
-        try:
-            t = ngram[0]
-        except:
-            raise Exception("%s is not a valid ngram"%ngram)
-        for stopngram in self[len(ngram)]:
-            # stops if the ngram equals stopngram
-            # do not stops if types are unicode and str
-            # prefered is unicode against unicode
-            if len(list(set(ngram).difference(set(stopngram)))) == 0:
-                return True
-        return False
-
+    ### obsolete
     def cleanText( self, string ):
         """Obsolete - Clean a string from its 1-grams"""
         cleaned = []

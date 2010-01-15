@@ -83,12 +83,12 @@ class Exporter (sqlite.Engine):
             # TODO modulo 10 docs
             print ">> %d documents left to import\n" % len( docDict )
         # end of document extraction
-        # filter NGrams, keeps the corpus-wide value in ng ['occs']
-        print "NGRAMS BEFORE BAD FILTER ", len(corpusngrams.items())
-        ( corpusngrams, delList, assocNgramIter ) = ngram.NGramHelpers.filterUnique( corpusngrams, 1, corpusNum, self.encode )
+        print "NGRAMS BEFORE BAD FILTER ", len(corpusngrams)
+        ( corpusngrams, delList, assocNgramIter ) = ngram.NGramHelpers.filterUnique( corpusngrams, 2, corpusNum, self.encode )
         #print "NGRAMS THAT WILL BE DELETED ", len(delList)
         # stores the corpus, ngrams and corpus-ngrams associations
-        print "NGRAMS THAT WILL BE STORED ", len(corpusngrams.items())
+        print "NGRAMS THAT WILL BE STORED ", len(corpusngrams)
+        print corpusngrams.items()[0]
         self.insertmanyNGram( corpusngrams.items() )
         print "AssocNGramCorpus THAT WILL BE STORED ", len(assocNgramIter)
         self.insertmanyAssocNGramCorpus( assocNgramIter )

@@ -48,9 +48,9 @@ class TinaApp():
 
         # connect sqlite database
         if storage is None:
-            self.storage = Engine("sqlite://"+self.config['storage'])
+            self.storage = Engine(self.config['storage'])
         else:
-            self.storage = Engine("sqlite://"+storage)
+            self.storage = Engine(storage)
 
         # connect to text-index
         if index is None:

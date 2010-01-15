@@ -27,7 +27,7 @@ name: "tina extract test"
 corpus: 7
 # TinaApp() core params
 locale: 'en_US.UTF-8'
-storage: "tests/out.db"
+storage: "sqlite://tests/out.db"
 outdb: "out.db"
 stopwords: "shared/stopwords/en.txt"
 index: 'index/'

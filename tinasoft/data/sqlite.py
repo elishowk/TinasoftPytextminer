@@ -29,6 +29,7 @@ class Backend(Handler):
         print "connecting to %s"%path
         self._db = sqlite3.connect(path)
         self.cursor = self._db.cursor
+        # deprecated : using try/except automaticcaly commit and rollbak
         self.commit = self._db.commit
 
     def execute(self, *args):
@@ -53,7 +54,8 @@ class Backend(Handler):
     def saferead( self, req, tuple ):
         """returns a sqlite3 cursor or catches exceptions"""
         try:
-            return self.execute(req, tuple)
+            with self._db:
+                return self._db.execute(req, tuple)
         except sqlite3.IntegrityError, e1:
             print "OBJECT Integrity error:",e1,req
             return None
@@ -76,8 +78,8 @@ class Backend(Handler):
 
     def safewrite( self, req, tuple ):
         try:
-            self.execute(req, tuple)
-            self.commit()
+            with self._db:
+                self._db.execute(req, tuple)
         except sqlite3.IntegrityError, e1:
             print "OBJECT Integrity error:",e1,req
             return False
@@ -88,10 +90,10 @@ class Backend(Handler):
 
     def safewritemany( self, req, iter ):
         try:
-            self.executemany( req, iter )
-            self.commit()
-        except sqlite3.IntegrityError, e1:
-            print "OBJECT Integrity error:",e1,req
+            with self._db:
+                self._db.executemany(req, iter)
+        except sqlite3.Error, e1:
+            print "sqlite3 error ",e1,req
             return False
         except sqlite3.OperationalError, e2:
             print "OBJECT Operational error:",e2,req
@@ -163,23 +165,6 @@ class Engine(Backend, Api):
     def insertmanyNGram(self, iter):
         req = self.insertNGramStmt()
         self.safewritemany( req, iter )
-
-    ### storeXXX() are deprecated
-    #def storeCorpora(self,  id, corpora ):
-    #    return self.insertCorpora( id, corpora )
-
-    #def storeCorpus(self, id, period_start, period_end, corpus ):
-    #    return self.insertCorpus( id, period_start, period_end, corpus )
-
-    #def storeDocument(self, id, datestamp, document ):
-    #    return self.insertDocument( id, datestamp, document )
-
-    #def storeNGram(self, id, ngram ):
-    #    return self.insertNGram( id, ngram )
-
-    #def storemanyNGram( self, iter ):
-    #    return self.insertmanyNGram( iter )
-    ###
 
     def insertAssoc(self, assocname, tuple ):
         req = self.insertAssocStmt( assocname )
@@ -314,9 +299,17 @@ class Engine(Backend, Api):
         #return results
 
     def dropTables( self ):
-        for drop in self.dropTablesStmt():
-            self.execute( drop )
-        self.commit()
+        try:
+            with self._db:
+                for drop in self.dropTablesStmt():
+                    self.execute( drop )
+        except sqlite3.IntegrityError, e1:
+            print "OBJECT Integrity error:",e1,req
+            return False
+        except sqlite3.OperationalError, e2:
+            print "OBJECT Operational error:",e2,req
+            return False
+        return True
 
 
     def createTables( self ):

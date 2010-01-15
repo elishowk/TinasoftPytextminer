@@ -28,9 +28,9 @@ class PyTextMiner:
 
     def getId(self, content):
         if type(content).__name__ == 'list':
-            return abs( hash( "".join(content) ) )
+            return str(abs( hash( "".join(content) ) ))
         elif type(content).__name__ == 'str' or type(content).__name__ == 'unicode':
-            return abs( hash( content ) )
+            return str(abs( hash( content ) ))
         else:
             raise ValueError
             return None

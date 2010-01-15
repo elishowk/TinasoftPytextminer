@@ -31,6 +31,7 @@ class RegexpTokenizer():
         noPunct = re.sub( punct, emptyString, text )
         return noPunct
 
+    ### deprecated
     @staticmethod
     def tokenize( text, separator, emptyString, stopwords=None ):
         noPunct = RegexpTokenizer.cleanPunct( text, emptyString )
@@ -46,6 +47,7 @@ class RegexpTokenizer():
         #return cleanTokens
         return tokens
 
+    ### deprecated
     @staticmethod
     def filterBySize( words, min=2, max=255 ):
         """Filter a list of word by size
@@ -62,35 +64,32 @@ class RegexpTokenizer():
 
     @staticmethod
     def ngramize( minSize, maxSize, tokens, emptyString, stopwords=None ):
+        """
+            returns a dict of NGram instances
+            using the optional stopwords object to filter by ngram length
+            tokens = [sentence1, sentence2, etc]
+            sentences = list of words = [word,postagged_word]
+        """
         ngrams = {}
-        count=0
         for n in range( minSize, maxSize +1 ):
-            for i in range(len(tokens)):
-                if len(tokens) >= i+n:
-                    if stopwords is None or stopwords.contains( tokens[i:n+i] ) is False:
-                        representation = emptyString.join( tokens[i:n+i] )
-                        newngram = NGram(
-                                    ngram = tokens[i:n+i],
-                                    occs = 1,
-                                    strRepr = representation,
-                        )
-                        if ngrams.has_key( newngram.id ):
-                            ngrams[ newngram.id ][occs] += 1
-                        else:
-                            ngrams[ newngram.id ] = newngram
-                    else:
-                        count += 1
-        print "ngrams stopped :", count
+            for sent in tokens:
+                for i in range(len(sent)):
+                    if len(sent) >= i+n:
+                        postaggedContent = sent[i:n+i]
+                        ng = ngram.NGram( postaggedContent, occs = 1, postag = postaggedContent )
+                        if stopwords is None or stopwords.contains( ng ) is False:
+                            # if ngrams already exists in document, only increments occs
+                            if ng.id in ngrams:
+                                ngrams[ ng.id ].occs += 1
+                            else:
+                                ngrams[ ng.id ] = ng
         return ngrams
 
 class TreeBankWordTokenizer(RegexpTokenizer):
     """
     A tokenizer that divides a text into sentences
-    then cleans punctuation
-    then into tokens of alphabetic and non-alphabetic chars
-    A NGramizer that gets a list of (token, POSTAG_token) tuples
-    and constructs a dictionary of NGram objects
-    using the optional stopwords object to filter by ngram length
+    then cleans the punctuation
+    before tokenizing using nltk.TreebankWordTokenizer()
     """
     @staticmethod
     def tokenize( text, emptyString, stopwords=None ):
@@ -100,28 +99,3 @@ class TreeBankWordTokenizer(RegexpTokenizer):
             tokenize(RegexpTokenizer.cleanPunct( sent, emptyString )) \
             for sent in sentences]
         return sentences
-
-    @staticmethod
-    def ngramize( minSize, maxSize, tokens, emptyString, stopwords=None ):
-        """
-            tokens is a list of sentences
-            containing a list of words = [word,postag]
-        """
-        ngrams = {}
-        for n in range( minSize, maxSize +1 ):
-            for sent in tokens:
-                for i in range(len(sent)):
-                    if len(sent) >= i+n:
-                        postaggedContent = sent[i:n+i]
-
-                        ng = ngram.NGram( postaggedContent, occs = 1, postag = postaggedContent )
-                        #normalNgram = ptm.normalizeList( sent[i:n+i] )
-                        if stopwords is None or stopwords.contains( ng.content ) is False:
-                            #representation = emptyString.join( normalNgram )
-                            #id = ptm.getId(normalNgram)
-                            # if ngrams already exists in document, only increments occs
-                            if ng.id in ngrams:
-                                ngrams[ ng.id ].occs += 1
-                            else:
-                                ngrams[ ng.id ] = ng
-        return ngrams
