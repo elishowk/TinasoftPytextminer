@@ -32,8 +32,8 @@ class Handler (object):
     def serialize(self, obj):
         return jsonpickle.encode(obj)
 
-    def deserialize(self, buf):
-        obj= jsonpickle.decode(str(buf))
+    def deserialize(self, str):
+        obj= jsonpickle.decode(str)
         #print "deserialized object", obj
         return obj
 

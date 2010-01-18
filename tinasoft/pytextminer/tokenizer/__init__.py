@@ -76,7 +76,7 @@ class RegexpTokenizer():
                 for i in range(len(sent)):
                     if len(sent) >= i+n:
                         postaggedContent = sent[i:n+i]
-                        ng = ngram.NGram( postaggedContent, occs = 1, postag = postaggedContent )
+                        ng = ngram.NGram( sent[i:n+i], occs = 1, postag = postaggedContent )
                         if stopwords is None or stopwords.contains( ng ) is False:
                             # if ngrams already exists in document, only increments occs
                             if ng.id in ngrams:

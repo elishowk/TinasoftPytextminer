@@ -43,9 +43,9 @@ class Backend(Handler):
         # the python buffer() conversion of an str
         return sqlite3.Binary( self.serialize(data) )
 
-    def decode( self, data ):
+    def decode( self, buf ):
         # sqlite3 blob returns a python buffer type
-        return self.deserialize( str(data) )
+        return self.deserialize( str(buf) )
 
     # TODO asynchron calls
     #def setCallback(self, cb):

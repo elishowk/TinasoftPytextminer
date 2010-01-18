@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from tinasoft.data import Handler
-import bsddb
+from bsddb3 import db
+import re
 
 # LOW-LEVEL BACKEND
 class Backend(Handler):
@@ -17,9 +18,16 @@ class Backend(Handler):
         self.path = path
         self.loadOptions(opts)
         self.lang,self.encoding = self.locale.split('.')
-        self._db = bsddb.btopen(path)
-        self.cursor = None
-        self.commit = None
+        try:
+            self._db = db.DB()
+            #self._db.set_flags(db.DB_DUPSORT)
+            self._db.set_flags(db.DB_AUTO_COMMIT)
+            self._db.open(path, None, db.DB_BTREE, db.DB_CREATE)
+            self.cursor = self._db.cursor
+            self.dbenv = db.DBEnv()
+            #self.commit = None
+        except db.DBError, dbe:
+            print dbe
         self.prefix = {
             'Corpora':'Corpora::',
             'Corpus':'Corpus::',
@@ -27,10 +35,15 @@ class Backend(Handler):
             'NGram':'Ngram::',
             'AssocCorpus':'AssocCorpus::',
             'AssocDocument':'AssocDocument::',
-            'AssocNGramDocument':'AssocDocument::',
+            'AssocNGramDocument':'AssocNGramDocument::',
             'AssocNGramCorpus':'AssocNGramCorpus::'
         }
 
+    def __del__(self):
+        try:
+            self._db.sync()
+        except db.DBError, dbe:
+            print dbe
 
     #def execute(self, *args):
     #    return self.cursor().execute(*args)
@@ -42,32 +55,30 @@ class Backend(Handler):
         return self.serialize(obj)
 
     def decode( self, data ):
-        return self.deserialize( data )
-
-    # TODO asynchron calls
-    #def setCallback(self, cb):
-    #    self.callback = cb
+        return self.deserialize(data)
 
     def saferead( self, key ):
         """returns a sqlite3 cursor or catches exceptions"""
         try:
             return self._db.get(key)
-        except DBError, e1:
+        except db.DBError, e1:
             print e1,req
             return None
 
-    def safereadall(self):
-        raise NotImplemented
+    def safereadall( self, smallestkey ):
+        cur = self.cursor()
+        cur.set_range( smallestkey )
+        return cur
 
     def safewrite( self, key, obj ):
         try:
-            if self._db.exists(key) is False:
-                self._db.put(key, self.encode(obj))
-                return True
-            else:
-                return False
-        except DBError, e1:
-            print e1,req
+            #txn = self.dbenv.txn_begin()
+            res = self._db.put(key, self.encode(obj), None, db.DB_OVERWRITE_DUP)
+            #txn.commit()
+            return res
+        except db.DBError, e:
+            print "DBError :", e
+            #txn.discard()
             return False
 
     def safewritemany( self, iter ):
@@ -77,40 +88,47 @@ class Backend(Handler):
     def dump(self, filename, compress=None):
         raise NotImplemented
 
-# Engine frontend
 class Engine(Backend):
 
     """
     bsddb Engine
     """
 
-    def insertCorpora(self, id, obj):
+    def insertCorpora(self, obj, id=None):
+        if id is None:
+            id = obj.id
         self.safewrite( self.prefix['Corpora']+id, obj )
 
-    def insertCorpus(self, id, period_start, period_end, obj):
+    def insertCorpus(self, obj, id=None, period_start=None, period_end=None):
+        if id is None:
+            id = obj.id
         # id, period_start, period_end, blob
         self.safewrite( self.prefix['Corpus']+id, obj )
 
     def insertmanyCorpus(self, iter):
         # id, period_start, period_end, blob
-        for key, obj in iter.iteritems():
-            self.insertCorpus( self.prefix['Corpus']+key, obj )
+        for obj in iter:
+            self.insertCorpus( obj )
 
-    def insertDocument(self, id, datestamp, obj):
+    def insertDocument(self, obj, id=None, datestamp=None):
+        if id is None:
+            id = obj.id
         # id, datestamp, blob
         self.safewrite( self.prefix['Document']+id, obj )
 
     def insertmanyDocument(self, iter):
         # id, datestamp, blob
-         for key, obj in iter.iteritems():
-            self.insertDocument( self.prefix['Document']+key, obj )
+         for obj in iter:
+            self.insertDocument( obj )
 
-    def insertNGram(self, id, obj):
+    def insertNGram(self, obj, id=None):
+        if id is None:
+            id = obj.id
         self.safewrite( self.prefix['NGram']+id, obj )
 
     def insertmanyNGram(self, iter):
-         for key, obj in iter.iteritems():
-            self.insertNGram( self.prefix['NGram']+key, obj )
+         for obj in iter:
+            self.insertNGram( obj )
 
     def insertAssoc(self, assocname, tuple ):
         raise NotImplemented
@@ -122,26 +140,36 @@ class Engine(Backend):
         raise NotImplemented
 
     def insertAssocCorpus(self, corpusID, corporaID ):
-        key = self.prefix['AssocCorpus']+corporaID
-        self.safewrite( key, corpusID )
+        corpo = self.loadCorpora( corporaID )
+        corpo['content']+=[corpusID]
+        self.insertCorpora( corpo, str(corpo['id']) )
 
     def insertAssocDocument(self, docID, corpusID ):
-        key = self.prefix['AssocDocument']+corpusID
-        self.safewrite( key, docID )
+        corpus = self.loadCorpus( corpusID )
+        corpus['content']+=[docID]
+        self.insertCorpus( corpus, str(corpus['id']) )
 
     def insertAssocNGramDocument(self, ngramID, docID, occs ):
-        key = self.prefix['AssocNGramDocument']+docID
-        self.safewrite( key, [ ngramID, occs ] )
+        doc = self.loadDocument( docID )
+        if 'ngrams' not in doc:
+            doc['ngrams']=[]
+        doc['ngrams']+=[[ngramID, occs]]
+        self.insertDocument( doc, str(doc['id']) )
 
     def insertAssocNGramCorpus(self, ngramID, corpID, occs ):
-        key = self.prefix['AssocNGramCorpus']+corpID
-        self.safewrite( key, [corpID, occs] )
+        corpus = self.loadCorpus( corpID )
+        if 'ngrams' not in corpus:
+            corpus['ngrams']=[]
+        corpus['ngrams']+=[[ngramID, occs]]
+        self.insertCorpus( corpus, str(corpus['id']) )
 
     def insertmanyAssocNGramDocument( self, iter ):
-        raise NotImplemented
+        for tup in iter:
+            self.insertAssocNGramDocument( tup[0], tup[1], tup[2] )
 
     def insertmanyAssocNGramCorpus( self, iter ):
-        raise NotImplemented
+        for tup in iter:
+            self.insertAssocNGramCorpus( tup[0], tup[1], tup[2] )
 
     def deletemanyAssocNGramDocument( self, iter ):
         raise NotImplemented
@@ -155,39 +183,41 @@ class Engine(Backend):
     #    return self.safewrite(req, arg)
 
     def loadCorpora(self, id ):
-        raise NotImplemented
+        return self.decode(self.saferead( self.prefix['Corpora']+id ))
 
     def loadCorpus(self, id ):
-        raise NotImplemented
+        return self.decode(self.saferead( self.prefix['Corpus']+id ))
 
     def loadDocument(self, id ):
-        raise NotImplemented
+        return self.decode(self.saferead( self.prefix['Document']+id ))
 
     def loadNGram(self, id ):
-        raise NotImplemented
+        return self.decode(self.saferead( self.prefix['NGram']+id ))
 
-    def fetchCorpusNGram( self, corpusid ):
+    def fetchCorpusNGram( self, corpusid ): 
         raise NotImplemented
 
     def fetchCorpusNGramID( self, corpusid ):
-        raise NotImplemented
+        corpus = self.loadCorpus( corpusid )
+        return corpus['ngrams']
 
     def fetchDocumentNGram( self, documentid ):
         raise NotImplemented
 
     def fetchDocumentNGramID( self, documentid ):
-        raise NotImplemented
+        doc = self.loadDocument( documentid )
+        return doc['ngrams']
 
     def fetchCorpusDocumentID( self, corpusid ):
-        raise NotImplemented
+        c = self.loadCorpus( corpusid )
+        return c['content']
 
     def dropTables( self ):
         raise NotImplemented
-
 
     def createTables( self ):
         raise NotImplemented
 
     def clear( self ):
-        raise NotImplemented
+        self._db.truncate()
 

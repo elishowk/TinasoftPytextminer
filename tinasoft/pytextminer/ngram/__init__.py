@@ -7,17 +7,14 @@ from tinasoft.pytextminer import PyTextMiner
 class NGram(PyTextMiner):
     """NGram class"""
     def __init__(self, content, id=None, label=None, **metas):
-        # normalize and separate postag
+        # normalize
         content = self.normalize(content)
-        content = map( lambda tok: tok[0], content )
         if label is None:
             label = " ".join(content)
         PyTextMiner.__init__(self, content, id, label, **metas)
 
     def normalize( self, ng ):
-        def normalizePOS(lst):
-            return lst[0].lower()
-        return map( normalizePOS, ng )
+        return [tok.lower() for tok in ng]
 
 class StopNGram(NGram):
     """NGram class"""

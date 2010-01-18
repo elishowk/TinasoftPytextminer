@@ -134,7 +134,7 @@ class Api():
         raise NotImplementedError
 
     def fetchCorpusNGramStmt(self):
-        req = ('select ng.id from NGram as ng' \
+        req = ('select ng.blob from NGram as ng' \
                 +' JOIN AssocNgramCorpus as assoc' \
                 +' ON assoc.id1=ng.id WHERE assoc.id2 = ?1')
         return req
