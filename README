@@ -1,7 +1,50 @@
-PyTextMiner version 0.5
+TINASOFT
 
-A text-mining module providing CoWord analysis for Python 2.6, using multiprocessing
-Based on the following publications : http://arxiv.org/abs/0904.3154v1 & http://www.springerlink.com/content/v57686u275653nt4/
+A text-mining python module producing bottom-up ngram detection and mapping. Using NLTK the natural language processing toolkit (http://www.nltk.org/), bsddb the Berkeley DB API for storage (http://www.jcea.es/programacion/pybsddb_doc/), and whoosh the indexation engine (http://whoosh.ca), it provides :
+- document/corpus/ngram graphs
+- part-of-speech tagging
+- nlp based ngram extraction
+- stopword integration
+- full-text indexation
+- cooccurences calculation, and soon more types of graph proximity
+- and soon a stemmer and a lemmatizer
+
+This work is part of the European Union FP7 project TINA - FP7-ICT-2009-C : http://tina.csregistry.org/
+
+This methodology and analysis is based on the following articles by David Chavalarias (CREA; CNRS UMR 7656) and Jean-Philippe Cointet (INRA): 
+
+http://arxiv.org/abs/0904.3154v1 and http://www.springerlink.com/content/v57686u275653nt4/
+
+COPYRIGHT AND LICENSE
+
+Copyright (C) 2009-2011 European Commission FP7 project TINA - FP7-ICT-2009-C / CNRS UMR 7656 CREA (fr); project number 245412
+
+    This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by
+
+    the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+SOURCE CODE REPOSITORY
+
+	http://github.com/elishowk/TinasoftPytextminer
+
+AUTHORS
+
+- Research engineers at CREA lab (UMR 7656, CNRS)
+
+    elias showk <elishowk@nonutc.fr>
+    julian bilcke <julian.bilcke@iscpif.fr>
+
+SUPPORT AND FEEDBACK
+
+    http://github.com/elishowk/TinasoftPytextminer/issues
 
 INSTALL
 
@@ -96,33 +139,4 @@ OUTPUTS
 
 		All the above files are zipped into a single file that can be directly sent to your coworkers. This file is named 'statistics.zip' and can be found in current $WORKDIR/PyTextMiner directory.
 
-PUBLIC REPOSITORY
 
-	http://github.com/elishowk/PyTextMiner/
-
-AUTHORS
-
-    elias showk <elishowk@nonutc.fr>
-    julian bilcke <julian.bilcke@iscpif.fr>
-
-SUPPORT AND FEEDBACK
-
-    http://github.com/elishowk/PyTextMiner/issues
-	elias showk <elishowk@nonutc.fr>
-
-COPYRIGHT AND LICENSE
-
-Copyright (C) 2009-2011 TINA Project FET (euro commision INFSO) / CNRS UMR 7656 CREA (fr)
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
