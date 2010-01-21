@@ -1,6 +1,13 @@
-# PyTextminer global configuration
+# tinasoft.TinaApp configuration (YAML format)
 ---
-# PyTextMiner will ignore fields absent from the file
+# TinaApp main params
+locale: 'en_US.UTF-8'
+storage: "tinabsddb://fetopen.bsddb"
+stopwords: "shared/stopwords/en.txt"
+index: 'index/'
+# required and default tinaExtract settings
+## tinaExtract csv columns declaration
+## will ignore fields absent from the file
 fields:
   titleField: 'doc_titl'
   contentField: 'doc_abst'
@@ -12,11 +19,11 @@ fields:
   dateField: 'date'
 #  dateStartField: 'doc_date_start'
 #  dateEndField: 'doc_date_end'
-  #keywordsField: 'doc_keywords'
-# csv format
+#  keywordsField: 'doc_keywords'
+# csv reader
 delimiter: ','
 quotechar: '"'
-# required and default application settings
+# ngram extraction pramas
 minSize: 1
 maxSize: 4
 input: "tests/pubmed_tina_test.csv"
@@ -25,9 +32,5 @@ output: "statistics.zip"
 zip: "zip"
 name: "tina extract test"
 corpus: 7
-# TinaApp() core params
-locale: 'en_US.UTF-8'
-storage: "sqlite://tests/out.db"
 outdb: "out.db"
-stopwords: "shared/stopwords/en.txt"
-index: 'index/'
+

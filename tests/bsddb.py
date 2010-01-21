@@ -14,30 +14,47 @@ from tinasoft.pytextminer import *
 
 class TestsTestCase(unittest.TestCase):
     def setUp(self):
-        os.remove('tests/bsddb3.db')
-        self.tinasoft = TinaApp(configFile='config.yaml',storage='tinabsddb://tests/bsddb3.db')
-        print self.tinasoft.storage
+        return
 
     def testRead(self):
+        self.tinasoft = TinaApp(configFile='config.yaml',storage='tinabsddb://fetopen.bsddb')
+        generator = self.tinasoft.storage.select('Corpus', 'Document')
+        try:
+            record = generator.next()
+            while record:
+                if record[0].startswith('Document'):
+                    print record
+                record = generator.next()
+        except StopIteration, si:
+            return
+
+
+    def testWrite(self):
+        return
+        os.remove('tests/bsddb3.db')
+        self.tinasoft = TinaApp(configFile='config.yaml',storage='tinabsddb://tests/bsddb3.db')
         self.tinasoft.storage.insertCorpora( corpora.Corpora( 'test corpora id' ) )
         self.tinasoft.storage.insertCorpus( corpus.Corpus( 'test corpus' ) )
         # updates the previous entry
         self.tinasoft.storage.insertmanyCorpus( [corpus.Corpus( 'test corpus', period_start='2009-06-06' )] )
-        self.tinasoft.storage.insertDocument( document.Document('document testing content', '1', 'test title') )
+        self.tinasoft.storage.insertDocument( document.Document({'text':'document testing content'}, '1', 'test title') )
         # updates the previous entry
         self.tinasoft.storage.insertmanyDocument( [document.Document('document testing content', '1', 'test title 2')] )
         self.tinasoft.storage.insertNGram( ngram.NGram( ['test', 'ngram'], postag=[['test','TAG1'],['ngram','TAG2']] ))
         iter=[]
-        for i in range(0, 100):
+        iditer=[]
+        for i in range(0, 1000):
             # updates the first record
-            iter.append( ngram.NGram( ['test', 'ngram'], postag=[['test','TAG1'],['ngram','TAG2'+str(i)]] ) )
+            #iter.append( ngram.NGram( ['test', 'ngram'], postag=[['test','TAG1'],['ngram','TAG2'+str(i)]] ) )
             # creates a new record
-            iter.append( ngram.NGram( ['test', 'ngram'+str(i)], postag=[['test','TAG1'],['ngram'+str(i),'TAG2']] ) )
+            ng = ngram.NGram( ['test', 'ngram'+str(i)], postag=[['test','TAG1'],['ngram'+str(i),'TAG2']] )
+            iter.append( ng )
+            iditer.append( ng.id )
         self.tinasoft.storage.insertmanyNGram( iter )
 
         assocNGramCorpus=[]
         assocNGramDocument=[]
-        for id1 in range(1, 10):
+        for id1 in iditer:
             # creates many associations
             assocNGramCorpus.append(\
                     ( str(id1), 'test corpus', str(random.randint(0,200)) )\
@@ -48,6 +65,7 @@ class TestsTestCase(unittest.TestCase):
         self.tinasoft.storage.insertmanyAssocNGramDocument( assocNGramDocument )
         self.tinasoft.storage.insertmanyAssocNGramCorpus( assocNGramCorpus )
         print self.tinasoft.storage.fetchCorpusNGramID( 'test corpus' )
+        print self.tinasoft.storage.fetchDocumentNGramID( '1' )
 
 
 if __name__ == '__main__':

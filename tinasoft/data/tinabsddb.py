@@ -33,23 +33,10 @@ class Backend(Handler):
             'Corpus':'Corpus::',
             'Document':'Document::',
             'NGram':'Ngram::',
-            'AssocCorpus':'AssocCorpus::',
-            'AssocDocument':'AssocDocument::',
-            'AssocNGramDocument':'AssocNGramDocument::',
-            'AssocNGramCorpus':'AssocNGramCorpus::'
         }
 
     def __del__(self):
-        try:
-            self._db.sync()
-        except db.DBError, dbe:
-            print dbe
-
-    #def execute(self, *args):
-    #    return self.cursor().execute(*args)
-
-    #def executemany(self, *args):
-    #    return self.cursor().executemany(*args)
+        self._db.sync()
 
     def encode( self, obj ):
         return self.serialize(obj)
@@ -58,32 +45,38 @@ class Backend(Handler):
         return self.deserialize(data)
 
     def saferead( self, key ):
-        """returns a sqlite3 cursor or catches exceptions"""
-        try:
-            return self._db.get(key)
-        except db.DBError, e1:
-            print e1,req
-            return None
+        """returns a db entry"""
+        #try:
+        return self._db.get(key)
+        #except db.DBError, e1:
+        #    print e1
+        #    return None
 
-    def safereadall( self, smallestkey ):
+    def safereadall( self, smallestkey=None ):
+        """returns a cursor, optional smallest key"""
         cur = self.cursor()
-        cur.set_range( smallestkey )
+        if smallestkey is not None:
+            cur.set_range( smallestkey )
         return cur
 
     def safewrite( self, key, obj ):
-        try:
+        #try:
             #txn = self.dbenv.txn_begin()
-            res = self._db.put(key, self.encode(obj), None, db.DB_OVERWRITE_DUP)
+            #res = self._db.put(key, self.encode(obj), None, db.DB_OVERWRITE_DUP)
+        res = self._db.put(key, self.encode(obj))
             #txn.commit()
-            return res
-        except db.DBError, e:
-            print "DBError :", e
+        return res
+        #except db.DBError, e:
+        #    print "DBError :", e
             #txn.discard()
-            return False
+        #    return False
 
     def safewritemany( self, iter ):
         for key, obj in iter.iteritems():
             self.safewrite( key, obj )
+
+    def safedelete( self, key ):
+        self._db.delete( key )
 
     def dump(self, filename, compress=None):
         raise NotImplemented
@@ -141,26 +134,31 @@ class Engine(Backend):
 
     def insertAssocCorpus(self, corpusID, corporaID ):
         corpo = self.loadCorpora( corporaID )
-        corpo['content']+=[corpusID]
+        if 'Corpus' not in corpo['content']:
+            corpo['content']['Corpus']=[]
+        corpo['content']['Corpus']+=[corpusID]
         self.insertCorpora( corpo, str(corpo['id']) )
 
     def insertAssocDocument(self, docID, corpusID ):
         corpus = self.loadCorpus( corpusID )
-        corpus['content']+=[docID]
+        if 'Document' not in corpus['content']:
+            corpus['content']['Document']=[]
+        corpus['content']['Document']+=[docID]
         self.insertCorpus( corpus, str(corpus['id']) )
 
     def insertAssocNGramDocument(self, ngramID, docID, occs ):
         doc = self.loadDocument( docID )
-        if 'ngrams' not in doc:
-            doc['ngrams']=[]
-        doc['ngrams']+=[[ngramID, occs]]
+        print doc
+        if 'NGram' not in doc['content']:
+            doc['content']['NGram']=[]
+        doc['content']['NGram']+=[[ngramID, occs]]
         self.insertDocument( doc, str(doc['id']) )
 
     def insertAssocNGramCorpus(self, ngramID, corpID, occs ):
         corpus = self.loadCorpus( corpID )
-        if 'ngrams' not in corpus:
-            corpus['ngrams']=[]
-        corpus['ngrams']+=[[ngramID, occs]]
+        if 'NGram' not in corpus['content']:
+            corpus['content']['NGram']=[]
+        corpus['content']['NGram']+=[[ngramID, occs]]
         self.insertCorpus( corpus, str(corpus['id']) )
 
     def insertmanyAssocNGramDocument( self, iter ):
@@ -177,11 +175,6 @@ class Engine(Backend):
     def deletemanyAssocNGramCorpus( self, iter ):
         raise NotImplemented
 
-    #def cleanAssocNGramDocument( self, corpusNum ):
-    #    req = self.cleanAssocNGramDocumentStmt()
-    #    arg = [corpusNum]
-    #    return self.safewrite(req, arg)
-
     def loadCorpora(self, id ):
         return self.decode(self.saferead( self.prefix['Corpora']+id ))
 
@@ -194,23 +187,23 @@ class Engine(Backend):
     def loadNGram(self, id ):
         return self.decode(self.saferead( self.prefix['NGram']+id ))
 
-    def fetchCorpusNGram( self, corpusid ): 
+    def fetchCorpusNGram( self, corpusid ):
         raise NotImplemented
 
     def fetchCorpusNGramID( self, corpusid ):
         corpus = self.loadCorpus( corpusid )
-        return corpus['ngrams']
+        return corpus['content']['NGram']
 
     def fetchDocumentNGram( self, documentid ):
         raise NotImplemented
 
     def fetchDocumentNGramID( self, documentid ):
         doc = self.loadDocument( documentid )
-        return doc['ngrams']
+        return corpus['content']['NGram']
 
     def fetchCorpusDocumentID( self, corpusid ):
         c = self.loadCorpus( corpusid )
-        return c['content']
+        return corpus['content']['Document']
 
     def dropTables( self ):
         raise NotImplemented
@@ -220,4 +213,18 @@ class Engine(Backend):
 
     def clear( self ):
         self._db.truncate()
+
+    def select( self, minkey, maxkey=None ):
+        cursor = self.safereadall( minkey )
+        record = cursor.first()
+        while record:
+            if maxkey is None:
+                if record[0].startswith(minkey):
+                    yield ( record[0], self.decode(record[1]))
+            elif record[0] < maxkey:
+                yield ( record[0], self.decode(record[1]))
+            else:
+                return
+            record = cursor.next()
+
 

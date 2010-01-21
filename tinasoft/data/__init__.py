@@ -52,10 +52,8 @@ def _check_protocol(arg):
 def Engine(arg, **options):
     protocol, path = _check_protocol(arg)
     try:
-        import tinabsddb as module
-        return module.Engine(path)
-        #exec("import %s as module"%protocol)
-        #return module.Engine(path, **options)
+        exec("import %s as module"%protocol)
+        return module.Engine(path, **options)
     except Exception, exc:
         raise Exception("couldn't load engine %s: %s"%(protocol,exc))
 

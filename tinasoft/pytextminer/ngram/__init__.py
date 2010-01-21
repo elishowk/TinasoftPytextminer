@@ -13,8 +13,6 @@ class NGram(PyTextMiner):
             label = " ".join(content)
         PyTextMiner.__init__(self, content, id, label, **metas)
 
-    def normalize( self, ng ):
-        return [tok.lower() for tok in ng]
 
 class StopNGram(NGram):
     """NGram class"""
@@ -25,12 +23,9 @@ class StopNGram(NGram):
             label = " ".join(content)
         PyTextMiner.__init__(self, content, id, label, **metas)
 
-    def normalize( self, ng ):
-        return [x.lower() for x in ng]
-
 # WARNING : OBSOLETE !!!
 class NGramHelpers():
-
+    """Obsolete"""
     @staticmethod
     def filterUnique( rawDict, threshold, corpusNum, sqliteEncode ):
         delList = []
