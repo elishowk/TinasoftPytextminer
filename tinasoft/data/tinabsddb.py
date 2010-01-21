@@ -32,7 +32,7 @@ class Backend(Handler):
             'Corpora':'Corpora::',
             'Corpus':'Corpus::',
             'Document':'Document::',
-            'NGram':'Ngram::',
+            'NGram':'NGram::',
         }
 
     def __del__(self):
@@ -123,8 +123,17 @@ class Engine(Backend):
          for obj in iter:
             self.insertNGram( obj )
 
-    def insertAssoc(self, assocname, tuple ):
-        raise NotImplemented
+    def insertAssoc(self, load, id, target, targetID, occs, insert):
+        obj = load( id )
+        if obj is None:
+            return
+        if target not in obj['content']:
+            obj['content'][target]={}
+        if targetID in obj['content'][target]:
+            obj['content'][target][targetID]+=1
+        else:
+            obj['content'][target][targetID]=occs
+        insert( obj, str(obj['id']) )
 
     def insertmanyAssoc(self, iter, assocname):
         raise NotImplemented
@@ -132,34 +141,21 @@ class Engine(Backend):
     def deletemanyAssoc( self, iter, assocname ):
         raise NotImplemented
 
-    def insertAssocCorpus(self, corpusID, corporaID ):
-        corpo = self.loadCorpora( corporaID )
-        if 'Corpus' not in corpo['content']:
-            corpo['content']['Corpus']=[]
-        corpo['content']['Corpus']+=[corpusID]
-        self.insertCorpora( corpo, str(corpo['id']) )
+    def insertAssocCorpus(self, corpusID, corporaID, occs=1 ):
+        self.insertAssoc( self.loadCorpora, corporaID, 'Corpus', corpusID, occs, self.insertCorpora )
+        self.insertAssoc( self.loadCorpus, corpusID, 'Corpora', corporaID, occs, self.insertCorpus )
 
-    def insertAssocDocument(self, docID, corpusID ):
-        corpus = self.loadCorpus( corpusID )
-        if 'Document' not in corpus['content']:
-            corpus['content']['Document']=[]
-        corpus['content']['Document']+=[docID]
-        self.insertCorpus( corpus, str(corpus['id']) )
+    def insertAssocDocument(self, docID, corpusID, occs=1 ):
+        self.insertAssoc( self.loadCorpus, corpusID, 'Document', docID, occs, self.insertCorpus )
+        self.insertAssoc( self.loadDocument, docID, 'Corpus', corpusID, occs, self.insertDocument )
 
     def insertAssocNGramDocument(self, ngramID, docID, occs ):
-        doc = self.loadDocument( docID )
-        print doc
-        if 'NGram' not in doc['content']:
-            doc['content']['NGram']=[]
-        doc['content']['NGram']+=[[ngramID, occs]]
-        self.insertDocument( doc, str(doc['id']) )
+        self.insertAssoc( self.loadDocument, docID, 'NGram', ngramID, occs, self.insertDocument )
+        self.insertAssoc( self.loadNGram, ngramID, 'Document', docID, occs, self.insertNGram )
 
     def insertAssocNGramCorpus(self, ngramID, corpID, occs ):
-        corpus = self.loadCorpus( corpID )
-        if 'NGram' not in corpus['content']:
-            corpus['content']['NGram']=[]
-        corpus['content']['NGram']+=[[ngramID, occs]]
-        self.insertCorpus( corpus, str(corpus['id']) )
+        self.insertAssoc( self.loadCorpus, corpID, 'NGram', ngramID, occs, self.insertCorpus )
+        self.insertAssoc( self.loadNGram, ngramID, 'Corpus', corpID, occs, self.insertNGram )
 
     def insertmanyAssocNGramDocument( self, iter ):
         for tup in iter:
@@ -175,17 +171,25 @@ class Engine(Backend):
     def deletemanyAssocNGramCorpus( self, iter ):
         raise NotImplemented
 
+    def load(self, id, target):
+        read = self.saferead( self.prefix[target]+id )
+        print read
+        if read is not None:
+            return self.decode(read[1])
+        else:
+            return None
+
     def loadCorpora(self, id ):
-        return self.decode(self.saferead( self.prefix['Corpora']+id ))
+        self.load(id, 'Corpora')
 
     def loadCorpus(self, id ):
-        return self.decode(self.saferead( self.prefix['Corpus']+id ))
+        self.load(id, 'Corpus')
 
     def loadDocument(self, id ):
-        return self.decode(self.saferead( self.prefix['Document']+id ))
+        self.load(id, 'Document')
 
     def loadNGram(self, id ):
-        return self.decode(self.saferead( self.prefix['NGram']+id ))
+        self.load(id, 'NGram')
 
     def fetchCorpusNGram( self, corpusid ):
         raise NotImplemented
@@ -226,5 +230,4 @@ class Engine(Backend):
             else:
                 return
             record = cursor.next()
-
 

@@ -6,7 +6,7 @@ __date__ ="$Jan, 15 2010 5:29:16 PM$"
 
 # core modules
 import unittest
-import os
+import os, shutil
 import random
 
 from tinasoft import TinaApp
@@ -17,19 +17,34 @@ class TestsTestCase(unittest.TestCase):
         return
 
     def testRead(self):
+        """fetch all NGram object in db, tests type"""
         self.tinasoft = TinaApp(configFile='config.yaml',storage='tinabsddb://fetopen.bsddb')
-        generator = self.tinasoft.storage.select('Corpus', 'Document')
+        generator = self.tinasoft.storage.select('NGram')
         try:
             record = generator.next()
             while record:
-                if record[0].startswith('Document'):
-                    print record
+                self.assertEqual( isinstance(record[1], dict), True)
                 record = generator.next()
         except StopIteration, si:
+            print "testRead ended"
+            return
+
+    def testDelete(self):
+        self.tinasoft = TinaApp(configFile='config.yaml',storage='tinabsddb://fetopen.bsddb')
+        generator = self.tinasoft.storage.select('Ngram')
+        try:
+            record = generator.next()
+            while record:
+                self.tinasoft.storage.safedelete(record[0])
+                record = generator.next()
+        except StopIteration, si:
+            print si
             return
 
 
     def testWrite(self):
+        """tests insert/update"""
+        ### TODO TODO
         return
         os.remove('tests/bsddb3.db')
         self.tinasoft = TinaApp(configFile='config.yaml',storage='tinabsddb://tests/bsddb3.db')
@@ -66,6 +81,20 @@ class TestsTestCase(unittest.TestCase):
         self.tinasoft.storage.insertmanyAssocNGramCorpus( assocNGramCorpus )
         print self.tinasoft.storage.fetchCorpusNGramID( 'test corpus' )
         print self.tinasoft.storage.fetchDocumentNGramID( '1' )
+
+    def testWriteAssoc(self):
+        shutil.copy( 'fetopen.bsddb', 'tests/bsddb3.db' )
+        self.tinasoft = TinaApp(configFile='config.yaml',storage='tinabsddb://tests/bsddb3.db')
+        corporaID = 'fet open'
+        corpusID = '1'
+        docID = '000'
+        ngramID = '111'
+        occs = 999999
+        self.tinasoft.storage.insertAssocCorpus( corpusID, corporaID )
+        self.tinasoft.storage.insertAssocDocument( docID, corpusID )
+        self.tinasoft.storage.insertAssocNGramDocument( ngramID, docID, occs )
+        self.tinasoft.storage.insertAssocNGramCorpus( ngramID, corpusID, occs )
+
 
 
 if __name__ == '__main__':
