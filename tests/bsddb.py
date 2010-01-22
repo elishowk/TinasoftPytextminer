@@ -8,6 +8,7 @@ __date__ ="$Jan, 15 2010 5:29:16 PM$"
 import unittest
 import os, shutil
 import random
+import cProfile
 
 from tinasoft import TinaApp
 from tinasoft.pytextminer import *

@@ -19,13 +19,15 @@ class Backend(Handler):
         self.loadOptions(opts)
         self.lang,self.encoding = self.locale.split('.')
         try:
+            self._dbenv = db.DBEnv()
+            self._dbenv.set_lg_dir('log')
             self._db = db.DB()
             #self._db.set_flags(db.DB_DUPSORT)
             self._db.set_flags(db.DB_AUTO_COMMIT)
-            self._db.open(path, None, db.DB_BTREE, db.DB_CREATE)
             self.cursor = self._db.cursor
-            self.dbenv = db.DBEnv()
+            self._db.open(path, None, db.DB_BTREE, db.DB_CREATE)
             #self.commit = None
+            #print self._db.get_flags()
         except db.DBError, dbe:
             print dbe
         self.prefix = {
@@ -62,8 +64,11 @@ class Backend(Handler):
     def safewrite( self, key, obj ):
         #try:
             #txn = self.dbenv.txn_begin()
-            #res = self._db.put(key, self.encode(obj), None, db.DB_OVERWRITE_DUP)
-        res = self._db.put(key, self.encode(obj))
+        if self._db.exists( key ) is True:
+            self._db.delete( key )
+        res = self._db.put(key, self.encode(obj), None)
+        #res = self._db.put(key, self.encode(obj), None)
+        #print res
             #txn.commit()
         return res
         #except db.DBError, e:
@@ -82,32 +87,48 @@ class Backend(Handler):
         raise NotImplemented
 
 class Engine(Backend):
-
     """
     bsddb Engine
     """
+    def load(self, id, target):
+        read = self.saferead( self.prefix[target]+id )
+        if read is not None:
+            #print "found object in db : %s"%read
+            return self.decode(read)
+        else:
+            #print "%s was NOT found"%id
+            return None
+
+    def loadCorpora(self, id ):
+        return self.load(id, 'Corpora')
+
+    def loadCorpus(self, id ):
+        return self.load(id, 'Corpus')
+
+    def loadDocument(self, id ):
+        return self.load(id, 'Document')
+
+    def loadNGram(self, id ):
+        return self.load(id, 'NGram')
+
+    def insert( self, obj, target, id=None):
+        if id is None:
+            id = obj['id']
+        self.safewrite( self.prefix[target]+id, obj )
 
     def insertCorpora(self, obj, id=None):
-        if id is None:
-            id = obj.id
-        self.safewrite( self.prefix['Corpora']+id, obj )
+        self.insert( obj, 'Corpora', id )
 
     def insertCorpus(self, obj, id=None, period_start=None, period_end=None):
-        if id is None:
-            id = obj.id
-        # id, period_start, period_end, blob
-        self.safewrite( self.prefix['Corpus']+id, obj )
+        self.insert( obj, 'Corpus', id )
+
 
     def insertmanyCorpus(self, iter):
-        # id, period_start, period_end, blob
         for obj in iter:
             self.insertCorpus( obj )
 
     def insertDocument(self, obj, id=None, datestamp=None):
-        if id is None:
-            id = obj.id
-        # id, datestamp, blob
-        self.safewrite( self.prefix['Document']+id, obj )
+        self.insert( obj, 'Document', id )
 
     def insertmanyDocument(self, iter):
         # id, datestamp, blob
@@ -115,31 +136,26 @@ class Engine(Backend):
             self.insertDocument( obj )
 
     def insertNGram(self, obj, id=None):
-        if id is None:
-            id = obj.id
-        self.safewrite( self.prefix['NGram']+id, obj )
+        self.insert( obj, 'NGram', id )
 
     def insertmanyNGram(self, iter):
          for obj in iter:
             self.insertNGram( obj )
 
-    def insertAssoc(self, load, id, target, targetID, occs, insert):
-        obj = load( id )
+    def insertAssoc(self, loadfunction, id, target, targetID, occs, insertfunction):
+        obj = loadfunction( id )
+        #print "object found in insertAssoc ", obj
         if obj is None:
-            return
+            return None
         if target not in obj['content']:
             obj['content'][target]={}
         if targetID in obj['content'][target]:
             obj['content'][target][targetID]+=1
         else:
             obj['content'][target][targetID]=occs
-        insert( obj, str(obj['id']) )
+        #print "MODIFIED CONTENT ", obj['content'][target]
+        insertfunction( obj, str(obj['id']) )
 
-    def insertmanyAssoc(self, iter, assocname):
-        raise NotImplemented
-
-    def deletemanyAssoc( self, iter, assocname ):
-        raise NotImplemented
 
     def insertAssocCorpus(self, corpusID, corporaID, occs=1 ):
         self.insertAssoc( self.loadCorpora, corporaID, 'Corpus', corpusID, occs, self.insertCorpora )
@@ -149,11 +165,11 @@ class Engine(Backend):
         self.insertAssoc( self.loadCorpus, corpusID, 'Document', docID, occs, self.insertCorpus )
         self.insertAssoc( self.loadDocument, docID, 'Corpus', corpusID, occs, self.insertDocument )
 
-    def insertAssocNGramDocument(self, ngramID, docID, occs ):
+    def insertAssocNGramDocument(self, ngramID, docID, occs=1 ):
         self.insertAssoc( self.loadDocument, docID, 'NGram', ngramID, occs, self.insertDocument )
         self.insertAssoc( self.loadNGram, ngramID, 'Document', docID, occs, self.insertNGram )
 
-    def insertAssocNGramCorpus(self, ngramID, corpID, occs ):
+    def insertAssocNGramCorpus(self, ngramID, corpID, occs=1 ):
         self.insertAssoc( self.loadCorpus, corpID, 'NGram', ngramID, occs, self.insertCorpus )
         self.insertAssoc( self.loadNGram, ngramID, 'Corpus', corpID, occs, self.insertNGram )
 
@@ -165,31 +181,17 @@ class Engine(Backend):
         for tup in iter:
             self.insertAssocNGramCorpus( tup[0], tup[1], tup[2] )
 
+    def insertmanyAssoc(self, iter, assocname):
+        raise NotImplemented
+
+    def deletemanyAssoc( self, iter, assocname ):
+        raise NotImplemented
+
     def deletemanyAssocNGramDocument( self, iter ):
         raise NotImplemented
 
     def deletemanyAssocNGramCorpus( self, iter ):
         raise NotImplemented
-
-    def load(self, id, target):
-        read = self.saferead( self.prefix[target]+id )
-        print read
-        if read is not None:
-            return self.decode(read[1])
-        else:
-            return None
-
-    def loadCorpora(self, id ):
-        self.load(id, 'Corpora')
-
-    def loadCorpus(self, id ):
-        self.load(id, 'Corpus')
-
-    def loadDocument(self, id ):
-        self.load(id, 'Document')
-
-    def loadNGram(self, id ):
-        self.load(id, 'NGram')
 
     def fetchCorpusNGram( self, corpusid ):
         raise NotImplemented

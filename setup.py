@@ -14,7 +14,7 @@ setup(
     #############################################
     ## Distribution Metadata
     name = 'tinasoft',
-    version = '0.5',
+    version = '0.6',
     packages = find_packages(),
     namespace_packages = ['tinasoft'],
 
