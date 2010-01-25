@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from tinasoft.data import Handler
 from bsddb3 import db
-import re
 
 # LOW-LEVEL BACKEND
 class Backend(Handler):
@@ -38,7 +37,7 @@ class Backend(Handler):
         }
 
     def __del__(self):
-        self._db.sync()
+        self._db.close()
 
     def encode( self, obj ):
         return self.serialize(obj)
@@ -144,16 +143,14 @@ class Engine(Backend):
 
     def insertAssoc(self, loadfunction, id, target, targetID, occs, insertfunction):
         obj = loadfunction( id )
-        #print "object found in insertAssoc ", obj
         if obj is None:
             return None
-        if target not in obj['content']:
-            obj['content'][target]={}
-        if targetID in obj['content'][target]:
-            obj['content'][target][targetID]+=1
+        if target not in obj['edges']:
+            obj['edges'][target]={}
+        if targetID in obj['edges'][target]:
+            obj['edges'][target][targetID]+=1
         else:
-            obj['content'][target][targetID]=occs
-        #print "MODIFIED CONTENT ", obj['content'][target]
+            obj['edges'][target][targetID]=occs
         insertfunction( obj, str(obj['id']) )
 
 
@@ -198,18 +195,18 @@ class Engine(Backend):
 
     def fetchCorpusNGramID( self, corpusid ):
         corpus = self.loadCorpus( corpusid )
-        return corpus['content']['NGram']
+        return corpus['edges']['NGram']
 
     def fetchDocumentNGram( self, documentid ):
         raise NotImplemented
 
     def fetchDocumentNGramID( self, documentid ):
         doc = self.loadDocument( documentid )
-        return corpus['content']['NGram']
+        return corpus['edges']['NGram']
 
     def fetchCorpusDocumentID( self, corpusid ):
         c = self.loadCorpus( corpusid )
-        return corpus['content']['Document']
+        return corpus['edges']['Document']
 
     def dropTables( self ):
         raise NotImplemented

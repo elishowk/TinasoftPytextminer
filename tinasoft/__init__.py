@@ -12,7 +12,6 @@ from tinasoft.data import Engine
 import os
 import locale
 from optparse import OptionParser
-import shutil
 # configuration file parsing
 import yaml
 
@@ -25,9 +24,7 @@ class TinaApp():
         except yaml.YAMLError, exc:
             print "\nUnable to read ./config.yaml file : ", exc
             return
-        self.storage = storage
-        if self.storage is None:
-            self.storage = self.config['storage']
+
         # tries support of the locale by the host system
         try:
             if loc is None:

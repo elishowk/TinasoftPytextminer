@@ -13,13 +13,14 @@ class PyTextMiner:
         ngram, document, etc
     """
 
-    def __init__(self, content, id=None, label=None, **metas):
+    def __init__(self, content, id=None, label=None, edges={}, **metas):
         self.content = content
         if id is None:
             self.id = self.getId( content )
         else:
             self.id = id
         self.label = label
+        self.edges = edges
         self.loadOptions( metas )
 
     def loadOptions(self, metas):
@@ -37,3 +38,9 @@ class PyTextMiner:
 
     def normalize(self, lst):
         return [tok.lower() for tok in lst]
+
+    def __getitem__(self, key):
+        return getattr( self, key, None )
+
+    def __setitem__(self, key, value):
+        setattr( self, key, value )

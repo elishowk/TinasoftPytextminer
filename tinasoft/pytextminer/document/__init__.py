@@ -27,7 +27,7 @@ class Document(PyTextMiner):
         PyTextMiner.__init__(self, content, docNum, title, **metas)
         self.date = datestamp
         self.author = author
-        # sanitized targets are a list of sanitzed texts
+        # targets is a list of texts (incrementally) sanitized
         self.targets = targets
         # tokens are words
         self.tokens = tokens

@@ -13,7 +13,7 @@ class Corpus(PyTextMiner):
             **metas):
         # list of documents unique IDs
         if documents is None:
-            documents = []
-        PyTextMiner.__init__(self, documents, id, id, **metas)
+            documents = {}
+        PyTextMiner.__init__(self, documents, id, id, edges={ 'Documents':documents }, **metas)
         self.period_start = period_start
         self.period_end = period_end

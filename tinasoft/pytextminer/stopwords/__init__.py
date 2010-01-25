@@ -92,7 +92,7 @@ class StopWords( object ):
             raise Exception("%s is not a valid ngram (not a list)"%stopng)
         while len(self.words) < len(stopng) + 1:
             self.words+=[{}]
-        stopngobj = NG.StopNGram( stopng )
+        stopngobj = NG.NGram( stopng )
         #print stopngobj.id, type(stopngobj.id), stopngobj.label
         self.words[len(stopng)][ stopngobj.id ] = stopngobj
         return stopngobj
