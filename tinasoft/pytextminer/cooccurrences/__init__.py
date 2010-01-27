@@ -1,30 +1,83 @@
 # -*- coding: utf-8 -*-
 __author__="Elias Showk"
-from itertools import *
-from multiprocessing import Process, Queue, Manager
-import tinasoft
+#from itertools import combinations
+#from numpy import *
+#from multiprocessing import Process, Queue, Manager
+#import tinasoft
 
-class Simple(tinasoft.TinaApp):
+from datetime import date
+
+class Simple():
     """
-    A homemade cooccurrences processor for TinaIndex()
+    A homemade cooccurrences matrix calculator
+    get a corpus number as input
+    and returns matrix =
+    { 'ngram_id' :
+        {
+            'month1': {  dictionnary of all 'ngid2' : integer }
+        }
+
+    }
     """
+    def __init__(self, corpus):
+        self.corpus=corpus
+        self.matrix = {}
+        #self.dimension = dimension
+        #self.matrix = zeros(( self.dimension, self.dimension, len(self.periods) ))
 
-    def getCombinations(self):
-        pass
+    def reducer(self, month, term):
+        key = term.keys()
+        row = term[key[0]]
+        # key[0] is the processed ngram
+        if key[0] not in self.matrix:
+            self.matrix[key[0]] = {}
+        if month not in self.matrix[key[0]]:
+            self.matrix[key[0]][month] = row
+        else:
+            for assocterm in row.iterkeys():
+                if assocterm in self.matrix[key[0]][month]:
+                    self.matrix[key[0]][month][assocterm] += row[assocterm]
+                else:
+                    self.matrix[key[0]][month][assocterm] = row[assocterm]
 
-    def getCorpusDocuments(self, corpus_id):
-        corpus = self.storage.loadCorpus( corpus_id )
-        if corpus is None:
-            return None
-        self.period_start = corpus[1]
-        self.period_end = corpus[2]
-        docList = self.storage.fetchCorpusDocumentID( corpus_id )
+    def mapper(self, doc):
+        ngrams = doc['edges']['NGram'].keys()
+        # map is a dict of all other ngrams in the docs
+        # associated with a 1 cooc score
+        map = doc['edges']['NGram'].fromkeys( ngrams, 1 )
+        for ng in ngrams:
+            yield { ng : map }
 
-        ngrams = self.storage.fetchCorpusNGramID( corpus_id )
-        documents = []
-        # TODO : thread it !
-        for docNum in docList:
-            documents.append( self.storage.fetchDocumentNGramID( docNum )  )
+    def walkDocuments(self, docs, storage):
+        # docs loop
+        for doc_id in docs.iterkeys():
+            obj = storage.loadDocument( doc_id )
+            if obj is not None:
+                ( day, month, year ) = obj['date'].split('/')
+                monthyear = month+year
+                generator = self.mapper(obj)
+                try:
+                    # ngrams loop
+                    termDict = generator.next()
+                    while termDict:
+                        self.reducer( monthyear, termDict )
+                        termDict = generator.next()
+                        #print "second ngram", termDict
+                except StopIteration, si:
+                    pass
+
+    def walkCorpus(self, storage):
+        corpus = storage.loadCorpus( self.corpus )
+        if corpus is not None:
+            docs = corpus['edges']['Document']
+            self.walkDocuments( docs, storage )
+
+    def writeDB(self, storage):
+        key = self.corpus+'::'
+        for ng in self.matrix:
+            for month in self.matrix[ng]:
+                storage.insertCooc(self.matrix[ng][month],\
+                    key+ng+'::'+month)
 
 
 class Multiprocessing(Simple):

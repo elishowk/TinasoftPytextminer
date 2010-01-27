@@ -18,6 +18,7 @@ class TestsTestCase(unittest.TestCase):
         return
 
     def testRead(self):
+        return
         """fetch all NGram object in db, tests type"""
         self.tinasoft = TinaApp(configFile='config.yaml',storage='tinabsddb://fetopen.bsddb')
         generator = self.tinasoft.storage.select('NGram')
@@ -43,10 +44,11 @@ class TestsTestCase(unittest.TestCase):
             return
 
 
-    def testWrite(self):
+    def testInsert(self):
+        return
         """tests insert/update"""
-        os.remove('tests/bsddb3.db')
-        self.tinasoft = TinaApp(configFile='config.yaml',storage='tinabsddb://tests/bsddb3.db')
+        os.remove('tests/test.bsddb')
+        self.tinasoft = TinaApp(configFile='config.yaml',storage='tinabsddb://tests/test.bsddb')
         self.tinasoft.storage.insertCorpora( corpora.Corpora( 'test corpora id' ) )
         self.tinasoft.storage.insertCorpus( corpus.Corpus( 'test corpus' ) )
         # creates a new entry
@@ -83,21 +85,46 @@ class TestsTestCase(unittest.TestCase):
         print self.tinasoft.storage.fetchCorpusNGramID( 'test corpus' )
         print self.tinasoft.storage.fetchDocumentNGramID( '1' )
 
-    def testWriteAssoc(self):
+    def testAssoc(self):
         # compatibility tests
-        shutil.copy( 'fetopen.bsddb', 'tests/bsddb3.db' )
-        self.tinasoft = TinaApp(configFile='config.yaml',storage='tinabsddb://tests/bsddb3.db')
+        shutil.copy( 'fetopen.bsddb', 'tests/test.bsddb' )
+        self.tinasoft = TinaApp(configFile='config.yaml',storage='tinabsddb://tests/test.bsddb')
         corporaID = 'fet open'
         corpusID = '1'
-        docID = '000'
-        ngramID = '111'
+        docID = 'sarajevo'
+        ngramID = 'pytextminer'
         occs = 999999
+
+        # insert
         self.tinasoft.storage.insertAssocCorpus( corpusID, corporaID )
         self.tinasoft.storage.insertAssocDocument( docID, corpusID )
-        self.tinasoft.storage.insertAssocNGramDocument( ngramID, docID, occs )
         self.tinasoft.storage.insertAssocNGramCorpus( ngramID, corpusID, occs )
 
+        # tests insertion
+        obj = self.tinasoft.storage.loadCorpora( 'fet open' )
+        self.assertEqual( ('1' in obj['edges']['Corpus']), True )
+        obj = self.tinasoft.storage.loadCorpus( '1' )
+        #print obj
+        self.assertEqual( ('sarajevo' in obj['edges']['Document']), False )
+        self.assertEqual( ('fet open' in obj['edges']['Corpora']), True )
+        self.assertEqual( ('pytextminer' in obj['edges']['NGram']), False )
+        obj = self.tinasoft.storage.loadDocument('sarajevo')
+        self.assertEqual( obj, None )
+        obj = self.tinasoft.storage.loadNGram('pytextminer')
+        self.assertEqual( self.tinasoft.storage.insertAssocNGramDocument( ngramID, docID, occs )
+, None )
+        self.assertEqual( self.tinasoft.storage.insertAssocNGramCorpus( ngramID, corpusID, occs )
+, None )
 
+
+        #gen = self.tinasoft.storage.select( 'Corpus' )
+        #try:
+        #    rec = gen.next()
+        #    while rec:
+        #        print rec
+        #        rec = gen.next()
+        #except StopIteration, si:
+        #    print "end", si
 
 if __name__ == '__main__':
     unittest.main()

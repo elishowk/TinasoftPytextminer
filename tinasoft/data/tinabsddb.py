@@ -34,6 +34,7 @@ class Backend(Handler):
             'Corpus':'Corpus::',
             'Document':'Document::',
             'NGram':'NGram::',
+            'Cooc':'Cooc::'
         }
 
     def __del__(self):
@@ -48,7 +49,7 @@ class Backend(Handler):
     def saferead( self, key ):
         """returns a db entry"""
         #try:
-        return self._db.get(key)
+        return self._db.get(str(key))
         #except db.DBError, e1:
         #    print e1
         #    return None
@@ -63,6 +64,8 @@ class Backend(Handler):
     def safewrite( self, key, obj ):
         #try:
             #txn = self.dbenv.txn_begin()
+        if type(key) != str:
+            key = str(key)
         if self._db.exists( key ) is True:
             self._db.delete( key )
         res = self._db.put(key, self.encode(obj), None)
@@ -110,6 +113,9 @@ class Engine(Backend):
     def loadNGram(self, id ):
         return self.load(id, 'NGram')
 
+    def loadCooc(self, id ):
+        return self.load(id, 'Cooc')
+
     def insert( self, obj, target, id=None):
         if id is None:
             id = obj['id']
@@ -141,34 +147,56 @@ class Engine(Backend):
          for obj in iter:
             self.insertNGram( obj )
 
-    def insertAssoc(self, loadfunction, id, target, targetID, occs, insertfunction):
-        obj = loadfunction( id )
-        if obj is None:
+    def insertCooc(self, obj, id):
+        self.insert( obj, 'Cooc', id )
+
+    def insertAssoc(self, loadsource, sourcename, sourceid, insertsource, loadtarget, targetname, targetid, inserttarget, occs ):
+        sourceobj = loadsource( sourceid )
+        targetobj = loadtarget( targetid )
+
+        # returns None if one of the objects does NOT exists
+        if sourceobj is None or targetobj is None:
             return None
-        if target not in obj['edges']:
-            obj['edges'][target]={}
-        if targetID in obj['edges'][target]:
-            obj['edges'][target][targetID]+=1
+
+        # inserts the edge in the source obj
+        if targetname not in sourceobj['edges']:
+            sourceobj['edges'][targetname]={}
+        if targetid in sourceobj['edges'][targetname]:
+            sourceobj['edges'][targetname][targetid]+=1
         else:
-            obj['edges'][target][targetID]=occs
-        insertfunction( obj, str(obj['id']) )
+            sourceobj['edges'][targetname][targetid]=occs
+        insertsource( sourceobj, str(sourceobj['id']) )
+
+        # in the target obj
+        if sourcename not in targetobj['edges']:
+            targetobj['edges'][sourcename]={}
+        if sourceid in targetobj['edges'][sourcename]:
+            targetobj['edges'][sourcename][sourceid]+=1
+        else:
+            targetobj['edges'][sourcename][sourceid]=occs
+        inserttarget( targetobj, str(targetobj['id']) )
+
 
 
     def insertAssocCorpus(self, corpusID, corporaID, occs=1 ):
-        self.insertAssoc( self.loadCorpora, corporaID, 'Corpus', corpusID, occs, self.insertCorpora )
-        self.insertAssoc( self.loadCorpus, corpusID, 'Corpora', corporaID, occs, self.insertCorpus )
+        return self.insertAssoc( self.loadCorpora, 'Corpora', corporaID,\
+            self.insertCorpora, self.loadCorpus, 'Corpus', corpusID, \
+            self.insertCorpus, occs )
 
     def insertAssocDocument(self, docID, corpusID, occs=1 ):
-        self.insertAssoc( self.loadCorpus, corpusID, 'Document', docID, occs, self.insertCorpus )
-        self.insertAssoc( self.loadDocument, docID, 'Corpus', corpusID, occs, self.insertDocument )
+        return self.insertAssoc( self.loadCorpus, 'Corpus', corpusID,\
+            self.insertCorpus, self.loadDocument, 'Document', docID, \
+            self.insertDocument, occs )
 
     def insertAssocNGramDocument(self, ngramID, docID, occs=1 ):
-        self.insertAssoc( self.loadDocument, docID, 'NGram', ngramID, occs, self.insertDocument )
-        self.insertAssoc( self.loadNGram, ngramID, 'Document', docID, occs, self.insertNGram )
+        return self.insertAssoc( self.loadDocument, 'Document', docID,\
+            self.insertDocument, self.loadNGram, 'NGram', ngramID, \
+            self.insertNGram, occs )
 
     def insertAssocNGramCorpus(self, ngramID, corpID, occs=1 ):
-        self.insertAssoc( self.loadCorpus, corpID, 'NGram', ngramID, occs, self.insertCorpus )
-        self.insertAssoc( self.loadNGram, ngramID, 'Corpus', corpID, occs, self.insertNGram )
+        return self.insertAssoc( self.loadCorpus, 'Corpus', corpID,\
+            self.insertCorpus, self.loadNGram, 'NGram', ngramID, \
+            self.insertNGram, occs )
 
     def insertmanyAssocNGramDocument( self, iter ):
         for tup in iter:

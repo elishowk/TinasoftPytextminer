@@ -22,7 +22,8 @@ class Exporter (Exporter):
         self.locale = locale
         self.encoding =  self.locale.split('.')[1].lower()
         self.dialect = dialect
-                
+        self.file = codecs.open(self.filepath, "w", encoding=self.encoding, errors='replace' )
+
     # deprecated
     def objectToCsv( self, objlist, columns ):
         file = codecs.open(self.filepath, "w", self.encoding, errors='replace' )
@@ -37,19 +38,20 @@ class Exporter (Exporter):
             file.write( self.delimiter.join( map( mapping, attributes ) ) + "\n" )
             #file.write( self.delimiter.join( map( self.encode, map( str, attributes ) ) ) + "\n" )
 
-    def csvFile( self, columns, rows ):
-        file = codecs.open(self.filepath, "w", encoding=self.encoding, errors='replace' )
-        file.write( self.delimiter.join( columns ) + "\n" )
+    def writeRow( self, row ):
+        self.file.write( self.delimiter.join( row ) + "\n" )
+
+    def writeFile( self, columns, rows ):
+        self.writeRow( columns )
         for row in rows:
-            # TODO factorize try in Exporter.export()
             #try:
-                file.write( self.delimiter.join( row ) + "\n" )
+                self.file.write( row )
             #except UnicodeEncodeError, ue:
             #    print "warning exporting a csv line ", row, ue
             #except UnicodeDecodeError, ud:
             #    print "warning exporting a csv line ", row, ud
-              
-                
+
+
 class Importer (Importer):
 
     def __init__(self,
@@ -59,7 +61,7 @@ class Importer (Importer):
             delimiter=',',
             quotechar='"',
             locale='en_US.UTF-8',
-            **kwargs 
+            **kwargs
         ):
         self.filepath = filepath
         self.loadOptions( kwargs )
@@ -72,7 +74,7 @@ class Importer (Importer):
         # Tokenizer args
         self.minSize = minSize
         self.maxSize = maxSize
-        
+
         f1 = self.open( filepath )
         tmp = csv.reader(
                 f1,
@@ -81,7 +83,7 @@ class Importer (Importer):
         )
         self.fieldNames = tmp.next()
         del f1
-        
+
         f2 = self.open( filepath )
         self.csv = csv.DictReader(
                 f2,

@@ -1,63 +1,76 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+__author__="Elias Showk"
 
-__author__="jbilcke, Elias Showk"
-__date__ ="$Oct 20, 2009 5:29:16 PM$"
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 
-# core modules
-import os
-from optparse import OptionParser
-import locale
-# initialize the system path with local dependencies and pre-built libraries
-import bootstrap
+from tinasoft import TinaApp
+from tinasoft.data import Engine, Writer
+from tinasoft.pytextminer import *
 
-# pytextminer modules
-from PyTextMiner.CoWord import *
-from PyTextMiner.Data import Engine, tina
-import yaml
-
-class Program:
+class Program(TinaApp):
     def __init__(self):
+        TinaApp.__init__(self, storage='tinabsddb://100125-fetopen.bsddb')
+        # sqlite incoming connexion
+        self.csv = Writer("basecsv://100125-fetopen-filter.csv")
+        self.filtertag = tagger.PosFilter()
 
-        # import config yaml
+    def reprpostag(self, postagng):
+        str = ""
+        for word,tag in postagng:
+            str += " "
+            str += tag
+        return str.strip()
+
+    def exportAll(self):
+        """export pos tag filtered ngrams"""
+        selectgenerator = self.storage.select('NGram')
+        both = self.filtertag.both(selectgenerator)
+        any = self.filtertag.any(both)
+        begin = self.filtertag.begin(any)
+        end = self.filtertag.end(begin)
+        count = 0
+        ngrams=[]
+        self.csv.writeRow(['id','label','pos_tag'])
         try:
-            self.config = yaml.safe_load( file( "config.yaml", 'rU' ) )
-        except yaml.YAMLError, exc:
-            print "\nUnable to read ./config.yaml file : ", exc
-            return
-
-        # command-line parser
-        parser = OptionParser()
-
-        parser.add_option("-c", "--corpus", dest="corpus", default=self.config['corpus'], help="Corpus ID to process, default: "+str(self.config['corpus']))
-        parser.add_option("-l", "--locale", dest="locale", default=self.config['locale'], help="Locale (text encoding), default: "+self.config['locale'])
-        parser.add_option("-s", "--store", dest="store", default=self.config['store'], help="storage engine, default: "+self.config['store'], metavar="ENGINE")
-        (cmdoptions, args) = parser.parse_args()
-        self.options = cmdoptions
-        # tries support of the locale by the host system
+            filterrecord = end.next()
+            #print filterrecord
+            count += 1
+            while filterrecord:
+                ngrams += [filterrecord[1]['id']]
+                tag = self.reprpostag( filterrecord[1]['postag'] )
+                self.csv.writeRow([ filterrecord[1]['id'], \
+                    filterrecord[1]['label'], \
+                    tag
+                    ])
+                filterrecord = end.next()
+                count += 1
+        except StopIteration, si:
+            print "keeped ngrams = ", count
+        excluded = Writer("basecsv://100125-fetopen-excluded.csv")
+        excluded.writeRow(['id','label','pos_tag'])
+        count = 0
+        total=0
+        selectgenerator = self.storage.select('NGram')
         try:
-            self.locale = self.options.locale
-            locale.setlocale(locale.LC_ALL, self.locale)
-        except:
-            self.locale = 'en_US.UTF-8'
-            print "locale %s was not found, switching to en_US.UTF-8 by default", self.options.locale
-            locale.setlocale(locale.LC_ALL, self.locale)
+            record = selectgenerator.next()
+            while record:
+                total += 1
+                if record[1]['id'] not in ngrams:
+                    tag = self.reprpostag( record[1]['postag'] )
+                    excluded.writeRow([ record[1]['id'], \
+                        record[1]['label'], \
+                        tag
+                        ])
+                    count += 1
+                record = selectgenerator.next()
+        except StopIteration, si:
+            print "excluded ngrams = ", count
+            print "total ngrams in db = ",total
+        return
 
-        # format sqlite dbi string
-        if not self.options.store == ":memory:":
-            self.options.store = "sqlite://"+self.options.store
-        else:     
-            self.options.store = "sqlite://"+self.options.store
-
-
-    def main(self):
-        tinasqlite = Engine( self.options.store, locale=self.locale, format="json")
-        coword = ThreadedAnalysis()
-        matrix = coword.analyseCorpus( tinasqlite, self.options.corpus, 2 );
-        #tinasqlite.insertmanyCooc( matrix.values() )
-
- 
 
 if __name__ == '__main__':
     program = Program()
-    program.main()
+    program.exportAll()
