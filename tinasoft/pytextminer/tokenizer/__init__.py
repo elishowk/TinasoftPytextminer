@@ -75,8 +75,8 @@ class RegexpTokenizer():
             for sent in tokens:
                 for i in range(len(sent)):
                     if len(sent) >= i+n:
-                        postaggedContent = sent[i:n+i]
-                        ng = ngram.NGram( sent[i:n+i], occs = 1, postag = postaggedContent )
+                        content = [tagged[0] for tagged in sent[i:n+i]]
+                        ng = ngram.NGram( content, occs = 1, postag = sent[i:n+i] )
                         if stopwords is None or stopwords.contains( ng ) is False:
                             # if ngrams already exists in document, only increments occs
                             if ng.id in ngrams:
@@ -91,11 +91,30 @@ class TreeBankWordTokenizer(RegexpTokenizer):
     then cleans the punctuation
     before tokenizing using nltk.TreebankWordTokenizer()
     """
-    @staticmethod
-    def tokenize( text, emptyString, stopwords=None ):
+    def tokenize( self, text, emptyString, stopwords=None ):
         sentences = nltk.sent_tokenize(text)
         # WARNING : only works on english
         sentences = [nltk.TreebankWordTokenizer().\
             tokenize(RegexpTokenizer.cleanPunct( sent, emptyString )) \
             for sent in sentences]
         return sentences
+
+    def extract( self, doc, content, stopwords ):
+        sanitizedTarget = self.sanitize(
+            content,
+            doc['forbChars'],
+            doc['ngramEmpty']
+        )
+        sentenceTokens = self.tokenize(
+            text = sanitizedTarget,
+            emptyString = doc['ngramEmpty'],
+        )
+        for sentence in sentenceTokens:
+            doc['tokens'].append( tagger.TreeBankPosTagger.posTag( sentence ) )
+        return self.ngramize(
+            minSize = doc['ngramMin'],
+            maxSize = doc['ngramMax'],
+            tokens = doc['tokens'],
+            emptyString = doc['ngramEmpty'],
+            stopwords = stopwords,
+        )

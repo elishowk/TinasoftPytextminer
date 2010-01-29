@@ -2,6 +2,9 @@
 from tinasoft.data import Handler
 from bsddb3 import db
 
+class DBInsertError(db.DBError):
+    pass
+
 # LOW-LEVEL BACKEND
 class Backend(Handler):
 
@@ -28,7 +31,7 @@ class Backend(Handler):
             #self.commit = None
             #print self._db.get_flags()
         except db.DBError, dbe:
-            print dbe
+           raise Exception
         self.prefix = {
             'Corpora':'Corpora::',
             'Corpus':'Corpus::',
@@ -38,7 +41,11 @@ class Backend(Handler):
         }
 
     def __del__(self):
-        self._db.close()
+        try:
+            self._db.close()
+        except db.DBError, e:
+            print "DBError :", e[1]
+            raise Exception
 
     def encode( self, obj ):
         return self.serialize(obj)
@@ -48,33 +55,44 @@ class Backend(Handler):
 
     def saferead( self, key ):
         """returns a db entry"""
-        #try:
-        return self._db.get(str(key))
-        #except db.DBError, e1:
-        #    print e1
-        #    return None
+        try:
+            if isinstance(key, str) is False:
+                key = str(key)
+            return self._db.get(key)
+        except db.DBNotFoundError, e1:
+            print e1[1]
+            return None
+        except db.DBKeyEmptyError, e2:
+            print e1[1]
+            raise Exception
 
     def safereadall( self, smallestkey=None ):
         """returns a cursor, optional smallest key"""
-        cur = self.cursor()
-        if smallestkey is not None:
-            cur.set_range( smallestkey )
-        return cur
+        try:
+            cur = self.cursor()
+            if smallestkey is not None:
+                cur.set_range( smallestkey )
+            return cur
+        except db.DBError, e:
+            print "DBError :", e[1]
+            raise Exception
+
 
     def safewrite( self, key, obj ):
-        #try:
+        try:
             #txn = self.dbenv.txn_begin()
-        if type(key) != str:
-            key = str(key)
-        if self._db.exists( key ) is True:
-            self._db.delete( key )
-        res = self._db.put(key, self.encode(obj), None)
-        #res = self._db.put(key, self.encode(obj), None)
-        #print res
+            if isinstance(key, str) is False:
+                key = str(key)
+            if self._db.exists( key ) is True:
+                self._db.delete( key )
+            self._db.put(key, self.encode(obj), None)
             #txn.commit()
-        return res
-        #except db.DBError, e:
-        #    print "DBError :", e
+        #return True
+        except DBInsertError, dbi:
+            print dbi
+        except db.DBError, e:
+            print "DBError :", e[1]
+            raise Exception
             #txn.discard()
         #    return False
 
@@ -83,7 +101,14 @@ class Backend(Handler):
             self.safewrite( key, obj )
 
     def safedelete( self, key ):
-        self._db.delete( key )
+        try:
+            if isinstance(key, str) is False:
+                key = str(key)
+            self._db.delete( key )
+        except db.DBError, e:
+            print "DBError :", e[1]
+            raise Exception
+
 
     def dump(self, filename, compress=None):
         raise NotImplemented
@@ -95,10 +120,8 @@ class Engine(Backend):
     def load(self, id, target):
         read = self.saferead( self.prefix[target]+id )
         if read is not None:
-            #print "found object in db : %s"%read
             return self.decode(read)
         else:
-            #print "%s was NOT found"%id
             return None
 
     def loadCorpora(self, id ):
@@ -127,7 +150,6 @@ class Engine(Backend):
     def insertCorpus(self, obj, id=None, period_start=None, period_end=None):
         self.insert( obj, 'Corpus', id )
 
-
     def insertmanyCorpus(self, iter):
         for obj in iter:
             self.insertCorpus( obj )
@@ -137,26 +159,26 @@ class Engine(Backend):
 
     def insertmanyDocument(self, iter):
         # id, datestamp, blob
-         for obj in iter:
+        for obj in iter:
             self.insertDocument( obj )
 
     def insertNGram(self, obj, id=None):
         self.insert( obj, 'NGram', id )
 
     def insertmanyNGram(self, iter):
-         for obj in iter:
+        for obj in iter:
             self.insertNGram( obj )
 
     def insertCooc(self, obj, id):
         self.insert( obj, 'Cooc', id )
 
     def insertAssoc(self, loadsource, sourcename, sourceid, insertsource, loadtarget, targetname, targetid, inserttarget, occs ):
+        """adds a unique edge from source to target et and increments occs=weight"""
         sourceobj = loadsource( sourceid )
         targetobj = loadtarget( targetid )
-
         # returns None if one of the objects does NOT exists
         if sourceobj is None or targetobj is None:
-            return None
+            raise DBInsertError
 
         # inserts the edge in the source obj
         if targetname not in sourceobj['edges']:
@@ -176,25 +198,23 @@ class Engine(Backend):
             targetobj['edges'][sourcename][sourceid]=occs
         inserttarget( targetobj, str(targetobj['id']) )
 
-
-
     def insertAssocCorpus(self, corpusID, corporaID, occs=1 ):
-        return self.insertAssoc( self.loadCorpora, 'Corpora', corporaID,\
+        self.insertAssoc( self.loadCorpora, 'Corpora', corporaID,\
             self.insertCorpora, self.loadCorpus, 'Corpus', corpusID, \
             self.insertCorpus, occs )
 
     def insertAssocDocument(self, docID, corpusID, occs=1 ):
-        return self.insertAssoc( self.loadCorpus, 'Corpus', corpusID,\
+        self.insertAssoc( self.loadCorpus, 'Corpus', corpusID,\
             self.insertCorpus, self.loadDocument, 'Document', docID, \
             self.insertDocument, occs )
 
     def insertAssocNGramDocument(self, ngramID, docID, occs=1 ):
-        return self.insertAssoc( self.loadDocument, 'Document', docID,\
+        self.insertAssoc( self.loadDocument, 'Document', docID,\
             self.insertDocument, self.loadNGram, 'NGram', ngramID, \
             self.insertNGram, occs )
 
     def insertAssocNGramCorpus(self, ngramID, corpID, occs=1 ):
-        return self.insertAssoc( self.loadCorpus, 'Corpus', corpID,\
+        self.insertAssoc( self.loadCorpus, 'Corpus', corpID,\
             self.insertCorpus, self.loadNGram, 'NGram', ngramID, \
             self.insertNGram, occs )
 

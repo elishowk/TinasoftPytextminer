@@ -21,7 +21,7 @@ class TestsTestCase(unittest.TestCase):
         cooc = cooccurrences.Simple(corpus)
         cooc.walkCorpus(self.tinasoft.storage)
         cooc.writeDB(self.tinasoft.storage)
-        generator = self.tinasoft.storage.select('Cooc::1::1277795288')
+        generator = self.tinasoft.storage.select('Cooc::1')
         try:
             record = generator.next()
             while record:

@@ -26,7 +26,6 @@ class Backend(Handler):
         self.path = path
         self.loadOptions(opts)
         self.lang,self.encoding = self.locale.split('.')
-        print "connecting to %s"%path
         self._db = sqlite3.connect(path)
         self.cursor = self._db.cursor
         # deprecated : using try/except automaticcaly commit and rollbak
@@ -215,7 +214,7 @@ class Engine(Backend, Api):
         req = self.loadCorporaStmt()
         res = self.safereadone( req, [id] )
         if res is not None:
-            return [ res[0], self.deserialize( res[1] ) ]
+            return [ res[0], self.decode( res[1] ) ]
         else:
             return res
 
@@ -223,7 +222,7 @@ class Engine(Backend, Api):
         req = self.loadCorpusStmt()
         res = self.safereadone( req, [id] )
         if res is not None:
-            return [ res[0], res[1], res[2], self.deserialize( res[3] ) ]
+            return [ res[0], res[1], res[2], self.decode( res[3] ) ]
         else:
             return res
 
@@ -231,7 +230,7 @@ class Engine(Backend, Api):
         req = self.loadDocumentStmt()
         res = self.safereadone( req, [id] )
         if res is not None:
-            return [ res[0], res[1], self.deserialize( res[2] ) ]
+            return [ res[0], res[1], self.decode( res[2] ) ]
         else:
             return res
 
@@ -239,7 +238,7 @@ class Engine(Backend, Api):
         req = self.loadNGramStmt()
         res = self.safereadone( req, [id] )
         if res is not None:
-            return [ res[0], self.deserialize( res[1] ) ]
+            return [ res[0], self.decode( res[1] ) ]
         else:
             return res
 

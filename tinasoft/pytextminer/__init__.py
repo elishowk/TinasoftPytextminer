@@ -29,7 +29,8 @@ class PyTextMiner:
 
     def getId(self, content):
         if type(content).__name__ == 'list':
-            return str(abs( hash( "".join(content) ) ))
+            # for NGrams
+            return str(abs( hash( " ".join(content) ) ))
         elif type(content).__name__ == 'str' or type(content).__name__ == 'unicode':
             return str(abs( hash( content ) ))
         else:
@@ -44,3 +45,6 @@ class PyTextMiner:
 
     def __setitem__(self, key, value):
         setattr( self, key, value )
+
+    def __delitem__(self, key):
+        delattr(self, key)

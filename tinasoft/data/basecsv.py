@@ -74,7 +74,7 @@ class Importer (Importer):
         # Tokenizer args
         self.minSize = minSize
         self.maxSize = maxSize
-
+        # gets columns names
         f1 = self.open( filepath )
         tmp = csv.reader(
                 f1,
@@ -83,7 +83,7 @@ class Importer (Importer):
         )
         self.fieldNames = tmp.next()
         del f1
-
+        # open the file in a Dict mode
         f2 = self.open( filepath )
         self.csv = csv.DictReader(
                 f2,

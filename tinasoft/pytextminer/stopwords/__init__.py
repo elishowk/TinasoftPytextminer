@@ -3,6 +3,7 @@
 import codecs
 import pickle
 from tinasoft.pytextminer import ngram as NG
+from tinasoft.data import Reader
 
 class StopWords( object ):
     """StopWords"""
@@ -94,7 +95,7 @@ class StopWords( object ):
             self.words+=[{}]
         stopngobj = NG.NGram( stopng )
         #print stopngobj.id, type(stopngobj.id), stopngobj.label
-        self.words[len(stopng)][ stopngobj.id ] = stopngobj
+        self.words[len(stopng)][ stopngobj['id'] ] = stopngobj
         return stopngobj
 
     def __len__(self):
@@ -107,9 +108,10 @@ class StopWords( object ):
         return self.words[length]
 
     def contains(self, ngramobj):
-        """Check if a ngram match the base given its unique NGram.id"""
-        # stops if the ngramid equals stopngid
-        if ngramobj.id in self[len(ngramobj.content)]:
+        """Check a ngram object against the stop base using NGram['id']"""
+        #print "testing id = ", ngramobj['id'], ngramobj['content']
+        if ngramobj['id'] in self[len(ngramobj['content'])]:
+            #print "stopword !", type(ngramobj['id']), ngramobj['id']
             return True
         else:
             return False
@@ -127,3 +129,22 @@ class StopWords( object ):
         """copy the stopwords in-memory database to file"""
         file = codecs.open( filepath, "w" )
         pickle.dump( self.words, file )
+
+class StopWordFilter(StopWords):
+    """
+    used for filtering ngrams
+    given a file or a list
+    """
+    def __init__(self, stopngrams):
+        StopWords.__init__(self, stopngrams)
+
+    def any(self, nggenerator):
+        try:
+            record = nggenerator.next()
+            while record:
+                if self.contains( record[1] ) is False:
+                    yield record
+                record = nggenerator.next()
+        except StopIteration, si:
+            return
+
