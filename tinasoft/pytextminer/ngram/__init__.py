@@ -45,6 +45,8 @@ class Filter():
             for content in contents:
                 if content in self.rules['any']:
                     return False
+            else:
+                return True
 
     def any(self, nggenerator):
         try:
@@ -61,6 +63,8 @@ class Filter():
         if contents is not None:
             if contents[0] in self.rules['both'] or contents[-1] in self.rules['both']:
                 return False
+            else:
+                return True
 
     def both(self, nggenerator):
         try:
@@ -77,6 +81,8 @@ class Filter():
         if contents is not None:
             if contents[0] in self.rules['begin']:
                 return False
+            else:
+                return True
 
     def begin(self, nggenerator):
         try:
@@ -93,6 +99,8 @@ class Filter():
         if contents is not None:
             if contents[-1] in self.rules['end']:
                 return False
+            else:
+                return True
 
     def end(self, nggenerator):
         try:
@@ -103,6 +111,9 @@ class Filter():
                 record = nggenerator.next()
         except StopIteration, si:
             return
+
+    def all(self, ng):
+        self._any() and self._both() and self._begin() and self._end()
 
 class PosTagFilter(Filter):
     """
