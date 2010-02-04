@@ -42,7 +42,7 @@ def transaction(f, name=None, **kwds):
                 bdb.rollback()
                 retries -= 1
 
-        raise TransactionExpired("Add failed after exception:" % str(e))
+        raise TransactionExpired("transaction failed after exception:" % str(e))
 
     wrapped.__doc__ = f.__doc__
     return wrapped
@@ -263,7 +263,7 @@ class Backend(Handler):
                     del self.__dbTxn[thread.get_ident()]
                 else:
                     txn = self.__dbTxn[thread.get_ident()].pop()
-                    _logger.debug("committing")
+                    #_logger.debug("committing")
                     #before = self.db_env.lock_stat()['nlocks']
                     txn.commit(0)
                     if len(self.__dbTxn[thread.get_ident()]) == 0:

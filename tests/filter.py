@@ -14,7 +14,8 @@ from tinasoft.pytextminer import *
 
 class TestsTestCase(unittest.TestCase):
     def setUp(self):
-        self.tinasoft = TinaApp(configFile='config.yaml',storage='tinabsddb://fetopen.bsddb')
+        self.tinasoft = TinaApp(configFile='config.yaml',\
+            storage='tinabsddb://fetopen.test.bsddb')
 
     def testBoth(self):
         selectgenerator = self.tinasoft.storage.select('NGram')

@@ -4,6 +4,9 @@ __author__="Elias Showk"
 
 from tinasoft.pytextminer import PyTextMiner
 
+import logging
+_logger = logging.getLogger('TinaAppLogger')
+
 class NGram(PyTextMiner):
     """NGram class"""
     def __init__(self, content, id=None, label=None, **metas):
@@ -33,7 +36,6 @@ class Filter():
                 self.rules = config['rules']
             if lang in rules:
                 self.lang = config['lang']
-        return
 
     def get_content(self, ng):
         if 'content' in ng[1]:
@@ -45,10 +47,11 @@ class Filter():
             for content in contents:
                 if content in self.rules['any']:
                     return False
-            else:
-                return True
+        else:
+            return True
 
     def any(self, nggenerator):
+        """Given a NGram object generator, applies the _any() filter"""
         try:
             record = nggenerator.next()
             while record:
@@ -63,10 +66,11 @@ class Filter():
         if contents is not None:
             if contents[0] in self.rules['both'] or contents[-1] in self.rules['both']:
                 return False
-            else:
-                return True
+        else:
+            return True
 
     def both(self, nggenerator):
+        """Given a NGram object generator, applies the _both() filter"""
         try:
             record = nggenerator.next()
             while record:
@@ -81,10 +85,12 @@ class Filter():
         if contents is not None:
             if contents[0] in self.rules['begin']:
                 return False
-            else:
-                return True
+        else:
+            return True
+
 
     def begin(self, nggenerator):
+        """Given a NGram object generator, applies the _begin() filter"""
         try:
             record = nggenerator.next()
             while record:
@@ -99,10 +105,11 @@ class Filter():
         if contents is not None:
             if contents[-1] in self.rules['end']:
                 return False
-            else:
-                return True
+        else:
+            return True
 
     def end(self, nggenerator):
+        """Given a NGram object generator, applies the _end() filter"""
         try:
             record = nggenerator.next()
             while record:
@@ -113,7 +120,8 @@ class Filter():
             return
 
     def all(self, ng):
-        self._any() and self._both() and self._begin() and self._end()
+        """Given an NGram object return True if ALL the tests passed"""
+        return self._any(ng) and self._both(ng) and self._begin(ng) and self._end(ng)
 
 class PosTagFilter(Filter):
     """
@@ -129,24 +137,25 @@ class PosTagFilter(Filter):
     }
 
     def get_content(self, ng):
+        """overwrites the field selection to filter NGram object's postag"""
         if 'postag' in ng[1]:
             return [token[1] for token in ng[1]['postag']]
 
 # WARNING : OBSOLETE !!!
-class NGramHelpers():
-    """Obsolete"""
-    @staticmethod
-    def filterUnique( rawDict, threshold, corpusNum, sqliteEncode ):
-        delList = []
-        filteredDict = {}
-        assocNGramCorpus = []
-        for ngid in rawDict.keys():
-            if rawDict[ ngid ].occs < threshold:
-                del rawDict[ ngid ]
-                delList.append( ngid )
-            else:
-                assocNGramCorpus.append( ( ngid, corpusNum, rawDict[ ngid ].occs ) )
-                item = rawDict[ ngid ]
-                filteredDict[ ngid ] = sqliteEncode(item)
-        return ( filteredDict, delList, assocNGramCorpus )
+#class NGramHelpers():
+#    """Obsolete"""
+#    @staticmethod
+#    def filterUnique( rawDict, threshold, corpusNum, sqliteEncode ):
+#        delList = []
+#        filteredDict = {}
+#        assocNGramCorpus = []
+#        for ngid in rawDict.keys():
+#            if rawDict[ ngid ].occs < threshold:
+#                del rawDict[ ngid ]
+#                delList.append( ngid )
+#            else:
+#                assocNGramCorpus.append( ( ngid, corpusNum, rawDict[ ngid ].occs ) )
+#                item = rawDict[ ngid ]
+#                filteredDict[ ngid ] = sqliteEncode(item)
+#        return ( filteredDict, delList, assocNGramCorpus )
 

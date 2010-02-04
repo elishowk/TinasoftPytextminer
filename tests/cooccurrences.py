@@ -12,26 +12,50 @@ import random
 from tinasoft import TinaApp
 from tinasoft.pytextminer import *
 
-class TestsTestCase(unittest.TestCase):
+class CoocTestCase(unittest.TestCase):
     def setUp(self):
-        self.tinasoft = TinaApp(configFile='config.yaml',storage='tinabsddb://fetopen.bsddb')
+        self.tinasoft = TinaApp(configFile='config.yaml',\
+            storage='tinabsddb://fetopen.test.bsddb')
+        self.filtertag = ngram.PosTagFilter()
+        self.filterContent = ngram.Filter()
 
-    def testCorpus(self):
-        corpus = '1'
-        cooc = cooccurrences.Simple(corpus)
-        cooc.walkCorpus(self.tinasoft.storage)
-        cooc.writeDB(self.tinasoft.storage)
-        generator = self.tinasoft.storage.select('Cooc::1')
+    def testAllFiltersCooc(self):
+        """analyse a corpus, applying all filters available"""
+        def corpusAnalyse( self, id ):
+            cooc = cooccurrences.MapReduce(self.tinasoft.storage, corpus=id, filter=[self.filtertag, self.filterContent])
+            self.tinasoft.logger.debug( "Test : Starting walkCorpus" )
+            cooc.walkCorpus()
+            self.tinasoft.logger.debug( "Test : Starting writeMatrix" )
+            cooc.writeMatrix()
+        corpusAnalyse( self, '1' )
+        corpusAnalyse( self, '2' )
+        corpusAnalyse( self, '3' )
+        corpusAnalyse( self, '4' )
+        corpusAnalyse( self, '5' )
+        corpusAnalyse( self, '6' )
+        corpusAnalyse( self, '7' )
+        corpusAnalyse( self, '8' )
+        self.tinasoft.logger.debug( "Test : Starting select('Cooc')" )
+        generator = self.tinasoft.storage.select('Cooc')
         try:
             record = generator.next()
+            count = 0
             while record:
                 #self.assertEqual( isinstance(record[1], dict), True)
-                print record
+                #self.tinasoft.logger.debug( record )
                 record = generator.next()
+                count += 1
         except StopIteration, si:
-            print "testRead ended"
-            return
-        #print cooc.matrix
+            #self.tinasoft.logger.debug( "===End of printing the \
+            #    20 first Cooc entries in the db" )
+            self.tinasoft.logger.debug( "Total Cooc rows in database = "+ str(count))
+
+    def testCorpusCooc(self):
+        return
+        corpus = '1'
+        selectgenerator = self.tinasoft.storage.select('NGram')
+        cooc = cooccurrences.Simple(selectgenerator, self.tinasoft.storage, corpus)
+        cooc.walkCorpus()
 
 if __name__ == '__main__':
     unittest.main()
