@@ -51,11 +51,10 @@ class MapReduce():
                         while termDict:
                             self.reducer( monthyear, termDict )
                             termDict = mapgenerator.next()
-                    except StopIteration, si:
-                        self.processedDocs += [doc_id]
-                        return
-                else:
-                    _logger.debug( "Already processed Doc = "+ str(doc_id) )
+                    except StopIteration, si: pass
+                self.processedDocs += [doc_id]
+            else:
+                _logger.debug( "Already processed Doc = "+ str(doc_id) )
 
 
     def filterNGrams(self, ngrams):
@@ -66,7 +65,7 @@ class MapReduce():
                 if self.filter is not None:
                     accept=True
                     for filt in self.filter:
-                        accept |= filt.all(ng)
+                        accept &= filt.all(ng)
                     if accept is True:
                         map[ng]=1
                 else:
@@ -100,7 +99,7 @@ class MapReduce():
         else:
             for assocterm in row.iterkeys():
                 if assocterm in self.matrix[key[0]][month]:
-                    _logger.debug( "=== Incrementing cooc value for "+ assocterm )
+                    #_logger.debug( "=== Incrementing cooc value for "+ assocterm )
                     self.matrix[key[0]][month][assocterm] += row[assocterm]
                 else:
                     self.matrix[key[0]][month][assocterm] = row[assocterm]
