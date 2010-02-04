@@ -12,15 +12,16 @@ import cProfile
 
 from tinasoft import TinaApp
 from tinasoft.pytextminer import *
+from tinasoft.data import tinabsddb
 
 class TestsTestCase(unittest.TestCase):
     def setUp(self):
+        #shutil.copy( 'last-fetopen.bsddb', 'tests/tinabsddb.test.bsddb' )
+        self.tinasoft = TinaApp(configFile='config.yaml',storage='tinabsddb://tinabsddb.test.bsddb')
         return
 
     def testRead(self):
-        return
-        """fetch all NGram object in db, tests type"""
-        self.tinasoft = TinaApp(configFile='config.yaml',storage='tinabsddb://fetopen.bsddb')
+        """Test reading all NGram objects in db"""
         generator = self.tinasoft.storage.select('NGram')
         try:
             record = generator.next()
@@ -32,7 +33,7 @@ class TestsTestCase(unittest.TestCase):
             return
 
     def testDelete(self):
-        self.tinasoft = TinaApp(configFile='config.yaml',storage='tinabsddb://fetopen.bsddb')
+        """Tests deleting objects in the DB"""
         generator = self.tinasoft.storage.select('Ngram')
         try:
             record = generator.next()
@@ -45,10 +46,7 @@ class TestsTestCase(unittest.TestCase):
 
 
     def testInsert(self):
-        return
-        """tests insert/update"""
-        os.remove('tests/test.bsddb')
-        self.tinasoft = TinaApp(configFile='config.yaml',storage='tinabsddb://tests/test.bsddb')
+        """tests inserting objects in the db"""
         self.tinasoft.storage.insertCorpora( corpora.Corpora( 'test corpora id' ) )
         self.tinasoft.storage.insertCorpus( corpus.Corpus( 'test corpus' ) )
         # creates a new entry
@@ -72,29 +70,21 @@ class TestsTestCase(unittest.TestCase):
             iditer.append( ng.id )
         self.tinasoft.storage.insertmanyNGram( iter )
         del iter
-        assocNGramCorpus=[]
-        assocNGramDocument=[]
-        for id1 in iditer:
-            # creates many associations
-            assocNGramCorpus.append(\
-                    ( str(id1), 'test corpus', random.randint(0,200)))
-            assocNGramDocument.append(\
-                    ( str(id1), '1', random.randint(0,200)))
-        self.tinasoft.storage.insertmanyAssocNGramDocument( assocNGramDocument )
-        self.tinasoft.storage.insertmanyAssocNGramCorpus( assocNGramCorpus )
-        print self.tinasoft.storage.fetchCorpusNGramID( 'test corpus' )
-        print self.tinasoft.storage.fetchDocumentNGramID( '1' )
+        print "testInsert ended"
 
     def testAssoc(self):
-        # compatibility tests
-        shutil.copy( 'fetopen.bsddb', 'tests/test.bsddb' )
-        self.tinasoft = TinaApp(configFile='config.yaml',storage='tinabsddb://tests/test.bsddb')
+        """test inserting association between object in the database"""
         corporaID = 'fet open'
         corpusID = '1'
         docID = 'sarajevo'
         ngramID = 'pytextminer'
         occs = 999999
-
+        self.tinasoft.storage.insertCorpora( corpora.Corpora( corporaID ) )
+        self.tinasoft.storage.insertCorpus( corpus.Corpus( corpusID ) )
+        self.tinasoft.storage.insertDocument( document.Document( {}, \
+            docID, 'test title', targets=['document testing content']) )
+        self.tinasoft.storage.insertNGram( ngram.NGram( ['test', 'ngram'],\
+            ngramID, postag=[['test','TAG1'],['ngram','TAG2']] ))
         # insert
         self.tinasoft.storage.insertAssocCorpus( corpusID, corporaID )
         self.tinasoft.storage.insertAssocDocument( docID, corpusID )
@@ -104,16 +94,15 @@ class TestsTestCase(unittest.TestCase):
         obj = self.tinasoft.storage.loadCorpora( 'fet open' )
         self.assertEqual( ('1' in obj['edges']['Corpus']), True )
         obj = self.tinasoft.storage.loadCorpus( '1' )
-        #print obj
-        self.assertEqual( ('sarajevo' in obj['edges']['Document']), False )
+        self.assertEqual( ('sarajevo' in obj['edges']['Document']), True )
         self.assertEqual( ('fet open' in obj['edges']['Corpora']), True )
-        self.assertEqual( ('pytextminer' in obj['edges']['NGram']), False )
+        self.assertEqual( ('pytextminer' in obj['edges']['NGram']), True )
         obj = self.tinasoft.storage.loadDocument('sarajevo')
-        self.assertEqual( obj, None )
+        self.assertNotEqual( obj, None )
         obj = self.tinasoft.storage.loadNGram('pytextminer')
-        self.assertEqual( self.tinasoft.storage.insertAssocNGramDocument( ngramID, docID, occs )
+        self.assertEqual( self.tinasoft.storage.insertAssocNGramDocument( ngramID+'i', docID, occs )
 , None )
-        self.assertEqual( self.tinasoft.storage.insertAssocNGramCorpus( ngramID, corpusID, occs )
+        self.assertEqual( self.tinasoft.storage.insertAssocNGramCorpus( ngramID, corpusID+'j', occs )
 , None )
 
 
@@ -125,6 +114,7 @@ class TestsTestCase(unittest.TestCase):
         #        rec = gen.next()
         #except StopIteration, si:
         #    print "end", si
+        print "testAssoc ended"
 
 if __name__ == '__main__':
     unittest.main()
