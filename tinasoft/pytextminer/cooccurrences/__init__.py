@@ -63,10 +63,10 @@ class MapReduce():
             obj = self.storage.loadNGram(ng)
             if obj is not None:
                 if self.filter is not None:
-                    accept=True
+                    passFilter = True
                     for filt in self.filter:
-                        accept &= filt.all(ng)
-                    if accept is True:
+                        passFilter &= filt.all(ng)
+                    if passFilter is True:
                         map[ng]=1
                 else:
                     map[ng]=1
@@ -119,11 +119,12 @@ class MapReduce():
             countng+=1
             #count = 0
             for month in self.matrix[ng]:
-                #count += 1
+                count += 1
                 self.storage.insertCooc(self.matrix[ng][month],\
                     key+ng+'::'+month)
             #_logger.debug( "Wrote total months = "+ str(count) )
         _logger.debug( "Wrote total ngrams = "+ str(countng) )
+        _logger.debug( "Wrote total cooc rows = "+ str(count) )
 
 
 class Multiprocessing(MapReduce):
