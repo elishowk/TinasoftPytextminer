@@ -15,6 +15,7 @@ class TransactionExpired(Exception): pass
 
 # A transaction decorator for BDB
 def transaction(f, name=None, **kwds):
+    """modified from http://www.rdflib.net/"""
     def wrapped(*args, **kwargs):
         bdb = args[0]
         retries = 10
@@ -71,6 +72,7 @@ class Backend(Handler):
         return self.__open
 
     def _init_db_environment(self, create=True):
+        """modified from http://www.rdflib.net/"""
         envsetflags  = db.DB_CDB_ALLDB
         envflags = db.DB_INIT_MPOOL | db.DB_INIT_LOCK | db.DB_THREAD | db.DB_INIT_TXN | db.DB_RECOVER
         db_env = db.DBEnv()
@@ -127,6 +129,7 @@ class Backend(Handler):
         #   raise Exception
 
     def __sync_run(self):
+        """modified from http://www.rdflib.net/"""
         from time import sleep, time
         try:
             min_seconds, max_seconds = 10, 300
@@ -150,12 +153,14 @@ class Backend(Handler):
             _logger.exception(e)
 
     def sync(self):
+        """modified from http://www.rdflib.net/"""
         if self.__open:
             self._db.sync()
 
     def close(self, commit_pending_transaction=True):
         """
         Properly handles transactions explicitely (with parameter) or by default
+        modified from http://www.rdflib.net/*
         """
         # when closing, no new transactions are allowed
         # problem is that a thread can already have passed the test and is
@@ -188,6 +193,7 @@ class Backend(Handler):
     def destroy(self):
         """
         Destroys the underlying bsddb persistence for this store
+        modified from http://www.rdflib.net/
         """
         # From bsddb docs:
         # A DB_ENV handle that has already been used to open an environment
@@ -212,6 +218,7 @@ class Backend(Handler):
         thread as parent is started. See:
         http://pybsddb.sourceforge.net/ref/transapp/nested.html for more on
         nested transactions in BDB.
+        modified from http://www.rdflib.net/
         """
         # A user should be able to wrap several operations in a transaction.
         # For example, two or more adds when adding a graph.
@@ -245,6 +252,7 @@ class Backend(Handler):
         """
         Bsddb tx objects cannot be reused after commit. Set rollback_root to
         true to commit all active transactions for the current thread.
+        modified from http://www.rdflib.net/
         """
         if thread.get_ident() in self.__dbTxn and self.is_open():
             try:
@@ -274,6 +282,7 @@ class Backend(Handler):
         """
         Bsddb tx objects cannot be reused after commit. Set rollback_root to
         true to abort all active transactions for the current thread.
+        modified from http://www.rdflib.net/
         """
 
         if thread.get_ident() in self.__dbTxn and self.is_open():
@@ -303,7 +312,7 @@ class Backend(Handler):
 
 
     def add(self, key, obj, overwrite=True):
-
+        """modified from http://www.rdflib.net/"""
         @transaction
         def _add(self, key, obj, overwrite, txn=None):
             self.safewrite(key, obj, overwrite, txn)
@@ -315,7 +324,7 @@ class Backend(Handler):
             raise e
 
     def remove(self, key, txn=None):
-
+        """modified from http://www.rdflib.net/"""
         @transaction
         def _remove(self, key, txn):
             self.safedelete( key, txn )
