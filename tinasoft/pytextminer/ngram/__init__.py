@@ -20,7 +20,7 @@ class NGram(PyTextMiner):
 class Filter():
     """
     Rule-based NGram content filtering
-    applies on a generator of (ngram id, ngram obj)
+    applies on a generator of (ngram_objects)
     """
     rules={
         'any':[],
@@ -38,24 +38,24 @@ class Filter():
                 self.lang = config['lang']
 
     def get_content(self, ng):
-        if 'content' in ng[1]:
-            return ng[1]['content']
+        if 'content' in ng:
+            return ng['content']
 
     def _any(self, ng):
         contents = self.get_content(ng)
+        test = True
         if contents is not None:
             for content in contents:
                 if content in self.rules['any']:
-                    return False
-        else:
-            return True
+                    test = False
+        return test
 
     def any(self, nggenerator):
         """Given a NGram object generator, applies the _any() filter"""
         try:
             record = nggenerator.next()
             while record:
-                if self._any(record) is not False:
+                if self._any(record) is True:
                     yield record
                 record = nggenerator.next()
         except StopIteration, si:
@@ -63,18 +63,18 @@ class Filter():
 
     def _both(self, ng):
         contents = self.get_content(ng)
+        test = True
         if contents is not None:
             if contents[0] in self.rules['both'] or contents[-1] in self.rules['both']:
-                return False
-        else:
-            return True
+                test = False
+        return test
 
     def both(self, nggenerator):
         """Given a NGram object generator, applies the _both() filter"""
         try:
             record = nggenerator.next()
             while record:
-                if self._both(record) is not False:
+                if self._both(record) is True:
                     yield record
                 record = nggenerator.next()
         except StopIteration, si:
@@ -82,19 +82,18 @@ class Filter():
 
     def _begin(self, ng):
         contents = self.get_content(ng)
+        test = True
         if contents is not None:
             if contents[0] in self.rules['begin']:
-                return False
-        else:
-            return True
-
+                test = False
+        return test
 
     def begin(self, nggenerator):
         """Given a NGram object generator, applies the _begin() filter"""
         try:
             record = nggenerator.next()
             while record:
-                if self._begin(record) is not False:
+                if self._begin(record) is True:
                     yield record
                 record = nggenerator.next()
         except StopIteration, si:
@@ -102,18 +101,18 @@ class Filter():
 
     def _end(self, ng):
         contents = self.get_content(ng)
+        test = True
         if contents is not None:
             if contents[-1] in self.rules['end']:
-                return False
-        else:
-            return True
+                test = False
+        return test
 
     def end(self, nggenerator):
         """Given a NGram object generator, applies the _end() filter"""
         try:
             record = nggenerator.next()
             while record:
-                if self._end(record) is not False:
+                if self._end(record) is True:
                     yield record
                 record = nggenerator.next()
         except StopIteration, si:
@@ -126,7 +125,7 @@ class Filter():
 class PosTagFilter(Filter):
     """
     Rule-based POS tag filtering
-    applies on a generator of (ngram id, ngram obj)
+    applies on a generator of (ngram_objects)
     """
 
     rules = {
@@ -138,8 +137,8 @@ class PosTagFilter(Filter):
 
     def get_content(self, ng):
         """overwrites the field selection to filter NGram object's postag"""
-        if 'postag' in ng[1]:
-            return [token[1] for token in ng[1]['postag']]
+        if 'postag' in ng:
+            return [token[1] for token in ng['postag']]
 
 # WARNING : OBSOLETE !!!
 #class NGramHelpers():
