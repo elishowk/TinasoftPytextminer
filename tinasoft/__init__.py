@@ -1,23 +1,33 @@
 # -*- coding: utf-8 -*-
 __author__="Elias Showk"
 __all__ = ["pytextminer","data"]
-# use this to dispatch tinasoft in multiple packages/directory
-#__import__('pkg_resources').declare_namespace(__name__)
 
-# core modules
+# tinasoft core modules
 from tinasoft.pytextminer import stopwords, indexer
 from tinasoft.data import Engine
 
-# core utilities
-import os
+# checks or creates aaplication directories
+from os import makedirs
+from os.path import exists, join
+if not exists('log'):
+    makedirs('log')
+if not exists('index'):
+    makedirs('index')
+if not exists('db'):
+    makedirs('db')
+
+# locale management
 import locale
 # command line utility
 from optparse import OptionParser
+# configuration file parsing
+import yaml
+
+# logger
 import logging
 import logging.handlers
 LOG_FILENAME = 'log/tinasoft.log'
-# configuration file parsing
-import yaml
+
 
 class TinaApp():
     """ base class for a tinasoft.pytextminer application"""
