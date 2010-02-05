@@ -76,7 +76,7 @@ class TinaIndex():
             if overwrite is True:
                 self.write( document, writer )
             else:
-                res = self.searchDoc( document.id, 'id' )
+                res = self.searchDoc( document['id'], 'id' )
                 if len( res ) == 0:
                     docDict = self.objectToDict( document )
                     writer.add_document( **docDict )

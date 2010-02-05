@@ -57,8 +57,8 @@ class Backend(Handler):
         'dieOnError'    : False,
         'debug'         : False,
         'compression'   : None,
-        'log'           : './log/',
-        'home'          : './',
+        'log'           : 'log',
+        'home'          : 'db',
         'prefix'        : {
             'Corpora':'Corpora::',
             'Corpus':'Corpus::',
@@ -90,12 +90,12 @@ class Backend(Handler):
 
         #db_env.set_lg_max(1024*1024)
         db_env.set_flags(envsetflags, 1)
-        db_env.open(self.homeDir, envflags | db.DB_CREATE,0)
+        db_env.open(self.home, envflags | db.DB_CREATE,0)
         return db_env
 
     def __init__(self, path, create=True, **opts):
         self.path = path
-        self.homeDir = dirname(path)
+        #self.homeDir = dirname(path)
         self.loadOptions(opts)
         self.lang,self.encoding = self.locale.split('.')
         dbname = None
@@ -354,7 +354,7 @@ class Backend(Handler):
             _logger.error( "DBError exception during saferead() : " + e[1] )
             raise Exception
 
-    def safereadall( self, smallestkey=None ):
+    def safereadrange( self, smallestkey=None ):
         """returns a cursor, optional smallest key"""
         try:
             cur = self.cursor()
@@ -362,7 +362,7 @@ class Backend(Handler):
                 cur.set_range( smallestkey )
             return cur
         except db.DBError, e:
-            _logger.error( "DBError exception during __del__() : " + e[1] )
+            _logger.error( "DBError exception during safereadrange() : " + e[1] )
             raise Exception
 
 
@@ -550,16 +550,28 @@ class Engine(Backend):
     def clear( self ):
         self._db.truncate()
 
+    def selectCorpusCooc(self, corpusId):
+        if isinstance(corpusId, str) is False:
+            corpusId = str(corpusId)
+        coocGen = self.select( self.prefix['Cooc']+corpusId )
+        try:
+            record = coocGen.next()
+            while record:
+                key = record[0].split('::')
+                yield ( (key[2],key[3]), self.decode(record[1]))
+                record = coocGen.next()
+        except StopIteration, si: return
+
+
     def select( self, minkey, maxkey=None ):
-        cursor = self.safereadall( minkey )
+        cursor = self.safereadrange( minkey )
         record = cursor.first()
         while record:
             if maxkey is None:
-                if record[0].startswith(minkey):
-                    yield ( record[0], self.decode(record[1]))
+                #if record[0].startswith(minkey):
+                yield ( record[0], self.decode(record[1]))
             elif record[0] < maxkey:
                 yield ( record[0], self.decode(record[1]))
             else:
                 return
             record = cursor.next()
-

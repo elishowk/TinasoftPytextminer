@@ -118,7 +118,7 @@ class Filter():
         except StopIteration, si:
             return
 
-    def all(self, ng):
+    def test(self, ng):
         """Given an NGram object return True if ALL the tests passed"""
         return self._any(ng) and self._both(ng) and self._begin(ng) and self._end(ng)
 

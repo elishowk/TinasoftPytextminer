@@ -41,9 +41,9 @@ class MapReduce():
             if doc_id not in self.processedDocs:
                 obj = self.storage.loadDocument( doc_id )
                 if obj is not None:
+                    # TODO encapsulate doc date parsing
                     ( day, month, year ) = obj['date'].split('/')
                     monthyear = month+year
-                    _logger.debug( "Extracted month+year = "+ str(monthyear) )
                     mapgenerator = self.mapper(obj)
                     try:
                         # ngrams loop
@@ -65,7 +65,7 @@ class MapReduce():
                 if self.filter is not None:
                     passFilter = True
                     for filt in self.filter:
-                        passFilter &= filt.all(ng)
+                        passFilter &= filt.test(obj)
                     if passFilter is True:
                         map[ng]=1
                 else:
@@ -107,7 +107,7 @@ class MapReduce():
     def writeMatrix(self):
         """
         writes in the db rows of the matrix
-        'corpus::ngramid::yearmonth' => '{ 'ngx' : y, 'ngy': z }'
+        'Cooc::corpus::ngramid::yearmonth' => '{ 'ngx' : y, 'ngy': z }'
         """
         if self.corpus is not None:
             key = self.corpus+'::'
@@ -123,8 +123,8 @@ class MapReduce():
                 self.storage.insertCooc(self.matrix[ng][month],\
                     key+ng+'::'+month)
             #_logger.debug( "Wrote total months = "+ str(count) )
-        _logger.debug( "Wrote total ngrams = "+ str(countng) )
-        _logger.debug( "Wrote total cooc rows = "+ str(count) )
+        _logger.debug( "total ngrams analysed = "+ str(countng) )
+        _logger.debug( "total cooc rows written = "+ str(count) )
 
 
 class Multiprocessing(MapReduce):
