@@ -42,8 +42,4 @@ class Document(PyTextMiner):
 
     def getDate(self):
         if self.date is not None:
-            try:
-                return datetime.strptime(string,"%Y%m%d").date()
-            except Exception, e:
-                # log exception
-                return None
+            return self.date.split('/')
