@@ -503,13 +503,40 @@ class Engine(Backend):
             self.insertCorpus, self.loadNGram, 'NGram', ngramID, \
             self.insertNGram, occs )
 
+    def clear( self ):
+        self._db.truncate()
+
+    def selectCorpusCooc(self, corpusId):
+        if isinstance(corpusId, str) is False:
+            corpusId = str(corpusId)
+        coocGen = self.select( self.prefix['Cooc']+corpusId )
+        try:
+            record = coocGen.next()
+            while record:
+                key = record[0].split('::')
+                yield ( (key[2],key[3]), record[1])
+                record = coocGen.next()
+        except StopIteration, si: return
+
+
+    def select( self, minkey, maxkey=None ):
+        cursor = self.safereadrange( minkey )
+        record = cursor.first()
+        while record:
+            if maxkey is None:
+                if record[0].startswith(minkey):
+                    yield ( record[0], self.decode(record[1]))
+            elif record[0] < maxkey:
+                yield ( record[0], self.decode(record[1]))
+            else:
+                return
+            record = cursor.next()
+
     def insertmanyAssocNGramDocument( self, iter ):
-        for tup in iter:
-            self.insertAssocNGramDocument( tup[0], tup[1], tup[2] )
+        raise NotImplemented
 
     def insertmanyAssocNGramCorpus( self, iter ):
-        for tup in iter:
-            self.insertAssocNGramCorpus( tup[0], tup[1], tup[2] )
+        raise NotImplemented
 
     def insertmanyAssoc(self, iter, assocname):
         raise NotImplemented
@@ -527,51 +554,21 @@ class Engine(Backend):
         raise NotImplemented
 
     def fetchCorpusNGramID( self, corpusid ):
-        corpus = self.loadCorpus( corpusid )
-        return corpus['edges']['NGram']
+        raise NotImplemented
 
     def fetchDocumentNGram( self, documentid ):
         raise NotImplemented
 
     def fetchDocumentNGramID( self, documentid ):
-        doc = self.loadDocument( documentid )
-        return corpus['edges']['NGram']
+        raise NotImplemented
+
 
     def fetchCorpusDocumentID( self, corpusid ):
-        c = self.loadCorpus( corpusid )
-        return corpus['edges']['Document']
+        raise NotImplemented
+
 
     def dropTables( self ):
         raise NotImplemented
 
     def createTables( self ):
         raise NotImplemented
-
-    def clear( self ):
-        self._db.truncate()
-
-    def selectCorpusCooc(self, corpusId):
-        if isinstance(corpusId, str) is False:
-            corpusId = str(corpusId)
-        coocGen = self.select( self.prefix['Cooc']+corpusId )
-        try:
-            record = coocGen.next()
-            while record:
-                key = record[0].split('::')
-                yield ( (key[2],key[3]), self.decode(record[1]))
-                record = coocGen.next()
-        except StopIteration, si: return
-
-
-    def select( self, minkey, maxkey=None ):
-        cursor = self.safereadrange( minkey )
-        record = cursor.first()
-        while record:
-            if maxkey is None:
-                #if record[0].startswith(minkey):
-                yield ( record[0], self.decode(record[1]))
-            elif record[0] < maxkey:
-                yield ( record[0], self.decode(record[1]))
-            else:
-                return
-            record = cursor.next()

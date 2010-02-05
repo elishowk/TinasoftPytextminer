@@ -31,17 +31,16 @@ class CoocTestCase(unittest.TestCase):
             self.tinasoft.logger.debug( "Test : Starting writeMatrix" )
             cooc.writeMatrix()
         #corpusAnalyse( self, '1' )
-        corpusAnalyse( self, '2' )
-        corpusAnalyse( self, '3' )
-        corpusAnalyse( self, '4' )
-        corpusAnalyse( self, '5' )
+        #corpusAnalyse( self, '2' )
+        #corpusAnalyse( self, '3' )
+        #corpusAnalyse( self, '4' )
+        #corpusAnalyse( self, '5' )
         #corpusAnalyse( self, '6' )
         #corpusAnalyse( self, '7' )
         #corpusAnalyse( self, '8' )
 
 
     def testCountCooc(self):
-        return
         self.tinasoft.logger.debug( "Test : Starting selectCorpusCooc('1')" )
         corpusId = '1'
         count = 0
