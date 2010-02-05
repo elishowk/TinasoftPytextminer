@@ -79,3 +79,26 @@ class TinaApp():
         else:
             self.index = indexer.TinaIndex(index)
 
+    def importFile(self, path, format='tina'):
+        raise NotImplemented
+
+    def indexDocuments(self, docObjList):
+        raise NotImplemented
+
+    def extractNGrams(self):
+        raise NotImplemented
+
+    def createCorpus(self):
+        raise NotImplemented
+
+    def createCorpora(self):
+        raise NotImplemented
+
+    def createDocument(self):
+        raise NotImplemented
+
+    def createNGram(self):
+        raise NotImplemented
+
+    def writeCooc(self):
+        raise NotImplemented
