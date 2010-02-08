@@ -1,105 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from tinasoft.data import sqlite, basecsv
+from tinasoft.data import tinabsddb, basecsv
 from tinasoft.pytextminer import document, corpus, ngram
 import codecs
 import csv
-
-class Exporter (sqlite.Engine):
-
-    def importDocument(self,
-        tokenizer,
-        tagger,
-        stopwords,
-        document,
-        documentNum,
-        corpusngrams,
-        corpusNum):
-        # only process document if unavailable in DB
-        if self.loadDocument( documentNum ) is None:
-
-            print "----- %s on document %s ----\n" % (tokenizer.__name__, documentNum)
-            sanitizedTarget = tokenizer.sanitize(
-                document.content,
-                document.forbChars,
-                document.ngramEmpty
-            )
-            #document.targets.append( sanitizedTarget )
-            #print target.sanitizedTarget
-            sentenceTokens = tokenizer.tokenize(
-                text = sanitizedTarget,
-                emptyString = document.ngramEmpty,
-            )
-            for sentence in sentenceTokens:
-                document.tokens.append( tagger.posTag( sentence ) )
-
-            docngrams = tokenizer.ngramize(
-                minSize = document.ngramMin,
-                maxSize = document.ngramMax,
-                tokens = document.tokens,
-                emptyString = document.ngramEmpty,
-                stopwords = stopwords,
-            )
-            assocDocIter = []
-            for ngid, ng in docngrams.iteritems():
-                # save doc occs and delete
-                docOccs = ng.occs
-                del ng.occs
-                assocDocIter.append( ( ng.id, document.id, docOccs ) )
-                # update corpusngrams index, replacing occs with corpus occs
-                if ngid in corpusngrams:
-                    corpusngrams[ ngid ].occs += 1
-                else:
-                    ng.occs = 1
-                    corpusngrams[ ngid ] = ng
-            del docngrams
-            self.insertmanyAssocNGramDocument( assocDocIter )
-            # clean full text before DB storage
-            document.content = ""
-            document.tokens = []
-            document.targets = []
-            self.insertDocument( document.id, document.date, document )
-
-        # anyway, insert a new Doc-Corpus association
-        self.insertAssocDocument( documentNum, corpusNum )
-        return corpusngrams
-
-    def importCorpus(self,
-        corpus,
-        corpusNum,
-        tokenizer,
-        tagger,
-        stopwords,
-        corpora,
-        docDict):
-        corpusngrams = {}
-        # Documents processing
-        for documentNum in corpus.content:
-            # get the document object
-            document = docDict[ documentNum ]
-            corpusngrams = self.importDocument( tokenizer, tagger, stopwords, document, documentNum, corpusngrams, corpusNum )
-            del document
-            del docDict[ documentNum ]
-            # TODO modulo 10 docs
-            print ">> %d documents left to import\n" % len( docDict )
-        # end of document extraction
-        print "NGRAMS BEFORE BAD FILTER ", len(corpusngrams)
-        ( corpusngrams, delList, assocNgramIter ) = ngram.NGramHelpers.filterUnique( corpusngrams, 2, corpusNum, self.encode )
-        #print "NGRAMS THAT WILL BE DELETED ", len(delList)
-        # stores the corpus, ngrams and corpus-ngrams associations
-        print "NGRAMS THAT WILL BE STORED ", len(corpusngrams)
-        print corpusngrams.items()[0]
-        self.insertmanyNGram( corpusngrams.items() )
-        print "AssocNGramCorpus THAT WILL BE STORED ", len(assocNgramIter)
-        self.insertmanyAssocNGramCorpus( assocNgramIter )
-        self.insertCorpus( corpusNum, corpus.period_start, corpus.period_end, corpus )
-        self.insertAssocCorpus( corpus.id, corpora.id )
-        # removes inexistant ngram-document associations
-        #self.cleanAssocNGramDocument( corpusNum )
-        # destroys Corpus-NGram dict
-        del corpusngrams
-        return docDict
-
 
 class Importer (basecsv.Importer):
 
@@ -179,3 +83,98 @@ class Importer (basecsv.Importer):
         #print document.ngramMin, document.ngramMax, document.docNum, document.rawContent
         self.docDict[ docNum ] = doc
         return doc
+
+    def importDocument(self,
+        storage,
+        tokenizer,
+        tagger,
+        stopwords,
+        document,
+        documentNum,
+        corpusngrams,
+        corpusNum):
+        # only process document if unavailable in DB
+        if storage( documentNum ) is None:
+
+            print "----- %s on document %s ----\n" % (tokenizer.__name__, documentNum)
+            sanitizedTarget = tokenizer.sanitize(
+                document.content,
+                document.forbChars,
+                document.ngramEmpty
+            )
+            #document.targets.append( sanitizedTarget )
+            #print target.sanitizedTarget
+            sentenceTokens = tokenizer.tokenize(
+                text = sanitizedTarget,
+                emptyString = document.ngramEmpty,
+            )
+            for sentence in sentenceTokens:
+                document.tokens.append( tagger.posTag( sentence ) )
+
+            docngrams = tokenizer.ngramize(
+                minSize = document.ngramMin,
+                maxSize = document.ngramMax,
+                tokens = document.tokens,
+                emptyString = document.ngramEmpty,
+                stopwords = stopwords,
+            )
+            assocDocIter = []
+            for ngid, ng in docngrams.iteritems():
+                # save doc occs and delete
+                docOccs = ng.occs
+                del ng.occs
+                assocDocIter.append( ( ng.id, document.id, docOccs ) )
+                # update corpusngrams index, replacing occs with corpus occs
+                if ngid in corpusngrams:
+                    corpusngrams[ ngid ].occs += 1
+                else:
+                    ng.occs = 1
+                    corpusngrams[ ngid ] = ng
+            del docngrams
+            storage.insertmanyAssocNGramDocument( assocDocIter )
+            # clean full text before DB storage
+            document.content = ""
+            document.tokens = []
+            document.targets = []
+            storage.insertDocument( document.id, document.date, document )
+
+        # anyway, insert a new Doc-Corpus association
+        storage.insertAssocDocument( documentNum, corpusNum )
+        return corpusngrams
+
+    def importCorpus(self,
+        storage,
+        corpus,
+        corpusNum,
+        tokenizer,
+        tagger,
+        stopwords,
+        corpora,
+        docDict):
+        corpusngrams = {}
+        # Documents processing
+        for documentNum in corpus.content:
+            # get the document object
+            document = docDict[ documentNum ]
+            corpusngrams = self.importDocument( storage, tokenizer, tagger, stopwords, document, documentNum, corpusngrams, corpusNum )
+            del document
+            del docDict[ documentNum ]
+            # TODO modulo 10 docs
+            print ">> %d documents left to import\n" % len( docDict )
+        # end of document extraction
+        print "NGRAMS BEFORE BAD FILTER ", len(corpusngrams)
+        ( corpusngrams, delList, assocNgramIter ) = ngram.NGramHelpers.filterUnique( corpusngrams, 1, corpusNum, storage.encode )
+        #print "NGRAMS THAT WILL BE DELETED ", len(delList)
+        # stores the corpus, ngrams and corpus-ngrams associations
+        print "NGRAMS THAT WILL BE STORED ", len(corpusngrams)
+        print corpusngrams.items()[0]
+        storage.insertmanyNGram( corpusngrams.items() )
+        print "AssocNGramCorpus THAT WILL BE STORED ", len(assocNgramIter)
+        storage.insertmanyAssocNGramCorpus( assocNgramIter )
+        storage.insertCorpus( corpusNum, corpus.period_start, corpus.period_end, corpus )
+        storage.insertAssocCorpus( corpus.id, corpora.id )
+        # removes inexistant ngram-document associations
+        #self.cleanAssocNGramDocument( corpusNum )
+        # destroys Corpus-NGram dict
+        del corpusngrams
+        return docDict

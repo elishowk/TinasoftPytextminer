@@ -4,7 +4,7 @@ __all__ = ["pytextminer","data"]
 
 # tinasoft core modules
 from tinasoft.pytextminer import stopwords, indexer
-from tinasoft.data import Engine
+from tinasoft.data import Engine, Reader, Writer
 
 # checks or creates aaplication directories
 from os import makedirs
@@ -79,8 +79,43 @@ class TinaApp():
         else:
             self.index = indexer.TinaIndex(index)
 
-    def importFile(self, path, format='tina'):
-        raise NotImplemented
+    def importFile(self, path, fields,
+            format='tina',
+            new_corpora_id=None,
+            corpora_id=None,
+            minSize=None,
+            maxSize=None,
+            delimiter = None,
+            quotechar = None,
+            locale = None):
+        """tina csv file import method"""
+        dsn = format+"://"+path
+        tinaImporter = Reader(dsn,
+            minSize = minSize,
+            maxSize = maxSize,
+            delimiter = delimiter,
+            quotechar = quotechar,
+            locale = locale,
+            fields = fields
+        )
+        if new_corpora_id is not None:
+            corps = corpora.Corpora( new_corpora_id )
+        elif corpora_id is not None:
+            corps = self.storage.loadCorpora(corpora_id)
+        else:
+            self.logger.error("importFile failed : new_corpora_id "+\
+             "and corpora_id are both None, "+\
+             "please submit at least one param")
+            return
+        corps = tinaImporter.corpora( corps )
+        self.storage.insertCorpora( corps['id'], corps )
+        tinaextract = Writer(self.options.outdb, locale=self.locale, format="json")
+        for corpusNum in corps['content']:
+            # get the Corpus object and import
+            corpus = tinaImporter.corpusDict[ corpusNum ]
+            tinaImporter.docDict = tinaextract.importCorpus( corpus, corpusNum, tokenizer.TreeBankWordTokenizer, tagger.TreeBankPosTagger, self.stopwords, corps, tinaImporter.docDict )
+            del corpus
+            del tinaImporter.corpusDict[ corpusNum ]
 
     def indexDocuments(self, docObjList):
         raise NotImplemented
