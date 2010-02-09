@@ -4,6 +4,8 @@ from tinasoft.data import tinabsddb, basecsv
 from tinasoft.pytextminer import document, corpus, ngram
 import codecs
 import csv
+import logging
+_logger = logging.getLogger('TinaAppLogger')
 
 class Importer (basecsv.Importer):
 
@@ -93,29 +95,32 @@ class Importer (basecsv.Importer):
         documentNum,
         corpusngrams,
         corpusNum):
-        # only process document if unavailable in DB
+        """"
+        Main function processing a document, ngramizer
+        applying NLP methods and inserting results into storage
+        TODO : indexation !
+        """
         if storage( documentNum ) is None:
-
-            print "----- %s on document %s ----\n" % (tokenizer.__name__, documentNum)
+            _logger.debug(tokenizer.__name__+" is working on document "+ documentNum)
             sanitizedTarget = tokenizer.sanitize(
-                document.content,
-                document.forbChars,
-                document.ngramEmpty
+                document['content'],
+                document['forbChars'],
+                document['ngramEmpty']
             )
             #document.targets.append( sanitizedTarget )
             #print target.sanitizedTarget
             sentenceTokens = tokenizer.tokenize(
                 text = sanitizedTarget,
-                emptyString = document.ngramEmpty,
+                emptyString = document['ngramEmpty'],
             )
             for sentence in sentenceTokens:
-                document.tokens.append( tagger.posTag( sentence ) )
+                document['tokens'] += [tagger.posTag( sentence )]
 
             docngrams = tokenizer.ngramize(
-                minSize = document.ngramMin,
-                maxSize = document.ngramMax,
-                tokens = document.tokens,
-                emptyString = document.ngramEmpty,
+                minSize = document['ngramMin'],
+                maxSize = document['ngramMax'],
+                tokens = document['tokens'],
+                emptyString = document['ngramEmpty'],
                 stopwords = stopwords,
             )
             assocDocIter = []
@@ -123,7 +128,7 @@ class Importer (basecsv.Importer):
                 # save doc occs and delete
                 docOccs = ng.occs
                 del ng.occs
-                assocDocIter.append( ( ng.id, document.id, docOccs ) )
+                assocDocIter += [( ng['id'], document['id'], docOccs )]
                 # update corpusngrams index, replacing occs with corpus occs
                 if ngid in corpusngrams:
                     corpusngrams[ ngid ].occs += 1
@@ -151,30 +156,27 @@ class Importer (basecsv.Importer):
         stopwords,
         corpora,
         docDict):
+        """index every document in a corpus"""
         corpusngrams = {}
         # Documents processing
         for documentNum in corpus.content:
             # get the document object
             document = docDict[ documentNum ]
+            # main NLP + ngramization method
             corpusngrams = self.importDocument( storage, tokenizer, tagger, stopwords, document, documentNum, corpusngrams, corpusNum )
+            # empty memory
             del document
             del docDict[ documentNum ]
-            # TODO modulo 10 docs
-            print ">> %d documents left to import\n" % len( docDict )
-        # end of document extraction
-        print "NGRAMS BEFORE BAD FILTER ", len(corpusngrams)
-        ( corpusngrams, delList, assocNgramIter ) = ngram.NGramHelpers.filterUnique( corpusngrams, 1, corpusNum, storage.encode )
-        #print "NGRAMS THAT WILL BE DELETED ", len(delList)
+            _logger.debug( str(len( docDict )) + " documents left to import" )
+        # prepares NGram-Corpus associations
+        assocNGramCorpus=[]
+        for ngid in corpusngrams.keys():
+            assocNGramCorpus.append( ( ngid, corpusNum, corpusngrams[ ngid ]['occs'] ) )
         # stores the corpus, ngrams and corpus-ngrams associations
-        print "NGRAMS THAT WILL BE STORED ", len(corpusngrams)
-        print corpusngrams.items()[0]
         storage.insertmanyNGram( corpusngrams.items() )
-        print "AssocNGramCorpus THAT WILL BE STORED ", len(assocNgramIter)
-        storage.insertmanyAssocNGramCorpus( assocNgramIter )
-        storage.insertCorpus( corpusNum, corpus.period_start, corpus.period_end, corpus )
+        storage.insertmanyAssocNGramCorpus( assocNGramCorpus )
+        storage.insertCorpus( corpus )
         storage.insertAssocCorpus( corpus.id, corpora.id )
-        # removes inexistant ngram-document associations
-        #self.cleanAssocNGramDocument( corpusNum )
-        # destroys Corpus-NGram dict
-        del corpusngrams
+
+        # docDict contains the documents that remains
         return docDict

@@ -3,7 +3,7 @@ __author__="Elias Showk"
 __all__ = ["pytextminer","data"]
 
 # tinasoft core modules
-from tinasoft.pytextminer import stopwords, indexer
+from tinasoft.pytextminer import stopwords, indexer, tagger, tokenizer
 from tinasoft.data import Engine, Reader, Writer
 
 # checks or creates aaplication directories
@@ -79,7 +79,7 @@ class TinaApp():
         else:
             self.index = indexer.TinaIndex(index)
 
-    def importFile(self, path, fields,
+    def readFile(self, path, fields,
             format='tina',
             new_corpora_id=None,
             corpora_id=None,
@@ -90,7 +90,7 @@ class TinaApp():
             locale = None):
         """tina csv file import method"""
         dsn = format+"://"+path
-        tinaImporter = Reader(dsn,
+        fileReader = Reader(dsn,
             minSize = minSize,
             maxSize = maxSize,
             delimiter = delimiter,
@@ -104,16 +104,25 @@ class TinaApp():
             corps = self.storage.loadCorpora(corpora_id)
         else:
             self.logger.error("importFile failed : new_corpora_id "+\
-             "and corpora_id are both None, "+\
-             "please submit at least one param")
+                "and corpora_id are both None, "+\
+                "please submit at least one param")
             return
-        corps = tinaImporter.corpora( corps )
-        self.storage.insertCorpora( corps['id'], corps )
-        tinaextract = Writer(self.options.outdb, locale=self.locale, format="json")
+        # parse the file
+        corps = fileReader.corpora( corps )
+        # insert or updates corpora
+        self.storage.insertCorpora( corps )
+        return ( fileReader, corps )
+
+    def importFile(self, fileReader, corps):
+        """gets importFile() results to insert contents into storage"""
+        # walk every corpus
         for corpusNum in corps['content']:
             # get the Corpus object and import
-            corpus = tinaImporter.corpusDict[ corpusNum ]
-            tinaImporter.docDict = tinaextract.importCorpus( corpus, corpusNum, tokenizer.TreeBankWordTokenizer, tagger.TreeBankPosTagger, self.stopwords, corps, tinaImporter.docDict )
+            corpus = fileReader.corpusDict[ corpusNum ]
+            fileReader.docDict = fileReader.importCorpus( corpus, \
+                corpusNum, tokenizer.TreeBankWordTokenizer,\
+                tagger.TreeBankPosTagger, self.stopwords,\
+                corps, fileReader.docDict )
             del corpus
             del tinaImporter.corpusDict[ corpusNum ]
 
