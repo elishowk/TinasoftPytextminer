@@ -3,7 +3,6 @@
 import codecs
 import pickle
 from tinasoft.pytextminer import ngram as NG
-from tinasoft.data import Reader
 
 class StopWords( object ):
     """StopWords"""

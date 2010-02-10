@@ -57,7 +57,6 @@ class Backend(Handler):
         'dieOnError'    : False,
         'debug'         : False,
         'compression'   : None,
-        'log'           : 'log',
         'home'          : 'db',
         'prefix'        : {
             'Corpora':'Corpora::',
@@ -71,7 +70,7 @@ class Backend(Handler):
     def is_open(self):
         return self.__open
 
-    def _init_db_environment(self, create=True):
+    def _init_db_environment(self, home, create=True):
         """modified from http://www.rdflib.net/"""
         envsetflags  = db.DB_CDB_ALLDB
         envflags = db.DB_INIT_MPOOL | db.DB_INIT_LOCK | db.DB_THREAD | db.DB_INIT_TXN | db.DB_RECOVER
@@ -90,12 +89,11 @@ class Backend(Handler):
 
         #db_env.set_lg_max(1024*1024)
         db_env.set_flags(envsetflags, 1)
-        db_env.open(self.home, envflags | db.DB_CREATE,0)
+        db_env.open(home, envflags | db.DB_CREATE,0)
         return db_env
 
     def __init__(self, path, create=True, **opts):
         self.path = path
-        #self.homeDir = dirname(path)
         self.loadOptions(opts)
         self.lang,self.encoding = self.locale.split('.')
         dbname = None
@@ -114,8 +112,11 @@ class Backend(Handler):
         self.__dbTxn = {}
         # beware of the while self.__open in __sync_run() !
         self.__open = True
-        # TODO get homeDir
-        self.db_env = db_env = self._init_db_environment(create)
+        if 'home' in opts:
+            dir = opts['home']
+        else:
+            dir = self.options['home']
+        self.db_env = db_env = self._init_db_environment(dir, create)
         self._db = db.DB(db_env)
         self._db.set_flags(dbsetflags)
         self._db.open(path, dbname, dbtype, dbopenflags|db.DB_CREATE, dbmode)

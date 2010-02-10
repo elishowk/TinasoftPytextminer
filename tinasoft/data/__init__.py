@@ -2,6 +2,7 @@
 __all__ = ['basecsv', 'mozstorage', 'sqlite', 'sqlapi', 'tina', 'tinabsddb']
 
 import jsonpickle
+import sys
 
 class Handler (object):
     """
@@ -16,7 +17,8 @@ class Handler (object):
     """
 
     options = { 'compression' : None,
-                'encoding' : 'utf-8' }
+                'encoding'  : 'utf-8',
+                'locale'    : 'en_US.UTF-8'}
 
     def loadOptions(self, options):
         self.options.update(options)
@@ -49,26 +51,24 @@ def _check_protocol(arg):
     protocol, path = arg.split("://")
     return protocol, path
 
-def Engine(arg, **options):
+def _factory(arg):
     protocol, path = _check_protocol(arg)
     try:
-        exec("import %s as module"%protocol)
-        return module.Engine(path, **options)
-    except Exception, exc:
-        raise Exception("couldn't load engine %s: %s"%(protocol,exc))
+        name = 'tinasoft.data.'+protocol
+        mod = __import__(name)
+        obj = sys.modules[name]
+        return obj, path
+    except ImportError, exc:
+        raise Exception("couldn't find module %s: %s"%(protocol,exc))
+
+def Engine(arg, **options):
+    module, path = _factory(arg)
+    return module.Engine(path, **options)
 
 def Reader(arg, **options):
-    protocol, path = _check_protocol(arg)
-    try:
-        exec("import %s as module"%protocol)
-        return module.Importer(path, **options)
-    except Exception, exc:
-        raise Exception("couldn't load reader %s: %s"%(protocol,exc))
+    module, path = _factory(arg)
+    return module.Importer(path, **options)
 
 def Writer(arg, **options):
-    protocol, path = _check_protocol(arg)
-    try:
-        exec("import %s as module"%protocol)
-        return module.Exporter(path, **options)
-    except Exception, exc:
-        raise Exception("couldn't load writer %s: %s"%(protocol,exc))
+    module, path = _factory(arg)
+    return module.Exporter(path, **options)

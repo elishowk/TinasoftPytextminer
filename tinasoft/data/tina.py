@@ -29,8 +29,9 @@ class Importer (basecsv.Importer):
                 print "skipping document"
                 continue
             found = 0
-            if self.corpusDict.has_key(corpusNumber) and corpusNumber in corpora.content:
-                self.corpusDict[ corpusNumber ].content.append( document.id )
+            if self.corpusDict.has_key(corpusNumber) and \
+                corpusNumber in corpora['content']:
+                self.corpusDict[ corpusNumber ]['content'].append( document.id )
                 found = 1
             else:
                 found = 0
@@ -42,9 +43,9 @@ class Importer (basecsv.Importer):
                 period_start = None,
                 period_end = None
             )
-            corp.content.append( document.id )
+            corp['content'].append( document.id )
             self.corpusDict[ corpusNumber ] = corp
-            corpora.content.append( corpusNumber )
+            corpora['content'][ corpusNumber ] = 1
         return corpora
 
     def parseDocument( self, doc, tmpfields, corpusNum ):
@@ -78,8 +79,8 @@ class Importer (basecsv.Importer):
             docNum,
             title,
             #datestamp=datestamp,
-            ngramMin=self.minSize,
-            ngramMax=self.maxSize,
+            #ngramMin=self.minSize,
+            #ngramMax=self.maxSize,
             **docArgs
         )
         #print document.ngramMin, document.ngramMax, document.docNum, document.rawContent

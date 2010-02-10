@@ -3,7 +3,7 @@ __author__="Elias Showk"
 __all__ = ["pytextminer","data"]
 
 # tinasoft core modules
-from tinasoft.pytextminer import stopwords, indexer, tagger, tokenizer
+from tinasoft.pytextminer import stopwords, indexer, tagger, tokenizer, corpora
 from tinasoft.data import Engine, Reader, Writer
 
 # checks or creates aaplication directories
@@ -26,8 +26,6 @@ import yaml
 # logger
 import logging
 import logging.handlers
-LOG_FILENAME = 'log/tinasoft.log'
-
 
 class TinaApp():
     """ base class for a tinasoft.pytextminer application"""
@@ -36,18 +34,17 @@ class TinaApp():
         self.logger = logging.getLogger('TinaAppLogger')
         self.logger.setLevel(logging.DEBUG)
 
-        # Add the log message handler to the logger
-        handler = logging.handlers.RotatingFileHandler(\
-            LOG_FILENAME, maxBytes=1000000, backupCount=5)
-
-        self.logger.addHandler(handler)
         # import config yaml
         try:
             self.config = yaml.safe_load( file( configFile, 'rU' ) )
         except yaml.YAMLError, exc:
             self.logger.error( "Unable to read the config.yaml file : " + exc)
             return
-
+        LOG_FILENAME = self.config['log']
+        # Add the log message handler to the logger
+        handler = logging.handlers.RotatingFileHandler(\
+            LOG_FILENAME, maxBytes=1000000, backupCount=5)
+        self.logger.addHandler(handler)
         # tries support of the locale by the host system
         try:
             if loc is None:
@@ -67,9 +64,12 @@ class TinaApp():
         else:
             self.stopwords = stopwords.StopWords( "file://%s" % stopw )
 
-        # connect sqlite database
+        options = {
+            'home' : self.config['dbenv']
+        }
+        # connection to storage
         if storage is None:
-            self.storage = Engine(self.config['storage'])
+            self.storage = Engine(self.config['storage'], **options)
         else:
             self.storage = Engine(storage)
 
@@ -79,54 +79,57 @@ class TinaApp():
         else:
             self.index = indexer.TinaIndex(index)
 
-    def readFile(self, path, fields,
-            format='tina',
-            new_corpora_id=None,
-            corpora_id=None,
-            minSize=None,
-            maxSize=None,
-            delimiter = None,
-            quotechar = None,
-            locale = None):
-        """tina csv file import method"""
-        dsn = format+"://"+path
-        fileReader = Reader(dsn,
-            minSize = minSize,
-            maxSize = maxSize,
-            delimiter = delimiter,
-            quotechar = quotechar,
-            locale = locale,
-            fields = fields
-        )
-        if new_corpora_id is not None:
-            corps = corpora.Corpora( new_corpora_id )
-        elif corpora_id is not None:
-            corps = self.storage.loadCorpora(corpora_id)
-        else:
-            self.logger.error("importFile failed : new_corpora_id "+\
-                "and corpora_id are both None, "+\
-                "please submit at least one param")
+    def importFile(self,
+            path,
+            configFile,
+            corpora_id,
+            #minSize=None,
+            #maxSize=None,
+            format= 'tina'):
+        """tina file import method"""
+        # import import config yaml
+        try:
+            self.config = yaml.safe_load( file( configFile, 'rU' ) )
+        except yaml.YAMLError, exc:
+            self.logger.error( "Unable to read the importFile special config : " + exc)
             return
+        self.logger.debug(self.config['fields'])
+        dsn = format+"://"+path
+        self.logger.debug(dsn)
+        fileReader = Reader(dsn,
+            #minSize = minSize,
+            #maxSize = maxSize,
+            delimiter = self.config['delimiter'],
+            quotechar = self.config['quotechar'],
+            locale = self.config['locale'],
+            fields = self.config['fields']
+        )
+        self._walkFile( fileReader, corpora_id )
+
+    def _walkFile(self, fileReader, corpora_id):
+        """gets importFile() results to insert contents into storage"""
+        corps = self.storage.loadCorpora(corpora_id)
+        if corps is None:
+            corps = corpora.Corpora( corpora_id )
         # parse the file
+        self.logger.debug(corps)
         corps = fileReader.corpora( corps )
         # insert or updates corpora
         self.storage.insertCorpora( corps )
-        return ( fileReader, corps )
-
-    def importFile(self, fileReader, corps):
-        """gets importFile() results to insert contents into storage"""
-        # walk every corpus
+        self.logger.debug("stored a new corpora : " + corps['id'])
         for corpusNum in corps['content']:
             # get the Corpus object and import
             corpus = fileReader.corpusDict[ corpusNum ]
-            fileReader.docDict = fileReader.importCorpus( corpus, \
-                corpusNum, tokenizer.TreeBankWordTokenizer,\
-                tagger.TreeBankPosTagger, self.stopwords,\
-                corps, fileReader.docDict )
+            self.logger.debug(corpus)
+            # TODO _walkDocuments TODO TODO
+            #fileReader.docDict = fileReader.importCorpus( corpus, \
+            #    corpusNum, tokenizer.TreeBankWordTokenizer,\
+            #    tagger.TreeBankPosTagger, self.stopwords,\
+            #    corps, self.fileReader.docDict )
             del corpus
-            del tinaImporter.corpusDict[ corpusNum ]
+            del fileReader.corpusDict[ corpusNum ]
 
-    def indexDocuments(self, docObjList):
+    def indexDocuments(self, fileReader):
         raise NotImplemented
 
     def extractNGrams(self):
