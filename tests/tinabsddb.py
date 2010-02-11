@@ -47,6 +47,7 @@ class TestsTestCase(unittest.TestCase):
 
     def testInsert(self):
         """tests inserting objects in the db"""
+        return
         self.tinasoft.storage.insertCorpora( corpora.Corpora( 'test corpora id' ) )
         self.tinasoft.storage.insertCorpus( corpus.Corpus( 'test corpus' ) )
         # creates a new entry

@@ -62,7 +62,7 @@ class Importer (Importer):
             quotechar='"',
             **kwargs
         ):
-        _logger.debug("start of basecsv.Importer.__init__ " + filepath )
+        #_logger.debug("start of basecsv.Importer.__init__ " + filepath )
         try:
             self.filepath = filepath
             self.loadOptions( kwargs )
@@ -94,7 +94,7 @@ class Importer (Importer):
             self.corpusDict = {}
         except Exception, e:
             _logger.error("error during basecsv.Importer.__init__", + e)
-        _logger.debug("end of basecsv.Importer.__init__ " )
+        #_logger.debug("end of basecsv.Importer.__init__ " )
 
     def open( self, filepath ):
         return codecs.open( filepath,'rU', errors='replace' )
