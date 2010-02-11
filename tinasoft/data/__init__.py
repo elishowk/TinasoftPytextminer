@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__all__ = ['basecsv', 'mozstorage', 'sqlite', 'sqlapi', 'tina', 'tinabsddb']
+__all__ = ['basecsv', 'mozstorage', 'sqlite', 'sqlapi', 'tina', 'tinabsddb','gexf']
 
 import jsonpickle
 import sys

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gexf xmlns="http://www.gephi.org/gexf" xmlns:viz="http://www.gephi.org/gexf/viz">
+  <meta lastmodifieddate="#{date}">
+    <description>${description}</description>
+<?py for creator in creators: ?>
+    <creator>${creator}</creator>
+<?py #end ?>
+  </meta>
+  <graph type="${type}">
+    <attributes class="node" type="${type}">
+<?py i = 0 ?>
+<?py for name,type in attrnodes.iteritems(): ?>
+<?py     i += 1 ?>
+      <attribute id="${i}" title="${name}" type="#{type}">
+      </attribute>
+<?py #endfor ?>
+    </attributes>
+    <attributes class="edge" type="${type}">
+<?py i = 0 ?>
+<?py for name,type in attredges.iteritems(): ?>
+<?py     i += 1 ?>
+      <attribute id="${i}" title="${name}" type="#{type}">
+      </attribute>
+<?py #endfor ?>
+    </attributes>
+    <nodes>
+<?py for id,row in nodes.iterkeys(): ?>
+      <node id="#{id}" label="#{row['label']}">
+        <attvalues>
+          <attvalue id="0" value="#{row['category']}" />
+        </attvalues>
+        <parents>
+        </parents>
+      </node>
+<?py #endfor ?>
+    </nodes>
+    <edges>
+<?py i = 0 ?>
+<?py for source,row in nodes.iteritems(): ?>
+<?py    for target, weight in row['edges'].iteritems(): ?>
+<?py        i += 1 ?>
+      <edge id="#{i}" source="#{source}" target="#{target}" weight="#{weight}" />
+<?py    #endfor ?>
+<?py #endfor ?>
+    </edges>
+  </graph>
+</gexf>
+
+
