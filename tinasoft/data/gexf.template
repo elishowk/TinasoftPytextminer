@@ -36,11 +36,9 @@
     <edges>
 <?py i = 0 ?>
 <?py for source,row in nodes.iteritems(): ?>
-<?py    for target, weight in row['edges'].iteritems(): ?>
-<?py        if weight <= min or weight >= max: ?>
-<?py            continue ?>
+<?py    for target, weight in row['distance'].iteritems(): ?>
 <?py        i += 1 ?>
-      <edge id="#{i}" source="#{source}" target="#{target}" weight="#{weight*1.0}" />
+      <edge id="#{i}" source="#{source}" target="#{target}" weight="#{weight}" />
 <?py    #endfor ?>
 <?py #endfor ?>
     </edges>
