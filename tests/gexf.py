@@ -19,13 +19,16 @@ class CoocTestCase(unittest.TestCase):
             storage='tinabsddb://fetopen.test.bsddb')
 
 
-    def testCountCooc(self):
-        self.tinasoft.logger.debug( "Test : Starting selectCorpusCooc('1')" )
-        corpusId = '1'
-        count = 0
-        generator = self.tinasoft.storage.selectCorpusCooc(corpusId)
-        gexf = Writer('gexf://')
-        test = gexf.coocGraph(generator, threshold=10)
+    def test0GEXF(self):
+        self.tinasoft.logger.debug( "Test : GEXF on corpus 1" )
+        test = Writer('gexf://').coocDistanceGraph(
+        db=self.tinasoft.storage, 
+        corpus=1,
+        threshold=[2.0,3.0],
+        meta={
+           'description' : "ngram graph on corpus 1",
+           'creators' : ['Julian bilcke', 'Elias Showk'],
+        })
         self.tinasoft.logger.debug(test)
 
 if __name__ == '__main__':
