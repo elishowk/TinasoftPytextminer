@@ -389,7 +389,7 @@ class Backend(Handler):
 
     def safewritemany( self, iter ):
         """TODO writes a set of entries in the same transaction"""
-        raise NotImplemented
+        raise NotImplemented()
 
     def safedelete( self, key, txn=None ):
         if isinstance(key, str) is False:
@@ -438,7 +438,11 @@ class Engine(Backend):
             self.insertCorpus( obj )
 
     def insertDocument(self, obj, id=None, datestamp=None):
+        """automatically removes text content"""
+        content = obj['content']
+        obj['content'] = ""
         self.insert( obj, 'Document', id )
+        obj['content'] = content
 
     def insertmanyDocument(self, iter):
         # id, datestamp, blob
@@ -535,42 +539,40 @@ class Engine(Backend):
             record = cursor.next()
 
     def insertmanyAssocNGramDocument( self, iter ):
-        raise NotImplemented
+        raise NotImplemented()
 
     def insertmanyAssocNGramCorpus( self, iter ):
-        raise NotImplemented
+        raise NotImplemented()
 
     def insertmanyAssoc(self, iter, assocname):
-        raise NotImplemented
+        raise NotImplemented()
 
     def deletemanyAssoc( self, iter, assocname ):
-        raise NotImplemented
+        raise NotImplemented()
 
     def deletemanyAssocNGramDocument( self, iter ):
-        raise NotImplemented
+        raise NotImplemented()
 
     def deletemanyAssocNGramCorpus( self, iter ):
-        raise NotImplemented
+        raise NotImplemented()
 
     def fetchCorpusNGram( self, corpusid ):
-        raise NotImplemented
+        raise NotImplemented()
 
     def fetchCorpusNGramID( self, corpusid ):
-        raise NotImplemented
+        raise NotImplemented()
 
     def fetchDocumentNGram( self, documentid ):
-        raise NotImplemented
+        raise NotImplemented()
 
     def fetchDocumentNGramID( self, documentid ):
-        raise NotImplemented
-
+        raise NotImplemented()
 
     def fetchCorpusDocumentID( self, corpusid ):
-        raise NotImplemented
-
+        raise NotImplemented()
 
     def dropTables( self ):
-        raise NotImplemented
+        raise NotImplemented()
 
     def createTables( self ):
-        raise NotImplemented
+        raise NotImplemented()
