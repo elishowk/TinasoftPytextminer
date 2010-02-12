@@ -75,7 +75,7 @@ class Backend(Handler):
         envsetflags  = db.DB_CDB_ALLDB
         envflags = db.DB_INIT_MPOOL | db.DB_INIT_LOCK | db.DB_THREAD | db.DB_INIT_TXN | db.DB_RECOVER
         db_env = db.DBEnv()
-        db_env.set_cachesize(0, 1024*1024*50)  # 50Mbytes
+        db_env.set_cachesize(0, 1024*1024*100)  # 100 Mbytes
 
         # enable deadlock-detection
         db_env.set_lk_detect(db.DB_LOCK_MAXLOCKS)
@@ -143,9 +143,10 @@ class Backend(Handler):
                         if self.__needs_sync:
                             t1 = time()
                             self.__needs_sync = False
+                        # sync if
                         if time()-t1 > min_seconds or time()-t0 > max_seconds:
                             self.__needs_sync = False
-                            _logger.debug("sync")
+                            #_logger.debug("sync")
                             self.sync()
                             break
                 else:
