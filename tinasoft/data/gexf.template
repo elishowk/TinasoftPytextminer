@@ -37,7 +37,7 @@
 <?py i = 0 ?>
 <?py for source,row in nodes.iteritems(): ?>
 <?py    for target, weight in row['edges'].iteritems(): ?>
-<?py        if weight <= threshold: ?>
+<?py        if weight <= min or weight >= max: ?>
 <?py            continue ?>
 <?py        i += 1 ?>
       <edge id="#{i}" source="#{source}" target="#{target}" weight="#{weight*1.0}" />

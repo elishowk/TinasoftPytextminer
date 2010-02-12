@@ -21,11 +21,7 @@ class CoocTestCase(unittest.TestCase):
 
     def testCountCooc(self):
         self.tinasoft.logger.debug( "Test : Starting selectCorpusCooc('1')" )
-        corpusId = '1'
-        count = 0
-        generator = self.tinasoft.storage.selectCorpusCooc(corpusId)
-        gexf = Writer('gexf://')
-        test = gexf.coocGraph(generator, threshold=10)
+        test = Writer('gexf://').coocGraph(self.tinasoft.storage, corpusID='1',min=20,max=1500)
         self.tinasoft.logger.debug(test)
 
 if __name__ == '__main__':
