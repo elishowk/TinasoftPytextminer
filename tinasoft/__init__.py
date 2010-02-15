@@ -48,7 +48,7 @@ class TinaApp():
         LOG_FILENAME = self.config['log']
         # Add the log message handler to the logger
         handler = logging.handlers.RotatingFileHandler(\
-            LOG_FILENAME, maxBytes=1000000, backupCount=5)
+            LOG_FILENAME, maxBytes=100000000, backupCount=5)
         self.logger.addHandler(handler)
         # tries support of the locale by the host system
         try:

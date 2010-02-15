@@ -24,12 +24,13 @@ class CoocTestCase(unittest.TestCase):
         test = Writer('gexf://').coocDistanceGraph(
         db=self.tinasoft.storage, 
         corpus=1,
-        threshold=[2.0,3.0],
+        threshold=[0.2,0.95],
         meta={
-           'description' : "ngram graph on corpus 1",
+           'description' : "ngram graph on corpus 1 with min=0.2 and max=0.95",
            'creators' : ['Julian bilcke', 'Elias Showk'],
         })
-        self.tinasoft.logger.debug(test)
+        #self.tinasoft.logger.debug(test)
+        open('tina1.gexf', 'wb').write(test)
 
 if __name__ == '__main__':
     unittest.main()
