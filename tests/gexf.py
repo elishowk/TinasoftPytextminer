@@ -21,16 +21,16 @@ class CoocTestCase(unittest.TestCase):
 
     def test0GEXF(self):
         self.tinasoft.logger.debug( "Test : GEXF on corpus 1" )
-        test = Writer('gexf://').coocDistanceGraph(
+        test = Writer('gexf://').ngramCoocGraph(
         db=self.tinasoft.storage, 
         corpus=1,
-        threshold=[0.2,0.95],
+        threshold=[0.4,1],
         meta={
            'description' : "ngram graph on corpus 1 with min=0.2 and max=0.95",
            'creators' : ['Julian bilcke', 'Elias Showk'],
         })
         #self.tinasoft.logger.debug(test)
-        open('tina1.gexf', 'wb').write(test)
+        open("tina_%s-%s.gexf"%(threshold[0],threshold[1]), 'wb').write(test)
 
 if __name__ == '__main__':
     unittest.main()
