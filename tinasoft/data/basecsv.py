@@ -50,9 +50,6 @@ class Importer (Importer):
             # CSV format
             self.delimiter = delimiter
             self.quotechar = quotechar
-            # Tokenizer args
-            #self.minSize = minSize
-            #self.maxSize = maxSize
             # gets columns names
             f1 = self.open( filepath )
             tmp = csv.reader(

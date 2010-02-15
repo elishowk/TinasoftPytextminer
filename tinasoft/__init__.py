@@ -198,7 +198,6 @@ class TinaApp():
         try:
             record = gen.next()
             while record:
-                del record[1]['edges']['NGram']
                 corpuslst += [record[1]]
                 record = gen.next()
         except StopIteration, si:
@@ -207,22 +206,61 @@ class TinaApp():
             else:
                 return self.storage.encode( corpuslst )
 
-    def exportCorpusNGram(self, corpusID, filepath, **kwargs):
+    def exportCorpusNGram(self, corpus, filepath, **kwargs):
         """export a file containing a corpus' NGrams"""
+        def printpostag(record):
+            """prepares the postag field printing"""
+            postag = ""
+            if record[1]['postag'] is not None:
+                for word in record[1]['postag']:
+                    postag += "_".join([word[1],word[0]]) + ","
+            return postag
+
         gen = self.storage.select('NGram')
         csv = Writer('basecsv://'+filepath, **kwargs)
         try:
             record = gen.next()
             while record:
-                if corpusID in record[1]['edges']['Corpus']:
-                    postag = ""
-                    if record[1]['postag'] is not None:
-                        for word in record[1]['postag']:
-                            postag += "_".join([word[1],word[0]]) + ","
-                    self.logger.debug( csv.delimiter.join([record[1]['id'], record[1]['label'], postag, ",".join(record[1]['edges']['Corpus'].keys()) ]) )
+                if corpus['id'] in record[1]['edges']['Corpus']:
+                    #postag = printpostag(record)
+                    #occs = corpus['edges']['Ngram'][record[1]['id']]
+                    csv.writeRow( [record[1]['id'], record[1]['label'] ])
                 record = gen.next()
         except StopIteration, si: return
 
+    def exportAllNGrams(self, filepath, **kwargs):
+        gen = self.storage.select('NGram')
+        csv = Writer('basecsv://'+filepath, **kwargs)
+        try:
+            record = gen.next()
+            while record:
+                #occs = corpus['edges']['Ngram'][record[1]['id']]
+                csv.writeRow( [record[1]['id'], record[1]['label'] ])
+                record = gen.next()
+        except StopIteration, si: return
+
+
+    def exportCorpusCooc(self, corpus, filepath, **kwargs):
+        generator = self.storage.selectCorpusCooc(corpus['id'])
+        csv = Writer('basecsv://'+filepath, **kwargs)
+        nodes = {}
+        try:
+            while 1:
+                key,row = generator.next()
+                id,month = key
+                if id not in nodes:
+                    nodes[id] = {
+                        'edges' : {}
+                    }
+                for ngram, cooc in row.iteritems():
+                    if ngram in nodes[id]['edges']:
+                        nodes[id]['edges'][ngram] += cooc
+                    else:
+                        nodes[id]['edges'][ngram] = cooc
+        except StopIteration, si:
+            for ng1 in nodes.iterkeys():
+                for ng2, cooc in nodes[ng1]['edges'].iteritems():
+                    csv.writeRow([ ng1, ng2, str(cooc), corpus['id'] ])
 
     def indexDocuments(self, fileReader):
         raise NotImplemented
