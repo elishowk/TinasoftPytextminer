@@ -83,7 +83,6 @@ class TinaApp():
             self.index = indexer.TinaIndex(self.config['index'])
         else:
             self.index = indexer.TinaIndex(index)
-        self.logger.debug(self.index)
         self.logger.debug( "END OF TinaApp.__init__()")
 
 
@@ -162,8 +161,6 @@ class TinaApp():
                 del fileReader.corpusDict[ corpusNum ]
             return
 
-    def indexDocuments(self, fileReader):
-        raise NotImplemented
 
     def extractNGrams(self, document, corpusNum, ngramMin, ngramMax):
         """"Main NLP for a document"""
@@ -193,6 +190,42 @@ class TinaApp():
         #document['content'] = ""
         document['tokens'] = []
         return docngrams.keys()
+
+    def getAllCorpus(self, raw=True):
+        """fix decode/encode non optimal process"""
+        corpuslst = []
+        gen = self.storage.select('Corpus')
+        try:
+            record = gen.next()
+            while record:
+                del record[1]['edges']['NGram']
+                corpuslst += [record[1]]
+                record = gen.next()
+        except StopIteration, si:
+            if raw is True:
+                return corpuslst
+            else:
+                return self.storage.encode( corpuslst )
+
+    def exportCorpusNGram(self, corpusID, filepath, **kwargs):
+        """export a file containing a corpus' NGrams"""
+        gen = self.storage.select('NGram')
+        csv = Writer('basecsv://'+filepath, **kwargs)
+        try:
+            record = gen.next()
+            while record:
+                if corpusID in record[1]['edges']['Corpus']:
+                    postag = ""
+                    if record[1]['postag'] is not None:
+                        for word in record[1]['postag']:
+                            postag += "_".join([word[1],word[0]]) + ","
+                    self.logger.debug( csv.delimiter.join([record[1]['id'], record[1]['label'], postag, ",".join(record[1]['edges']['Corpus'].keys()) ]) )
+                record = gen.next()
+        except StopIteration, si: return
+
+
+    def indexDocuments(self, fileReader):
+        raise NotImplemented
 
     def createCorpus(self):
         raise NotImplemented

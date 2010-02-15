@@ -12,31 +12,17 @@ class Exporter (Exporter):
 
     def __init__(self,
         filepath,
-        #corpus,
         delimiter = ',',
         quotechar = '"',
-        dialect = 'excel'
+        dialect = 'excel',
+        **kwargs
         ):
         self.filepath = filepath
         self.delimiter = delimiter
         self.quotechar = quotechar
         self.dialect = dialect
+        self.loadOptions(kwargs)
         self.file = codecs.open(self.filepath, "w", encoding=self.encoding, errors='replace' )
-
-
-    # deprecated
-    def objectToCsv( self, objlist, columns ):
-        file = codecs.open(self.filepath, "w", self.encoding, errors='replace' )
-        file.write( self.delimiter.join( columns ) + "\n" )
-        def mapping( att ) :
-            print type(att)
-            print att
-            s = str(att)
-            return s
-        for obj in objlist:
-            attributes = [getattr(obj, col) for col in columns]
-            file.write( self.delimiter.join( map( mapping, attributes ) ) + "\n" )
-            #file.write( self.delimiter.join( map( self.encode, map( str, attributes ) ) ) + "\n" )
 
     def writeRow( self, row ):
         self.file.write( self.delimiter.join( row ) + "\n" )
@@ -44,12 +30,7 @@ class Exporter (Exporter):
     def writeFile( self, columns, rows ):
         self.writeRow( columns )
         for row in rows:
-            #try:
-                self.file.write( row )
-            #except UnicodeEncodeError, ue:
-            #    print "warning exporting a csv line ", row, ue
-            #except UnicodeDecodeError, ud:
-            #    print "warning exporting a csv line ", row, ud
+            self.writeRow( row )
 
 
 class Importer (Importer):

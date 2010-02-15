@@ -322,19 +322,20 @@ class Backend(Handler):
         try:
             _add(self, key, obj, overwrite)
         except Exception, e:
-            _logger.error( "Got exception in add " + e )
+            _logger.error( "Got exception in add " )
+            _logger.error( e )
             raise e
 
-    def remove(self, key, txn=None):
+    def remove(self, key):
         """modified from http://www.rdflib.net/"""
         @transaction
-        def _remove(self, key, txn):
+        def _remove(self, key, txn=None):
             self.safedelete( key, txn )
-
         try:
-            _remove(self, key, txn)
+            _remove(self, key)
         except Exception, e:
-            _logger.error( "Got exception in remove " + e )
+            _logger.error( "Got exception in remove " )
+            _logger.error( e )
             raise e
 
     def encode( self, obj ):
@@ -392,6 +393,7 @@ class Backend(Handler):
         raise NotImplemented()
 
     def safedelete( self, key, txn=None ):
+        _logger.debug(key)
         if isinstance(key, str) is False:
             key = str(key)
         self._db.delete( key, txn=txn )
@@ -537,6 +539,10 @@ class Engine(Backend):
             else:
                 return
             record = cursor.next()
+
+    def deleteCorpus(self, corpusid):
+        """deletes a corpus and clean all the associations"""
+        raise NotImplemented()
 
     def insertmanyAssocNGramDocument( self, iter ):
         raise NotImplemented()
