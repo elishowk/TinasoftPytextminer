@@ -393,7 +393,6 @@ class Backend(Handler):
         raise NotImplemented()
 
     def safedelete( self, key, txn=None ):
-        _logger.debug(key)
         if isinstance(key, str) is False:
             key = str(key)
         self._db.delete( key, txn=txn )
