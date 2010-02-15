@@ -36,7 +36,6 @@ class Handler (object):
 
     def deserialize(self, str):
         obj= jsonpickle.decode(str)
-        #print "deserialized object", obj
         return obj
 
 class Importer(Handler):

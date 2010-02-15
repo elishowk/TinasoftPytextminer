@@ -7,32 +7,3 @@ stopwords: "shared/stopwords/en.txt"
 index: 'index/'
 dbenv: 'db/'
 log: 'log/tinasoft.log'
-# required and default tinaExtract settings
-## tinaExtract csv columns declaration
-## will ignore fields absent from the file
-#fields:
-#  titleField: 'doc_titl'
-#  contentField: 'doc_abst'
-#  authorField: 'doc_acrnm'
-#  corpusNumberField: 'corp_num'
-#  docNumberField: 'doc_num'
-#  index1Field: 'index_1'
-#  index2Field: 'index_2'
-#  dateField: 'date'
-#  dateStartField: 'doc_date_start'
-#  dateEndField: 'doc_date_end'
-#  keywordsField: 'doc_keywords'
-# csv reader
-#delimiter: ','
-#quotechar: '"'
-# ngram extraction pramas
-#minSize: 1
-#maxSize: 4
-#input: "tests/pubmed_tina_test.csv"
-#directory: "output"
-#output: "statistics.zip"
-#zip: "zip"
-#name: "tina extract test"
-#corpus: 7
-#outdb: "out.db"
-

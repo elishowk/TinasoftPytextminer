@@ -322,19 +322,20 @@ class Backend(Handler):
         try:
             _add(self, key, obj, overwrite)
         except Exception, e:
-            _logger.error( "Got exception in add " + e )
+            _logger.error( "Got exception in add " )
+            _logger.error( e )
             raise e
 
-    def remove(self, key, txn=None):
+    def remove(self, key):
         """modified from http://www.rdflib.net/"""
         @transaction
-        def _remove(self, key, txn):
+        def _remove(self, key, txn=None):
             self.safedelete( key, txn )
-
         try:
-            _remove(self, key, txn)
+            _remove(self, key)
         except Exception, e:
-            _logger.error( "Got exception in remove " + e )
+            _logger.error( "Got exception in remove " )
+            _logger.error( e )
             raise e
 
     def encode( self, obj ):
@@ -389,7 +390,7 @@ class Backend(Handler):
 
     def safewritemany( self, iter ):
         """TODO writes a set of entries in the same transaction"""
-        raise NotImplemented
+        raise NotImplemented()
 
     def safedelete( self, key, txn=None ):
         if isinstance(key, str) is False:
@@ -438,7 +439,11 @@ class Engine(Backend):
             self.insertCorpus( obj )
 
     def insertDocument(self, obj, id=None, datestamp=None):
+        """automatically removes text content"""
+        content = obj['content']
+        obj['content'] = ""
         self.insert( obj, 'Document', id )
+        obj['content'] = content
 
     def insertmanyDocument(self, iter):
         # id, datestamp, blob
@@ -534,43 +539,45 @@ class Engine(Backend):
                 return
             record = cursor.next()
 
+    def deleteCorpus(self, corpusid):
+        """deletes a corpus and clean all the associations"""
+        raise NotImplemented()
+
     def insertmanyAssocNGramDocument( self, iter ):
-        raise NotImplemented
+        raise NotImplemented()
 
     def insertmanyAssocNGramCorpus( self, iter ):
-        raise NotImplemented
+        raise NotImplemented()
 
     def insertmanyAssoc(self, iter, assocname):
-        raise NotImplemented
+        raise NotImplemented()
 
     def deletemanyAssoc( self, iter, assocname ):
-        raise NotImplemented
+        raise NotImplemented()
 
     def deletemanyAssocNGramDocument( self, iter ):
-        raise NotImplemented
+        raise NotImplemented()
 
     def deletemanyAssocNGramCorpus( self, iter ):
-        raise NotImplemented
+        raise NotImplemented()
 
     def fetchCorpusNGram( self, corpusid ):
-        raise NotImplemented
+        raise NotImplemented()
 
     def fetchCorpusNGramID( self, corpusid ):
-        raise NotImplemented
+        raise NotImplemented()
 
     def fetchDocumentNGram( self, documentid ):
-        raise NotImplemented
+        raise NotImplemented()
 
     def fetchDocumentNGramID( self, documentid ):
-        raise NotImplemented
-
+        raise NotImplemented()
 
     def fetchCorpusDocumentID( self, corpusid ):
-        raise NotImplemented
-
+        raise NotImplemented()
 
     def dropTables( self ):
-        raise NotImplemented
+        raise NotImplemented()
 
     def createTables( self ):
-        raise NotImplemented
+        raise NotImplemented()

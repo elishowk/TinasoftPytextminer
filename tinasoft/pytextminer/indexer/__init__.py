@@ -45,6 +45,9 @@ class TinaIndex():
     def getSearcher( self ):
         return self.index.searcher()
 
+    def getWriter( self ):
+        return self.index.writer()
+
     def searchDoc( self, documentId, field='id' ):
         searcher = self.getSearcher()
         return searcher.find( field, documentId )
@@ -65,22 +68,24 @@ class TinaIndex():
             'date' : document.date,
         }
 
-    def write( self, document, writer ):
-        docDict = self.documentToDict( document )
-        writer.add_document( **docDict )
+    def write( self, document, writer, overwrite=False ):
+        if overwrite is True:
+            docDict = self.objectToDict( document )
+            writer.add_document( **docDict )
+        else:
+            res = self.searchDoc( document['id'], 'id' )
+            if len( res ) == 0:
+                docDict = self.objectToDict( document )
+                writer.add_document( **docDict )
+            else:
+                return document
 
     def indexDocs( self, docList, overwrite=False ):
         notIndexedDocs = []
         writer = self.index.writer()
         for document in docList:
-            if overwrite is True:
-                self.write( document, writer )
-            else:
-                res = self.searchDoc( document['id'], 'id' )
-                if len( res ) == 0:
-                    docDict = self.objectToDict( document )
-                    writer.add_document( **docDict )
-                else:
-                    notIndexedDocs += [ document ]
+            res = self.write(document, writer, overwrite)
+            if res is not None:
+                notIndexedDocs+=[res]
         writer.commit()
         return notIndexedDocs

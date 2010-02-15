@@ -3,7 +3,7 @@ __author__="Elias Showk"
 __all__ = ["pytextminer","data"]
 
 # tinasoft core modules
-from tinasoft.pytextminer import stopwords, indexer, tagger, tokenizer, corpora
+from tinasoft.pytextminer import stopwords, indexer, tagger, tokenizer, corpora, ngram
 from tinasoft.data import Engine, Reader, Writer
 
 # checks or creates aaplication directories
@@ -90,8 +90,9 @@ class TinaApp():
             path,
             configFile,
             corpora_id,
-            #minSize=None,
-            #maxSize=None,
+            overwrite=False,
+            index=False,
+            ngramize=True,
             format= 'tina'):
         """tina file import method"""
         # import import config yaml
@@ -100,105 +101,169 @@ class TinaApp():
         except yaml.YAMLError, exc:
             self.logger.error( "Unable to read the importFile special config : " + exc)
             return
-        self.logger.debug(self.config['fields'])
+        #self.logger.debug(self.config['fields'])
         dsn = format+"://"+path
-        self.logger.debug(dsn)
+        #self.logger.debug(dsn)
         fileReader = Reader(dsn,
-            #minSize = minSize,
-            #maxSize = maxSize,
             delimiter = self.config['delimiter'],
             quotechar = self.config['quotechar'],
             locale = self.config['locale'],
             fields = self.config['fields']
         )
-        self._walkFile( fileReader, corpora_id )
+        self._walkFile(fileReader, corpora_id, overwrite, index, ngramize)
 
-    def _walkFile(self, fileReader, corpora_id):
+    def _walkFile(self, fileReader, corpora_id, overwrite, index, ngramize):
         """gets importFile() results to insert contents into storage"""
+        if index is True:
+            writer = self.index.getWriter()
+        if ngramize is True:
+            self.corpusngrams=[]
         corps = self.storage.loadCorpora(corpora_id)
         if corps is None:
             corps = corpora.Corpora( corpora_id )
-        # parse the file
-        self.logger.debug(corps)
+        #self.logger.debug(corps)
         fileGenerator = fileReader.parseFile( corps )
+        docEdges={}
         try:
             while 1:
-                document = fileGenerator.next()
-                self.logger.debug( document )
-                # TODO index document
+                document, corpusNum = fileGenerator.next()
+                # insert doc in storage
+                self.storage.insertDocument( document )
+                if index is True:
+                    res = self.index.write(document, writer, overwrite)
+                    if res is not None:
+                        self.logger.debug("document will not be overwritten")
+                if ngramize is True:
+                    self.extractNGrams( document, corpusNum,\
+                        self.config['ngramMin'], self.config['ngramMax'])
+                #Document-corpus Association are included in the object
+                if document['id'] in docEdges:
+                    docEdges[document['id']]+=1
+                else:
+                    docEdges[document['id']]=1
 
         except StopIteration, stop:
+            # commit changes to indexer
+            writer.commit()
             # insert or updates corpora
             corps = fileReader.corpora
-            #self.storage.insertCorpora( corps )
-            self.logger.debug("stored a new corpora : " + corps['id'])
+            self.storage.insertCorpora( corps )
             for corpusNum in corps['content']:
                 # get the Corpus object and import
                 corpus = fileReader.corpusDict[ corpusNum ]
-                self.logger.debug(corpus)
-                # TODO store corpus and association
-
-                # TODO extractNGrams ????
-                #fileReader.docDict = fileReader.importCorpus( corpus, \
-                #    corpusNum, tokenizer.TreeBankWordTokenizer,\
-                #    tagger.TreeBankPosTagger, self.stopwords,\
-                #    corps, self.fileReader.docDict )
-
+                for doc, occ in docEdges:
+                    corpus.addEdge( 'Document', doc, occ )
+                for ng in self.corpusngrams:
+                    corpus.addEdge( 'NGram', ng['id'], ng['occs'] )
+                self.storage.insertCorpus( corpus )
+                self.storage.insertAssocCorpus( corpus['id'], corps['id'] )
                 del corpus
                 del fileReader.corpusDict[ corpusNum ]
+            return
+
+
+    def extractNGrams(self, document, corpusNum, ngramMin, ngramMax):
+        """"Main NLP for a document"""
+        self.logger.debug(tokenizer.TreeBankWordTokenizer.__name__+\
+            " is working on document "+ document['id'])
+        docngrams = tokenizer.TreeBankWordTokenizer.extract( document,\
+            self.stopwords, ngramMin, ngramMax )
+        #self.logger.debug(docngrams)
+        for ngid, ng in docngrams.iteritems():
+            # save doc occs and delete it
+            docOccs = ng['occs']
+            del ng['occs']
+            loadNG = self.storage.loadNGram( ng['id'] )
+            self.corpusngrams+=[ng]
+            if loadNG is None:
+                # insert a new NGram and updates the corpusngrams index
+                self.storage.insertNGram( ng )
+            else:
+                # updates NGram edges
+                restoreNG=ngram.NGram(loadNG)
+                self.logger.debug(restoreNG)
+                restoreNG.addEdge( 'Document', document['id'], docOccs )
+                restoreNG.addEdge( 'Corpus', corpusNum, 1 )
+                self.storage.insertNGram( loadNG )
+            #self.storage.insertAssocNGramCorpus( ng['id'], corpusNum, self.corpusngrams[ ngid ]['occs'] )
+        # clean tokens before ending
+        #document['content'] = ""
+        document['tokens'] = []
+        return docngrams.keys()
+
+    def getAllCorpus(self, raw=True):
+        """fix decode/encode non optimal process"""
+        corpuslst = []
+        gen = self.storage.select('Corpus')
+        try:
+            record = gen.next()
+            while record:
+                corpuslst += [record[1]]
+                record = gen.next()
+        except StopIteration, si:
+            if raw is True:
+                return corpuslst
+            else:
+                return self.storage.encode( corpuslst )
+
+    def exportCorpusNGram(self, corpus, filepath, **kwargs):
+        """export a file containing a corpus' NGrams"""
+        def printpostag(record):
+            """prepares the postag field printing"""
+            postag = ""
+            if record[1]['postag'] is not None:
+                for word in record[1]['postag']:
+                    postag += "_".join([word[1],word[0]]) + ","
+            return postag
+
+        gen = self.storage.select('NGram')
+        csv = Writer('basecsv://'+filepath, **kwargs)
+        try:
+            record = gen.next()
+            while record:
+                if corpus['id'] in record[1]['edges']['Corpus']:
+                    #postag = printpostag(record)
+                    #occs = corpus['edges']['Ngram'][record[1]['id']]
+                    csv.writeRow( [record[1]['id'], record[1]['label'] ])
+                record = gen.next()
+        except StopIteration, si: return
+
+    def exportAllNGrams(self, filepath, **kwargs):
+        gen = self.storage.select('NGram')
+        csv = Writer('basecsv://'+filepath, **kwargs)
+        try:
+            record = gen.next()
+            while record:
+                #occs = corpus['edges']['Ngram'][record[1]['id']]
+                csv.writeRow( [record[1]['id'], record[1]['label'] ])
+                record = gen.next()
+        except StopIteration, si: return
+
+
+    def exportCorpusCooc(self, corpus, filepath, **kwargs):
+        generator = self.storage.selectCorpusCooc(corpus['id'])
+        csv = Writer('basecsv://'+filepath, **kwargs)
+        nodes = {}
+        try:
+            while 1:
+                key,row = generator.next()
+                id,month = key
+                if id not in nodes:
+                    nodes[id] = {
+                        'edges' : {}
+                    }
+                for ngram, cooc in row.iteritems():
+                    if ngram in nodes[id]['edges']:
+                        nodes[id]['edges'][ngram] += cooc
+                    else:
+                        nodes[id]['edges'][ngram] = cooc
+        except StopIteration, si:
+            for ng1 in nodes.iterkeys():
+                for ng2, cooc in nodes[ng1]['edges'].iteritems():
+                    csv.writeRow([ ng1, ng2, str(cooc), corpus['id'] ])
 
     def indexDocuments(self, fileReader):
         raise NotImplemented
-
-    def extractNGrams(self, document):
-        """"
-        Main function processing a document, ngramizer
-        applying NLP methods and inserting results into storage
-        """
-        # EXPORT ngrams of current corpus FROM DATABASE
-        if self.storage.loadDocument( documentNum ) is None:
-            _logger.debug(tokenizer.TreeBankWordTokenizer.__name__+" is working on document "+ documentNum)
-            sanitizedTarget = tokenizer.TreeBankWordTokenizer.sanitize(
-                document['content'],
-                document['forbChars'],
-                document['ngramEmpty']
-            )
-            sentenceTokens = tokenizer.TreeBankWordTokenizer.tokenize(
-                text = sanitizedTarget,
-                emptyString = document['ngramEmpty'],
-            )
-            for sentence in sentenceTokens:
-                document['tokens'] += [tagger.TreeBankPosTagger.posTag( sentence )]
-
-            docngrams = tokenizer.TreeBankWordTokenizer.ngramize(
-                minSize = document['ngramMin'],
-                maxSize = document['ngramMax'],
-                tokens = document['tokens'],
-                emptyString = document['ngramEmpty'],
-                stopwords = self.stopwords,
-            )
-            assocDocIter = []
-            for ngid, ng in docngrams.iteritems():
-                # save doc occs and delete
-                docOccs = ng.occs
-                del ng.occs
-                assocDocIter += [( ng['id'], document['id'], docOccs )]
-                # update corpusngrams index, replacing occs with corpus occs
-                if ngid in corpusngrams:
-                    corpusngrams[ ngid ].occs += 1
-                else:
-                    ng.occs = 1
-                    corpusngrams[ ngid ] = ng
-            del docngrams
-            #storage.insertmanyAssocNGramDocument( assocDocIter )
-            # clean full text before DB storage
-            #document.content = ""
-            document.tokens = []
-            #storage.insertDocument( document.id, document.date, document )
-
-        # anyway, insert a new Doc-Corpus association
-        #storage.insertAssocDocument( documentNum, corpusNum )
-        #return corpusngrams
 
     def createCorpus(self):
         raise NotImplemented
