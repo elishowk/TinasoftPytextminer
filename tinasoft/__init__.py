@@ -83,7 +83,7 @@ class TinaApp():
             self.index = indexer.TinaIndex(self.config['index'])
         else:
             self.index = indexer.TinaIndex(index)
-        self.logger.debug( "END OF TinaApp.__init__()")
+        self.logger.debug( "Starting TinaApp")
 
 
     def importFile(self,
