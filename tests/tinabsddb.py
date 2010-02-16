@@ -85,7 +85,22 @@ class TestsTestCase(unittest.TestCase):
         }
         #self.tinasoft.storage.insertCorpus(delobj)
         #self.tinasoft.logger.debug( self.tinasoft.storage.loadCorpus('test'))
-        self.tinasoft.storage.deleteCorpus('4677060036890320899', delobj)
+        #self.tinasoft.storage.deleteCorpus('4677060036890320899', delobj)
+        gen = self.tinasoft.storage.select('Document')
+        try:
+            total=0
+            while 1:
+                rec=gen.next()
+                if 'Corpus' in rec[1]['edges']:
+                    if '4677060036890320899' in rec[1]['edges']['Corpus']:
+                        total+=1
+                        del rec[1]['edges']['Corpus']['4677060036890320899']
+                        self.tinasoft.storage.insertDocument( rec[1] )
+                else:
+                    self.tinasoft.logger.error("found a document without Corpus " + rec[1]['id'])
+        except StopIteration, si:
+            print "Total found = ", total
+            return
 
     def testInsert(self):
         """tests inserting objects in the db"""
