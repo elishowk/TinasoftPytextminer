@@ -21,10 +21,11 @@ class CoocTestCase(unittest.TestCase):
 
     def test0GEXF(self):
         self.tinasoft.logger.debug( "Test : GEXF on corpus 1" )
+        threshold=[0.4 , 0.9999]
         test = Writer('gexf://').ngramCoocGraph(
         db=self.tinasoft.storage, 
         corpus=1,
-        threshold=[0.4,1],
+        threshold=threshold,
         meta={
            'description' : "ngram graph on corpus 1 with min=0.2 and max=0.95",
            'creators' : ['Julian bilcke', 'Elias Showk'],

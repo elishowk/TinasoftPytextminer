@@ -17,3 +17,13 @@ src/t/pubmed_AIDS.csv
 src/t/*.tar.gz
 src/t/output/*.sql
 src/t/output/*.db
+db.tar.bz2
+db/
+gexfs/
+inDistribution.png
+index/
+log/
+outDistribution.png
+report.html
+tinasoft.egg-info/
+

@@ -168,7 +168,24 @@ class Exporter (GEXFHandler):
                         label = 0  
                     if occ < cooc:
                         _logger.error("%s,%s,%s,%s" % (n2,label,cooc,occ))
+                        
+                        
+                        
+            for n1,r1 in nodes.iteritems():
+                voisins = r1['cooc']
                 
+                for n2,cooc in r1['cooc'].iteritems():
+                    try:
+                        occ = nodes[n2]['occ']
+                    except:
+                        occ = 0
+                    try:
+                        label = nodes[n2]['label']
+                    except:
+                        label = 0  
+                    if occ < cooc:
+                        _logger.error("%s,%s,%s,%s" % (n2,label,cooc,occ))
+                    
             #if occ1 < cooc:
             #    #err = "(%s,!%s) : %s = (%s / %s)**0.01*(%s / %s)" % (ngram1['label'],ngram2['label'],w,cooc,occs[ngid1],cooc,occs[ngid2])
             #    err = "%s,%s,%s,%s,%s" % (ngid1, ngram1['label'],ngram1['edges']['Corpus'][corpusID],occ1,cooc)
@@ -233,8 +250,8 @@ class Exporter (GEXFHandler):
                       }
                       
                 if ngid1 in corp['edges']['NGram']:
-                    occ1 = nodes[ngid1]['occ'] = corp['edges']['NGram'][ngid1]
-                   
+                    nodes[ngid1]['occ'] = corp['edges']['NGram'][ngid1]
+                    occ1 = nodes[ngid1]['occ']
                                            
                 for ngid2, cooc in row.iteritems():
                     ngram2 = db.loadNGram(ngid2) 
@@ -252,6 +269,7 @@ class Exporter (GEXFHandler):
                         nodes[ngid1]['cooc'][ngid2] += cooc
                     else:
                         nodes[ngid1]['cooc'][ngid2] = cooc
+                        
                     cooc = nodes[ngid1]['cooc'][ngid2]
                     
                     if ngid2 in corp['edges']['NGram']:
