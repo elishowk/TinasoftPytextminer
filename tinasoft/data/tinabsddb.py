@@ -234,9 +234,7 @@ class Backend(Handler):
         # BDB exceptions (like deadlock), an internal transaction should
         # not fail the user transaction. Here, nested transactions are used
         # which have this property.
-
         txn = None
-
         try:
             if not thread.get_ident() in self.__dbTxn and self.is_open() and not self.__closing:
                 self.__dbTxn[thread.get_ident()] = []
@@ -291,7 +289,6 @@ class Backend(Handler):
         true to abort all active transactions for the current thread.
         modified from http://www.rdflib.net/
         """
-
         if thread.get_ident() in self.__dbTxn and self.is_open():
             _logger.debug("rolling back")
             try:
@@ -338,6 +335,8 @@ class Backend(Handler):
 
     def safereadrange( self, smallestkey=None, txn=None ):
         """returns a cursor, optional smallest key"""
+        if isinstance(key, str) is False:
+            key = str(key)
         try:
             cur = self.cursor(txn=txn)
             if smallestkey is not None:
@@ -353,6 +352,8 @@ class Backend(Handler):
         wrapped in add()/transaction(), safely write an entry
         overwriting by default an existing key
         """
+        if isinstance(key, str) is False:
+            key = str(key)
         try:
             try:
                 self._db.put(key, self.encode(obj), txn=txn)
@@ -373,6 +374,8 @@ class Backend(Handler):
         """
         wrapped in remove()/transaction(), safely deletes an entry
         """
+        if isinstance(key, str) is False:
+            key = str(key)
         try:
             print "in delete"
             self._db.delete( key, txn=txn )
