@@ -37,6 +37,14 @@ class PyTextMiner:
             raise ValueError
             return None
 
+    def addEdge(self, type, key, value):
+        if type not in self['edges']:
+            self['edges'][type]={}
+        if key in self['edges'][type].keys():
+            self['edges'][type][key] += value
+        else:
+            self['edges'][type][key] = value
+
     def normalize(self, lst):
         return [tok.lower() for tok in lst]
 

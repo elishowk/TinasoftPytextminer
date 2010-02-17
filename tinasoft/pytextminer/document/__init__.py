@@ -12,6 +12,7 @@ class Document(PyTextMiner):
             content,
             docNum,
             title,
+            edges=None,
             datestamp=None,
             author=None,
             targets=[],
@@ -24,7 +25,7 @@ class Document(PyTextMiner):
             ngramEmpty = " ",
             **metas
         ):
-        PyTextMiner.__init__(self, content, docNum, title, **metas)
+        PyTextMiner.__init__(self, content, docNum, title, edges, **metas)
         self.date = datestamp
         self.author = author
         # targets is a list of texts (incrementally) sanitized
@@ -42,8 +43,4 @@ class Document(PyTextMiner):
 
     def getDate(self):
         if self.date is not None:
-            try:
-                return datetime.strptime(string,"%Y%m%d").date()
-            except Exception, e:
-                # log exception
-                return None
+            return self.date.split('/')

@@ -42,7 +42,7 @@ def transaction(f, name=None, **kwds):
                 bdb.rollback()
                 retries -= 1
 
-        raise TransactionExpired("Add failed after exception:" % str(e))
+        raise TransactionExpired("transaction failed after exception:" % str(e))
 
     wrapped.__doc__ = f.__doc__
     return wrapped
@@ -57,8 +57,7 @@ class Backend(Handler):
         'dieOnError'    : False,
         'debug'         : False,
         'compression'   : None,
-        'log'           : './log/',
-        'home'          : './',
+        'home'          : 'db',
         'prefix'        : {
             'Corpora':'Corpora::',
             'Corpus':'Corpus::',
@@ -71,12 +70,12 @@ class Backend(Handler):
     def is_open(self):
         return self.__open
 
-    def _init_db_environment(self, create=True):
+    def _init_db_environment(self, home, create=True):
         """modified from http://www.rdflib.net/"""
         envsetflags  = db.DB_CDB_ALLDB
         envflags = db.DB_INIT_MPOOL | db.DB_INIT_LOCK | db.DB_THREAD | db.DB_INIT_TXN | db.DB_RECOVER
         db_env = db.DBEnv()
-        db_env.set_cachesize(0, 1024*1024*50)  # 50Mbytes
+        db_env.set_cachesize(0, 1024*1024*100)  # 100 Mbytes
 
         # enable deadlock-detection
         db_env.set_lk_detect(db.DB_LOCK_MAXLOCKS)
@@ -90,12 +89,11 @@ class Backend(Handler):
 
         #db_env.set_lg_max(1024*1024)
         db_env.set_flags(envsetflags, 1)
-        db_env.open(self.homeDir, envflags | db.DB_CREATE,0)
+        db_env.open(home, envflags | db.DB_CREATE,0)
         return db_env
 
     def __init__(self, path, create=True, **opts):
         self.path = path
-        self.homeDir = dirname(path)
         self.loadOptions(opts)
         self.lang,self.encoding = self.locale.split('.')
         dbname = None
@@ -114,8 +112,11 @@ class Backend(Handler):
         self.__dbTxn = {}
         # beware of the while self.__open in __sync_run() !
         self.__open = True
-        # TODO get homeDir
-        self.db_env = db_env = self._init_db_environment(create)
+        if 'home' in opts:
+            dir = opts['home']
+        else:
+            dir = self.options['home']
+        self.db_env = db_env = self._init_db_environment(dir, create)
         self._db = db.DB(db_env)
         self._db.set_flags(dbsetflags)
         self._db.open(path, dbname, dbtype, dbopenflags|db.DB_CREATE, dbmode)
@@ -142,9 +143,10 @@ class Backend(Handler):
                         if self.__needs_sync:
                             t1 = time()
                             self.__needs_sync = False
+                        # sync if
                         if time()-t1 > min_seconds or time()-t0 > max_seconds:
                             self.__needs_sync = False
-                            _logger.debug("sync")
+                            #_logger.debug("sync")
                             self.sync()
                             break
                 else:
@@ -263,7 +265,7 @@ class Backend(Handler):
                     del self.__dbTxn[thread.get_ident()]
                 else:
                     txn = self.__dbTxn[thread.get_ident()].pop()
-                    _logger.debug("committing")
+                    #_logger.debug("committing")
                     #before = self.db_env.lock_stat()['nlocks']
                     txn.commit(0)
                     if len(self.__dbTxn[thread.get_ident()]) == 0:
@@ -320,19 +322,20 @@ class Backend(Handler):
         try:
             _add(self, key, obj, overwrite)
         except Exception, e:
-            _logger.error( "Got exception in add " + e )
+            _logger.error( "Got exception in add " )
+            _logger.error( e )
             raise e
 
-    def remove(self, key, txn=None):
+    def remove(self, key):
         """modified from http://www.rdflib.net/"""
         @transaction
-        def _remove(self, key, txn):
+        def _remove(self, key, txn=None):
             self.safedelete( key, txn )
-
         try:
-            _remove(self, key, txn)
+            _remove(self, key)
         except Exception, e:
-            _logger.error( "Got exception in remove " + e )
+            _logger.error( "Got exception in remove " )
+            _logger.error( e )
             raise e
 
     def encode( self, obj ):
@@ -354,7 +357,7 @@ class Backend(Handler):
             _logger.error( "DBError exception during saferead() : " + e[1] )
             raise Exception
 
-    def safereadall( self, smallestkey=None ):
+    def safereadrange( self, smallestkey=None ):
         """returns a cursor, optional smallest key"""
         try:
             cur = self.cursor()
@@ -362,7 +365,7 @@ class Backend(Handler):
                 cur.set_range( smallestkey )
             return cur
         except db.DBError, e:
-            _logger.error( "DBError exception during __del__() : " + e[1] )
+            _logger.error( "DBError exception during safereadrange() : " + e[1] )
             raise Exception
 
 
@@ -387,7 +390,7 @@ class Backend(Handler):
 
     def safewritemany( self, iter ):
         """TODO writes a set of entries in the same transaction"""
-        raise NotImplemented
+        raise NotImplemented()
 
     def safedelete( self, key, txn=None ):
         if isinstance(key, str) is False:
@@ -436,7 +439,11 @@ class Engine(Backend):
             self.insertCorpus( obj )
 
     def insertDocument(self, obj, id=None, datestamp=None):
+        """automatically removes text content"""
+        content = obj['content']
+        obj['content'] = ""
         self.insert( obj, 'Document', id )
+        obj['content'] = content
 
     def insertmanyDocument(self, iter):
         # id, datestamp, blob
@@ -503,55 +510,24 @@ class Engine(Backend):
             self.insertCorpus, self.loadNGram, 'NGram', ngramID, \
             self.insertNGram, occs )
 
-    def insertmanyAssocNGramDocument( self, iter ):
-        for tup in iter:
-            self.insertAssocNGramDocument( tup[0], tup[1], tup[2] )
-
-    def insertmanyAssocNGramCorpus( self, iter ):
-        for tup in iter:
-            self.insertAssocNGramCorpus( tup[0], tup[1], tup[2] )
-
-    def insertmanyAssoc(self, iter, assocname):
-        raise NotImplemented
-
-    def deletemanyAssoc( self, iter, assocname ):
-        raise NotImplemented
-
-    def deletemanyAssocNGramDocument( self, iter ):
-        raise NotImplemented
-
-    def deletemanyAssocNGramCorpus( self, iter ):
-        raise NotImplemented
-
-    def fetchCorpusNGram( self, corpusid ):
-        raise NotImplemented
-
-    def fetchCorpusNGramID( self, corpusid ):
-        corpus = self.loadCorpus( corpusid )
-        return corpus['edges']['NGram']
-
-    def fetchDocumentNGram( self, documentid ):
-        raise NotImplemented
-
-    def fetchDocumentNGramID( self, documentid ):
-        doc = self.loadDocument( documentid )
-        return corpus['edges']['NGram']
-
-    def fetchCorpusDocumentID( self, corpusid ):
-        c = self.loadCorpus( corpusid )
-        return corpus['edges']['Document']
-
-    def dropTables( self ):
-        raise NotImplemented
-
-    def createTables( self ):
-        raise NotImplemented
-
     def clear( self ):
         self._db.truncate()
 
+    def selectCorpusCooc(self, corpusId):
+        if isinstance(corpusId, str) is False:
+            corpusId = str(corpusId)
+        coocGen = self.select( self.prefix['Cooc']+corpusId )
+        try:
+            record = coocGen.next()
+            while record:
+                key = record[0].split('::')
+                yield ( (key[2],key[3]), record[1])
+                record = coocGen.next()
+        except StopIteration, si: return
+
+
     def select( self, minkey, maxkey=None ):
-        cursor = self.safereadall( minkey )
+        cursor = self.safereadrange( minkey )
         record = cursor.first()
         while record:
             if maxkey is None:
@@ -563,3 +539,45 @@ class Engine(Backend):
                 return
             record = cursor.next()
 
+    def deleteCorpus(self, corpusid):
+        """deletes a corpus and clean all the associations"""
+        raise NotImplemented()
+
+    def insertmanyAssocNGramDocument( self, iter ):
+        raise NotImplemented()
+
+    def insertmanyAssocNGramCorpus( self, iter ):
+        raise NotImplemented()
+
+    def insertmanyAssoc(self, iter, assocname):
+        raise NotImplemented()
+
+    def deletemanyAssoc( self, iter, assocname ):
+        raise NotImplemented()
+
+    def deletemanyAssocNGramDocument( self, iter ):
+        raise NotImplemented()
+
+    def deletemanyAssocNGramCorpus( self, iter ):
+        raise NotImplemented()
+
+    def fetchCorpusNGram( self, corpusid ):
+        raise NotImplemented()
+
+    def fetchCorpusNGramID( self, corpusid ):
+        raise NotImplemented()
+
+    def fetchDocumentNGram( self, documentid ):
+        raise NotImplemented()
+
+    def fetchDocumentNGramID( self, documentid ):
+        raise NotImplemented()
+
+    def fetchCorpusDocumentID( self, corpusid ):
+        raise NotImplemented()
+
+    def dropTables( self ):
+        raise NotImplemented()
+
+    def createTables( self ):
+        raise NotImplemented()

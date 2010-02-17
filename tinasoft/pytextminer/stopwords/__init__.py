@@ -3,7 +3,6 @@
 import codecs
 import pickle
 from tinasoft.pytextminer import ngram as NG
-from tinasoft.data import Reader
 
 class StopWords( object ):
     """StopWords"""
@@ -109,12 +108,13 @@ class StopWords( object ):
 
     def contains(self, ngramobj):
         """Check a ngram object against the stop base using NGram['id']"""
-        #print "testing id = ", ngramobj['id'], ngramobj['content']
         if ngramobj['id'] in self[len(ngramobj['content'])]:
-            #print "stopword !", type(ngramobj['id']), ngramobj['id']
             return True
         else:
             return False
+
+    def test(self, ngramobj):
+        return not self.contains( ngramobj )
 
     ### obsolete
     def cleanText( self, string ):

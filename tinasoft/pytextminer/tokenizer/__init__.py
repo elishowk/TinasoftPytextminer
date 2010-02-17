@@ -4,10 +4,14 @@ __author__="Elias Showk"
 __date__ ="$Oct 20, 2009 6:32:44 PM$"
 
 import string, re
-# warning : nltk imports it's own copy of pyyaml
+
+# warning : nltk imports it's own copy of yaml
 import nltk
 nltk.data.path = ['shared/nltk_data']
-from tinasoft.pytextminer import ngram
+from tinasoft.pytextminer import ngram, tagger
+
+import logging
+_logger = logging.getLogger('TinaAppLogger')
 
 class RegexpTokenizer():
     """
@@ -91,7 +95,8 @@ class TreeBankWordTokenizer(RegexpTokenizer):
     then cleans the punctuation
     before tokenizing using nltk.TreebankWordTokenizer()
     """
-    def tokenize( self, text, emptyString, stopwords=None ):
+    @staticmethod
+    def tokenize( text, emptyString, stopwords=None ):
         sentences = nltk.sent_tokenize(text)
         # WARNING : only works on english
         sentences = [nltk.TreebankWordTokenizer().\
@@ -99,21 +104,23 @@ class TreeBankWordTokenizer(RegexpTokenizer):
             for sent in sentences]
         return sentences
 
-    def extract( self, doc, content, stopwords ):
-        sanitizedTarget = self.sanitize(
-            content,
+    @staticmethod
+    def extract( doc, stopwords, ngramMin, ngramMax ):
+        _logger.debug(doc['content'])
+        sanitizedTarget = TreeBankWordTokenizer.sanitize(
+            doc['content'],
             doc['forbChars'],
             doc['ngramEmpty']
         )
-        sentenceTokens = self.tokenize(
+        sentenceTokens = TreeBankWordTokenizer.tokenize(
             text = sanitizedTarget,
             emptyString = doc['ngramEmpty'],
         )
         for sentence in sentenceTokens:
             doc['tokens'].append( tagger.TreeBankPosTagger.posTag( sentence ) )
-        return self.ngramize(
-            minSize = doc['ngramMin'],
-            maxSize = doc['ngramMax'],
+        return TreeBankWordTokenizer.ngramize(
+            minSize = ngramMin,
+            maxSize = ngramMax,
             tokens = doc['tokens'],
             emptyString = doc['ngramEmpty'],
             stopwords = stopwords,
