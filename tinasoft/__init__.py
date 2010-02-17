@@ -63,11 +63,6 @@ class TinaApp():
                 switching to en_US.UTF-8 by default"%self.locale)
             locale.setlocale(locale.LC_ALL, self.locale)
 
-        # load Stopwords object
-        if stopw is None:
-            self.stopwords = stopwords.StopWords( "file://%s" % self.config['stopwords'] )
-        else:
-            self.stopwords = stopwords.StopWords( "file://%s" % stopw )
 
         options = {
             'home' : self.config['dbenv']
@@ -83,7 +78,7 @@ class TinaApp():
             self.index = indexer.TinaIndex(self.config['index'])
         else:
             self.index = indexer.TinaIndex(index)
-        self.logger.debug( "Starting TinaApp")
+        self.logger.debug("Starting TinaApp")
 
 
     def importFile(self,
@@ -92,16 +87,26 @@ class TinaApp():
             corpora_id,
             overwrite=False,
             index=False,
-            ngramize=True,
-            format= 'tina'):
+            format= 'tina',
+            filters=[]):
         """tina file import method"""
-        # import import config yaml
         try:
+            # import import config yaml
             self.config = yaml.safe_load( file( configFile, 'rU' ) )
         except yaml.YAMLError, exc:
             self.logger.error( "Unable to read the importFile special config : " + exc)
             return
-        #self.logger.debug(self.config['fields'])
+        # load Stopwords object
+        self.stopwords = stopwords.StopWords( "file://%s" % self.config['stopwords'] )
+        # load filters (TODO put it into import.yaml !!)
+        self.filtertag = ngram.PosTagFilter()
+        self.filterContent = ngram.Filter()
+        self.filterstop = stopwords.StopWordFilter(
+            'file:///home/elishowk/TINA/Datas/100126-fetopen-stopwords-from-david.csv'
+        )
+        filters=[self.filtertag,self.filterContent,self.filterstop]
+        # loads the source file
+        print format, path
         dsn = format+"://"+path
         #self.logger.debug(dsn)
         fileReader = Reader(dsn,
@@ -110,20 +115,20 @@ class TinaApp():
             locale = self.config['locale'],
             fields = self.config['fields']
         )
-        self._walkFile(fileReader, corpora_id, overwrite, index, ngramize)
+        self._walkFile(fileReader, corpora_id, overwrite, index, filters)
 
-    def _walkFile(self, fileReader, corpora_id, overwrite, index, ngramize):
+    def _walkFile(self, fileReader, corpora_id, overwrite, index, filters):
         """gets importFile() results to insert contents into storage"""
         if index is True:
             writer = self.index.getWriter()
-        if ngramize is True:
-            self.corpusngrams=[]
+        self.corpusngrams=[]
         corps = self.storage.loadCorpora(corpora_id)
         if corps is None:
             corps = corpora.Corpora( corpora_id )
         #self.logger.debug(corps)
         fileGenerator = fileReader.parseFile( corps )
         docEdges={}
+        # fisrt part of file parsing
         try:
             while 1:
                 document, corpusNum = fileGenerator.next()
@@ -133,28 +138,31 @@ class TinaApp():
                     res = self.index.write(document, writer, overwrite)
                     if res is not None:
                         self.logger.debug("document will not be overwritten")
-                if ngramize is True:
-                    self.extractNGrams( document, corpusNum,\
-                        self.config['ngramMin'], self.config['ngramMax'])
+                docngrams = self._extractNGrams( document, corpusNum,\
+                    self.config['ngramMin'], self.config['ngramMax'], filters)
+                # TODO export docngrams (filtered)
                 #Document-corpus Association are included in the object
                 if document['id'] in docEdges:
                     docEdges[document['id']]+=1
                 else:
                     docEdges[document['id']]=1
 
+        # Second part of file parsing
         except StopIteration, stop:
-            # commit changes to indexer
-            writer.commit()
+            if index is True:
+                # commit changes to indexer
+                writer.commit()
             # insert or updates corpora
             corps = fileReader.corpora
             self.storage.insertCorpora( corps )
             for corpusNum in corps['content']:
                 # get the Corpus object and import
                 corpus = fileReader.corpusDict[ corpusNum ]
-                for doc, occ in docEdges:
+                for doc, occ in docEdges.iteritems():
                     corpus.addEdge( 'Document', doc, occ )
-                for ng in self.corpusngrams:
-                    corpus.addEdge( 'NGram', ng['id'], ng['occs'] )
+                for i in range( len(self.corpusngrams) ):
+                    ng=self.corpusngrams.pop()
+                    corpus.addEdge( 'NGram', ng['id'], 1 )
                 self.storage.insertCorpus( corpus )
                 self.storage.insertAssocCorpus( corpus['id'], corps['id'] )
                 del corpus
@@ -162,34 +170,38 @@ class TinaApp():
             return
 
 
-    def extractNGrams(self, document, corpusNum, ngramMin, ngramMax):
+    def _extractNGrams(self, document, corpusNum, ngramMin, ngramMax, filters):
         """"Main NLP for a document"""
         self.logger.debug(tokenizer.TreeBankWordTokenizer.__name__+\
             " is working on document "+ document['id'])
         docngrams = tokenizer.TreeBankWordTokenizer.extract( document,\
-            self.stopwords, ngramMin, ngramMax )
+            self.stopwords, ngramMin, ngramMax, filters )
         #self.logger.debug(docngrams)
         for ngid, ng in docngrams.iteritems():
-            # save doc occs and delete it
+            # save document occurrencess and delete it
             docOccs = ng['occs']
             del ng['occs']
             loadNG = self.storage.loadNGram( ng['id'] )
-            self.corpusngrams+=[ng]
             if loadNG is None:
                 # insert a new NGram and updates the corpusngrams index
+                restoreNG.addEdge( 'Document', document['id'], docOccs )
+                restoreNG.addEdge( 'Corpus', corpusNum, 1 )
                 self.storage.insertNGram( ng )
+                self.corpusngrams+=[ng]
             else:
                 # updates NGram edges
                 restoreNG=ngram.NGram(loadNG)
-                self.logger.debug(restoreNG)
+                #self.logger.debug(restoreNG)
                 restoreNG.addEdge( 'Document', document['id'], docOccs )
                 restoreNG.addEdge( 'Corpus', corpusNum, 1 )
                 self.storage.insertNGram( loadNG )
+                self.corpusngrams+=[restoreNG]
             #self.storage.insertAssocNGramCorpus( ng['id'], corpusNum, self.corpusngrams[ ngid ]['occs'] )
         # clean tokens before ending
         #document['content'] = ""
         document['tokens'] = []
-        return docngrams.keys()
+        return docngrams
+
 
     def getAllCorpus(self, raw=True):
         """fix decode/encode non optimal process"""
@@ -261,9 +273,6 @@ class TinaApp():
             for ng1 in nodes.iterkeys():
                 for ng2, cooc in nodes[ng1]['edges'].iteritems():
                     csv.writeRow([ ng1, ng2, str(cooc), corpus['id'] ])
-
-    def indexDocuments(self, fileReader):
-        raise NotImplemented
 
     def createCorpus(self):
         raise NotImplemented

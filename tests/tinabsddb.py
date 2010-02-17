@@ -85,8 +85,8 @@ class TestsTestCase(unittest.TestCase):
         }
         #self.tinasoft.storage.insertCorpus(delobj)
         #self.tinasoft.logger.debug( self.tinasoft.storage.loadCorpus('test'))
-        #self.tinasoft.storage.deleteCorpus('4677060036890320899', delobj)
-        gen = self.tinasoft.storage.select('Document')
+        self.tinasoft.storage.deleteCorpus('4677060036890320899', delobj)
+        gen = self.tinasoft.storage.select('Corpora')
         try:
             total=0
             while 1:
@@ -95,9 +95,9 @@ class TestsTestCase(unittest.TestCase):
                     if '4677060036890320899' in rec[1]['edges']['Corpus']:
                         total+=1
                         del rec[1]['edges']['Corpus']['4677060036890320899']
-                        self.tinasoft.storage.insertDocument( rec[1] )
+                        self.tinasoft.storage.insertCorpora( rec[1] )
                 else:
-                    self.tinasoft.logger.error("found a document without Corpus " + rec[1]['id'])
+                    self.tinasoft.logger.error("found a Corpora without Corpus " + rec[1]['id'])
         except StopIteration, si:
             print "Total found = ", total
             return
