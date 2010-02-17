@@ -28,17 +28,18 @@ class Importer (basecsv.Importer):
             if document is None:
                 _logger.debug( "skipping a document" )
             else:
+                # sends the document and the corpus id
                 yield document, corpusNumber
             if self.corpusDict.has_key(corpusNumber) and \
                 corpusNumber in self.corpora['content']:
                 self.corpusDict[ corpusNumber ]['content'].append( document.id )
-            #print "creating new corpus"
             corp = corpus.Corpus(
                 corpusNumber,
                 period_start = None,
                 period_end = None,
             )
             corp['content'].append( document.id )
+            # adds the corpus to internal attributes
             self.corpusDict[ corpusNumber ] = corp
             self.corpora['content'][ corpusNumber ] = 1
 

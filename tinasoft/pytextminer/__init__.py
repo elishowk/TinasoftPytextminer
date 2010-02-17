@@ -42,10 +42,11 @@ class PyTextMiner():
     def addEdge(self, type, key, value):
         if type not in self['edges']:
             self['edges'][type]={}
-        if key in self['edges'][type].keys():
+        if key in self['edges'][type]:
             self['edges'][type][key] += value
         else:
             self['edges'][type][key] = value
+        print self['edges'][type]
 
     def normalize(self, lst):
         return [tok.lower() for tok in lst]

@@ -114,8 +114,10 @@ class TinaApp():
             locale = self.config['locale'],
             fields = self.config['fields']
         )
-        self._walkFile(fileReader, corpora_id, overwrite, index, filters)
+        corpusgenerator = self._walkFile(fileReader, corpora_id, overwrite, index, filters)
+        exportpath='test-export.csv'
         self.logger.debug("End of importFile()")
+        return self.exportNGrams( corpusgenerator, exportpath )
 
     def _walkFile(self, fileReader, corpora_id, overwrite, index, filters):
         """gets importFile() results to insert contents into storage"""
@@ -138,10 +140,10 @@ class TinaApp():
                     res = self.index.write(document, writer, overwrite)
                     if res is not None:
                         self.logger.debug("document will not be overwritten")
-                docngrams = self._extractNGrams( document, corpusNum,\
+                self._extractNGrams( document, corpusNum,\
                     self.config['ngramMin'], self.config['ngramMax'], filters)
                 # TODO export docngrams (filtered)
-                #Document-corpus Association are included in the object
+                # Document-corpus Association are included in the object
                 if document['id'] in docEdges:
                     docEdges[document['id']]+=1
                 else:
@@ -149,23 +151,24 @@ class TinaApp():
 
         # Second part of file parsing
         except StopIteration, stop:
+
             if index is True:
                 # commit changes to indexer
                 writer.commit()
             # insert or updates corpora
             corps = fileReader.corpora
             self.storage.insertCorpora( corps )
+            # insert the new corpus
             for corpusNum in corps['content']:
                 # get the Corpus object and import
                 corpus = fileReader.corpusDict[ corpusNum ]
                 for doc, occ in docEdges.iteritems():
                     corpus.addEdge( 'Document', doc, occ )
-                for i in range( len(self.corpusngrams) ):
-                    ng=self.corpusngrams.pop()
+                for ng in self.corpusngrams:
                     corpus.addEdge( 'NGram', ng['id'], 1 )
                 self.storage.insertCorpus( corpus )
                 self.storage.insertAssocCorpus( corpus['id'], corps['id'] )
-                del corpus
+                yield corpus, corpora_id
                 del fileReader.corpusDict[ corpusNum ]
             return
 
@@ -174,6 +177,7 @@ class TinaApp():
         """"Main NLP for a document"""
         self.logger.debug(tokenizer.TreeBankWordTokenizer.__name__+\
             " is working on document "+ document['id'])
+        # get filtered ngrams
         docngrams = tokenizer.TreeBankWordTokenizer.extract( document,\
             self.stopwords, ngramMin, ngramMax, filters )
         #self.logger.debug(docngrams)
@@ -184,8 +188,8 @@ class TinaApp():
             loadNG = self.storage.loadNGram( ng['id'] )
             if loadNG is None:
                 # insert a new NGram and updates the corpusngrams index
-                restoreNG.addEdge( 'Document', document['id'], docOccs )
-                restoreNG.addEdge( 'Corpus', corpusNum, 1 )
+                ng.addEdge( 'Document', document['id'], docOccs )
+                ng.addEdge( 'Corpus', corpusNum, 1 )
                 self.storage.insertNGram( ng )
                 self.corpusngrams+=[ng]
             else:
@@ -200,23 +204,24 @@ class TinaApp():
         # clean tokens before ending
         #document['content'] = ""
         document['tokens'] = []
-        return docngrams
 
-
-    def getAllCorpus(self, raw=True):
-        """fix decode/encode non optimal process"""
-        corpuslst = []
-        gen = self.storage.select('Corpus')
+    def exportNGrams(self, corpusgenerator, filepath, **kwargs):
         try:
-            record = gen.next()
-            while record:
-                corpuslst += [record[1]]
-                record = gen.next()
-        except StopIteration, si:
-            if raw is True:
-                return corpuslst
-            else:
-                return self.storage.encode( corpuslst )
+            csv = Writer('basecsv://'+filepath, **kwargs)
+            csv.writeRow(["status","label","length","occurrences","normalized occs","db ID","corpora ID"])
+            corpusobj, corporaid = corpusgenerator.next()
+            while 1:
+                for ngid, occs in corpusobj['edges']['NGram'].iteritems():
+                    ng = self.storage.loadNGram(ngid)
+                    if ng is not None:
+                        n=len(ng['content'])
+                        csv.writeRow( [ "", ng['label'], str(n),ng['id'], str(occs), str(occs**n), ng['id'], str(corporaid) ])
+                    else:
+                        self.logger.error("NGram not found in database after importFile finished : " + ngid)
+                corpusobj, corporaid = corpusgenerator.next()
+        except StopIteration, stop:
+            self.logger.debug("End of exportNGrams()")
+            return filepath
 
     def exportCorpusNGram(self, corpus, filepath, **kwargs):
         """export a file containing a corpus' NGrams"""
@@ -240,18 +245,23 @@ class TinaApp():
                 record = gen.next()
         except StopIteration, si: return
 
-    def exportAllNGrams(self, filepath, **kwargs):
-        gen = self.storage.select('NGram')
-        csv = Writer('basecsv://'+filepath, **kwargs)
+
+    def getAllCorpus(self, raw=True):
+        """fix decode/encode non optimal process"""
+        corpuslst = []
+        gen = self.storage.select('Corpus')
         try:
             record = gen.next()
             while record:
-                #occs = corpus['edges']['Ngram'][record[1]['id']]
-                csv.writeRow( [record[1]['id'], record[1]['label'] ])
+                corpuslst += [record[1]]
                 record = gen.next()
-        except StopIteration, si: return
+        except StopIteration, si:
+            if raw is True:
+                return corpuslst
+            else:
+                return self.storage.encode( corpuslst )
 
-
+    # obsolete
     def exportCorpusCooc(self, corpus, filepath, **kwargs):
         generator = self.storage.selectCorpusCooc(corpus['id'])
         csv = Writer('basecsv://'+filepath, **kwargs)
