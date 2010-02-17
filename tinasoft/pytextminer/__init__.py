@@ -4,6 +4,8 @@ __date__ ="$Oct 20, 2009 5:30:11 PM$"
 
 __all__ = ["indexer", "corpora", "corpus", "document", "ngram", "tokenizer", "tagger", "cooccurrences", "stopwords"]
 
+import logging
+_logger = logging.getLogger('TinaAppLogger')
 
 class PyTextMiner():
 
@@ -40,13 +42,15 @@ class PyTextMiner():
             return None
 
     def addEdge(self, type, key, value):
-        if type not in self['edges']:
+        #_logger.debug(key)
+        if type not in self['edges'].keys():
             self['edges'][type]={}
-        if key in self['edges'][type]:
+        if key in self['edges'][type].keys():
             self['edges'][type][key] += value
         else:
             self['edges'][type][key] = value
-        print self['edges'][type]
+        #if self.__class__.__name__ == 'Corpus':
+        #    _logger.debug(self['edges'])
 
     def normalize(self, lst):
         return [tok.lower() for tok in lst]

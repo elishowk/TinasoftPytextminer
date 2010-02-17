@@ -123,35 +123,29 @@ class TinaApp():
         """gets importFile() results to insert contents into storage"""
         if index is True:
             writer = self.index.getWriter()
-        self.corpusngrams=[]
         corps = self.storage.loadCorpora(corpora_id)
         if corps is None:
             corps = corpora.Corpora( corpora_id )
-        #self.logger.debug(corps)
         fileGenerator = fileReader.parseFile( corps )
-        docEdges={}
+        docindex=[]
+        ngramindex=[]
         # fisrt part of file parsing
         try:
             while 1:
                 document, corpusNum = fileGenerator.next()
-                # insert doc in storage
-                self.storage.insertDocument( document )
+                document.addEdge('Corpus', corpusNum, 1)
                 if index is True:
                     res = self.index.write(document, writer, overwrite)
                     if res is not None:
                         self.logger.debug("document will not be overwritten")
-                self._extractNGrams( document, corpusNum,\
+                ngramindex+=self._extractNGrams( document, corpusNum,\
                     self.config['ngramMin'], self.config['ngramMax'], filters)
                 # TODO export docngrams (filtered)
                 # Document-corpus Association are included in the object
-                if document['id'] in docEdges:
-                    docEdges[document['id']]+=1
-                else:
-                    docEdges[document['id']]=1
+                docindex+=[document['id']]
 
         # Second part of file parsing
         except StopIteration, stop:
-
             if index is True:
                 # commit changes to indexer
                 writer.commit()
@@ -162,12 +156,13 @@ class TinaApp():
             for corpusNum in corps['content']:
                 # get the Corpus object and import
                 corpus = fileReader.corpusDict[ corpusNum ]
-                for doc, occ in docEdges.iteritems():
-                    corpus.addEdge( 'Document', doc, occ )
-                for ng in self.corpusngrams:
-                    corpus.addEdge( 'NGram', ng['id'], 1 )
-                self.storage.insertCorpus( corpus )
-                self.storage.insertAssocCorpus( corpus['id'], corps['id'] )
+                for docid in docindex:
+                    corpus.addEdge('Document', docid, 1)
+                for ngid in ngramindex:
+                    corpus.addEdge('NGram', ngid, 1)
+                corpus.addEdge('Corpora', corpora_id, 1)
+                self.storage.insertCorpus(corpus)
+                self.storage.insertAssocCorpus(corpus['id'], corps['id'])
                 yield corpus, corpora_id
                 del fileReader.corpusDict[ corpusNum ]
             return
@@ -180,30 +175,20 @@ class TinaApp():
         # get filtered ngrams
         docngrams = tokenizer.TreeBankWordTokenizer.extract( document,\
             self.stopwords, ngramMin, ngramMax, filters )
-        #self.logger.debug(docngrams)
+        # insert doc in storage
+        #print document['edges']
+        self.storage.insertDocument( document )
         for ngid, ng in docngrams.iteritems():
-            # save document occurrencess and delete it
+            # save document occurrences and delete it
             docOccs = ng['occs']
             del ng['occs']
-            loadNG = self.storage.loadNGram( ng['id'] )
-            if loadNG is None:
-                # insert a new NGram and updates the corpusngrams index
-                ng.addEdge( 'Document', document['id'], docOccs )
-                ng.addEdge( 'Corpus', corpusNum, 1 )
-                self.storage.insertNGram( ng )
-                self.corpusngrams+=[ng]
-            else:
-                # updates NGram edges
-                restoreNG=ngram.NGram(loadNG)
-                #self.logger.debug(restoreNG)
-                restoreNG.addEdge( 'Document', document['id'], docOccs )
-                restoreNG.addEdge( 'Corpus', corpusNum, 1 )
-                self.storage.insertNGram( loadNG )
-                self.corpusngrams+=[restoreNG]
-            #self.storage.insertAssocNGramCorpus( ng['id'], corpusNum, self.corpusngrams[ ngid ]['occs'] )
+            ng.addEdge( 'Document', document['id'], docOccs )
+            ng.addEdge( 'Corpus', corpusNum, 1 )
+            self.storage.insertNGram( ng )
         # clean tokens before ending
-        #document['content'] = ""
         document['tokens'] = []
+        # returns the ngram id index for the document
+        return docngrams.keys()
 
     def exportNGrams(self, corpusgenerator, filepath, **kwargs):
         try:
@@ -215,7 +200,7 @@ class TinaApp():
                     ng = self.storage.loadNGram(ngid)
                     if ng is not None:
                         n=len(ng['content'])
-                        csv.writeRow( [ "", ng['label'], str(n),ng['id'], str(occs), str(occs**n), ng['id'], str(corporaid) ])
+                        csv.writeRow( [ "", ng['label'], str(n), str(occs), str(occs**n), ng['id'], str(corporaid) ])
                     else:
                         self.logger.error("NGram not found in database after importFile finished : " + ngid)
                 corpusobj, corporaid = corpusgenerator.next()

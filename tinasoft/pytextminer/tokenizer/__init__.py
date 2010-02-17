@@ -75,7 +75,7 @@ class RegexpTokenizer():
 
 
     @staticmethod
-    def ngramize( minSize, maxSize, tokens, emptyString, stopwords=None, filters=[] ):
+    def ngramize( minSize, maxSize, tokens, emptyString, document, stopwords=None, filters=[] ):
         """
             returns a dict of NGram instances
             using the optional stopwords object to filter by ngram length
@@ -87,15 +87,17 @@ class RegexpTokenizer():
             for sent in tokens:
                 for i in range(len(sent)):
                     if len(sent) >= i+n:
-                        content = tagger.TreeBankPosTagger.getContent(sent)
+                        content = tagger.TreeBankPosTagger.getContent(sent[i:n+i])
                         ng = ngram.NGram( content, occs = 1, postag = sent[i:n+i] )
+                        # adds or increments document-ngram edges
+                        document.addEdge( 'NGram', ng['id'], 1 )
                         if ng['id'] in ngrams:
+                            # exists in document : only increments occs
                             ngrams[ ng['id'] ]['occs'] += 1
                         else:
                             if stopwords is None or stopwords.contains( ng ) is False:
                                 if RegexpTokenizer.filterNGrams(ng, filters) is True:
-                                    # exists in document : only increments occs
-                                    ngrams[ ng.id ] = ng
+                                    ngrams[ ng['id'] ] = ng
         return ngrams
 
 class TreeBankWordTokenizer(RegexpTokenizer):
@@ -131,6 +133,7 @@ class TreeBankWordTokenizer(RegexpTokenizer):
             maxSize = ngramMax,
             tokens = doc['tokens'],
             emptyString = doc['ngramEmpty'],
+            document=doc,
             stopwords = stopwords,
-            filters=filters
+            filters=filters,
         )
