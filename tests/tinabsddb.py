@@ -16,13 +16,13 @@ from tinasoft.data import tinabsddb
 
 class TestsTestCase(unittest.TestCase):
     def setUp(self):
-        #shutil.copy( 'last-fetopen.bsddb', 'tests/tinabsddb.test.bsddb' )
-        self.tinasoft = TinaApp(configFile='config.yaml',storage='tinabsddb://tinabsddb.test.bsddb')
+        self.tinasoft = TinaApp(configFile='config.yaml',storage='tinabsddb://fetopen.test.bsddb')
         return
 
     def testRead(self):
         """Test reading all NGram objects in db"""
         generator = self.tinasoft.storage.select('NGram')
+        return
         try:
             record = generator.next()
             while record:
@@ -32,18 +32,75 @@ class TestsTestCase(unittest.TestCase):
             print "testRead ended"
             return
 
-    def testDelete(self):
+    def testRemove(self):
         """Tests deleting objects in the DB"""
-        generator = self.tinasoft.storage.select('Ngram')
+        delobj={
+            'id':'test',
+            'label':'test',
+            'edges':{
+                'NGram':{
+                    '1000107419451687366':0,
+                    '1000114427281188883':0,
+                    '1000408057135297301':0,
+                    '1003719757193070862':0,
+                    '1004481214732145979':0,
+                    '1004902693020843682':0,
+                    '1000408057135297301':0,
+                    '1005667190656234705':0,
+                    '1007027238903103595':0,
+                    '1000408057135297301':0,
+                    '1000794589304303165':0,
+                    '1005667190656234705':0,
+                    '1008247690891188516':0,
+                    '1003872118723659152':0,
+                    '1005667190656234705':0,
+                    '1006729431744597239':0,
+                    '1007498360088306532':0,
+                    '1009109842301092630':0,
+                    '1000107419451687366':0,
+                    '1000408057135297301':0,
+                    '1001913493068289841':0,
+                    '1002916084443005361':0,
+                    '1003719757193070862':0,
+                    '1005667190656234705':0,
+                    '1005740843358134428':0,
+                    '1007657909774974209':0,
+                    '1008247690891188516':0,
+                    '100832055268205170':0,
+                    '1008525062825068901':0,
+                    '100911467821218252':0,
+                    '1000107419451687366':0,
+                    '1001913493068289841':0,
+                    '1007657909774974209':0,
+                    '1008220778907093816':0,
+                    '1001623168105276745':0,
+                    '1002565914499637391':0,
+                    '1004280875193448034':0,
+                    '1005667190656234705':0,
+                    '1006926775464853635':0,
+                    '1007271623900594243':0,
+                    '1009102013941118830':0,
+                },
+            }
+        }
+        #self.tinasoft.storage.insertCorpus(delobj)
+        #self.tinasoft.logger.debug( self.tinasoft.storage.loadCorpus('test'))
+        self.tinasoft.storage.deleteCorpus('4677060036890320899', delobj)
+        gen = self.tinasoft.storage.select('Corpora')
         try:
-            record = generator.next()
-            while record:
-                self.tinasoft.storage.safedelete(record[0])
-                record = generator.next()
+            total=0
+            while 1:
+                rec=gen.next()
+                if 'Corpus' in rec[1]['edges']:
+                    if '4677060036890320899' in rec[1]['edges']['Corpus']:
+                        total+=1
+                        del rec[1]['edges']['Corpus']['4677060036890320899']
+                        self.tinasoft.storage.insertCorpora( rec[1] )
+                else:
+                    self.tinasoft.logger.error("found a Corpora without Corpus " + rec[1]['id'])
         except StopIteration, si:
-            print "testDelete ended"
+            print "Total found = ", total
             return
-
 
     def testInsert(self):
         """tests inserting objects in the db"""
@@ -75,6 +132,7 @@ class TestsTestCase(unittest.TestCase):
 
     def testAssoc(self):
         """test inserting association between object in the database"""
+        return
         corporaID = 'fet open'
         corpusID = '1'
         docID = 'sarajevo'

@@ -4,7 +4,8 @@ __date__ ="$Oct 20, 2009 5:30:11 PM$"
 
 __all__ = ["indexer", "corpora", "corpus", "document", "ngram", "tokenizer", "tagger", "cooccurrences", "stopwords"]
 
-class PyTextMiner:
+
+class PyTextMiner():
 
     """
         PyTextMiner class
@@ -14,6 +15,7 @@ class PyTextMiner:
     """
 
     def __init__(self, content, id=None, label=None, edges={}, **metas):
+        #dict.__init__(self)
         self.content = content
         if id is None:
             self.id = self.getId( content )
@@ -40,10 +42,11 @@ class PyTextMiner:
     def addEdge(self, type, key, value):
         if type not in self['edges']:
             self['edges'][type]={}
-        if key in self['edges'][type].keys():
+        if key in self['edges'][type]:
             self['edges'][type][key] += value
         else:
             self['edges'][type][key] = value
+        print self['edges'][type]
 
     def normalize(self, lst):
         return [tok.lower() for tok in lst]
@@ -56,3 +59,10 @@ class PyTextMiner:
 
     def __delitem__(self, key):
         delattr(self, key)
+
+    def __contains__(self, key):
+        try:
+            getattr(self, key, None)
+            return True
+        except AttributeError, a:
+            return False

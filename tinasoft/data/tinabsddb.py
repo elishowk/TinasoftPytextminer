@@ -15,15 +15,17 @@ class TransactionExpired(Exception): pass
 
 # A transaction decorator for BDB
 def transaction(f, name=None, **kwds):
-    """modified from http://www.rdflib.net/"""
+    """
+    
+    from http://www.rdflib.net/
+    """
     def wrapped(*args, **kwargs):
         bdb = args[0]
-        retries = 10
+        retries = 1
         delay = 1
         e = None
         while retries > 0:
             kwargs['txn'] = bdb.begin_txn()
-
             try:
                 result = f(*args, **kwargs)
                 bdb.commit()
@@ -31,14 +33,17 @@ def transaction(f, name=None, **kwds):
                 return result
             except MemoryError, e:
                 # Locks are leaking in this code or in BDB
+                _logger.error(e)
                 bdb.rollback()
                 retries = 0
             except db.DBLockDeadlockError, e:
+                _logger.error(e)
                 bdb.rollback()
                 sleep(0.1*delay)
                 #delay = delay << 1
                 retries -= 1
             except Exception, e:
+                _logger.error(e)
                 bdb.rollback()
                 retries -= 1
 
@@ -104,7 +109,7 @@ class Backend(Handler):
         dbmode = 0660
         dbsetflags   = 0
         # number of locks, lockers and objects
-        self.__locks = 5000
+        self.__locks = 1000
         # when closing is True, no new transactions are allowed
         self.__closing = False
         # Each thread is responsible for a single transaction (included nested
@@ -229,9 +234,7 @@ class Backend(Handler):
         # BDB exceptions (like deadlock), an internal transaction should
         # not fail the user transaction. Here, nested transactions are used
         # which have this property.
-
         txn = None
-
         try:
             if not thread.get_ident() in self.__dbTxn and self.is_open() and not self.__closing:
                 self.__dbTxn[thread.get_ident()] = []
@@ -286,7 +289,6 @@ class Backend(Handler):
         true to abort all active transactions for the current thread.
         modified from http://www.rdflib.net/
         """
-
         if thread.get_ident() in self.__dbTxn and self.is_open():
             _logger.debug("rolling back")
             try:
@@ -312,44 +314,18 @@ class Backend(Handler):
             _logger.warning("No transaction to rollback")
 
 
-
-    def add(self, key, obj, overwrite=True):
-        """modified from http://www.rdflib.net/"""
-        @transaction
-        def _add(self, key, obj, overwrite, txn=None):
-            self.safewrite(key, obj, overwrite, txn)
-
-        try:
-            _add(self, key, obj, overwrite)
-        except Exception, e:
-            _logger.error( "Got exception in add " )
-            _logger.error( e )
-            raise e
-
-    def remove(self, key):
-        """modified from http://www.rdflib.net/"""
-        @transaction
-        def _remove(self, key, txn=None):
-            self.safedelete( key, txn )
-        try:
-            _remove(self, key)
-        except Exception, e:
-            _logger.error( "Got exception in remove " )
-            _logger.error( e )
-            raise e
-
     def encode( self, obj ):
         return self.serialize(obj)
 
     def decode( self, data ):
         return self.deserialize(data)
 
-    def saferead( self, key ):
+    def saferead( self, key, txn=None ):
         """gets a db entry or return None"""
         if isinstance(key, str) is False:
             key = str(key)
         try:
-            return self._db.get(key)
+            return self._db.get(key, txn=txn)
         except db.DBNotFoundError, e1:
             _logger.error( "DBError exception during saferead() : " + e[1] )
             return None
@@ -357,10 +333,12 @@ class Backend(Handler):
             _logger.error( "DBError exception during saferead() : " + e[1] )
             raise Exception
 
-    def safereadrange( self, smallestkey=None ):
+    def safereadrange( self, smallestkey=None, txn=None ):
         """returns a cursor, optional smallest key"""
+        if isinstance(key, str) is False:
+            key = str(key)
         try:
-            cur = self.cursor()
+            cur = self.cursor(txn=txn)
             if smallestkey is not None:
                 cur.set_range( smallestkey )
             return cur
@@ -393,9 +371,84 @@ class Backend(Handler):
         raise NotImplemented()
 
     def safedelete( self, key, txn=None ):
+        """
+        wrapped in remove()/transaction(), safely deletes an entry
+        """
         if isinstance(key, str) is False:
             key = str(key)
-        self._db.delete( key, txn=txn )
+        try:
+            print "in delete"
+            self._db.delete( key, txn=txn )
+            print "out of delete"
+        except db.DBNotFoundError, dbnf:
+            _logger.debug( "delete failed, key not found = "+ key )
+        except db.DBKeyEmptyError, dbke:
+            _logger.debug( "delete failed, key is empty = "+ key )
+        except db.DBError, dbe:
+            _logger.debug( dbe )
+            raise Exception()
+
+    def add(self, key, obj, overwrite=True):
+        """
+        modified from http://www.rdflib.net/
+        public method used in Engine
+        """
+        @transaction
+        def _add(self, key, obj, overwrite, txn=None):
+            self.safewrite(key, obj, overwrite, txn)
+        try:
+            _add(self, key, obj, overwrite)
+        except Exception, e:
+            _logger.error( "Got exception in add " )
+            _logger.error( e )
+            raise e
+
+    def remove(self, id, deltype, delobj=None):
+        """
+        deletes a corpus and clean all the associations
+        modified from http://www.rdflib.net/
+        public method used in Engine
+        """
+        @transaction
+        def _remove(self, id, deltype, delobj, txn=None):
+            if delobj is None:
+                delobj = self.saferead(self.prefix[deltype]+id, txn=txn)
+                if delobj is not None:
+                    # deletes an object
+                    delobj = self.decode(delobj)
+                else:
+                    _logger.error("remove failed, key was not found")
+                    _logger.error(self.prefix[deltype]+id)
+                    return
+            self.safedelete(self.prefix[deltype]+id, txn=txn)
+            # deletes all mentions of this object in associated objects
+            for type, assoc in delobj['edges'].iteritems():
+                for associd in assoc.iterkeys():
+                    # loads the associated object
+                    assocobj = self.saferead(self.prefix[type]+associd, txn=txn)
+                    if assocobj is not None:
+                        # removes edges
+                        assocobj = self.decode(assocobj)
+                        if deltype not in assocobj['edges']:
+                            _logger.debug("association type missing ("+deltype+") into obj "+associd)
+                            continue
+                        if id not in assocobj['edges'][deltype]:
+                            _logger.debug("association "+type+" missing ("+id+") into obj "+associd)
+                            continue
+                        del assocobj['edges'][deltype][id]
+                    else:
+                        _logger.debug("Found inconsistent association, object not found :"+ self.prefix[type]+associd)
+                        continue
+                    self.safewrite(self.prefix[type]+associd, assocobj, True, txn)
+        try:
+            _remove(self, id, deltype, delobj)
+        except Exception, e:
+            _logger.error("Got exception in remove ")
+            _logger.error(e)
+            raise e
+
+    def clear( self ):
+        self._db.truncate()
 
 class Engine(Backend):
     """
@@ -439,7 +492,7 @@ class Engine(Backend):
             self.insertCorpus( obj )
 
     def insertDocument(self, obj, id=None, datestamp=None):
-        """automatically removes text content"""
+        """automatically removes text content before storing"""
         content = obj['content']
         obj['content'] = ""
         self.insert( obj, 'Document', id )
@@ -467,7 +520,7 @@ class Engine(Backend):
             targetobj = loadtarget( targetid )
             # returns None if one of the objects does NOT exists
             if sourceobj is None or targetobj is None:
-                raise DBInsertError
+                raise DBInsertError()
         except DBInsertError, dbie:
             _logger.debug( "insertAssoc impossible" )
             return
@@ -476,7 +529,7 @@ class Engine(Backend):
         if targetname not in sourceobj['edges']:
             sourceobj['edges'][targetname]={}
         if targetid in sourceobj['edges'][targetname]:
-            sourceobj['edges'][targetname][targetid]+=1
+            sourceobj['edges'][targetname][targetid]+=occs
         else:
             sourceobj['edges'][targetname][targetid]=occs
         insertsource( sourceobj, str(sourceobj['id']) )
@@ -485,7 +538,7 @@ class Engine(Backend):
         if sourcename not in targetobj['edges']:
             targetobj['edges'][sourcename]={}
         if sourceid in targetobj['edges'][sourcename]:
-            targetobj['edges'][sourcename][sourceid]+=1
+            targetobj['edges'][sourcename][sourceid]+=occs
         else:
             targetobj['edges'][sourcename][sourceid]=occs
         inserttarget( targetobj, str(targetobj['id']) )
@@ -509,9 +562,6 @@ class Engine(Backend):
         self.insertAssoc( self.loadCorpus, 'Corpus', corpID,\
             self.insertCorpus, self.loadNGram, 'NGram', ngramID, \
             self.insertNGram, occs )
-
-    def clear( self ):
-        self._db.truncate()
 
     def selectCorpusCooc(self, corpusId):
         if isinstance(corpusId, str) is False:
@@ -539,9 +589,9 @@ class Engine(Backend):
                 return
             record = cursor.next()
 
-    def deleteCorpus(self, corpusid):
+    def deleteCorpus(self, id, delobj=None):
         """deletes a corpus and clean all the associations"""
-        raise NotImplemented()
+        self.remove(id, 'Corpus', delobj)
 
     def insertmanyAssocNGramDocument( self, iter ):
         raise NotImplemented()

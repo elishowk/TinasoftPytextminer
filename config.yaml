@@ -3,7 +3,6 @@
 # TinaApp main params
 locale: 'en_US.UTF-8'
 storage: "tinabsddb://fetopen.bsddb"
-stopwords: "shared/stopwords/en.txt"
 index: 'index/'
 dbenv: 'db/'
 log: 'log/tinasoft.log'

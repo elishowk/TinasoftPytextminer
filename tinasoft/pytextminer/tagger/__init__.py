@@ -18,3 +18,8 @@ class TreeBankPosTagger():
     def posTag( tokens ):
         """each tokens becomes ['token','TAG']"""
         return map( list, pos_tag( tokens ) )
+
+    @staticmethod
+    def getContent( sentence ):
+        """return words from a tagged list"""
+        return [tagged[0] for tagged in sentence]

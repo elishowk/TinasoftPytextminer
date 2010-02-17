@@ -51,7 +51,7 @@ class Filter():
         return test
 
     def any(self, nggenerator):
-        """Given a NGram object generator, applies the _any() filter"""
+        """NGram generator, applies the _any() filter"""
         try:
             record = nggenerator.next()
             while record:
@@ -70,7 +70,7 @@ class Filter():
         return test
 
     def both(self, nggenerator):
-        """Given a NGram object generator, applies the _both() filter"""
+        """NGram generator, applies the _both() filter"""
         try:
             record = nggenerator.next()
             while record:
@@ -89,7 +89,7 @@ class Filter():
         return test
 
     def begin(self, nggenerator):
-        """Given a NGram object generator, applies the _begin() filter"""
+        """NGram generator, applies the _begin() filter"""
         try:
             record = nggenerator.next()
             while record:
@@ -108,7 +108,7 @@ class Filter():
         return test
 
     def end(self, nggenerator):
-        """Given a NGram object generator, applies the _end() filter"""
+        """NGram generator, applies the _end() filter"""
         try:
             record = nggenerator.next()
             while record:
@@ -119,7 +119,7 @@ class Filter():
             return
 
     def test(self, ng):
-        """Given an NGram object return True if ALL the tests passed"""
+        """returns True if ALL the tests passed"""
         return self._any(ng) and self._both(ng) and self._begin(ng) and self._end(ng)
 
 class PosTagFilter(Filter):
@@ -136,9 +136,8 @@ class PosTagFilter(Filter):
     }
 
     def get_content(self, ng):
-        """overwrites the field selection to filter NGram object's postag"""
-        if 'postag' in ng:
-            return [token[1] for token in ng['postag']]
+        """selects NGram's postag"""
+        return [token[1] for token in ng['postag']]
 
 # WARNING : OBSOLETE !!!
 #class NGramHelpers():
