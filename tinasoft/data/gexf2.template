@@ -44,6 +44,9 @@
 <?py            continue ?>
 <?py        i += 1 ?>
       <edge id="#{i}" source="#{source}" target="#{target}" weight="#{weight}">
+        <attvalues>
+            <attvalue id="0" value="#{ngram['cooc'][target]}" />
+        </attvalues>
       </edge>
 <?py    #endfor ?>
 <?py #endfor ?>
