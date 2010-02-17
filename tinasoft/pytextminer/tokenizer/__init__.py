@@ -67,7 +67,15 @@ class RegexpTokenizer():
         return filtered
 
     @staticmethod
-    def ngramize( minSize, maxSize, tokens, emptyString, stopwords=None ):
+    def filterNGrams(ngram, filters):
+        passFilter = True
+        for filt in filters:
+            passFilter &= filt.test(ngram)
+        return passFilter
+
+
+    @staticmethod
+    def ngramize( minSize, maxSize, tokens, emptyString, stopwords=None, filters=[] ):
         """
             returns a dict of NGram instances
             using the optional stopwords object to filter by ngram length
@@ -79,14 +87,15 @@ class RegexpTokenizer():
             for sent in tokens:
                 for i in range(len(sent)):
                     if len(sent) >= i+n:
-                        content = [tagged[0] for tagged in sent[i:n+i]]
+                        content = tagger.TreeBankPosTagger.getContent(sent)
                         ng = ngram.NGram( content, occs = 1, postag = sent[i:n+i] )
-                        if stopwords is None or stopwords.contains( ng ) is False:
-                            # if ngrams already exists in document, only increments occs
-                            if ng.id in ngrams:
-                                ngrams[ ng.id ].occs += 1
-                            else:
-                                ngrams[ ng.id ] = ng
+                        if ng['id'] in ngrams:
+                            ngrams[ ng['id'] ]['occs'] += 1
+                        else:
+                            if stopwords is None or stopwords.contains( ng ) is False:
+                                if RegexpTokenizer.filterNGrams(ng, filters) is True:
+                                    # exists in document : only increments occs
+                                    ngrams[ ng.id ] = ng
         return ngrams
 
 class TreeBankWordTokenizer(RegexpTokenizer):
@@ -105,8 +114,7 @@ class TreeBankWordTokenizer(RegexpTokenizer):
         return sentences
 
     @staticmethod
-    def extract( doc, stopwords, ngramMin, ngramMax ):
-        _logger.debug(doc['content'])
+    def extract( doc, stopwords, ngramMin, ngramMax, filters ):
         sanitizedTarget = TreeBankWordTokenizer.sanitize(
             doc['content'],
             doc['forbChars'],
@@ -124,4 +132,5 @@ class TreeBankWordTokenizer(RegexpTokenizer):
             tokens = doc['tokens'],
             emptyString = doc['ngramEmpty'],
             stopwords = stopwords,
+            filters=filters
         )
