@@ -106,7 +106,6 @@ class TinaApp():
         )
         filters=[self.filtertag,self.filterContent,self.filterstop]
         # loads the source file
-        print format, path
         dsn = format+"://"+path
         #self.logger.debug(dsn)
         fileReader = Reader(dsn,
@@ -116,6 +115,7 @@ class TinaApp():
             fields = self.config['fields']
         )
         self._walkFile(fileReader, corpora_id, overwrite, index, filters)
+        self.logger.debug("End of importFile()")
 
     def _walkFile(self, fileReader, corpora_id, overwrite, index, filters):
         """gets importFile() results to insert contents into storage"""
