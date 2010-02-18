@@ -12,7 +12,7 @@
 <?py i = 0 ?>
 <?py for name,type in attrnodes.iteritems(): ?>
 <?py     i += 1 ?>
-      <attribute for="#{i}" title="#{name}" type="#{type}">
+      <attribute id="#{i}" title="#{name}" type="#{type}">
       </attribute>
 <?py #endfor ?>
     </attributes>
@@ -20,7 +20,7 @@
 <?py i = 0 ?>
 <?py for name,type in attredges.iteritems(): ?>
 <?py     i += 1 ?>
-      <attribute for="#{i}" title="#{name}" type="#{type}">
+      <attribute id="#{i}" title="#{name}" type="#{type}">
       </attribute>
 <?py #endfor ?>
     </attributes>
@@ -28,8 +28,8 @@
 <?py for id,ngram in nodes.iteritems(): ?>
       <node id="#{id}" label="#{ngram['label']}">
         <attvalues>
-          <attvalue id="0" value="#{ngram['category']}" />
-          <attvalue id="1" value="#{ngram['occ']}" />
+          <attvalue for="0" value="#{ngram['category']}" />
+          <attvalue for="1" value="#{ngram['occ']}" />
         </attvalues>
       </node>
 <?py #endfor ?>

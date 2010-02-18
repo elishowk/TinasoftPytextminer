@@ -16,7 +16,7 @@ class TransactionExpired(Exception): pass
 # A transaction decorator for BDB
 def transaction(f, name=None, **kwds):
     """
-    
+
     from http://www.rdflib.net/
     """
     def wrapped(*args, **kwargs):
@@ -335,8 +335,8 @@ class Backend(Handler):
 
     def safereadrange( self, smallestkey=None, txn=None ):
         """returns a cursor, optional smallest key"""
-        if isinstance(key, str) is False:
-            key = str(key)
+        if isinstance(smallestkey, str) is False:
+            smallestkey = str(smallestkey)
         try:
             cur = self.cursor(txn=txn)
             if smallestkey is not None:
