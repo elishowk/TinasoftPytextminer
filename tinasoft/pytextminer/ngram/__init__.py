@@ -22,6 +22,7 @@ class Filter():
     Rule-based NGram content filtering
     applies on a generator of (ngram_objects)
     """
+    # TODO move rules into app config, and add language support
     rules={
         'any':[],
         'begin':[],
@@ -127,7 +128,7 @@ class PosTagFilter(Filter):
     Rule-based POS tag filtering
     applies on a generator of (ngram_objects)
     """
-
+    # TODO move rules into app config, and add language support
     rules = {
         'any':['PUN','SENT'],
         'begin':['POS'],
