@@ -43,9 +43,11 @@ class PyTextMiner():
 
     def addEdge(self, type, key, value):
         #_logger.debug(key)
-        if type not in self['edges'].keys():
+        if type not in self['edges']:
+        #if type not in self['edges'].keys():
             self['edges'][type]={}
-        if key in self['edges'][type].keys():
+        if key in self['edges'][type]:
+        #if key in self['edges'][type].keys():
             self['edges'][type][key] += value
         else:
             self['edges'][type][key] = value

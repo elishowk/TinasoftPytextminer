@@ -3,8 +3,8 @@ __all__ = ['basecsv', 'mozstorage', 'tina', 'tinabsddb','gexf']
 
 import jsonpickle
 
-jsonpickle.load_backend('django.util.simplejson', 'dumps', 'loads', ValueError))
-jsonpickle.set_preferred_backend('django.util.simplejson')
+#jsonpickle.load_backend('django.util.simplejson', 'dumps', 'loads', ValueError))
+#jsonpickle.set_preferred_backend('django.util.simplejson')
 
 import sys
 

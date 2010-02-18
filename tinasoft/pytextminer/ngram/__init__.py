@@ -27,7 +27,7 @@ class Filter():
         'any':[],
         'begin':[],
         'end':[],
-        'both':['have','is','are'],
+        'both':['by','in','of','a','have','is','are','or'],
     }
     def __init__(self, config=None):
         """default rules based on english penn-treebank tagset"""

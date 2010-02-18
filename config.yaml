@@ -6,3 +6,4 @@ storage: "tinabsddb://fetopen.bsddb"
 index: 'index/'
 dbenv: 'db/'
 log: 'log/tinasoft.log'
+stopwords: 'shared/stopwords/en.txt'

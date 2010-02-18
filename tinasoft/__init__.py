@@ -191,23 +191,62 @@ class TinaApp():
         # returns the ngram id index for the document
         return docngrams.keys()
 
-    def exportNGrams(self, corpusgenerator, filepath, **kwargs):
+    def exportNGrams(self, corpusgenerator, synthesispath, filters=None, mergepath=None, **kwargs):
         try:
-            csv = Writer('basecsv://'+filepath, **kwargs)
-            csv.writeRow(["status","label","length","occurrences","normalized occs","db ID","corpora ID"])
+            rows={}
+            csv = Writer('basecsv://'+synthesispath, **kwargs)
+            csv.writeRow(["status","label","length","occurrences","normalized occs","db ID","corpus ID","corpora ID"])
+            # gets a corpus from the generator
             corpusobj, corporaid = corpusgenerator.next()
             while 1:
+                # goes over every ngram in the corpus
                 for ngid, occs in corpusobj['edges']['NGram'].iteritems():
                     ng = self.storage.loadNGram(ngid)
                     if ng is not None:
+                        # prepares the row
                         n=len(ng['content'])
-                        csv.writeRow( [ "", ng['label'], str(n), str(occs), str(occs**n), ng['id'], str(corporaid) ])
+                        occs=int(occs)
+                        occsn=occs**n
+                        row= [ "", ng['label'], str(n), str(occs), str(occsn), ng['id'], str(corpusobj['id']), str(corporaid) ]
+                        # filtering activated
+                        if filters is not None:
+                            if tokenizer.TreeBankWordTokenizer.filterNGrams(ng, filters) is True:
+                                # writes to synthesispath
+                                csv.writeRow( row )
+                                if mergepath is not None:
+                                    # adds or updates rows for mergepath
+                                    if not rows.has_key(ng['id']):
+                                        rows[ng['id']] = row
+                                    else:
+                                        occs = int(rows[ng['id']][3]) + int(row[3])
+                                        occsn = int(rows[ng['id']][4]) + int(row[4])
+                                        rows[ng['id']][3]=str(occs)
+                                        rows[ng['id']][4]=str(occsn)
+                        # filtering is NOT activated
+                        else:
+                            # writes to synthesispath
+                            csv.writeRow(row)
+                            if mergepath is not None:
+                                # adds or updates rows for mergepath
+                                if not rows.has_key(ng['id']):
+                                    rows[ng['id']] = row
+                                else:
+                                    occs= int(rows[ng['id']][3]) + int(row[3])
+                                    occsn = int(rows[ng['id']][4]) + int(row[4])
+                                    rows[ng['id']][3]=str(occs)
+                                    rows[ng['id']][4]=str(occsn)
                     else:
                         self.logger.error("NGram not found in database after importFile finished : " + ngid)
                 corpusobj, corporaid = corpusgenerator.next()
         except StopIteration, stop:
+            if mergepath is not None:
+                # writes mergepath
+                columns = ["status","label","length","occurrences","normalized occs","db ID","corpus ID","corpora ID"]
+                self.logger.debug("writing to %s"%mergepath)
+                mergecsv = Writer('basecsv://'+mergepath, **kwargs)
+                mergecsv.writeFile(columns, rows.values())
             self.logger.debug("End of exportNGrams()")
-            return filepath
+            return synthesispath
 
     def exportCorpusNGram(self, corpus, filepath, **kwargs):
         """export a file containing a corpus' NGrams"""

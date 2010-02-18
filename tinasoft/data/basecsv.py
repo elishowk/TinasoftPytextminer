@@ -25,6 +25,7 @@ class Exporter (Exporter):
         self.file = codecs.open(self.filepath, "w", encoding=self.encoding, errors='replace' )
 
     def writeRow( self, row ):
+        #row=map(str, row)
         self.file.write( self.delimiter.join( row ) + "\n" )
 
     def writeFile( self, columns, rows ):

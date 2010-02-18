@@ -26,7 +26,7 @@
     </attributes>
     <nodes>
 <?py for id,ngram in nodes.iteritems(): ?>
-      <node id="#{id}" label="#{ngram['label']}">
+      <node id="#{id}" label="#{ngram['cache']['label']}">
         <attvalues>
           <attvalue for="0" value="#{ngram['category']}" />
           <attvalue for="1" value="#{ngram['occ']}" />

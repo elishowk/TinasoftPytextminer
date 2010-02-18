@@ -10,12 +10,33 @@ import os
 import random
 
 from tinasoft import TinaApp
-from tinasoft.pytextminer import *
+from tinasoft.pytextminer import stopwords, ngram
 
 class CoocTestCase(unittest.TestCase):
     def setUp(self):
         self.tinasoft = TinaApp(configFile='config.yaml',\
             storage='tinabsddb://fetopen.test.bsddb')
+
+    def testExportNGrams(self):
+        def generate():
+            corpusgenerator = self.tinasoft.storage.select('Corpus')
+            try:
+                while 1:
+                    corp=corpusgenerator.next()
+                    yield corp[1], 'fet open'
+            except StopIteration, si:
+                return
+        stopwd = stopwords.StopWords( "file://%s" % self.tinasoft.config['stopwords'] )
+        filtertag = ngram.PosTagFilter()
+        filterContent = ngram.Filter()
+        filterstop = stopwords.StopWordFilter(
+            'file:///home/elishowk/TINA/Datas/100126-fetopen-stopwords-from-david.csv'
+        )
+        filters=[stopwd,filtertag,filterContent,filterstop]
+        synthesispath = '100218-fetopen-corpora-synthesis.csv'
+        mergepath = '100218-fetopen-ngrams.csv'
+        generator = generate()
+        self.tinasoft.exportNGrams(generator, synthesispath, filters=filters, mergepath=mergepath)
 
     def testExportAllNGram(self):
         return

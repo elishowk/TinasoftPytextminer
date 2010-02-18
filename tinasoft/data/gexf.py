@@ -33,7 +33,8 @@ class Exporter (GEXFHandler):
     Gexf Engine
     """
 
-    def ngramCoocGraph(self, db, periods, threshold=[0,9999999999999999], meta={}):
+    def ngramCoocGraph(self, db, periods, threshold=[0,9999999999999999],\
+            meta={}, ngrams=None, degreelimit=None):
         """uses Cooc from database to write a cooc graph for a given list of periods"""
         if len(periods) == 0: return
         gexf = {
@@ -51,46 +52,55 @@ class Exporter (GEXFHandler):
             # gets the database cursor for the current period
             generator = db.selectCorpusCooc(period)
             nodes = {}
-            i = 1
             #_logger.error("ng_id,ng_label,ng_edges_corp_occ,corp_edges_ng_occ,cooc")
             try:
                 while i:
                     i+=1
                     key,row = generator.next()
-                    if i % 25 == 0: _logger.debug( "Cooc rows processed : " + str(i) )
+                    if i % 25 == 0: _logger.debug( "Cooc values processed : " + str(i) )
 
                     # FIXME "month" will be deprecated in the next version
                     ngid1,month = key
-                    # loads the source NGram object
-                    ngram1 = db.loadNGram(ngid1)
 
                     # adds the source NGram to the nodes dict
                     if ngid1 not in nodes:
+                        # loads the source NGram object
+                        ngram1 = db.loadNGram(ngid1)
                         nodes[ngid1] = { \
-                          'label' : ngram1["label"],
-                          'category' : 'NGram',
-                          'weight' : {},
-                          'occ' : 0,
-                          'cooc' : {}
-                          }
+                            #'label' : ngram1["label"],
+                            'category' : 'NGram',
+                            'weight' : {},
+                            'occ' : 0,
+                            'cooc' : {},
+                            'cache' : ngram1
+                        }
+                    else:
+                        ngram1 = nodes[ngid1]['cache']
 
                     # gets the source occurrences for the current period
                     if ngid1 in corp['edges']['NGram']:
                         occ1 = nodes[ngid1]['occ'] = corp['edges']['NGram'][ngid1]
+                    else:
+                        _logger.error("inconsistency found in database,\
+                            missing NGram %s edge in Corpus %s"%(ngid1,corp['id']))
+                        continue
 
                     # goes through every target NGram  object
                     for ngid2, cooc in row.iteritems():
-                        ngram2 = db.loadNGram(ngid2)
 
                         # adds the target NGram to the nodes dict
                         if ngid2 not in nodes:
+                            ngram2 = db.loadNGram(ngid2)
                             nodes[ngid2] = { \
-                              'label' : ngram2["label"],
-                              'category' : 'NGram',
-                              'weight' : {},
-                              'occ' : 0,
-                              'cooc' : {}
+                                #'label' : ngram2["label"],
+                                'category' : 'NGram',
+                                'weight' : {},
+                                'occ' : 0,
+                                'cooc' : {},
+                                'cache' : ngram2
                             }
+                        else:
+                            ngram2 = nodes[ngid2]['cache']
 
                         # Sums cooccurences values into nodes dict
                         if ngid2 in nodes[ngid1]['cooc']:
@@ -102,6 +112,10 @@ class Exporter (GEXFHandler):
                         # gets the target occurrences for the current period
                         if ngid2 in corp['edges']['NGram']:
                             occ2 = nodes[ngid2]['occ'] = corp['edges']['NGram'][ngid2]
+                        else:
+                            _logger.error("inconsistency found in database,\
+                                missing NGram %s edge in Corpus %s"%(ngid1,corp['id']))
+                            continue
 
                         # calculates the nodes proximity
                         w = ( float(cooc) / float(occ1) )**0.01 * (float(cooc) / float(occ2) )
