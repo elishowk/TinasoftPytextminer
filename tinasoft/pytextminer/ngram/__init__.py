@@ -24,9 +24,9 @@ class Filter():
     """
     rules={
         'any':[],
-        'begin':['have','is','are'],
+        'begin':[],
         'end':[],
-        'both':[],
+        'both':['have','is','are'],
     }
     def __init__(self, config=None):
         """default rules based on english penn-treebank tagset"""
