@@ -51,9 +51,7 @@ class Exporter (GEXFHandler):
             # gets the database cursor for the current period
             generator = db.selectCorpusCooc(period)
             nodes = {}
-            occs = {}
             i = 1
-            curr = 1
             #_logger.error("ng_id,ng_label,ng_edges_corp_occ,corp_edges_ng_occ,cooc")
             try:
                 while i:

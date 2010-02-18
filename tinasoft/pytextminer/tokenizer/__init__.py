@@ -83,12 +83,13 @@ class RegexpTokenizer():
             sentences = list of words = [word,postagged_word]
         """
         ngrams = {}
-        for n in range( minSize, maxSize +1 ):
-            for sent in tokens:
-                for i in range(len(sent)):
-                    if len(sent) >= i+n:
-                        content = tagger.TreeBankPosTagger.getContent(sent[i:n+i])
-                        ng = ngram.NGram( content, occs = 1, postag = sent[i:n+i] )
+        for sent in tokens:
+            content = tagger.TreeBankPosTagger.getContent(sent)
+            for i in range(len(content)):
+                for n in range( minSize, maxSize +1 ):
+                    if len(content) >= i+n:
+                        #content = tagger.TreeBankPosTagger.getContent(sent[i:n+i])
+                        ng = ngram.NGram( content[i:n+i], occs = 1, postag = sent[i:n+i] )
                         # adds or increments document-ngram edges
                         document.addEdge( 'NGram', ng['id'], 1 )
                         if ng['id'] in ngrams:

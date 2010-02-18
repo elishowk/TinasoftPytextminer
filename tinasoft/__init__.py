@@ -133,6 +133,7 @@ class TinaApp():
         try:
             while 1:
                 document, corpusNum = fileGenerator.next()
+                self.logger.debug(document['id'])
                 document.addEdge('Corpus', corpusNum, 1)
                 if index is True:
                     res = self.index.write(document, writer, overwrite)
