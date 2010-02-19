@@ -23,7 +23,9 @@ class CoocTestCase(unittest.TestCase):
             occsCol='occurrences',
         )
         path = 'tests/tinapp-test-exportGraph.gexf'
-        self.tinasoft.exportGraph(path, periods, threshold, whitelist, degreemax)
+        periods=['8']
+        threshold=[0.4, 0.5]
+        self.tinasoft.logger.debug( self.tinasoft.exportGraph(path, periods, threshold, whitelist) )
 
     # OBSOLETE, moved to data.ngram.py
     def testExportNGrams(self):

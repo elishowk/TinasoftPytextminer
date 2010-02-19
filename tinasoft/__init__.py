@@ -198,12 +198,13 @@ class TinaApp():
         whitelist = importer.importNGrams()
         return whitelist
 
-    def exportGraph(self, path, periods, threshold, whitelist, degreemax):
+    def exportGraph(self, path, periods, threshold, whitelist, degreemax=None):
         GEXF = Writer('gexf://').ngramCoocGraph(
             db=self.storage,
             periods=periods,
             threshold=threshold,
-            whitelist = whitelist
+            whitelist = whitelist,
+            degreemax=degreemax
         )
         #fileid = "%s-%s_"%(threshold[0],threshold[1])
         #path = fileid+path
