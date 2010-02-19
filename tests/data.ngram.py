@@ -2,12 +2,11 @@
 # -*- coding: utf-8 -*-
 
 __author__="Elias Showk"
-__date__ ="$Jan, 21 2010 5:29:16 PM$"
+__date__ ="$Feb, 19 2010 5:29:16 PM$"
 
 # core modules
 import unittest
 import os
-import random
 
 from tinasoft import TinaApp
 from tinasoft.pytextminer import stopwords, ngram
@@ -17,24 +16,21 @@ class CoocTestCase(unittest.TestCase):
         self.tinasoft = TinaApp(configFile='config.yaml',\
             storage='tinabsddb://fetopen.test.bsddb')
 
-    def testExportGraph(self):
+    def testImportNGrams(self):
         whitelist = self.tinasoft.importNGrams(
             'tests/test-importNGrams.csv',
             occsCol='occurrences',
         )
-        path = 'tests/tinapp-test-exportGraph.gexf'
-        self.tinasoft.exportGraph(path, periods, threshold, whitelist, degreemax)
+        self.tinasoft.logger.debug(whitelist)
 
-    # OBSOLETE, moved to data.ngram.py
     def testExportNGrams(self):
         return
-        def generate(corpList):
+        def generate():
             corpusgenerator = self.tinasoft.storage.select('Corpus')
             try:
                 while 1:
                     corp=corpusgenerator.next()
-                    if corp[1]['id'] in corpList:
-                        yield corp[1], 'fet open'
+                    yield corp[1], 'fet open'
             except StopIteration, si:
                 return
         stopwd = stopwords.StopWords( "file://%s" % self.tinasoft.config['stopwords'] )
@@ -44,10 +40,32 @@ class CoocTestCase(unittest.TestCase):
             'file:///home/elishowk/TINA/Datas/100126-fetopen-stopwords-from-david.csv'
         )
         filters=[stopwd,filtertag,filterContent,filterstop]
-        synthesispath = '100219-fetopen-corpora-synthesis.csv'
-        mergepath = '100219-fetopen-ngrams.csv'
-        generator = generate(['8'])
+        synthesispath = '100218-fetopen-corpora-synthesis.csv'
+        mergepath = '100218-fetopen-ngrams.csv'
+        generator = generate()
         self.tinasoft.exportNGrams(generator, synthesispath, filters=filters, mergepath=mergepath)
+
+    def testExportAllNGram(self):
+        return
+        filepath = '100215-fetopen-ngrams.txt'
+        self.tinasoft.exportAllNGrams(filepath)
+
+    def testReadCorpus(self):
+        """export ngrams for each """
+        return
+        json = self.tinasoft.getAllCorpus(raw=True)
+        #self.tinasoft.logger.debug(json)
+        for corpus in json:
+            filepath = '100215-corpus_'+corpus['id']+'-ngrams.txt'
+            self.tinasoft.exportCorpusNGram(corpus, filepath)
+
+    def testExportCorpusCooc(self):
+        return
+        json = self.tinasoft.getAllCorpus(raw=True)
+        #self.tinasoft.logger.debug(json)
+        for corpus in json:
+            filepath = '100215-corpus_'+corpus['id']+'-cooccurrences.txt'
+            self.tinasoft.exportCorpusCooc(corpus, filepath, delimiter=" ")
 
 if __name__ == '__main__':
     unittest.main()

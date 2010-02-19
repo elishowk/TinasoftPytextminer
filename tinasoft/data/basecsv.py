@@ -8,14 +8,16 @@ import logging
 _logger = logging.getLogger('TinaAppLogger')
 #corpusID;docID;docAuthor;docTitle;docAbstract;index1;index2
 
+#class CsvKeyError(KeyError): pass
+
 class Exporter (Exporter):
 
     def __init__(self,
-        filepath,
-        delimiter = ',',
-        quotechar = '"',
-        dialect = 'excel',
-        **kwargs
+            filepath,
+            delimiter = ',',
+            quotechar = '"',
+            dialect = 'excel',
+            **kwargs
         ):
         self.filepath = filepath
         self.delimiter = delimiter

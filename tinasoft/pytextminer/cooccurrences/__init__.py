@@ -20,12 +20,13 @@ class MapReduce():
         }
     }
     """
-    def __init__(self, storage, corpus=None, filter=None):
+    def __init__(self, storage, corpus=None, filter=None, whitelist=None):
         self.storage = storage
         self.filter = filter
         self.corpus=corpus
         self.matrix = {}
         self.processedDocs = []
+        self.whitelist = whitelist
 
     def walkCorpus(self):
         """another way to generate a cooc matrix"""
@@ -62,14 +63,15 @@ class MapReduce():
         for ng in ngrams:
             obj = self.storage.loadNGram(ng)
             if obj is not None:
-                if self.filter is not None:
-                    passFilter = True
-                    for filt in self.filter:
-                        passFilter &= filt.test(obj)
-                    if passFilter is True:
+                if obj['id'] in self.whitelist:
+                    if self.filter is not None:
+                        passFilter = True
+                        for filt in self.filter:
+                            passFilter &= filt.test(obj)
+                        if passFilter is True:
+                            map[ng]=1
+                    else:
                         map[ng]=1
-                else:
-                    map[ng]=1
         _logger.debug( "Ngrams passing filters = "+ str(len( map.keys() )) )
         return map
 

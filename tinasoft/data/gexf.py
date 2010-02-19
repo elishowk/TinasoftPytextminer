@@ -34,7 +34,7 @@ class Exporter (GEXFHandler):
     """
 
     def ngramCoocGraph(self, db, periods, threshold=[0,9999999999999999],\
-            meta={}, ngrams=None, degreelimit=None):
+            meta={}, whitelist=None, degreemax=None):
         """uses Cooc from database to write a cooc graph for a given list of periods"""
         if len(periods) == 0: return
         gexf = {
@@ -61,7 +61,8 @@ class Exporter (GEXFHandler):
 
                     # FIXME "month" will be deprecated in the next version
                     ngid1,month = key
-
+                    if ngid1 not in whitelist:
+                        continue
                     # adds the source NGram to the nodes dict
                     if ngid1 not in nodes:
                         # loads the source NGram object
@@ -87,7 +88,8 @@ class Exporter (GEXFHandler):
 
                     # goes through every target NGram  object
                     for ngid2, cooc in row.iteritems():
-
+                        if ngid2 not in whitelist:
+                            continue
                         # adds the target NGram to the nodes dict
                         if ngid2 not in nodes:
                             ngram2 = db.loadNGram(ngid2)

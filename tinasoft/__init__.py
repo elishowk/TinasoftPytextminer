@@ -27,6 +27,8 @@ import yaml
 import logging
 import logging.handlers
 
+class DBInconsistency(Exception): pass
+
 class TinaApp():
     """ base class for a tinasoft.pytextminer application"""
     def __init__(
@@ -191,6 +193,27 @@ class TinaApp():
         # returns the ngram id index for the document
         return docngrams.keys()
 
+    def importNGrams(self, filepath, **kwargs):
+        importer = Reader('ngram://'+filepath, **kwargs)
+        whitelist = importer.importNGrams()
+        return whitelist
+
+    def exportGraph(self, path, periods, threshold, whitelist, degreemax):
+        GEXF = Writer('gexf://').ngramCoocGraph(
+            db=self.storage,
+            periods=periods,
+            threshold=threshold,
+            whitelist = whitelist
+        )
+        #fileid = "%s-%s_"%(threshold[0],threshold[1])
+        #path = fileid+path
+        open(path, 'wb').write(GEXF)
+        return path
+
+    def exportCorpora(self, synthesispath, filters=None, **kwargs):
+        pass
+
+    # TODO refactor in tinasoft.data.basecsv and separate exportCorpora into another method.
     def exportNGrams(self, corpusgenerator, synthesispath, filters=None, mergepath=None, **kwargs):
         try:
             rows={}
@@ -202,41 +225,52 @@ class TinaApp():
                 # goes over every ngram in the corpus
                 for ngid, occs in corpusobj['edges']['NGram'].iteritems():
                     ng = self.storage.loadNGram(ngid)
-                    if ng is not None:
-                        # prepares the row
-                        n=len(ng['content'])
-                        occs=int(occs)
-                        occsn=occs**n
-                        row= [ "", ng['label'], str(n), str(occs), str(occsn), ng['id'], str(corpusobj['id']), str(corporaid) ]
-                        # filtering activated
-                        if filters is not None:
-                            if tokenizer.TreeBankWordTokenizer.filterNGrams(ng, filters) is True:
-                                # writes to synthesispath
-                                csv.writeRow( row )
-                                if mergepath is not None:
-                                    # adds or updates rows for mergepath
-                                    if not rows.has_key(ng['id']):
-                                        rows[ng['id']] = row
-                                    else:
-                                        occs = int(rows[ng['id']][3]) + int(row[3])
-                                        occsn = int(rows[ng['id']][4]) + int(row[4])
-                                        rows[ng['id']][3]=str(occs)
-                                        rows[ng['id']][4]=str(occsn)
-                        # filtering is NOT activated
-                        else:
+                    if ng is None:
+                        raise DBInconsistency()
+                        continue
+                    # prepares the row
+                    n=len(ng['content'])
+                    occs=0
+                    if 'Document' in ng['edges']:
+                        occs = len( ng['edges']['Document'].keys() )
+                    elif 'Corpus' in ng['edges']:
+                        for val in ng['edges']['Corpus'].values():
+                            occs += val
+                    else:
+                        self.logger("NGram without edges !!")
+                        raise DBInconsistency()
+                        continue
+                    #occs=int(occs)
+                    occsn=occs**n
+                    row= [ "", ng['label'], str(n), str(occs), str(occsn), ng['id'], str(corpusobj['id']), str(corporaid) ]
+                    # filtering activated
+                    if filters is not None:
+                        if tokenizer.TreeBankWordTokenizer.filterNGrams(ng, filters) is True:
                             # writes to synthesispath
-                            csv.writeRow(row)
+                            csv.writeRow( row )
                             if mergepath is not None:
                                 # adds or updates rows for mergepath
                                 if not rows.has_key(ng['id']):
                                     rows[ng['id']] = row
                                 else:
-                                    occs= int(rows[ng['id']][3]) + int(row[3])
+                                    occs = int(rows[ng['id']][3]) + int(row[3])
                                     occsn = int(rows[ng['id']][4]) + int(row[4])
                                     rows[ng['id']][3]=str(occs)
                                     rows[ng['id']][4]=str(occsn)
+                    # filtering is NOT activated
                     else:
-                        self.logger.error("NGram not found in database after importFile finished : " + ngid)
+                        # writes to synthesispath
+                        csv.writeRow(row)
+                        if mergepath is not None:
+                            # adds or updates rows for mergepath
+                            if not rows.has_key(ng['id']):
+                                rows[ng['id']] = row
+                            else:
+                                occs= int(rows[ng['id']][3]) + int(row[3])
+                                occsn = int(rows[ng['id']][4]) + int(row[4])
+                                rows[ng['id']][3]=str(occs)
+                                rows[ng['id']][4]=str(occsn)
+                # next corpus
                 corpusobj, corporaid = corpusgenerator.next()
         except StopIteration, stop:
             if mergepath is not None:
@@ -248,66 +282,12 @@ class TinaApp():
             self.logger.debug("End of exportNGrams()")
             return synthesispath
 
-    def exportCorpusNGram(self, corpus, filepath, **kwargs):
-        """export a file containing a corpus' NGrams"""
-        def printpostag(record):
-            """prepares the postag field printing"""
-            postag = ""
-            if record[1]['postag'] is not None:
-                for word in record[1]['postag']:
-                    postag += "_".join([word[1],word[0]]) + ","
-            return postag
+        except DBInconsistency, dberror:
+            self.logger.error("NGram inconsistency = ")
+            self.logger.error(ng)
 
-        gen = self.storage.select('NGram')
-        csv = Writer('basecsv://'+filepath, **kwargs)
-        try:
-            record = gen.next()
-            while record:
-                if corpus['id'] in record[1]['edges']['Corpus']:
-                    #postag = printpostag(record)
-                    #occs = corpus['edges']['Ngram'][record[1]['id']]
-                    csv.writeRow( [record[1]['id'], record[1]['label'] ])
-                record = gen.next()
-        except StopIteration, si: return
-
-
-    def getAllCorpus(self, raw=True):
-        """fix decode/encode non optimal process"""
-        corpuslst = []
-        gen = self.storage.select('Corpus')
-        try:
-            record = gen.next()
-            while record:
-                corpuslst += [record[1]]
-                record = gen.next()
-        except StopIteration, si:
-            if raw is True:
-                return corpuslst
-            else:
-                return self.storage.encode( corpuslst )
-
-    # obsolete
-    def exportCorpusCooc(self, corpus, filepath, **kwargs):
-        generator = self.storage.selectCorpusCooc(corpus['id'])
-        csv = Writer('basecsv://'+filepath, **kwargs)
-        nodes = {}
-        try:
-            while 1:
-                key,row = generator.next()
-                id,month = key
-                if id not in nodes:
-                    nodes[id] = {
-                        'edges' : {}
-                    }
-                for ngram, cooc in row.iteritems():
-                    if ngram in nodes[id]['edges']:
-                        nodes[id]['edges'][ngram] += cooc
-                    else:
-                        nodes[id]['edges'][ngram] = cooc
-        except StopIteration, si:
-            for ng1 in nodes.iterkeys():
-                for ng2, cooc in nodes[ng1]['edges'].iteritems():
-                    csv.writeRow([ ng1, ng2, str(cooc), corpus['id'] ])
+    def processCooc(self, whitelist, ):
+        raise NotImplemented
 
     def createCorpus(self):
         raise NotImplemented
@@ -319,7 +299,4 @@ class TinaApp():
         raise NotImplemented
 
     def createNGram(self):
-        raise NotImplemented
-
-    def writeCooc(self):
         raise NotImplemented

@@ -27,7 +27,7 @@ class Filter():
         'any':[],
         'begin':[],
         'end':[],
-        'both':['by','in','of','a','have','is','are','or'],
+        'both':['by','in','of','a','have','is','are','or','and'],
     }
     def __init__(self, config=None):
         """default rules based on english penn-treebank tagset"""
@@ -132,29 +132,11 @@ class PosTagFilter(Filter):
     rules = {
         'any':['PUN','SENT'],
         'begin':['POS'],
-        'end':[],
+        'end':['VB','VDB','VBP','VBZ'],
         'both':['DT','CC','TO','IN','WDT','WP','WRB','PRP','EX','MD','UH'],
     }
 
     def get_content(self, ng):
         """selects NGram's postag"""
         return [token[1] for token in ng['postag']]
-
-# WARNING : OBSOLETE !!!
-#class NGramHelpers():
-#    """Obsolete"""
-#    @staticmethod
-#    def filterUnique( rawDict, threshold, corpusNum, sqliteEncode ):
-#        delList = []
-#        filteredDict = {}
-#        assocNGramCorpus = []
-#        for ngid in rawDict.keys():
-#            if rawDict[ ngid ].occs < threshold:
-#                del rawDict[ ngid ]
-#                delList.append( ngid )
-#            else:
-#                assocNGramCorpus.append( ( ngid, corpusNum, rawDict[ ngid ].occs ) )
-#                item = rawDict[ ngid ]
-#                filteredDict[ ngid ] = sqliteEncode(item)
-#        return ( filteredDict, delList, assocNGramCorpus )
 
