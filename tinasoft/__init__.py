@@ -194,11 +194,20 @@ class TinaApp():
         return docngrams.keys()
 
     def importNGrams(self, filepath, **kwargs):
+        """
+        import an ngram csv file
+        returns a whitelistto be user as input of other methods
+        """
         importer = Reader('ngram://'+filepath, **kwargs)
         whitelist = importer.importNGrams()
         return whitelist
 
     def exportGraph(self, path, periods, threshold, whitelist, degreemax=None):
+        """
+        returns a GEXF file path
+        the graph is an ngram's 'proximity graph
+        for a list of periods and an ngram whitelist
+        """
         GEXF = Writer('gexf://').ngramCoocGraph(
             db=self.storage,
             periods=periods,
@@ -210,6 +219,15 @@ class TinaApp():
         #path = fileid+path
         open(path, 'wb').write(GEXF)
         return path
+
+    def exportCooc(self, path, periods, whitelist, **kwargs):
+        """
+        returns a text file path containing the db cooc
+        for a list of periods ans an ngrams whitelist
+        """
+        Cooc = Writer('ngram://'+path, **kwargs)
+        return Cooc.exportCooc( self.storage, periods, whitelist )
+
 
     def exportCorpora(self, synthesispath, filters=None, **kwargs):
         pass

@@ -15,7 +15,7 @@ class Importer (basecsv.Importer):
         'occsCol':'occs',
         'labelCol':'label',
         'accept':'x',
-        'refuse':'w',
+        'refuse':'s',
         'whitelist':{},
         'stopwords':{},
     }
@@ -71,6 +71,36 @@ class Exporter(basecsv.Exporter):
 
     def exportCorpora(self): pass
 
+    def exportCooc(self, db, periods, whitelist, **kwargs):
+        for corpusid in periods:
+            nodes = {}
+            try:
+                generator = db.selectCorpusCooc(corpusid)
+                while 1:
+                    key,row = generator.next()
+                    id,month = key
+                    if id not in whitelist:
+                        _logger.debug("blocked " + id)
+                        continue
+                    if id not in nodes:
+                        nodes[id] = {
+                        'edges' : {}
+                        }
+                    for ngram, cooc in row.iteritems():
+                        if ngram not in whitelist:
+                            _logger.debug("blocked " + ngram)
+                            continue
+                        if ngram in nodes[id]['edges']:
+                            nodes[id]['edges'][ngram] += cooc
+                        else:
+                            nodes[id]['edges'][ngram] = cooc
+            except StopIteration, si:
+                for ng1 in nodes.iterkeys():
+                    for ng2, cooc in nodes[ng1]['edges'].iteritems():
+                        _logger.debug( [ ng1, ng2, str(cooc), corpusid ] )
+                        self.writeRow([ ng1, ng2, str(cooc), corpusid ])
+        return self.filepath
+
     # obsolete
     def exportCorpusNGram(self, corpus, filepath, **kwargs):
         """export a file containing a corpus' NGrams"""
@@ -109,26 +139,3 @@ class Exporter(basecsv.Exporter):
                 return corpuslst
             else:
                 return self.storage.encode( corpuslst )
-
-    # obsolete
-    def exportCorpusCooc(self, corpus, filepath, **kwargs):
-        generator = self.storage.selectCorpusCooc(corpus['id'])
-        csv = Writer('basecsv://'+filepath, **kwargs)
-        nodes = {}
-        try:
-            while 1:
-                key,row = generator.next()
-                id,month = key
-                if id not in nodes:
-                    nodes[id] = {
-                        'edges' : {}
-                    }
-                for ngram, cooc in row.iteritems():
-                    if ngram in nodes[id]['edges']:
-                        nodes[id]['edges'][ngram] += cooc
-                    else:
-                        nodes[id]['edges'][ngram] = cooc
-        except StopIteration, si:
-            for ng1 in nodes.iterkeys():
-                for ng2, cooc in nodes[ng1]['edges'].iteritems():
-                    csv.writeRow([ ng1, ng2, str(cooc), corpus['id'] ])

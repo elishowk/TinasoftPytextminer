@@ -18,14 +18,24 @@ class CoocTestCase(unittest.TestCase):
             storage='tinabsddb://fetopen.test.bsddb')
 
     def testExportGraph(self):
+        return
         whitelist = self.tinasoft.importNGrams(
-            'tests/test-importNGrams.csv',
+            '/home/elishowk/TINA/Datas/100221-fetopen-filteredngrams.csv',
             occsCol='occurrences',
         )
-        path = 'tests/tinapp-test-exportGraph.gexf'
+        path = '100222-fetopen-8.gexf'
         periods=['8']
-        threshold=[0.4, 0.5]
-        self.tinasoft.logger.debug( self.tinasoft.exportGraph(path, periods, threshold, whitelist) )
+        threshold=[0.0, 1.0]
+        self.tinasoft.logger.debug( "created : " + self.tinasoft.exportGraph(path, periods, threshold, whitelist) )
+
+    def testExportCoocMatrix(self):
+        whitelist = self.tinasoft.importNGrams(
+            '/home/elishowk/TINA/Datas/100221-fetopen-filteredngrams.csv',
+            occsCol='occurrences',
+        )
+        path = '100222-fetopen-8.txt'
+        periods=['8']
+        self.tinasoft.logger.debug( "created : " + self.tinasoft.exportCooc(path, periods, whitelist) )
 
     # OBSOLETE, moved to data.ngram.py
     def testExportNGrams(self):
