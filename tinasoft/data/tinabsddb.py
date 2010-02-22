@@ -454,27 +454,29 @@ class Engine(Backend):
     """
     bsddb Engine
     """
-    def load(self, id, target):
+    def load(self, id, target, raw=False):
         read = self.saferead( self.prefix[target]+id )
         if read is not None:
+            if raw is True:
+                return read
             return self.decode(read)
         else:
             return None
 
-    def loadCorpora(self, id ):
-        return self.load(id, 'Corpora')
+    def loadCorpora(self, id, raw=False ):
+        return self.load(id, 'Corpora', raw)
 
-    def loadCorpus(self, id ):
-        return self.load(id, 'Corpus')
+    def loadCorpus(self, id, raw=False ):
+        return self.load(id, 'Corpus', raw)
 
-    def loadDocument(self, id ):
-        return self.load(id, 'Document')
+    def loadDocument(self, id, raw=False ):
+        return self.load(id, 'Document', raw)
 
-    def loadNGram(self, id ):
-        return self.load(id, 'NGram')
+    def loadNGram(self, id, raw=False ):
+        return self.load(id, 'NGram', raw)
 
-    def loadCooc(self, id ):
-        return self.load(id, 'Cooc')
+    def loadCooc(self, id, raw=False ):
+        return self.load(id, 'Cooc', raw)
 
     def insert( self, obj, target, id=None):
         if id is None:
@@ -576,15 +578,21 @@ class Engine(Backend):
         except StopIteration, si: return
 
 
-    def select( self, minkey, maxkey=None ):
+    def select( self, minkey, maxkey=None, raw=False ):
         cursor = self.safereadrange( minkey )
         record = cursor.first()
         while record:
             if maxkey is None:
                 if record[0].startswith(minkey):
-                    yield ( record[0], self.decode(record[1]))
+                    if raw is True:
+                        yield record
+                    else:
+                        yield ( record[0], self.decode(record[1]))
             elif record[0] < maxkey:
-                yield ( record[0], self.decode(record[1]))
+                if raw is True:
+                        yield record
+                else:
+                    yield ( record[0], self.decode(record[1]))
             else:
                 return
             record = cursor.next()

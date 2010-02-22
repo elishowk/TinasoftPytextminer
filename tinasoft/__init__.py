@@ -125,7 +125,8 @@ class TinaApp():
         corpusgenerator = self._walkFile(fileReader, corpora_id, overwrite, index, filters)
         exportpath='test-export.csv'
         self.logger.debug("ending importfile, starting exportNGrams")
-        return self.exportNGrams( corpusgenerator, exportpath )
+        # TODO mergepath will overwrite exportpath
+        return self.exportNGrams( corpusgenerator, exportpath, mergepath=exportpath )
 
     def _walkFile(self, fileReader, corpora_id, overwrite, index, filters):
         """gets importFile() results to insert contents into storage"""
@@ -198,6 +199,19 @@ class TinaApp():
         document['tokens'] = []
         # returns the ngram id index for the document
         return docngrams.keys()
+
+    def processCooc(self, ngramfile, gexfpath, whitelist, corporaid, periods ):
+        # import ngram whitelist
+        whitelist = self.importNGram( ngramfile )
+        # process cooccurrences
+        self.filtertag = ngram.PosTagFilter()
+        self.filterContent = ngram.Filter()
+        for id in periods:
+            cooc = cooccurrences.MapReduce(self.storage, corpus=id, filter=[self.filtertag, self.filterContent], whitelist=whitelist)
+            cooc.walkCorpus()
+            cooc.writeMatrix()
+        # export gexf file given a liqst of periods=corpus
+        return self.exportGraph(gexfpath, periods, threshold, whitelist)
 
     def importNGrams(self, filepath, **kwargs):
         """
@@ -311,20 +325,17 @@ class TinaApp():
             self.logger.error("NGram inconsistency = ")
             self.logger.error(ng)
 
-    def processCooc(self, whitelist, ):
+    def listCorpus(self, corporaid):
         raise NotImplemented
 
-    def createCorpus(self):
-        raise NotImplemented
-
-    def createCorpora(self):
-        raise NotImplemented
-
-    def createDocument(self):
-        raise NotImplemented
-
-    def createNGram(self):
-        raise NotImplemented
+    def listCorpora(self):
+        select = self.storage.select('Corpora', raw=True)
+        corporalist=[]
+        try:
+            while 1:
+                corporalist += [select.next()[1]]
+        except StopIteration, si:
+            return "\n".join(corporalist)
 
 class ThreadPool:
 
