@@ -80,7 +80,6 @@ class Exporter(basecsv.Exporter):
                     key,row = generator.next()
                     id,month = key
                     if id not in whitelist:
-                        _logger.debug("blocked " + id)
                         continue
                     if id not in nodes:
                         nodes[id] = {
@@ -88,7 +87,6 @@ class Exporter(basecsv.Exporter):
                         }
                     for ngram, cooc in row.iteritems():
                         if ngram not in whitelist:
-                            _logger.debug("blocked " + ngram)
                             continue
                         if ngram in nodes[id]['edges']:
                             nodes[id]['edges'][ngram] += cooc
@@ -97,7 +95,6 @@ class Exporter(basecsv.Exporter):
             except StopIteration, si:
                 for ng1 in nodes.iterkeys():
                     for ng2, cooc in nodes[ng1]['edges'].iteritems():
-                        _logger.debug( [ ng1, ng2, str(cooc), corpusid ] )
                         self.writeRow([ ng1, ng2, str(cooc), corpusid ])
         return self.filepath
 

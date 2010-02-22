@@ -11,9 +11,9 @@
     <attributes class="node" type="#{type}">
 <?py i = 0 ?>
 <?py for name,type in attrnodes.iteritems(): ?>
-<?py     i += 1 ?>
       <attribute id="#{i}" title="#{name}" type="#{type}">
       </attribute>
+<?py     i += 1 ?>
 <?py #endfor ?>
     </attributes>
     <attributes class="edge" type="#{type}">
