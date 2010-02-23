@@ -58,15 +58,15 @@ class Extractor():
             self.corpora = self.reader.corpora
             storage.insertCorpora( self.corpora )
             # insert the new corpus
-            for corpusNum in self.corpora['content']:
+            for corpusObj in self.reader.corpusDict.values():
                 # get the Corpus object and import
                 #corpus = self.reader.corpusDict[ corpusNum ]
                 #for docid in docindex:
                 #    corpus.addEdge('Document', docid, 1)
                 #corpus.addEdge('Corpora', corpora_id, 1)
-                storage.insertCorpus(self.reader.corpusDict[ corpusNum ])
+                storage.insertCorpus(corpusObj)
                 #storage.insertAssocCorpus(self.reader.corpusDict[ corpusNum ]['id'], self.corpora['id'])
-                yield self.reader.corpusDict[ corpusNum ], self.corpora
+                yield corpusObj, self.corpora['id']
                 del self.reader.corpusDict[ corpusNum ]
             return
 

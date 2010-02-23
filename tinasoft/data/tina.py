@@ -48,7 +48,7 @@ class Importer (basecsv.Importer):
             # updates corpus-corpora edges : must occur only once
             if corpusNumber not in self.corpora['edges']['Corpus']:
                 self.corpora.addEdge( 'Corpus', corpusNumber, 1 )
-            self.corpora['content'] += [ corpusNumber ]
+                self.corpora['content'] += [ corpusNumber ]
             # if corpus NOT already exists
             if corpusNumber not in self.corpusDict:
                 # creates a new corpus and adds it to the global dict

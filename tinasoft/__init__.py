@@ -128,8 +128,11 @@ class TinaApp():
             locale = self.config['locale'],
             fields = self.config['fields']
         )
-        extractor = corpora.Extractor()
-        corpusgenerator = extractor.walkFile(self.storage, fileReader, corpora_id, overwrite, index, filters, self.config['ngramMin'], self.config['ngramMax'], self.stopwords)
+        corporaObj = self.storage.loadCorpora(corpora_id)
+        if corporaObj is None:
+            corporaObj = corpora.Corpora(corpora_id)
+        extractor = corpora.Extractor( fileReader, corporaObj )
+        corpusgenerator = extractor.walkFile(self.storage, overwrite, index, filters, self.config['ngramMin'], self.config['ngramMax'], self.stopwords)
         self.logger.debug("ending importfile, starting exportNGrams")
         # TODO mergepath will overwrite exportpath
         return self.exportNGrams( corpusgenerator, exportpath, mergepath=exportpath )
@@ -213,9 +216,10 @@ class TinaApp():
             rows={}
             csv = Writer('basecsv://'+synthesispath, **kwargs)
             csv.writeRow(["status","label","length","occurrences","normalized occs","db ID","corpus ID","corpora ID"])
-            # gets a corpus from the generator
-            corpusobj, corporaid = corpusgenerator.next()
+
             while 1:
+                # gets a corpus from the generator
+                corpusobj, corporaid = corpusgenerator.next()
                 # goes over every ngram in the corpus
                 for ngid, occs in corpusobj['edges']['NGram'].iteritems():
                     ng = self.storage.loadNGram(ngid)
@@ -224,17 +228,17 @@ class TinaApp():
                         continue
                     # prepares the row
                     n=len(ng['content'])
-                    occs=0
-                    if 'Document' in ng['edges']:
-                        occs = len( ng['edges']['Document'].keys() )
-                    elif 'Corpus' in ng['edges']:
-                        for val in ng['edges']['Corpus'].values():
-                            occs += val
-                    else:
-                        self.logger("NGram without edges !!")
-                        raise DBInconsistency()
-                        continue
-                    #occs=int(occs)
+                    #occs=0
+                    #if 'Document' in ng['edges']:
+                    #    occs = len( ng['edges']['Document'].keys() )
+                    #elif 'Corpus' in ng['edges']:
+                    #    for val in ng['edges']['Corpus'].values():
+                    #        occs += val
+                    #else:
+                    #    self.logger("NGram without edges !!")
+                    #    raise DBInconsistency()
+                    #    continue
+                    occs=int(occs)
                     occsn=occs**n
                     row= [ "", ng['label'], str(n), str(occs), str(occsn), ng['id'], str(corpusobj['id']), str(corporaid) ]
                     # filtering activated
@@ -264,8 +268,6 @@ class TinaApp():
                                 occsn = int(rows[ng['id']][4]) + int(row[4])
                                 rows[ng['id']][3]=str(occs)
                                 rows[ng['id']][4]=str(occsn)
-                # next corpus
-                corpusobj, corporaid = corpusgenerator.next()
         except StopIteration, stop:
             if mergepath is not None:
                 # writes mergepath
