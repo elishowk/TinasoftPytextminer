@@ -8,8 +8,23 @@ import logging
 _logger = logging.getLogger('TinaAppLogger')
 
 class Importer (basecsv.Importer):
-
-    docDict = {}
+    """
+    tina csv format
+    instanciation example:
+    from tinasoft.data import Reader
+    tinaReader = Reader( "tina://text_file_to_import.csv", fields={
+        titleField: 'doc_titl',
+        contentField: 'doc_abst',
+        authorField: 'doc_acrnm',
+        corpusNumberField: 'corp_num',
+        docNumberField: 'doc_num',
+        index1Field: 'index_1',
+        index2Field: 'index_2',
+        dateField: 'date',
+        keywordsField: 'doc_keywords',
+    })
+    """
+    #docDict = {}
     corpusDict = {}
 
     def parseFile( self, corpora ):
@@ -22,26 +37,36 @@ class Importer (basecsv.Importer):
                 corpusNumber = self.decode( doc[self.fields['corpusNumberField']] )
                 del tmpfields['corpusNumberField']
             except Exception, exc:
-                print "document parsing exception (no corpus number avalaible) : ", exc
+                _logger.error( "file parsing error : corpus number is required" )
+                _logger.error( exc )
+                continue
             # TODO check if corpus already exists
-            document = self.parseDocument( doc, tmpfields, corpusNumber )
-            if document is None:
+            newdoc = self.parseDocument( doc, tmpfields, corpusNumber )
+            if newdoc is None:
                 _logger.debug( "skipping a document" )
-            else:
-                # sends the document and the corpus id
-                yield document, corpusNumber
-            if self.corpusDict.has_key(corpusNumber) and \
-                corpusNumber in self.corpora['content']:
-                self.corpusDict[ corpusNumber ]['content'].append( document.id )
-            corp = corpus.Corpus(
-                corpusNumber,
-                period_start = None,
-                period_end = None,
-            )
-            corp['content'].append( document.id )
-            # adds the corpus to internal attributes
-            self.corpusDict[ corpusNumber ] = corp
-            self.corpora['content'][ corpusNumber ] = 1
+                continue
+            # updates corpus-corpora edges : must occur only once
+            if corpusNumber not in self.corpora['edges']['Corpus']:
+                self.corpora.addEdge( 'Corpus', corpusNumber, 1 )
+            self.corpora['content'] += [ corpusNumber ]
+            # if corpus NOT already exists
+            if corpusNumber not in self.corpusDict:
+                # creates a new corpus and adds it to the global dict
+                newcorpus = corpus.Corpus(
+                    corpusNumber,
+                    # periods are deprecated
+                    period_start = None,
+                    period_end = None,
+                )
+                #newcorpus['content'].append( document.id )
+                #newcorpus.addEdge( 'Document', document.id, 1)
+                # adds the corpus to internal attributes
+                self.corpusDict[ corpusNumber ] = newcorpus
+            self.corpusDict[ corpusNumber ]['content'] += [ newdoc.id ]
+            self.corpusDict[ corpusNumber ].addEdge( 'Document', newdoc.id, 1)
+            #print self.corpusDict[ corpusNumber ]['edges']
+            # sends the document and the corpus id
+            yield newdoc, corpusNumber
 
     def parseDocument( self, doc, tmpfields, corpusNum ):
         """parses a row to extract a document object"""
@@ -70,13 +95,14 @@ class Importer (basecsv.Importer):
             datestamp = docArgs[ 'dateField' ]
         else:
             datestamp = None
-
-        doc = document.Document(
+        # new document
+        newdoc = document.Document(
             content,
             docNum,
             title,
             datestamp=datestamp,
-            edges={'Corpus':{ corpusNum: 1 }},
             **docArgs
         )
-        return doc
+        # add a corpus edge
+        newdoc.addEdge('Corpus', corpusNum, 1)
+        return newdoc

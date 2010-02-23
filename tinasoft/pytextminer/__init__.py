@@ -16,7 +16,7 @@ class PyTextMiner():
         ngram, document, etc
     """
 
-    def __init__(self, content, id=None, label=None, edges={}, **metas):
+    def __init__(self, content, id=None, label=None, edges=None, **metas):
         #dict.__init__(self)
         self.content = content
         if id is None:
@@ -24,6 +24,7 @@ class PyTextMiner():
         else:
             self.id = id
         self.label = label
+        if not edges: edges = {}
         self.edges = edges
         self.loadOptions( metas )
 

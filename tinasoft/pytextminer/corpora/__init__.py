@@ -11,11 +11,11 @@ class Corpora(PyTextMiner):
     Corpora contains a list of a corpus
     """
 
-    def __init__(self, name, corpora=None, **metas):
+    def __init__(self, name, corpuslist=None, **metas):
         # list of corpus id
-        if corpora is None:
-            corpora = {}
-        PyTextMiner.__init__(self, corpora, name, name, edges={ 'Corpus': corpora }, **metas)
+        if corpuslist is None:
+            corpuslist = []
+        PyTextMiner.__init__(self, corpuslist, name, name, edges={ 'Corpus': {} }, **metas)
 
 class Extractor():
     """corpora.Extractor is a source file importer = session = corpora"""
@@ -35,7 +35,7 @@ class Extractor():
             while 1:
                 document, corpusNum = fileGenerator.next()
                 _logger.debug(document['id'])
-                document.addEdge('Corpus', corpusNum, 1)
+                #document.addEdge('Corpus', corpusNum, 1)
                 if index is not None:
                     res = index.write(document, writer, overwrite)
                     if res is not None:
@@ -58,8 +58,8 @@ class Extractor():
             for corpusNum in corps['content']:
                 # get the Corpus object and import
                 corpus = reader.corpusDict[ corpusNum ]
-                for docid in docindex:
-                    corpus.addEdge('Document', docid, 1)
+                #for docid in docindex:
+                #    corpus.addEdge('Document', docid, 1)
                 for ngid in ngramindex:
                     corpus.addEdge('NGram', ngid, 1)
                 corpus.addEdge('Corpora', corpora_id, 1)
