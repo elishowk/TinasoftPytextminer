@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from tinasoft.data import tinabsddb, basecsv
-from tinasoft.pytextminer import document, corpus, ngram
+from tinasoft.data import basecsv
+from tinasoft.pytextminer import document, corpus, tokenizer
 import codecs
 import csv
 import logging

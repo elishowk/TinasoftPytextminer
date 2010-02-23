@@ -18,7 +18,6 @@ class TestsTestCase(unittest.TestCase):
             storage='tinabsddb://fetopen.test.bsddb')
 
     def testBoth(self):
-        return
         selectgenerator = self.tinasoft.storage.select('NGram')
         filtertag = ngram.PosTagFilter()
         filtergenerator = filtertag.both(selectgenerator)
@@ -35,7 +34,6 @@ class TestsTestCase(unittest.TestCase):
             return
 
     def testAny(self):
-        return
         selectgenerator = self.tinasoft.storage.select('NGram')
         filtertag = ngram.PosTagFilter()
         filtergenerator = filtertag.any(selectgenerator)
@@ -52,7 +50,6 @@ class TestsTestCase(unittest.TestCase):
             return
 
     def testBegin(self):
-        return
         selectgenerator = self.tinasoft.storage.select('NGram')
         filtertag = ngram.PosTagFilter()
         filtergenerator = filtertag.begin(selectgenerator)
@@ -69,7 +66,6 @@ class TestsTestCase(unittest.TestCase):
             return
 
     def testEnd(self):
-        return
         selectgenerator = self.tinasoft.storage.select('NGram')
         filtertag = ngram.PosTagFilter()
         filtergenerator = filtertag.end(selectgenerator)
@@ -86,7 +82,6 @@ class TestsTestCase(unittest.TestCase):
             return
 
     def testBeginContent(self):
-        return
         selectgenerator = self.tinasoft.storage.select('NGram')
         filtercontent = ngram.Filter()
         filtergenerator = filtercontent.begin(selectgenerator)
@@ -107,16 +102,16 @@ class TestsTestCase(unittest.TestCase):
         filtertag = ngram.PosTagFilter()
         filtercontent = ngram.Filter()
         try:
-            filterrecord = selectgenerator.next()
             count=0
             countFilter=0
-            while filterrecord:
+            while count<50:
+                filterrecord = selectgenerator.next()
                 count+=1
                 res = filtertag.all( filterrecord[1] ) and\
                     filtercontent.all( filterrecord[1] )
                 if res is False:
                     countFilter += 1
-                filterrecord = selectgenerator.next()
+            raise StopIteration()
         except StopIteration, si:
             print "all() filters eliminated = ", countFilter
             print "Total NGrams = ", count

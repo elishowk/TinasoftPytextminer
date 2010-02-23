@@ -106,6 +106,7 @@ class TinaApp():
             return
         # load Stopwords object
         self.stopwords = stopwords.StopWords( "file://%s" % self.config['stopwords'] )
+
         # load filters (TODO put it into import.yaml !!)
         self.filtertag = ngram.PosTagFilter()
         self.filterContent = ngram.Filter()
@@ -113,6 +114,11 @@ class TinaApp():
             'file:///home/elishowk/TINA/Datas/100126-fetopen-stopwords-from-david.csv'
         )
         filters=[self.filtertag,self.filterContent,self.filterstop]
+        # sends indexer to the file parser
+        if index is True:
+            index=self.index
+        else:
+            index = None
         # loads the source file
         dsn = format+"://"+path
         #self.logger.debug(dsn)
@@ -122,85 +128,15 @@ class TinaApp():
             locale = self.config['locale'],
             fields = self.config['fields']
         )
-        corpusgenerator = self._walkFile(fileReader, corpora_id, overwrite, index, filters)
-        exportpath='test-export.csv'
+        extractor = corpora.Extractor()
+        corpusgenerator = extractor.walkFile(self.storage, fileReader, corpora_id, overwrite, index, filters, self.config['ngramMin'], self.config['ngramMax'], self.stopwords)
         self.logger.debug("ending importfile, starting exportNGrams")
         # TODO mergepath will overwrite exportpath
         return self.exportNGrams( corpusgenerator, exportpath, mergepath=exportpath )
 
-    def _walkFile(self, fileReader, corpora_id, overwrite, index, filters):
-        """gets importFile() results to insert contents into storage"""
-        if index is True:
-            writer = self.index.getWriter()
-        corps = self.storage.loadCorpora(corpora_id)
-        if corps is None:
-            corps = corpora.Corpora( corpora_id )
-        fileGenerator = fileReader.parseFile( corps )
-        docindex=[]
-        ngramindex=[]
-        # fisrt part of file parsing
-        try:
-            while 1:
-                document, corpusNum = fileGenerator.next()
-                self.logger.debug(document['id'])
-                document.addEdge('Corpus', corpusNum, 1)
-                if index is True:
-                    res = self.index.write(document, writer, overwrite)
-                    if res is not None:
-                        self.logger.debug("document will not be overwritten")
-                ngramindex+=self._extractNGrams( document, corpusNum,\
-                    self.config['ngramMin'], self.config['ngramMax'], filters)
-                # TODO export docngrams (filtered)
-                # Document-corpus Association are included in the object
-                docindex+=[document['id']]
-
-        # Second part of file parsing
-        except StopIteration, stop:
-            if index is True:
-                # commit changes to indexer
-                writer.commit()
-            # insert or updates corpora
-            corps = fileReader.corpora
-            self.storage.insertCorpora( corps )
-            # insert the new corpus
-            for corpusNum in corps['content']:
-                # get the Corpus object and import
-                corpus = fileReader.corpusDict[ corpusNum ]
-                for docid in docindex:
-                    corpus.addEdge('Document', docid, 1)
-                for ngid in ngramindex:
-                    corpus.addEdge('NGram', ngid, 1)
-                corpus.addEdge('Corpora', corpora_id, 1)
-                self.storage.insertCorpus(corpus)
-                self.storage.insertAssocCorpus(corpus['id'], corps['id'])
-                yield corpus, corpora_id
-                del fileReader.corpusDict[ corpusNum ]
-            return
-
-
-    def _extractNGrams(self, document, corpusNum, ngramMin, ngramMax, filters):
-        """"Main NLP for a document"""
-        self.logger.debug(tokenizer.TreeBankWordTokenizer.__name__+\
-            " is working on document "+ document['id'])
-        # get filtered ngrams
-        docngrams = tokenizer.TreeBankWordTokenizer.extract( document,\
-            self.stopwords, ngramMin, ngramMax, filters )
-        # insert doc in storage
-        #print document['edges']
-        self.storage.insertDocument( document )
-        for ngid, ng in docngrams.iteritems():
-            # save document occurrences and delete it
-            docOccs = ng['occs']
-            del ng['occs']
-            ng.addEdge( 'Document', document['id'], docOccs )
-            ng.addEdge( 'Corpus', corpusNum, 1 )
-            self.storage.insertNGram( ng )
-        # clean tokens before ending
-        document['tokens'] = []
-        # returns the ngram id index for the document
-        return docngrams.keys()
 
     def processCooc(self, ngramfile, gexfpath, whitelist, corporaid, periods ):
+        """Main function importing a whitelist and generating cooccurrences then exporting a graph"""
         # import ngram whitelist
         whitelist = self.importNGram( ngramfile )
         # process cooccurrences
@@ -248,6 +184,25 @@ class TinaApp():
         Cooc = Writer('ngram://'+path, **kwargs)
         return Cooc.exportCooc( self.storage, periods, whitelist )
 
+    def getCorpora(self, corporaid):
+        return self.storage.loadCorpora(corporaid, raw=True)
+
+    def getCorpus(self, corpusid):
+        return self.storage.loadCorpus(corpusid, raw=True)
+
+    def getDocument(self, documentid):
+        return self.storage.loadDocument(documentid, raw=True)
+
+    def getNGram(self, ngramid):
+        return self.storage.loadNGram(ngramid, raw=True)
+
+    def listCorpora(self, default=[]):
+        select = self.storage.select('Corpora', raw=False)
+        try:
+            while 1:
+                default += [select.next()[1]]
+        except StopIteration, si:
+            return self.storage.encode( default )
 
     def exportCorpora(self, synthesispath, filters=None, **kwargs):
         pass
@@ -325,33 +280,13 @@ class TinaApp():
             self.logger.error("NGram inconsistency = ")
             self.logger.error(ng)
 
-    def getCorpora(self, corporaid):
-        return self.storage.loadCorpora(corporaid, raw=True)
-
-    def getCorpus(self, corpusid):
-        return self.storage.loadCorpus(corpusid, raw=True)
-
-    def getDocument(self, documentid):
-        return self.storage.loadDocument(documentid, raw=True)
-
-    def getNGram(self, ngramid):
-        return self.storage.loadNGram(ngramid, raw=True)
-
-    def listCorpora(self, default=[]):
-        select = self.storage.select('Corpora', raw=False)
-        try:
-            while 1:
-                default += [select.next()[1]]
-        except StopIteration, si:
-            return self.storage.encode( default )
-
 class ThreadPool:
 
     """Flexible thread pool class.  Creates a pool of threads, then
     accepts tasks that will be dispatched to the next available
     thread."""
 
-    def __init__(self, numThreads):
+    def __init__(self, numThreads=4):
 
         """Initialize the thread pool with numThreads workers."""
 
