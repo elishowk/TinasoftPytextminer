@@ -325,17 +325,25 @@ class TinaApp():
             self.logger.error("NGram inconsistency = ")
             self.logger.error(ng)
 
-    def listCorpus(self, corporaid):
-        raise NotImplemented
+    def getCorpora(self, corporaid):
+        return self.storage.loadCorpora(corporaid, raw=True)
 
-    def listCorpora(self):
-        select = self.storage.select('Corpora', raw=True)
-        corporalist=[]
+    def getCorpus(self, corpusid):
+        return self.storage.loadCorpus(corpusid, raw=True)
+
+    def getDocument(self, documentid):
+        return self.storage.loadDocument(documentid, raw=True)
+
+    def getNGram(self, ngramid):
+        return self.storage.loadNGram(ngramid, raw=True)
+
+    def listCorpora(self, default=[]):
+        select = self.storage.select('Corpora', raw=False)
         try:
             while 1:
-                corporalist += [select.next()[1]]
+                default += [select.next()[1]]
         except StopIteration, si:
-            return "\n".join(corporalist)
+            return self.storage.encode( default )
 
 class ThreadPool:
 
