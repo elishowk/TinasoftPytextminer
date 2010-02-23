@@ -19,32 +19,35 @@ class Corpora(PyTextMiner):
 
 class Extractor():
     """corpora.Extractor is a source file importer = session = corpora"""
-    def walkFile(self, storage, reader, corpora_id, overwrite, index,\
+
+
+    def __init__( self, reader, corpora ):
+        self.reader = reader
+        self.corpora = corpora
+
+    def walkFile(self, storage, overwrite, index,\
         filters, ngramMin, ngramMax, stopwords):
         """Main method for parsing tina csv source file"""
         if index is not None:
             writer = index.getWriter()
-        corps = storage.loadCorpora(corpora_id)
-        if corps is None:
-            corps = Corpora( corpora_id )
-        fileGenerator = reader.parseFile( corps )
-        docindex=[]
-        ngramindex=[]
+        fileGenerator = self.reader.parseFile( self.corpora )
+        #docindex=[]
+        #ngramindex=[]
         # fisrt part of file parsing
         try:
             while 1:
                 document, corpusNum = fileGenerator.next()
-                _logger.debug(document['id'])
-                #document.addEdge('Corpus', corpusNum, 1)
                 if index is not None:
                     res = index.write(document, writer, overwrite)
                     if res is not None:
                         _logger.debug("document will not be overwritten")
-                ngramindex+=self._extractNGrams( storage, document, corpusNum,\
+                ######### WARNING ngramindex is the same for all corpus
+                document, ngrams = self.extractNGrams( storage, document, corpusNum,\
                     ngramMin, ngramMax, filters, stopwords)
+                #ngramindex+=ngrams.keys()
                 # TODO export docngrams (filtered)
                 # Document-corpus Association are included in the object
-                docindex+=[document['id']]
+                #docindex+=[document['id']]
 
         # Second part of file parsing
         except StopIteration, stop:
@@ -52,24 +55,22 @@ class Extractor():
                 # commit changes to indexer
                 writer.commit()
             # insert or updates corpora
-            corps = reader.corpora
-            storage.insertCorpora( corps )
+            self.corpora = self.reader.corpora
+            storage.insertCorpora( self.corpora )
             # insert the new corpus
-            for corpusNum in corps['content']:
+            for corpusNum in self.corpora['content']:
                 # get the Corpus object and import
-                corpus = reader.corpusDict[ corpusNum ]
+                #corpus = self.reader.corpusDict[ corpusNum ]
                 #for docid in docindex:
                 #    corpus.addEdge('Document', docid, 1)
-                for ngid in ngramindex:
-                    corpus.addEdge('NGram', ngid, 1)
-                corpus.addEdge('Corpora', corpora_id, 1)
-                storage.insertCorpus(corpus)
-                storage.insertAssocCorpus(corpus['id'], corps['id'])
-                yield corpus, corpora_id
-                del reader.corpusDict[ corpusNum ]
+                #corpus.addEdge('Corpora', corpora_id, 1)
+                storage.insertCorpus(self.reader.corpusDict[ corpusNum ])
+                #storage.insertAssocCorpus(self.reader.corpusDict[ corpusNum ]['id'], self.corpora['id'])
+                yield self.reader.corpusDict[ corpusNum ], self.corpora
+                del self.reader.corpusDict[ corpusNum ]
             return
 
-    def _extractNGrams(self, storage, document, corpusNum, ngramMin,\
+    def extractNGrams(self, storage, document, corpusNum, ngramMin,\
         ngramMax, filters, stopwords):
         """"Main NLP operation for a document"""
         _logger.debug(tokenizer.TreeBankWordTokenizer.__name__+\
@@ -77,17 +78,20 @@ class Extractor():
         # get filtered ngrams
         docngrams = tokenizer.TreeBankWordTokenizer.extract( document,\
             stopwords, ngramMin, ngramMax, filters )
-        # insert doc in storage
-        #print document['edges']
-        storage.insertDocument( document )
         for ngid, ng in docngrams.iteritems():
             # save document occurrences and delete it
             docOccs = ng['occs']
             del ng['occs']
+            # increments document-ngram edges
+            document.addEdge( 'NGram', ng['id'], docOccs )
             ng.addEdge( 'Document', document['id'], docOccs )
+            # increments ng-corpus edge
             ng.addEdge( 'Corpus', corpusNum, 1 )
-            storage.insertNGram( ng )
-        # clean tokens before ending
-        document['tokens'] = []
+            self.reader.corpusDict[ corpusNum ].addEdge('NGram', ngid, 1)
+            if storage is not None:
+                storage.insertNGram( ng )
+        # insert doc in storage
+        if storage is not None:
+            storage.insertDocument( document )
         # returns the ngram id index for the document
-        return docngrams.keys()
+        return document, docngrams

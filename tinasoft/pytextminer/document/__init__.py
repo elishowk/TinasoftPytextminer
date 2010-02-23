@@ -15,9 +15,6 @@ class Document(PyTextMiner):
             edges=None,
             datestamp=None,
             author=None,
-            targets=[],
-            tokens=[],
-            ngrams=[],
             ngramMin=1,
             ngramMax=3,
             forbChars="[^a-zA-Z\s\@ÂÆÇÈÉÊÎÛÙàâæçèéêîĨôÔùûü\,\.\;\:\!\?\"\'\[\]\{\}\(\)\<\>]",
@@ -28,12 +25,6 @@ class Document(PyTextMiner):
         PyTextMiner.__init__(self, content, docNum, title, edges, **metas)
         self.date = datestamp
         self.author = author
-        # targets is a list of texts (incrementally) sanitized
-        self.targets = targets
-        # tokens are words
-        self.tokens = tokens
-        # ngrams is a list of ngram's IDs
-        self.ngrams = ngrams
         # these are tokenization paramaters
         self.ngramMin = ngramMin
         self.ngramMax = ngramMax

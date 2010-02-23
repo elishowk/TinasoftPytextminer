@@ -62,8 +62,9 @@ class Importer (basecsv.Importer):
                 #newcorpus.addEdge( 'Document', document.id, 1)
                 # adds the corpus to internal attributes
                 self.corpusDict[ corpusNumber ] = newcorpus
-            self.corpusDict[ corpusNumber ]['content'] += [ newdoc.id ]
-            self.corpusDict[ corpusNumber ].addEdge( 'Document', newdoc.id, 1)
+            self.corpusDict[ corpusNumber ]['content'] += [ newdoc['id'] ]
+            self.corpusDict[ corpusNumber ].addEdge( 'Document', newdoc['id'], 1)
+            self.corpusDict[ corpusNumber ].addEdge( 'Corpora', self.corpora['id'], 1)
             #print self.corpusDict[ corpusNumber ]['edges']
             # sends the document and the corpus id
             yield newdoc, corpusNumber
