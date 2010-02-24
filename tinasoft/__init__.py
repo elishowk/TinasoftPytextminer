@@ -92,7 +92,7 @@ class TinaApp():
             path,
             configFile,
             corpora_id,
-            exportpath,
+            exportpath=None,
             overwrite=False,
             index=False,
             format= 'tina',
@@ -106,13 +106,10 @@ class TinaApp():
             return
         # load Stopwords object
         self.stopwords = stopwords.StopWords( "file://%s" % self.config['stopwords'] )
-
         # load filters (TODO put it into import.yaml !!)
         self.filtertag = ngram.PosTagFilter()
         self.filterContent = ngram.Filter()
-        self.filterstop = stopwords.StopWordFilter(
-            'file:///home/elishowk/TINA/Datas/100126-fetopen-stopwords-from-david.csv'
-        )
+        self.filterstop = stopwords.StopWordFilter( "file://%s" % self.config['userstopwords'] )
         filters=[self.filtertag,self.filterContent,self.filterstop]
         # sends indexer to the file parser
         if index is True:
@@ -131,13 +128,16 @@ class TinaApp():
         corporaObj = self.storage.loadCorpora(corpora_id)
         if corporaObj is None:
             corporaObj = corpora.Corpora(corpora_id)
-        extractor = corpora.Extractor( fileReader, corporaObj )
-        corpusgenerator = extractor.walkFile(self.storage, overwrite, index, filters, self.config['ngramMin'], self.config['ngramMax'], self.stopwords)
+        extractor = corpora.Extractor( fileReader, corporaObj, self.storage )
+        corpusgenerator = extractor.walkFile(overwrite, index, filters, self.config['ngramMin'], self.config['ngramMax'], self.stopwords)
         self.logger.debug("ending importfile, starting exportNGrams")
         # TODO mergepath will overwrite exportpath
-        return self.exportNGrams( corpusgenerator, exportpath, mergepath=exportpath )
+        if exportpath is not None:
+            return self.exportNGrams( corpusgenerator, exportpath, mergepath=exportpath )
+        else:
+            return corpusgenerator
 
-
+    # TODO !!
     def processCooc(self, ngramfile, gexfpath, whitelist, corporaid, periods ):
         """Main function importing a whitelist and generating cooccurrences then exporting a graph"""
         # import ngram whitelist

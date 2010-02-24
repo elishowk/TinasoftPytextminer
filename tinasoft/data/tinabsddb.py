@@ -126,6 +126,7 @@ class Backend(Handler):
         self._db.set_flags(dbsetflags)
         self._db.open(path, dbname, dbtype, dbopenflags|db.DB_CREATE, dbmode)
         self.__needs_sync = False
+        # sync thread
         t = Thread(target=self.__sync_run)
         t.setDaemon(True)
         t.start()
@@ -217,7 +218,6 @@ class Backend(Handler):
             _logger.error( "DBError exception during __del__() : " + e[1] )
             raise Exception
 
-        #Transactional interfaces
     def begin_txn(self):
         """
         Starts a bsddb transaction. If the current thread already has a running
@@ -362,13 +362,15 @@ class Backend(Handler):
                 if overwrite is True:
                     self._db.delete( key, txn=txn )
                     self._db.put(key, self.encode(obj), txn=txn)
+                    _logger.debug( "Overwriting an existing key = "+ key )
                     raise DBOverwrite()
-        except DBOverwrite, dbo:
-            _logger.debug( "Overwriting an existing key = "+ key )
+        except DBOverwrite, dbo: pass
+            #_logger.debug( "Overwriting an existing key = "+ key )
 
-    def safewritemany( self, iter ):
-        """TODO writes a set of entries in the same transaction"""
-        raise NotImplemented()
+    def safewritemany( self, iter, target, overwrite=True, txn=None ):
+        """writes a set of entries in the same transaction"""
+        for pair in iter:
+            self.safewrite( self.prefix[target]+pair[0], pair[1], overwrite, txn )
 
     def safedelete( self, key, txn=None ):
         """
@@ -398,6 +400,21 @@ class Backend(Handler):
             self.safewrite(key, obj, overwrite, txn)
         try:
             _add(self, key, obj, overwrite)
+        except Exception, e:
+            _logger.error( "Got exception in add " )
+            _logger.error( e )
+            raise e
+
+    def addmany(self, iter, target, overwrite=True):
+        """
+        modified from http://www.rdflib.net/
+        public method used in Engine
+        """
+        @transaction
+        def _addmany(self, iter, target, overwrite, txn=None):
+            self.safewritemany(iter, target, overwrite, txn)
+        try:
+            _addmany(self, iter, target, overwrite)
         except Exception, e:
             _logger.error( "Got exception in add " )
             _logger.error( e )
@@ -478,44 +495,47 @@ class Engine(Backend):
     def loadCooc(self, id, raw=False ):
         return self.load(id, 'Cooc', raw)
 
-    def insert( self, obj, target, id=None):
+    def insertMany(self, iter, target, overwrite=True):
+        self.addmany(iter, target, overwrite)
+
+    def insert( self, obj, target, id=None, overwrite=True ):
         if id is None:
             id = obj['id']
-        self.add( self.prefix[target]+id, obj )
+        self.add( self.prefix[target]+id, obj, overwrite )
 
-    def insertCorpora(self, obj, id=None):
-        self.insert( obj, 'Corpora', id )
+    def insertCorpora(self, obj, id=None, overwrite=True ):
+        self.insert( obj, 'Corpora', id, overwrite )
 
-    def insertCorpus(self, obj, id=None, period_start=None, period_end=None):
-        self.insert( obj, 'Corpus', id )
+    def insertCorpus(self, obj, id=None, overwrite=True ):
+        self.insert( obj, 'Corpus', id, overwrite )
 
-    def insertmanyCorpus(self, iter):
-        for obj in iter:
-            self.insertCorpus( obj )
+    #def insertmanyCorpus(self, iter, overwrite=True ):
+    #    for obj in iter:
+    #        self.insertCorpus( obj, overwrite )
 
-    def insertDocument(self, obj, id=None, datestamp=None):
+    def insertDocument(self, obj, id=None, overwrite=True ):
         """automatically removes text content before storing"""
         content = obj['content']
         obj['content'] = ""
-        self.insert( obj, 'Document', id )
+        self.insert( obj, 'Document', id, overwrite  )
         obj['content'] = content
 
-    def insertmanyDocument(self, iter):
-        # id, datestamp, blob
-        for obj in iter:
-            self.insertDocument( obj )
+    #def insertmanyDocument(self, iter, overwrite=True ):
+    #    # id, datestamp, blob
+    #    for obj in iter:
+    #        self.insertDocument( obj, overwrite )
 
-    def insertNGram(self, obj, id=None):
-        self.insert( obj, 'NGram', id )
+    def insertNGram(self, obj, id=None, overwrite=True ):
+        self.insert( obj, 'NGram', id, overwrite )
 
-    def insertmanyNGram(self, iter):
-        for obj in iter:
-            self.insertNGram( obj )
+    def insertManyNGram(self, iter, overwrite=True ):
+        self.insertMany( iter, 'NGram', overwrite )
 
-    def insertCooc(self, obj, id):
-        self.insert( obj, 'Cooc', id )
+    def insertCooc(self, obj, id, overwrite=True ):
+        self.insert( obj, 'Cooc', id, overwrite )
 
-    def insertAssoc(self, loadsource, sourcename, sourceid, insertsource, loadtarget, targetname, targetid, inserttarget, occs ):
+    def insertAssoc(self, loadsource, sourcename, sourceid, insertsource,\
+            loadtarget, targetname, targetid, inserttarget, occs, overwrite=True  ):
         """adds a unique edge from source to target et and increments occs=weight"""
         try:
             sourceobj = loadsource( sourceid )
@@ -534,7 +554,7 @@ class Engine(Backend):
             sourceobj['edges'][targetname][targetid]+=occs
         else:
             sourceobj['edges'][targetname][targetid]=occs
-        insertsource( sourceobj, str(sourceobj['id']) )
+        insertsource( sourceobj, str(sourceobj['id']), overwrite )
 
         # in the target obj
         if sourcename not in targetobj['edges']:
@@ -543,7 +563,7 @@ class Engine(Backend):
             targetobj['edges'][sourcename][sourceid]+=occs
         else:
             targetobj['edges'][sourcename][sourceid]=occs
-        inserttarget( targetobj, str(targetobj['id']) )
+        inserttarget( targetobj, str(targetobj['id']), overwrite )
 
     def insertAssocCorpus(self, corpusID, corporaID, occs=1 ):
         self.insertAssoc( self.loadCorpora, 'Corpora', corporaID,\
@@ -600,42 +620,3 @@ class Engine(Backend):
     def deleteCorpus(self, id, delobj=None):
         """deletes a corpus and clean all the associations"""
         self.remove(id, 'Corpus', delobj)
-
-    def insertmanyAssocNGramDocument( self, iter ):
-        raise NotImplemented()
-
-    def insertmanyAssocNGramCorpus( self, iter ):
-        raise NotImplemented()
-
-    def insertmanyAssoc(self, iter, assocname):
-        raise NotImplemented()
-
-    def deletemanyAssoc( self, iter, assocname ):
-        raise NotImplemented()
-
-    def deletemanyAssocNGramDocument( self, iter ):
-        raise NotImplemented()
-
-    def deletemanyAssocNGramCorpus( self, iter ):
-        raise NotImplemented()
-
-    def fetchCorpusNGram( self, corpusid ):
-        raise NotImplemented()
-
-    def fetchCorpusNGramID( self, corpusid ):
-        raise NotImplemented()
-
-    def fetchDocumentNGram( self, documentid ):
-        raise NotImplemented()
-
-    def fetchDocumentNGramID( self, documentid ):
-        raise NotImplemented()
-
-    def fetchCorpusDocumentID( self, corpusid ):
-        raise NotImplemented()
-
-    def dropTables( self ):
-        raise NotImplemented()
-
-    def createTables( self ):
-        raise NotImplemented()

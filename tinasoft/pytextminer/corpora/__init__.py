@@ -21,12 +21,14 @@ class Extractor():
     """corpora.Extractor is a source file importer = session = corpora"""
 
 
-    def __init__( self, reader, corpora ):
+    def __init__( self, reader, corpora, storage ):
         self.reader = reader
         self.corpora = corpora
+        self.storage = storage
+        self.ngramqueue = []
+        self.MAX_INSERT_QUEUE = 500
 
-    def walkFile(self, storage, overwrite, index,\
-        filters, ngramMin, ngramMax, stopwords):
+    def walkFile( self, overwrite, index, filters, ngramMin, ngramMax, stopwords ):
         """Main method for parsing tina csv source file"""
         if index is not None:
             writer = index.getWriter()
@@ -37,40 +39,51 @@ class Extractor():
         try:
             while 1:
                 document, corpusNum = fileGenerator.next()
+                storedDoc = self.storage.loadDocument(document['id'])
+                if storedDoc is not None and overwrite is False:
+                # document already exists
+                    self.updateDocument( document, storedDoc, corpusNum )
+                    continue
+                # indexation
                 if index is not None:
                     res = index.write(document, writer, overwrite)
                     if res is not None:
                         _logger.debug("document will not be overwritten")
-                ######### WARNING ngramindex is the same for all corpus
-                document, ngrams = self.extractNGrams( storage, document, corpusNum,\
+                # extraction
+                document, ngrams = self.extractNGrams( document, corpusNum,\
                     ngramMin, ngramMax, filters, stopwords)
-                #ngramindex+=ngrams.keys()
-                # TODO export docngrams (filtered)
-                # Document-corpus Association are included in the object
-                #docindex+=[document['id']]
 
         # Second part of file parsing
         except StopIteration, stop:
             if index is not None:
                 # commit changes to indexer
                 writer.commit()
-            # insert or updates corpora
+            # updates corpora
             self.corpora = self.reader.corpora
-            storage.insertCorpora( self.corpora )
+            self.storage.insertCorpora( self.corpora )
             # insert the new corpus
             for corpusObj in self.reader.corpusDict.values():
-                # get the Corpus object and import
-                #corpus = self.reader.corpusDict[ corpusNum ]
-                #for docid in docindex:
-                #    corpus.addEdge('Document', docid, 1)
-                #corpus.addEdge('Corpora', corpora_id, 1)
-                storage.insertCorpus(corpusObj)
-                #storage.insertAssocCorpus(self.reader.corpusDict[ corpusNum ]['id'], self.corpora['id'])
+                self.storage.insertCorpus(corpusObj)
                 yield corpusObj, self.corpora['id']
                 del self.reader.corpusDict[ corpusNum ]
             return
 
-    def extractNGrams(self, storage, document, corpusNum, ngramMin,\
+    def updateDocument( self, document, storedDoc, corpusNum ):
+         _logger.debug("duplicate document, skipping extraction :" + str(document['id']))
+        storedDoc
+
+    def ngramQueue( self, id, obj ):
+        """Transaction queue grouping by self.MAX_INSERT_QUEUE the number of NGram insertion in db"""
+        self.ngramqueue += [[id, obj]]
+        queue = len( self.ngramqueue )
+        if queue > self.MAX_INSERT_QUEUE and self.storage is not None:
+            self.storage.insertManyNGram( self.ngramqueue )
+            self.ngramqueue = []
+            return 0
+        else:
+            return queue
+
+    def extractNGrams(self, document, corpusNum, ngramMin,\
         ngramMax, filters, stopwords):
         """"Main NLP operation for a document"""
         _logger.debug(tokenizer.TreeBankWordTokenizer.__name__+\
@@ -88,10 +101,9 @@ class Extractor():
             # increments ng-corpus edge
             ng.addEdge( 'Corpus', corpusNum, 1 )
             self.reader.corpusDict[ corpusNum ].addEdge('NGram', ngid, 1)
-            if storage is not None:
-                storage.insertNGram( ng )
+            self.ngramQueue( ngid, ng )
         # insert doc in storage
-        if storage is not None:
-            storage.insertDocument( document )
+        if self.storage is not None:
+            self.storage.insertDocument( document )
         # returns the ngram id index for the document
         return document, docngrams

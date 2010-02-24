@@ -1,0 +1,25 @@
+# tinasoft.TinaApp.importFile special configuration (YAML format)
+# required extraction settings
+
+## csv columns declaration
+## will ignore fields absent from the file
+fields:
+  titleField: 'doc_titl'
+  contentField: 'doc_abst'
+  authorField: 'doc_acrnm'
+  corpusNumberField: 'corp_num'
+  docNumberField: 'doc_num'
+  index1Field: 'index_1'
+  index2Field: 'index_2'
+  dateField: 'date'
+  keywordsField: 'doc_keywords'
+dateStartField: '29/12/1920'
+dateEndField: '29/12/1990'
+# csv reader
+delimiter: ','
+quotechar: '"'
+locale: 'en_US.UTF-8'
+ngramMin: 1
+ngramMax: 4
+stopwords: 'shared/stopwords/en.txt'
+userstopwords: '/home/elishowk/TINA/Datas/100224-fetopen-user-stopwords.csv'

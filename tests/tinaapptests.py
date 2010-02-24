@@ -17,11 +17,22 @@ class CoocTestCase(unittest.TestCase):
         self.tinasoft = TinaApp(configFile='config.yaml')
                     #storage='tinabsddb://fetopen.test.bsddb')
 
-    def testImportFile(self): pass
+    def testImportFile(self):
+        self.tinasoft.importFile(
+            'tests/pubmed_tina_200.csv',
+            'import.yaml',
+            'unit test corpora',
+            'tests/tinaapptests-export.csv',
+            overwrite=False,
+            index=False,
+            format='tina',
+            filters=[])
+
 
     def testProcessCooc(self): pass
 
     def testExportGraph(self):
+        return
         whitelist = self.tinasoft.importNGrams(
             '/home/elishowk/TINA/Datas/100221-fetopen-filteredngrams.csv',
             occsCol='occurrences',
@@ -32,6 +43,7 @@ class CoocTestCase(unittest.TestCase):
         self.tinasoft.logger.debug( "created : " + self.tinasoft.exportGraph(path, periods, threshold, whitelist) )
 
     def testExportCoocMatrix(self):
+        return
         whitelist = self.tinasoft.importNGrams(
             '/home/elishowk/TINA/Datas/100221-fetopen-filteredngrams.csv',
             occsCol='occurrences',

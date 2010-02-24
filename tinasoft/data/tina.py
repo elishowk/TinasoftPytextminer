@@ -49,26 +49,18 @@ class Importer (basecsv.Importer):
             if corpusNumber not in self.corpora['edges']['Corpus']:
                 self.corpora.addEdge( 'Corpus', corpusNumber, 1 )
                 self.corpora['content'] += [ corpusNumber ]
+                self.corpusDict[ corpusNumber ].addEdge( 'Corpora', self.corpora['id'], 1)
             # if corpus NOT already exists
             if corpusNumber not in self.corpusDict:
                 # creates a new corpus and adds it to the global dict
-                newcorpus = corpus.Corpus(
-                    corpusNumber,
-                    # periods are deprecated
-                    period_start = None,
-                    period_end = None,
-                )
-                #newcorpus['content'].append( document.id )
-                #newcorpus.addEdge( 'Document', document.id, 1)
+                newcorpus = corpus.Corpus( corpusNumber )
                 # adds the corpus to internal attributes
                 self.corpusDict[ corpusNumber ] = newcorpus
             self.corpusDict[ corpusNumber ]['content'] += [ newdoc['id'] ]
             self.corpusDict[ corpusNumber ].addEdge( 'Document', newdoc['id'], 1)
-            self.corpusDict[ corpusNumber ].addEdge( 'Corpora', self.corpora['id'], 1)
-            #print self.corpusDict[ corpusNumber ]['edges']
+
             # sends the document and the corpus id
             yield newdoc, corpusNumber
-
     def parseDocument( self, doc, tmpfields, corpusNum ):
         """parses a row to extract a document object"""
         docArgs = {}
