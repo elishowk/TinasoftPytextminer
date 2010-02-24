@@ -9,12 +9,14 @@ _logger = logging.getLogger('TinaAppLogger')
 
 class NGram(PyTextMiner):
     """NGram class"""
-    def __init__(self, content, id=None, label=None, **metas):
+    def __init__(self, content, id=None, label=None, edges=None, **metas):
         # normalize
         content = self.normalize(content)
         if label is None:
             label = " ".join(content)
-        PyTextMiner.__init__(self, content, id, label, **metas)
+        if edges is None:
+            edges = { 'Document' : {}, 'Corpus' : {} }
+        PyTextMiner.__init__(self, content, id, label, edges, **metas)
 
 
 class Filter():

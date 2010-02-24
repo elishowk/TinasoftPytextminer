@@ -17,4 +17,4 @@ class Corpus(PyTextMiner):
         self.period_start = period_start
         self.period_end = period_end
         # content.keys() list can be used as a replacement of id
-        PyTextMiner.__init__(self, content.keys(), id, id, edges={ 'Document': content }, **metas)
+        PyTextMiner.__init__(self, content.keys(), id, id, edges={ 'Document': content, 'NGram' : {} }, **metas)

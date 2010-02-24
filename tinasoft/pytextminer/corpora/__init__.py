@@ -43,7 +43,7 @@ class Extractor():
                 if storedDoc is not None and overwrite is False:
                 # document already exists
                     self.updateDocument( document, storedDoc, corpusNum )
-                    continue
+                    #continue
                 # indexation
                 if index is not None:
                     res = index.write(document, writer, overwrite)
@@ -64,13 +64,14 @@ class Extractor():
             # insert the new corpus
             for corpusObj in self.reader.corpusDict.values():
                 self.storage.insertCorpus(corpusObj)
-                yield corpusObj, self.corpora['id']
+                #yield corpusObj, self.corpora['id']
                 del self.reader.corpusDict[ corpusNum ]
             return
 
     def updateDocument( self, document, storedDoc, corpusNum ):
-         _logger.debug("duplicate document, skipping extraction :" + str(document['id']))
-        storedDoc
+        """updates an already stored document and associations"""
+        _logger.debug("duplicate document, skipping extraction :" + str(document['id']))
+        # TODO storedDoc
 
     def ngramQueue( self, id, obj ):
         """Transaction queue grouping by self.MAX_INSERT_QUEUE the number of NGram insertion in db"""
