@@ -35,13 +35,6 @@ class Handler (object):
     def decode(self, toDecode):
         return unicode( toDecode, self.encoding, 'replace' )
 
-    def serialize(self, obj):
-        return jsonpickle.encode(obj)
-
-    def deserialize(self, str):
-        obj= jsonpickle.decode(str)
-        return obj
-
 class Importer(Handler):
     pass
 

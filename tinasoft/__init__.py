@@ -28,6 +28,9 @@ import logging
 import logging.handlers
 _logger = logging.getLogger('TinaAppLogger')
 
+# json
+import jsonpickle
+
 # Threads
 from time import sleep
 import threading
@@ -87,6 +90,11 @@ class TinaApp():
             self.index = indexer.TinaIndex(index)
         self.logger.debug("Starting TinaApp")
 
+    def serialize(self, obj):
+        return jsonpickle.encode(obj)
+
+    def deserialize(self, str):
+        return jsonpickle.decode(str)
 
     def importFile(self,
             path,
@@ -106,11 +114,11 @@ class TinaApp():
             return
         # load Stopwords object
         self.stopwords = stopwords.StopWords( "file://%s" % self.config['stopwords'] )
-        # load filters (TODO put it into import.yaml !!)
-        self.filtertag = ngram.PosTagFilter()
-        self.filterContent = ngram.Filter()
-        self.filterstop = stopwords.StopWordFilter( "file://%s" % self.config['userstopwords'] )
-        filters=[self.filtertag,self.filterContent,self.filterstop]
+        self.filters=filters
+        # load default filters (TODO put it into import.yaml !!)
+        filtertag = ngram.PosTagFilter()
+        filterContent = ngram.Filter()
+        self.filters += [filtertag,filterContent]
         # sends indexer to the file parser
         if index is True:
             index=self.index
@@ -129,13 +137,14 @@ class TinaApp():
         if corporaObj is None:
             corporaObj = corpora.Corpora(corpora_id)
         extractor = corpora.Extractor( fileReader, corporaObj, self.storage )
-        extractor.walkFile(overwrite, index, filters, self.config['ngramMin'], self.config['ngramMax'], self.stopwords)
+        extractor.walkFile( index, self.filters, self.config['ngramMin'], self.config['ngramMax'], self.stopwords, overwrite)
         self.logger.debug("ending importfile, starting exportNGrams")
         # TODO mergepath will overwrite exportpath
         if exportpath is not None:
-            self.exportNGrams( extractor.corpora['edges']['Corpus'].keys(), corpora_id, exportpath )
+            self.exportNGrams( ['1'], corpora_id, exportpath )
+            #self.exportNGrams( extractor.corpora['edges']['Corpus'].keys(), corpora_id, exportpath )
         else:
-            return corpusgenerator
+            return extractor.corpora['edges']['Corpus'].keys()
 
     # TODO !!
     def processCooc(self, ngramfile, gexfpath, whitelist, corporaid, periods ):
@@ -188,22 +197,22 @@ class TinaApp():
         return Cooc.exportCooc( self.storage, periods, whitelist )
 
     def getCorpora(self, corporaid):
-        return self.storage.loadCorpora(corporaid, raw=True)
+        return self.serialize(self.storage.loadCorpora(corporaid))
 
     def getCorpus(self, corpusid):
-        return self.storage.loadCorpus(corpusid, raw=True)
+        return self.serialize(self.storage.loadCorpus(corpusid))
 
     def getDocument(self, documentid):
-        return self.storage.loadDocument(documentid, raw=True)
+        return self.serialize(self.storage.loadDocument(documentid))
 
     def getNGram(self, ngramid):
-        return self.storage.loadNGram(ngramid, raw=True)
+        return self.serialize(self.storage.loadNGram(ngramid))
 
     def listCorpora(self, default=[]):
-        select = self.storage.select('Corpora', raw=False)
+        select = self.storage.select('Corpora')
         try:
             while 1:
-                default += [select.next()[1]]
+                default += [self.serialize(select.next()[1])]
         except StopIteration, si:
             return self.storage.encode( default )
 
@@ -216,10 +225,11 @@ class TinaApp():
         rows={}
         self.logger.debug("starting to write to %s"%synthesispath)
         csv = Writer('basecsv://'+synthesispath, **kwargs)
-        csv.writeRow(["status","label","length","occurrences","occs^length",\
-            "doc edges","total doc edges weigth","corpus edges",\
-            "total corpus edges weigth","db ID","corpus ID","corpora ID"])
-
+        csv.writeRow(["status","label","length","corpus-ngram w","^length",\
+            "ng-doc edges","ng-doc w sum","doc list","ng-corpus edges",\
+            "ng-corp w sum","corp list","db ID","corpus ID","corpora ID"])
+        anomaliecount=0
+        totalcount=0
         for corpusid in periods:
             # gets a corpus from the generator
             corpusobj = self.storage.loadCorpus(corpusid)
@@ -228,10 +238,12 @@ class TinaApp():
                 continue
             # goes over every ngram in the corpus
             for ngid, occs in corpusobj['edges']['NGram'].iteritems():
+                totalcount += 1
                 ng = self.storage.loadNGram(ngid)
                 if ng is None:
-                    self.logger.error("Corpus['edges']['NGram'] inconsistency, \
-                        not found in storage = %s"%ngid)
+                    self.logger.error("Corpus['edges']['NGram'] inconsistency,"\
+                        +" ngram not found = %s"%ngid)
+                    anomaliecount += 1
                     continue
                 # prepares the row
                 n=len(ng['content'])
@@ -242,35 +254,21 @@ class TinaApp():
                 occs=int(occs)
                 occsn=occs**n
                 row= [ "", ng['label'], str(n), str(occs), str(occsn), \
-                    str(docedges), str(totaldococcs), str(corpedges), str(totalcorpoccs), \
+                    str(docedges), str(totaldococcs), " ".join(ng['edges']['Document'].keys()), \
+                    str(corpedges), str(totalcorpoccs), " ".join(ng['edges']['Corpus'].keys()),\
                     ng['id'], str(corpusobj['id']), str(corporaid) ]
                 # filtering activated
                 if filters is not None:
                     if tokenizer.TreeBankWordTokenizer.filterNGrams(ng, filters) is True:
                         # writes to synthesispath
                         csv.writeRow( row )
-                        if mergepath is not None:
-                            # adds or updates rows for mergepath
-                            if not rows.has_key(ng['id']):
-                                rows[ng['id']] = row
-                            else:
-                                occs = int(rows[ng['id']][3]) + int(row[3])
-                                occsn = int(rows[ng['id']][4]) + int(row[4])
-                                rows[ng['id']][3]=str(occs)
-                                rows[ng['id']][4]=str(occsn)
                 # filtering is NOT activated
                 else:
                     # writes to synthesispath
                     csv.writeRow(row)
-                    if mergepath is not None:
-                        # adds or updates rows for mergepath
-                        if not rows.has_key(ng['id']):
-                            rows[ng['id']] = row
-                        else:
-                            occs= int(rows[ng['id']][3]) + int(row[3])
-                            occsn = int(rows[ng['id']][4]) + int(row[4])
-                            rows[ng['id']][3]=str(occs)
-                            rows[ng['id']][4]=str(occsn)
+            self.logger.debug( "corpusid ngrams edges count = " + str(len(corpusobj['edges']['NGram'].keys())) )
+        self.logger.debug( "Anomalies = " + str(anomaliecount) )
+        self.logger.debug( "Total ngrams exported = " + str(totalcount) )
         #except StopIteration, stop:
         if mergepath is not None:
             # writes mergepath
@@ -278,7 +276,6 @@ class TinaApp():
             self.logger.debug("writing to %s"%mergepath)
             mergecsv = Writer('basecsv://'+mergepath, **kwargs)
             mergecsv.writeFile(columns, rows.values())
-        self.logger.debug("End of exportNGrams()")
         return synthesispath
 
 class ThreadPool:

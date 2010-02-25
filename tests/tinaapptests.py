@@ -16,8 +16,11 @@ class CoocTestCase(unittest.TestCase):
     def setUp(self):
         self.tinasoft = TinaApp(configFile='config.yaml')
                     #storage='tinabsddb://fetopen.test.bsddb')
+        self.config = {}
+        self.config['userstopwords'] = '/home/elishowk/TINA/Datas/100224-fetopen-user-stopwords.csv'
 
     def testImportFile(self):
+        userstopwordfilter=stopwords.StopWordFilter( "file://%s" % self.config['userstopwords'] )
         self.tinasoft.importFile(
             'tests/pubmed_tina_200.csv',
             'import.yaml',
@@ -26,7 +29,7 @@ class CoocTestCase(unittest.TestCase):
             overwrite=False,
             index=False,
             format='tina',
-            filters=[])
+            filters=[userstopwordfilter])
 
 
     def testProcessCooc(self): pass

@@ -42,18 +42,24 @@ class PyTextMiner():
             raise ValueError
             return None
 
-    def addEdge(self, type, key, value):
-        #_logger.debug(key)
+    def _addUniqueEdge( self, type, key, value ):
         if type not in self['edges']:
-        #if type not in self['edges'].keys():
             self['edges'][type]={}
         if key in self['edges'][type]:
-        #if key in self['edges'][type].keys():
+            return False
+        else:
+            self['edges'][type][key] = value
+            return True
+
+    def _addEdge(self, type, key, value):
+        #_logger.debug(key)
+        if type not in self['edges']:
+            self['edges'][type]={}
+        if key in self['edges'][type]:
             self['edges'][type][key] += value
         else:
             self['edges'][type][key] = value
-        #if self.__class__.__name__ == 'Corpus':
-        #    _logger.debug(self['edges'])
+        return True
 
     def normalize(self, lst):
         return [tok.lower() for tok in lst]

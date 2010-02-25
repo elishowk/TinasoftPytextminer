@@ -28,7 +28,10 @@ class Importer (basecsv.Importer):
     corpusDict = {}
 
     def parseFile( self, corpora ):
-        """parses a row to extract corpus meta-data"""
+        """
+        parses a row to extract corpus meta-data
+        updates corpus and corpora edges
+        """
         self.corpora = corpora
         for doc in self.csv:
             tmpfields=dict(self.fields)
@@ -45,17 +48,18 @@ class Importer (basecsv.Importer):
             if newdoc is None:
                 _logger.debug( "skipping a document" )
                 continue
-            # updates corpus-corpora edges : must occur only once
-            if corpusNumber not in self.corpora['edges']['Corpus']:
-                self.corpora.addEdge( 'Corpus', corpusNumber, 1 )
-                self.corpora['content'] += [ corpusNumber ]
-                self.corpusDict[ corpusNumber ].addEdge( 'Corpora', self.corpora['id'], 1)
             # if corpus NOT already exists
             if corpusNumber not in self.corpusDict:
                 # creates a new corpus and adds it to the global dict
                 newcorpus = corpus.Corpus( corpusNumber )
                 # adds the corpus to internal attributes
                 self.corpusDict[ corpusNumber ] = newcorpus
+            # updates corpus-corpora edges : must occur only once
+            if corpusNumber not in self.corpora['edges']['Corpus']:
+                self.corpora.addEdge( 'Corpus', corpusNumber, 1 )
+                self.corpora['content'] += [ corpusNumber ]
+                self.corpusDict[ corpusNumber ].addEdge( 'Corpora', self.corpora['id'], 1)
+            # updates the corpus-document edges
             self.corpusDict[ corpusNumber ]['content'] += [ newdoc['id'] ]
             self.corpusDict[ corpusNumber ].addEdge( 'Document', newdoc['id'], 1)
 
@@ -63,7 +67,10 @@ class Importer (basecsv.Importer):
             yield newdoc, corpusNumber
 
     def parseDocument( self, doc, tmpfields, corpusNum ):
-        """parses a row to extract a document object"""
+        """
+        parses a row to extract a document object
+        with its edges
+        """
         docArgs = {}
         # parsing TRY
         try:

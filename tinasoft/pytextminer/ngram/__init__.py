@@ -18,6 +18,10 @@ class NGram(PyTextMiner):
             edges = { 'Document' : {}, 'Corpus' : {} }
         PyTextMiner.__init__(self, content, id, label, edges, **metas)
 
+    def addEdge(self, type, key, value):
+        return self._addEdge( type, key, value )
+
+
 
 class Filter():
     """

@@ -5,6 +5,8 @@ import thread
 from threading import Thread
 from os.path import dirname
 
+import pickle
+
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
@@ -112,10 +114,10 @@ class Backend(Handler):
         self.__locks = 1000
         # when closing is True, no new transactions are allowed
         self.__closing = False
-        # Each thread is responsible for a single transaction (included nested
-        # ones) indexed by the thread id
+        # Each thread is responsible for a single transaction
+        # (included nested ones) indexed by the thread id
         self.__dbTxn = {}
-        # beware of the while self.__open in __sync_run() !
+        # self.__open before __sync_run() !
         self.__open = True
         if 'home' in opts:
             dir = opts['home']
@@ -132,11 +134,12 @@ class Backend(Handler):
         t.start()
         self.__sync_thread = t
         self.cursor = self._db.cursor
-        #except db.DBError, dbe:
-        #   raise Exception
 
     def __sync_run(self):
-        """modified from http://www.rdflib.net/"""
+        """
+        daemon thread responsible for periodically syncing to disk
+        modified from http://www.rdflib.net/
+        """
         from time import sleep, time
         try:
             min_seconds, max_seconds = 10, 300
@@ -314,11 +317,11 @@ class Backend(Handler):
             _logger.warning("No transaction to rollback")
 
 
-    def encode( self, obj ):
-        return self.serialize(obj)
+    def pickle( self, obj ):
+        return pickle.dumps(obj)
 
-    def decode( self, data ):
-        return self.deserialize(data)
+    def unpickle( self, data ):
+        return pickle.loads(data)
 
     def saferead( self, key, txn=None ):
         """gets a db entry or return None"""
@@ -347,28 +350,33 @@ class Backend(Handler):
             raise Exception
 
 
-    def safewrite( self, key, obj, overwrite=True, txn=None ):
+    def _overwrite( self, key, obj, txn=None ):
+        self._db.delete( key, txn=txn )
+        self._db.put(key, obj, txn=txn)
+        _logger.debug( "Overwriting an existing key = "+ key )
+
+
+    def safewrite( self, key, obj, overwrite=False, txn=None ):
         """
         wrapped in add()/transaction(), safely write an entry
         overwriting by default an existing key
         """
         if isinstance(key, str) is False:
             key = str(key)
+        obj = self.pickle(obj)
         try:
-            try:
-                self._db.put(key, self.encode(obj), txn=txn)
-            except db.DBKeyExistError, kee:
-                _logger.debug( "existing key = "+ key )
-                if overwrite is True:
-                    self._db.delete( key, txn=txn )
-                    self._db.put(key, self.encode(obj), txn=txn)
-                    _logger.debug( "Overwriting an existing key = "+ key )
-                    raise DBOverwrite()
-        except DBOverwrite, dbo: pass
-            #_logger.debug( "Overwriting an existing key = "+ key )
+            self._db.put(key, obj, txn=txn)
+        except db.DBKeyExistError, kee:
+            _logger.debug( "existing key = "+ key )
+            if overwrite is True:
+                self._overwrite( key, obj, txn )
+
 
     def safewritemany( self, iter, target, overwrite=True, txn=None ):
-        """writes a set of entries in the same transaction"""
+        """
+        writes a set of entries in the same transaction
+        wrapped in addmany()/transaction(), safely inserts many entries within the same txn
+        """
         for pair in iter:
             self.safewrite( self.prefix[target]+pair[0], pair[1], overwrite, txn )
 
@@ -379,9 +387,9 @@ class Backend(Handler):
         if isinstance(key, str) is False:
             key = str(key)
         try:
-            print "in delete"
+            #print "in delete"
             self._db.delete( key, txn=txn )
-            print "out of delete"
+            #print "out of delete"
         except db.DBNotFoundError, dbnf:
             _logger.debug( "delete failed, key not found = "+ key )
         except db.DBKeyEmptyError, dbke:
@@ -432,7 +440,7 @@ class Backend(Handler):
                 delobj = self.saferead(self.prefix[deltype]+id, txn=txn)
                 if delobj is not None:
                     # deletes an object
-                    delobj = self.decode(delobj)
+                    delobj = self.unpickle(delobj)
                 else:
                     _logger.error("remove failed, key was not found")
                     _logger.error(self.prefix[deltype]+id)
@@ -445,7 +453,7 @@ class Backend(Handler):
                     assocobj = self.saferead(self.prefix[type]+associd, txn=txn)
                     if assocobj is not None:
                         # removes edges
-                        assocobj = self.decode(assocobj)
+                        assocobj = self.unpickle(assocobj)
                         if deltype not in assocobj['edges']:
                             _logger.debug("association type missing ("+deltype+") into obj "+associd)
                             continue
@@ -476,7 +484,7 @@ class Engine(Backend):
         if read is not None:
             if raw is True:
                 return read
-            return self.decode(read)
+            return self.unpickle(read)
         else:
             return None
 
@@ -509,21 +517,18 @@ class Engine(Backend):
     def insertCorpus(self, obj, id=None, overwrite=True ):
         self.insert( obj, 'Corpus', id, overwrite )
 
-    #def insertmanyCorpus(self, iter, overwrite=True ):
-    #    for obj in iter:
-    #        self.insertCorpus( obj, overwrite )
+    def insertManyCorpus(self, iter, overwrite=True ):
+        self.insertMany( iter, 'Corpus', overwrite )
 
     def insertDocument(self, obj, id=None, overwrite=True ):
         """automatically removes text content before storing"""
-        content = obj['content']
-        obj['content'] = ""
+        #content = obj['content']
+        #obj['content'] = ""
         self.insert( obj, 'Document', id, overwrite  )
-        obj['content'] = content
+        #obj['content'] = content
 
-    #def insertmanyDocument(self, iter, overwrite=True ):
-    #    # id, datestamp, blob
-    #    for obj in iter:
-    #        self.insertDocument( obj, overwrite )
+    def insertManyDocument(self, iter, overwrite=True ):
+        self.insertMany( iter, 'Document', overwrite )
 
     def insertNGram(self, obj, id=None, overwrite=True ):
         self.insert( obj, 'NGram', id, overwrite )
@@ -607,12 +612,12 @@ class Engine(Backend):
                     if raw is True:
                         yield record
                     else:
-                        yield ( record[0], self.decode(record[1]))
+                        yield ( record[0], self.unpickle(record[1]))
             elif record[0] < maxkey:
                 if raw is True:
                         yield record
                 else:
-                    yield ( record[0], self.decode(record[1]))
+                    yield ( record[0], self.unpickle(record[1]))
             else:
                 return
             record = cursor.next()
@@ -620,3 +625,67 @@ class Engine(Backend):
     def deleteCorpus(self, id, delobj=None):
         """deletes a corpus and clean all the associations"""
         self.remove(id, 'Corpus', delobj)
+
+
+    def updateEdges(self, canditate, update, types):
+        """updates an existent object's edges with the candidate object's edges"""
+        for targets in types:
+            for targetsId, targetWeight in canditate['edges'][targets].iteritems():
+                update.addEdge( targets, targetsId, targetWeight )
+        #if 'py/object' in update:
+        #    del update['py/object']
+        return update
+
+    #def updateObject( self, obj, type, targets, overwrite ):
+        #pass
+        #if overwrite is True:
+        #    self.storage.insert( obj, type, overwrite=True )
+        #    return
+        #stored = self.storage.load( obj['id'], type )
+        #if stored is not None:
+        #    classname = stored['py/object']
+            # TODO HANDLE classname !!??!!
+        #    upObj = self.updateEdges( corporaObj, storedCorpora, targets)
+        #self.storage.insertCorpora( corporaObj, overwrite=True )
+
+    def updateCorpora( self, corporaObj, overwrite ):
+        """updates a corpora and associations"""
+        if overwrite is True:
+            self.insertCorpora( corporaObj, overwrite=True )
+            return
+        storedCorpora = self.loadCorpora( corporaObj['id'] )
+        if storedCorpora is not None:
+            _logger.debug(storedCorpora)
+            corporaObj = self.updateEdges( corporaObj, storedCorpora, ['Corpus'] )
+        self.insertCorpora( corporaObj, overwrite=True )
+
+    def updateCorpus( self, corpusObj, overwrite ):
+        """updates a corpus and associations"""
+        if overwrite is True:
+            self.insertCorpus( corpusObj, overwrite=True )
+            return
+        storedCorpus = self.loadCorpus( corpusObj['id'] )
+        if storedCorpus is not None:
+            _logger.debug(storedCorpus)
+            corpusObj = self.updateEdges( corpusObj, storedCorpus, ['Document','NGram'] )
+        self.insertCorpus( corpusObj, overwrite=True )
+
+    def updateDocument( self, documentObj, overwrite ):
+        """updates a document and associations"""
+        if overwrite is True:
+            self.insertDocument( documentObj, overwrite=True  )
+            return
+        storedDocument = self.loadDocument( documentObj['id'] )
+        if storedDocument is not None:
+            _logger.debug(storedDocument)
+            documentObj = self.updateEdges( documentObj, storedDocument, ['Corpus','NGram'] )
+        self.insertDocument( documentObj, overwrite=True )
+
+    def updateNGram( self, ngObj, overwrite ):
+        """updates a ngram and associations"""
+        if overwrite is True:
+            return ngObj
+        storedNGram = self.loadNGram( ngObj['id'] )
+        if storedNGram is not None:
+            ngObj = self.updateEdges( ngObj, storedNGram, ['Corpus','Document'] )
+        return ngObj
