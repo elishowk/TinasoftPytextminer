@@ -145,16 +145,17 @@ class TinaApp():
         # loads the source file
         dsn = format+"://"+path
         #self.logger.debug(dsn)
-        fileReader = Reader(dsn,
+        fileReader = Reader( dsn,
             delimiter = self.config['delimiter'],
             quotechar = self.config['quotechar'],
             locale = self.config['locale'],
             fields = self.config['fields']
         )
         # loads or creates corpora
-        corporaObj = self.storage.loadCorpora(corpora_id)
-        if corporaObj is None:
-            corporaObj = corpora.Corpora(corpora_id)
+        #corporaObj = self.storage.loadCorpora(corpora_id)
+        #if corporaObj is not None:
+
+        corporaObj = corpora.Corpora(corpora_id)
 
         # instanciate extractor class
         extractor = corpora.Extractor( fileReader, corporaObj, self.storage )

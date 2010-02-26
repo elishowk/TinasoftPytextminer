@@ -140,8 +140,6 @@ class Exporter(basecsv.Exporter):
                 totalcorpoccs= sum( ng['edges']['Corpus'].values() )
                 occs=int(occs)
                 occsn=occs**n
-                if len(ng['edges']['Document'].keys()) > 1:
-                    _logger.debug(row)
                 row= [ "", ng['label'], str(n), str(occs), str(occsn), \
                     str(docedges), str(totaldococcs), " ".join(ng['edges']['Document'].keys()), \
                     str(corpedges), str(totalcorpoccs), " ".join(ng['edges']['Corpus'].keys()),\

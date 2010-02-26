@@ -63,7 +63,7 @@ class Extractor():
                     if corpusNum not in self.corpora['edges']['Corpus']:
                         self.corpora.addEdge( 'Corpus', corpusNum, 1 )
                         self.corpora['content'] += [ corpusNum ]
-                        self.corpusDict[ corpusNum ].addEdge( 'Corpora', self.corpora['id'], 1)
+                        self.reader.corpusDict[ corpusNum ].addEdge( 'Corpora', self.corpora['id'], 1)
                     # document's ngrams extraction
                     self.extractNGrams( document, corpusNum,\
                         ngramMin, ngramMax, filters, stopwords, overwrite )

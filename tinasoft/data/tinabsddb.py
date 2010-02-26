@@ -704,9 +704,9 @@ class Engine(Backend):
 
     def updateNGram( self, ngObj, overwrite ):
         """updates or overwrite a ngram and associations"""
-        if overwrite is True:
-            return self._ngramQueue( ngObj['id'], ngObj, overwrite=overwrite )
+        #if overwrite is True:
+        #    return self._ngramQueue( ngObj['id'], ngObj, overwrite=overwrite )
         storedNGram = self.loadNGram( ngObj['id'] )
         if storedNGram is not None:
             ngObj = self.updateEdges( ngObj, storedNGram, ['Corpus','Document'] )
-        return self._ngramQueue( ngObj['id'], ngObj, overwrite=overwrite )
+        return self._ngramQueue( ngObj['id'], ngObj, overwrite )
