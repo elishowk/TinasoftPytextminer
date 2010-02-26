@@ -98,8 +98,8 @@ class Extractor():
             document.addEdge( 'NGram', ng['id'], docOccs )
             # increments corpus-ngram edge
             self.reader.corpusDict[ corpusNum ].addEdge('NGram', ngid, 1)
-            # prepares and queue insertion of ngram into storage
+            # prepares and queue insertion or update of the ngram into storage
             queueSize = self.storage.updateNGram( ng, overwrite )
-        # insert doc in storage
+        # update or create document into storage
         self.storage.updateDocument( document, overwrite )
 

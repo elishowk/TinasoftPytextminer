@@ -121,7 +121,8 @@ class TinaApp():
             overwrite=False,
             index=False,
             format= 'tina',
-            userfilters=[]):
+            userfilters=None,
+            whitelistpath=None):
         """tina file import method"""
         try:
             # import import config yaml
@@ -162,7 +163,7 @@ class TinaApp():
         # TODO mergepath will overwrite exportpath
         if exportpath is not None:
             self.logger.debug("ending importfile, starting exportNGrams")
-            return self.exportSession( extractor.corpora['edges']['Corpus'].keys(), corpora_id, exportpath, filters=self.userfilters )
+            return self.exportCorpora( extractor.corpora['edges']['Corpus'].keys(), corpora_id, exportpath, whitelistpath )
         else:
             return extractor.corpora['label']
 
@@ -170,7 +171,7 @@ class TinaApp():
     def processCooc(self, ngramfile, gexfpath, whitelist, corporaid, periods ):
         """Main function importing a whitelist and generating cooccurrences then exporting a graph"""
         # import ngram whitelist
-        whitelist = self.importNGram( ngramfile )
+        whitelist = self.importNGrams( ngramfile )
         # process cooccurrences
         self.filtertag = ngram.PosTagFilter()
         self.filterContent = ngram.Filter()
@@ -181,6 +182,16 @@ class TinaApp():
         self.commitAll()
         # export gexf file given a liqst of periods=corpus
         return self.exportGraph(gexfpath, periods, threshold, whitelist)
+
+    def exportCorpora(self, periods, corporaid, synthesispath, \
+        whitelist=None, **kwargs):
+        """Public acces to tinasoft.data.ngram.exportCorpora()"""
+        exporter = Writer('ngram://'+synthesispath, **kwargs)
+        if whitelist is not None:
+            whitelist = self.importNGrams(
+                whitelist, occsCol='occurrences',
+            )
+        return exporter.exportCorpora( self.storage, periods, corporaid, self.userfilters, whitelist )
 
     def importNGrams(self, filepath, **kwargs):
         """
@@ -214,8 +225,8 @@ class TinaApp():
         returns a text file path containing the db cooc
         for a list of periods ans an ngrams whitelist
         """
-        Cooc = Writer('ngram://'+path, **kwargs)
-        return Cooc.exportCooc( self.storage, periods, whitelist )
+        exporter = Writer('ngram://'+path, **kwargs)
+        return exporter.exportCooc( self.storage, periods, whitelist )
 
     def getCorpora(self, corporaid):
         return self.serialize(self.storage.loadCorpora(corporaid))
@@ -237,61 +248,6 @@ class TinaApp():
         except StopIteration, si:
             return self.storage.encode( default )
 
-    def exportCorpora(self, synthesispath, filters=None, **kwargs):
-        pass
-
-    # TODO refactor in tinasoft.data.basecsv and separate exportCorpora into another method.
-    def exportSession(self, periods, corporaid, synthesispath, filters=None, mergepath=None, **kwargs):
-        #try:
-        rows={}
-        self.logger.debug("starting to write to %s"%synthesispath)
-        csv = Writer('basecsv://'+synthesispath, **kwargs)
-        csv.writeRow(["status","label","length","corpus-ngram w","^length",\
-            "ng-doc edges","ng-doc w sum","doc list","ng-corpus edges",\
-            "ng-corp w sum","corp list","db ID","corpus ID","corpora ID"])
-        anomaliecount=0
-        totalcount=0
-        for corpusid in periods:
-            # gets a corpus from the generator
-            corpusobj = self.storage.loadCorpus(corpusid)
-            if corpusobj is None:
-                self.logger.error("unknown corpus %s"%str(corpusid))
-                continue
-            # goes over every ngram in the corpus
-            for ngid, occs in corpusobj['edges']['NGram'].iteritems():
-                totalcount += 1
-                ng = self.storage.loadNGram(ngid)
-                if ng is None:
-                    #self.logger.error("Corpus['edges']['NGram'] inconsistency,"\
-                    #    +" ngram not found = %s"%ngid)
-                    self.logger.error(ng)
-                    anomaliecount += 1
-                    continue
-                # prepares the row
-                n=len(ng['content'])
-                docedges = len( ng['edges']['Document'].keys() )
-                totaldococcs= sum( ng['edges']['Document'].values() )
-                corpedges = len( ng['edges']['Corpus'].keys() )
-                totalcorpoccs= sum( ng['edges']['Corpus'].values() )
-                occs=int(occs)
-                occsn=occs**n
-                row= [ "", ng['label'], str(n), str(occs), str(occsn), \
-                    str(docedges), str(totaldococcs), " ".join(ng['edges']['Document'].keys()), \
-                    str(corpedges), str(totalcorpoccs), " ".join(ng['edges']['Corpus'].keys()),\
-                    ng['id'], str(corpusobj['id']), str(corporaid) ]
-                # filtering activated
-                if filters is not None:
-                    if tokenizer.TreeBankWordTokenizer.filterNGrams(ng, filters) is True:
-                        # writes to synthesispath
-                        csv.writeRow( row )
-                # filtering is NOT activated
-                else:
-                    # writes to synthesispath
-                    csv.writeRow(row)
-            self.logger.debug( "corpusid ngrams edges count = " + str(len(corpusobj['edges']['NGram'].keys())) )
-        self.logger.debug( "Anomalies = " + str(anomaliecount) )
-        self.logger.debug( "Total ngrams exported = " + str(totalcount) )
-        return synthesispath
 
 class ThreadPool:
 

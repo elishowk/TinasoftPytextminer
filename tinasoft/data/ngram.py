@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from tinasoft.data import basecsv
+from tinasoft.pytextminer import tokenizer
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
@@ -14,10 +15,11 @@ class Importer (basecsv.Importer):
         'dbidCol':'db ID',
         'occsCol':'occs',
         'labelCol':'label',
-        'accept':'x',
+        'accept':'w',
         'refuse':'s',
         'whitelist':{},
         'stopwords':{},
+        'encoding'  : 'utf-8',
     }
 
     def _addToWhiteList(self, row, dbid, occs):
@@ -67,9 +69,17 @@ class Importer (basecsv.Importer):
 
 class Exporter(basecsv.Exporter):
     """A class for csv exports of database contents"""
-    def exportNGrams(self): pass
+    options = {
+        'statusCol':'status',
+        'dbidCol':'db ID',
+        'occsCol':'occurences',
+        'labelCol':'label',
+        'accept':'w',
+        'refuse':'s',
+        'encoding'  : 'utf-8',
+    }
 
-    def exportCorpora(self): pass
+    def exportNGrams(self): pass
 
     def exportCooc(self, db, periods, whitelist, **kwargs):
         for corpusid in periods:
@@ -83,7 +93,7 @@ class Exporter(basecsv.Exporter):
                         continue
                     if id not in nodes:
                         nodes[id] = {
-                        'edges' : {}
+                            'edges' : {}
                         }
                     for ngram, cooc in row.iteritems():
                         if ngram not in whitelist:
@@ -98,41 +108,52 @@ class Exporter(basecsv.Exporter):
                         self.writeRow([ ng1, ng2, str(cooc), corpusid ])
         return self.filepath
 
-    # obsolete
-    def exportCorpusNGram(self, corpus, filepath, **kwargs):
-        """export a file containing a corpus' NGrams"""
-        def printpostag(record):
-            """prepares the postag field printing"""
-            postag = ""
-            if record[1]['postag'] is not None:
-                for word in record[1]['postag']:
-                    postag += "_".join([word[1],word[0]]) + ","
-            return postag
+    def exportCorpora(self, storage, periods, corporaid, filters=None, whitelist=None):
+        """exports selected periods=corpus in a corpora, synthetize importFile()"""
+        rows={}
+        _logger.debug("starting to write to %s"%self.filepath)
 
-        gen = self.storage.select('NGram')
-        csv = Writer('basecsv://'+filepath, **kwargs)
-        try:
-            record = gen.next()
-            while record:
-                if corpus['id'] in record[1]['edges']['Corpus']:
-                    #postag = printpostag(record)
-                    #occs = corpus['edges']['Ngram'][record[1]['id']]
-                    csv.writeRow( [record[1]['id'], record[1]['label'] ])
-                record = gen.next()
-        except StopIteration, si: return
-
-    # obsolete
-    def getAllCorpus(self, raw=True):
-        """fix decode/encode non optimal process"""
-        corpuslst = []
-        gen = self.storage.select('Corpus')
-        try:
-            record = gen.next()
-            while record:
-                corpuslst += [record[1]]
-                record = gen.next()
-        except StopIteration, si:
-            if raw is True:
-                return corpuslst
-            else:
-                return self.storage.encode( corpuslst )
+        self.writeRow(["status","label","length","corpus-ngram w","^length",\
+            "ng-doc edges","ng-doc w sum","doc list","ng-corpus edges",\
+            "ng-corp w sum","corp list","db ID","corpus ID","corpora ID"])
+        totalcount=0
+        for corpusid in periods:
+            # gets a corpus from the generator
+            corpusobj = storage.loadCorpus(corpusid)
+            if corpusobj is None:
+                _logger.error("unknown corpus %s"%str(corpusid))
+                continue
+            # goes over every ngram in the corpus
+            for ngid, occs in corpusobj['edges']['NGram'].iteritems():
+                totalcount += 1
+                ng = storage.loadNGram(ngid)
+                if ng is None:
+                    #_logger.error("Corpus['edges']['NGram'] inconsistency,"\
+                    #    +" ngram not found = %s"%ngid)
+                    _logger.error(ng)
+                    continue
+                # prepares the row
+                n=len(ng['content'])
+                docedges = len( ng['edges']['Document'].keys() )
+                totaldococcs= sum( ng['edges']['Document'].values() )
+                corpedges = len( ng['edges']['Corpus'].keys() )
+                totalcorpoccs= sum( ng['edges']['Corpus'].values() )
+                occs=int(occs)
+                occsn=occs**n
+                if len(ng['edges']['Document'].keys()) > 1:
+                    _logger.debug(row)
+                row= [ "", ng['label'], str(n), str(occs), str(occsn), \
+                    str(docedges), str(totaldococcs), " ".join(ng['edges']['Document'].keys()), \
+                    str(corpedges), str(totalcorpoccs), " ".join(ng['edges']['Corpus'].keys()),\
+                    ng['id'], str(corpusobj['id']), str(corporaid) ]
+                # filtering activated
+                if filters is not None and tokenizer.TreeBankWordTokenizer.filterNGrams(ng, filters) is True:
+                    # status='s'
+                    row[0] = self.refuse
+                if whitelist is not None and ng['id'] not in whitelist:
+                    row[0] = self.accept
+                # writes the row to the file
+                self.writeRow(row)
+            _logger.debug( "corpusid ngrams edges count = " + str(len(corpusobj['edges']['NGram'].keys())) )
+        _logger.debug( "Total ngrams exported = " + str(totalcount) )
+        return self.filepath

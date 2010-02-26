@@ -26,10 +26,11 @@ class CoocTestCase(unittest.TestCase):
             'import.yaml',
             'unit test corpora',
             'tests/tinaapptests-export.csv',
-            overwrite=True,
+            overwrite=False,
             index=False,
             format='tina',
-            userfilters=[userstopwordfilter])
+            userfilters=[userstopwordfilter],
+            whitelistpath= '/home/elishowk/TINA/Datas/100221-fetopen-filteredngrams.csv')
 
 
     def testProcessCooc(self): pass

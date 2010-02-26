@@ -21,8 +21,6 @@ class NGram(PyTextMiner):
     def addEdge(self, type, key, value):
         return self._addEdge( type, key, value )
 
-
-
 class Filter():
     """
     Rule-based NGram content filtering
