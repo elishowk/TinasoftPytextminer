@@ -67,7 +67,7 @@ class RegexpTokenizer():
         return filtered
 
     @staticmethod
-    def filterNGrams(ngram, filters):
+    def filterNGrams(ngram, filters=None):
         passFilter = True
         if filters is not None:
             for filt in filters:
@@ -96,7 +96,7 @@ class RegexpTokenizer():
                             ngrams[ ng['id'] ]['occs'] += 1
                         else:
                             if stopwords is None or stopwords.contains( ng ) is False:
-                                if RegexpTokenizer.filterNGrams(ng, filters) is True:
+                                if RegexpTokenizer.filterNGrams( ng, filters ) is True:
                                     ngrams[ ng['id'] ] = ng
         return ngrams
 

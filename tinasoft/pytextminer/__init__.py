@@ -17,7 +17,6 @@ class PyTextMiner():
     """
 
     def __init__(self, content, id=None, label=None, edges=None, **metas):
-        #dict.__init__(self)
         self.content = content
         if id is None:
             self.id = self.getId( content )
@@ -61,8 +60,8 @@ class PyTextMiner():
             self['edges'][type][key] = value
         return True
 
-    def normalize(self, lst):
-        return [tok.lower() for tok in lst]
+    def normalize(self, tokenlst):
+        return [token.lower() for token in tokenlst]
 
     def __getitem__(self, key):
         return getattr( self, key, None )

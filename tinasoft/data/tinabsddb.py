@@ -134,6 +134,7 @@ class Backend(Handler):
         t.start()
         self.__sync_thread = t
         self.cursor = self._db.cursor
+        self.MAX_INSERT_QUEUE = 500
 
     def __sync_run(self):
         """
@@ -168,17 +169,7 @@ class Backend(Handler):
         if self.__open:
             self._db.sync()
 
-    def close(self, commit_pending_transaction=True):
-        """
-        Properly handles transactions explicitely (with parameter) or by default
-        modified from http://www.rdflib.net/*
-        """
-        # when closing, no new transactions are allowed
-        # problem is that a thread can already have passed the test and is
-        # half-way through begin_txn when close is called...
-        self.__closing = True
-        if not self.is_open():
-            return
+    def closeAllTxn(self, commit_pending_transaction=True, commit_root=False):
         # this should close all existing transactions, not only by this thread,
         # uses the number of active transactions to sync on.
         if self.__dbTxn:
@@ -191,9 +182,21 @@ class Backend(Handler):
                     if not commit_pending_transaction:
                         self.rollback(rollback_root=True)
                     else:
-                        self.commit(commit_root=True)
-
+                        self.commit(commit_root=commit_root)
                 sleep(0.1)
+
+    def close(self, commit_pending_transaction=True):
+        """
+        Properly handles transactions explicitely (with parameter) or by default
+        modified from http://www.rdflib.net/*
+        """
+        # when closing, no new transactions are allowed
+        # problem is that a thread can already have passed the test and is
+        # half-way through begin_txn when close is called...
+        self.__closing = True
+        if not self.is_open():
+            return
+        self.closeAllTxn(commit_pending_transaction=True, commit_root=True)
 
         # there may still be open transactions
         self.__open = False
@@ -356,7 +359,7 @@ class Backend(Handler):
         _logger.debug( "Overwriting an existing key = "+ key )
 
 
-    def safewrite( self, key, obj, overwrite=False, txn=None ):
+    def safewrite( self, key, obj, overwrite, txn=None ):
         """
         wrapped in add()/transaction(), safely write an entry
         overwriting by default an existing key
@@ -372,7 +375,7 @@ class Backend(Handler):
                 self._overwrite( key, obj, txn )
 
 
-    def safewritemany( self, iter, target, overwrite=True, txn=None ):
+    def safewritemany( self, iter, target, overwrite, txn=None ):
         """
         writes a set of entries in the same transaction
         wrapped in addmany()/transaction(), safely inserts many entries within the same txn
@@ -398,7 +401,7 @@ class Backend(Handler):
             _logger.debug( dbe )
             raise Exception()
 
-    def add(self, key, obj, overwrite=True):
+    def add(self, key, obj, overwrite):
         """
         modified from http://www.rdflib.net/
         public method used in Engine
@@ -413,7 +416,7 @@ class Backend(Handler):
             _logger.error( e )
             raise e
 
-    def addmany(self, iter, target, overwrite=True):
+    def addmany(self, iter, target, overwrite):
         """
         modified from http://www.rdflib.net/
         public method used in Engine
@@ -479,6 +482,8 @@ class Engine(Backend):
     """
     bsddb Engine
     """
+    ngramqueue = []
+
     def load(self, id, target, raw=False):
         read = self.saferead( self.prefix[target]+id )
         if read is not None:
@@ -503,44 +508,44 @@ class Engine(Backend):
     def loadCooc(self, id, raw=False ):
         return self.load(id, 'Cooc', raw)
 
-    def insertMany(self, iter, target, overwrite=True):
+    def insertMany(self, iter, target, overwrite=False):
         self.addmany(iter, target, overwrite)
 
-    def insert( self, obj, target, id=None, overwrite=True ):
+    def insert( self, obj, target, id=None, overwrite=False ):
         if id is None:
             id = obj['id']
         self.add( self.prefix[target]+id, obj, overwrite )
 
-    def insertCorpora(self, obj, id=None, overwrite=True ):
+    def insertCorpora(self, obj, id=None, overwrite=False ):
         self.insert( obj, 'Corpora', id, overwrite )
 
-    def insertCorpus(self, obj, id=None, overwrite=True ):
+    def insertCorpus(self, obj, id=None, overwrite=False ):
         self.insert( obj, 'Corpus', id, overwrite )
 
-    def insertManyCorpus(self, iter, overwrite=True ):
+    def insertManyCorpus(self, iter, overwrite=False ):
         self.insertMany( iter, 'Corpus', overwrite )
 
-    def insertDocument(self, obj, id=None, overwrite=True ):
+    def insertDocument(self, obj, id=None, overwrite=False ):
         """automatically removes text content before storing"""
         #content = obj['content']
         #obj['content'] = ""
         self.insert( obj, 'Document', id, overwrite  )
         #obj['content'] = content
 
-    def insertManyDocument(self, iter, overwrite=True ):
+    def insertManyDocument(self, iter, overwrite=False ):
         self.insertMany( iter, 'Document', overwrite )
 
-    def insertNGram(self, obj, id=None, overwrite=True ):
+    def insertNGram(self, obj, id=None, overwrite=False ):
         self.insert( obj, 'NGram', id, overwrite )
 
-    def insertManyNGram(self, iter, overwrite=True ):
+    def insertManyNGram(self, iter, overwrite=False ):
         self.insertMany( iter, 'NGram', overwrite )
 
-    def insertCooc(self, obj, id, overwrite=True ):
+    def insertCooc(self, obj, id, overwrite=False ):
         self.insert( obj, 'Cooc', id, overwrite )
 
     def insertAssoc(self, loadsource, sourcename, sourceid, insertsource,\
-            loadtarget, targetname, targetid, inserttarget, occs, overwrite=True  ):
+            loadtarget, targetname, targetid, inserttarget, occs, overwrite=False  ):
         """adds a unique edge from source to target et and increments occs=weight"""
         try:
             sourceobj = loadsource( sourceid )
@@ -631,9 +636,10 @@ class Engine(Backend):
         """updates an existent object's edges with the candidate object's edges"""
         for targets in types:
             for targetsId, targetWeight in canditate['edges'][targets].iteritems():
-                update.addEdge( targets, targetsId, targetWeight )
-        #if 'py/object' in update:
-        #    del update['py/object']
+                res = update.addEdge( targets, targetsId, targetWeight )
+                if res is False:
+                    _logger.debug( "%s addEdge refused, target type = %s, %s" \
+                        %(update.__class__.__name__,targets, targetsId) )
         return update
 
     #def updateObject( self, obj, type, targets, overwrite ):
@@ -655,7 +661,7 @@ class Engine(Backend):
             return
         storedCorpora = self.loadCorpora( corporaObj['id'] )
         if storedCorpora is not None:
-            _logger.debug(storedCorpora)
+            #_logger.debug(storedCorpora)
             corporaObj = self.updateEdges( corporaObj, storedCorpora, ['Corpus'] )
         self.insertCorpora( corporaObj, overwrite=True )
 
@@ -666,7 +672,7 @@ class Engine(Backend):
             return
         storedCorpus = self.loadCorpus( corpusObj['id'] )
         if storedCorpus is not None:
-            _logger.debug(storedCorpus)
+            #_logger.debug(storedCorpus)
             corpusObj = self.updateEdges( corpusObj, storedCorpus, ['Document','NGram'] )
         self.insertCorpus( corpusObj, overwrite=True )
 
@@ -677,15 +683,30 @@ class Engine(Backend):
             return
         storedDocument = self.loadDocument( documentObj['id'] )
         if storedDocument is not None:
-            _logger.debug(storedDocument)
+            #_logger.debug(storedDocument)
             documentObj = self.updateEdges( documentObj, storedDocument, ['Corpus','NGram'] )
         self.insertDocument( documentObj, overwrite=True )
+
+    def _ngramQueue( self, id, ng, overwrite=True ):
+        """
+        Transaction queue grouping by self.MAX_INSERT_QUEUE
+        overwrite should be True
+        """
+        #updated_ng = self.storage.updateNGram( obj, overwrite=False )
+        self.ngramqueue += [[id, ng]]
+        queue = len( self.ngramqueue )
+        if queue > self.MAX_INSERT_QUEUE:
+            self.insertManyNGram( self.ngramqueue, overwrite=True )
+            self.ngramqueue = []
+            return 0
+        else:
+            return queue
 
     def updateNGram( self, ngObj, overwrite ):
         """updates a ngram and associations"""
         if overwrite is True:
-            return ngObj
+            return self._ngramQueue( ngObj['id'], ngObj, overwrite=overwrite )
         storedNGram = self.loadNGram( ngObj['id'] )
         if storedNGram is not None:
             ngObj = self.updateEdges( ngObj, storedNGram, ['Corpus','Document'] )
-        return ngObj
+        return self._ngramQueue( ngObj['id'], ngObj, overwrite=overwrite )

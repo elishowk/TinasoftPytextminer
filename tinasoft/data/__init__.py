@@ -20,9 +20,9 @@ class Handler (object):
             Reader()
     """
 
-    options = { 'compression' : None,
-                'encoding'  : 'utf-8',
-                'locale'    : 'en_US.UTF-8'}
+    options = {
+        'encoding'  : 'utf-8',
+    }
 
     def loadOptions(self, options):
         self.options.update(options)

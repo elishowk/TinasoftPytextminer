@@ -13,16 +13,16 @@ class Corpus(PyTextMiner):
             **metas):
         # dict of documents {'id' : occurences, ... } in the coprus
         if edges is None:
-            edges={}
+            edges={ 'Document' : {}, 'NGram' : {} }
         if 'Document' not in edges:
             edges['Document'] = {}
         self.period_start = period_start
         self.period_end = period_end
-        # content.keys() list can be used as a replacement of id
-        PyTextMiner.__init__(self, edges['Document'].keys(), id, id, edges=edges, **metas)
+        # edges['Document'].keys() list could be used as an ID generator
+        PyTextMiner.__init__(self, edges['Document'].keys(), id, id, edges, **metas)
 
     def addEdge(self, type, key, value):
-        #_logger.debug(key)
+        # Corpus can link only one time to Document
         if type == 'Document':
             return self._addUniqueEdge( type, key, value )
         else:

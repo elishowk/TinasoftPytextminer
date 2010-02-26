@@ -26,7 +26,6 @@ import yaml
 # logger
 import logging
 import logging.handlers
-_logger = logging.getLogger('TinaAppLogger')
 
 # json
 import jsonpickle
@@ -46,20 +45,33 @@ class TinaApp():
         loc=None,
         stopw=None,
         index=None):
-        # Set up a specific logger with our desired output level
-        self.logger = _logger
-        self.logger.setLevel(logging.DEBUG)
 
         # import config yaml
         try:
             self.config = yaml.safe_load( file( configFile, 'rU' ) )
         except yaml.YAMLError, exc:
             return
-        LOG_FILENAME = self.config['log']
+
+        # Set up a specific logger with our desired output level
+        self.LOG_FILENAME = self.config['log']
+        # logger config
+        logging.basicConfig(filename=self.LOG_FILENAME,
+            level=logging.DEBUG,
+            datefmt='%Y-%m-%d %H:%M:%S',
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
         # Add the log message handler to the logger
-        handler = logging.handlers.RotatingFileHandler(\
-            LOG_FILENAME, maxBytes=100000000, backupCount=5)
-        self.logger.addHandler(handler)
+        rotatingFileHandler = logging.handlers.RotatingFileHandler(
+            filename=self.LOG_FILENAME,
+            maxBytes=100000000, backupCount=5
+        )
+        # formatting
+        formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+        rotatingFileHandler.setFormatter(formatter)
+        self.logger = logging.getLogger('TinaAppLogger')
+        # set default level to DEBUG
+        self.logger.setLevel(logging.DEBUG)
+
+        #self.logger.addHandler(handler)
         # tries support of the locale by the host system
         try:
             if loc is None:
@@ -137,14 +149,15 @@ class TinaApp():
         if corporaObj is None:
             corporaObj = corpora.Corpora(corpora_id)
         extractor = corpora.Extractor( fileReader, corporaObj, self.storage )
-        extractor.walkFile( index, self.filters, self.config['ngramMin'], self.config['ngramMax'], self.stopwords, overwrite)
-        self.logger.debug("ending importfile, starting exportNGrams")
+        extractor.walkFile( index, None, self.config['ngramMin'], self.config['ngramMax'], self.stopwords, overwrite)
+        self.storage.closeAllTxn(commit_pending_transaction=True, commit_root=False)
         # TODO mergepath will overwrite exportpath
         if exportpath is not None:
-            self.exportNGrams( ['1'], corpora_id, exportpath )
+            self.logger.debug("ending importfile, starting exportNGrams")
+            return self.exportNGrams( ['1'], corpora_id, exportpath )
             #self.exportNGrams( extractor.corpora['edges']['Corpus'].keys(), corpora_id, exportpath )
         else:
-            return extractor.corpora['edges']['Corpus'].keys()
+            return extractor.corpora['label']
 
     # TODO !!
     def processCooc(self, ngramfile, gexfpath, whitelist, corporaid, periods ):
@@ -158,6 +171,7 @@ class TinaApp():
             cooc = cooccurrences.MapReduce(self.storage, corpus=id, filter=[self.filtertag, self.filterContent], whitelist=whitelist)
             cooc.walkCorpus()
             cooc.writeMatrix()
+        self.storage.closeAllTxn()
         # export gexf file given a liqst of periods=corpus
         return self.exportGraph(gexfpath, periods, threshold, whitelist)
 
@@ -241,8 +255,9 @@ class TinaApp():
                 totalcount += 1
                 ng = self.storage.loadNGram(ngid)
                 if ng is None:
-                    self.logger.error("Corpus['edges']['NGram'] inconsistency,"\
-                        +" ngram not found = %s"%ngid)
+                    #self.logger.error("Corpus['edges']['NGram'] inconsistency,"\
+                    #    +" ngram not found = %s"%ngid)
+                    self.logger.error(ng)
                     anomaliecount += 1
                     continue
                 # prepares the row
@@ -269,13 +284,6 @@ class TinaApp():
             self.logger.debug( "corpusid ngrams edges count = " + str(len(corpusobj['edges']['NGram'].keys())) )
         self.logger.debug( "Anomalies = " + str(anomaliecount) )
         self.logger.debug( "Total ngrams exported = " + str(totalcount) )
-        #except StopIteration, stop:
-        if mergepath is not None:
-            # writes mergepath
-            columns = ["status","label","length","occurrences","normalized occs","db ID","corpus ID","corpora ID"]
-            self.logger.debug("writing to %s"%mergepath)
-            mergecsv = Writer('basecsv://'+mergepath, **kwargs)
-            mergecsv.writeFile(columns, rows.values())
         return synthesispath
 
 class ThreadPool:

@@ -26,7 +26,7 @@ class CoocTestCase(unittest.TestCase):
             'import.yaml',
             'unit test corpora',
             'tests/tinaapptests-export.csv',
-            overwrite=False,
+            overwrite=True,
             index=False,
             format='tina',
             filters=[userstopwordfilter])

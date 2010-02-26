@@ -9,14 +9,14 @@ _logger = logging.getLogger('TinaAppLogger')
 
 class NGram(PyTextMiner):
     """NGram class"""
-    def __init__(self, content, id=None, label=None, edges=None, **metas):
+    def __init__(self, tokenlist, id=None, label=None, edges=None, **metas):
         # normalize
-        content = self.normalize(content)
+        tokenlist = self.normalize(tokenlist)
         if label is None:
-            label = " ".join(content)
+            label = " ".join(tokenlist)
         if edges is None:
             edges = { 'Document' : {}, 'Corpus' : {} }
-        PyTextMiner.__init__(self, content, id, label, edges, **metas)
+        PyTextMiner.__init__(self, tokenlist, id, label, edges, **metas)
 
     def addEdge(self, type, key, value):
         return self._addEdge( type, key, value )
@@ -30,14 +30,14 @@ class Filter():
     """
     # TODO move rules into app config, and add language support
     rules={
-        'any':[],
+        'any':[''],
         'begin':[],
         'end':[],
         'both':['by','in','of','a','have','is','are','or','and'],
     }
     def __init__(self, config=None):
-        """default rules based on english penn-treebank tagset"""
-        self.lang='en'
+        """default rules based on english stopwords"""
+        #self.lang='en'
         if config is not None:
             if rules in config:
                 self.rules = config['rules']
@@ -138,8 +138,9 @@ class PosTagFilter(Filter):
     rules = {
         'any':['PUN','SENT'],
         'begin':['POS'],
-        'end':['VB','VDB','VBP','VBZ'],
-        'both':['DT','CC','TO','IN','WDT','WP','WRB','PRP','EX','MD','UH'],
+        'end':[],
+        'both':['VB','VDB','VBP','VBZ','DT','CC','TO','IN','WDT','WP',\
+            'WRB','PRP','EX','MD','UH'],
     }
 
     def get_content(self, ng):

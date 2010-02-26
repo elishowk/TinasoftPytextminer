@@ -24,45 +24,43 @@ class Importer (basecsv.Importer):
         keywordsField: 'doc_keywords',
     })
     """
-    #docDict = {}
     corpusDict = {}
 
-    def parseFile( self, corpora ):
+    def parseFile( self ):
         """
         parses a row to extract corpus meta-data
         updates corpus and corpora edges
         """
-        self.corpora = corpora
+        #self.corpora = corpora
+        self.line = 0
         for doc in self.csv:
+            self.line += 1
             tmpfields=dict(self.fields)
             # decoding & parsing TRY
             try:
                 corpusNumber = self.decode( doc[self.fields['corpusNumberField']] )
                 del tmpfields['corpusNumberField']
             except Exception, exc:
-                _logger.error( "file parsing error : corpus number is required" )
+                _logger.error( "parsing error : corpus number is required at line %d"%line )
                 _logger.error( exc )
                 continue
             # TODO check if corpus already exists
             newdoc = self.parseDocument( doc, tmpfields, corpusNumber )
             if newdoc is None:
-                _logger.debug( "skipping a document" )
+                _logger.warning( "skipping a document" )
                 continue
             # if corpus NOT already exists
             if corpusNumber not in self.corpusDict:
                 # creates a new corpus and adds it to the global dict
-                newcorpus = corpus.Corpus( corpusNumber )
-                # adds the corpus to internal attributes
-                self.corpusDict[ corpusNumber ] = newcorpus
+                self.corpusDict[ corpusNumber ] = corpus.Corpus( corpusNumber )
             # updates corpus-corpora edges : must occur only once
-            if corpusNumber not in self.corpora['edges']['Corpus']:
-                self.corpora.addEdge( 'Corpus', corpusNumber, 1 )
-                self.corpora['content'] += [ corpusNumber ]
-                self.corpusDict[ corpusNumber ].addEdge( 'Corpora', self.corpora['id'], 1)
+            #if corpusNumber not in self.corpora['edges']['Corpus']:
+            #    self.corpora.addEdge( 'Corpus', corpusNumber, 1 )
+            #    self.corpora['content'] += [ corpusNumber ]
+            #    self.corpusDict[ corpusNumber ].addEdge( 'Corpora', self.corpora['id'], 1)
             # updates the corpus-document edges
-            self.corpusDict[ corpusNumber ]['content'] += [ newdoc['id'] ]
-            self.corpusDict[ corpusNumber ].addEdge( 'Document', newdoc['id'], 1)
-
+            #self.corpusDict[ corpusNumber ]['content'] += [ newdoc['id'] ]
+            #self.corpusDict[ corpusNumber ].addEdge( 'Document', newdoc['id'], 1)
             # sends the document and the corpus id
             yield newdoc, corpusNumber
 
@@ -82,16 +80,15 @@ class Importer (basecsv.Importer):
             del tmpfields['contentField']
             del tmpfields['titleField']
         except Exception, exc:
-            _logger.debug("error parsing doc "+str(docNum)+" from corpus "+str(corpusNum))
-            _logger.debug(exc)
+            _logger.warning("parsing error "+str(docNum)+" at line "+str(self.line))
+            _logger.warning(exc)
             return None
         # parsing optional fields loop and TRY
         for field in tmpfields.itervalues():
             try:
                 docArgs[ field ] = self.decode( doc[ field ] )
             except Exception, exc:
-                _logger.debug("unable to parse opt field "+field+" in document " + str(docNum))
-                _logger.debug(exc)
+                _logger.warning("field %s was not found at line %s"%(field,str(self.line)))
         if 'dateField' in docArgs:
             datestamp = docArgs[ 'dateField' ]
         else:
