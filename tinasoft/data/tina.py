@@ -31,7 +31,6 @@ class Importer (basecsv.Importer):
         parses a row to extract corpus meta-data
         updates corpus and corpora edges
         """
-        #self.corpora = corpora
         self.line = 0
         for doc in self.csv:
             self.line += 1
@@ -49,18 +48,10 @@ class Importer (basecsv.Importer):
             if newdoc is None:
                 _logger.warning( "skipping a document" )
                 continue
-            # if corpus NOT already exists
+            # if corpus DOES NOT already exist
             if corpusNumber not in self.corpusDict:
                 # creates a new corpus and adds it to the global dict
                 self.corpusDict[ corpusNumber ] = corpus.Corpus( corpusNumber )
-            # updates corpus-corpora edges : must occur only once
-            #if corpusNumber not in self.corpora['edges']['Corpus']:
-            #    self.corpora.addEdge( 'Corpus', corpusNumber, 1 )
-            #    self.corpora['content'] += [ corpusNumber ]
-            #    self.corpusDict[ corpusNumber ].addEdge( 'Corpora', self.corpora['id'], 1)
-            # updates the corpus-document edges
-            #self.corpusDict[ corpusNumber ]['content'] += [ newdoc['id'] ]
-            #self.corpusDict[ corpusNumber ].addEdge( 'Document', newdoc['id'], 1)
             # sends the document and the corpus id
             yield newdoc, corpusNumber
 

@@ -29,7 +29,7 @@ class CoocTestCase(unittest.TestCase):
             overwrite=True,
             index=False,
             format='tina',
-            filters=[userstopwordfilter])
+            userfilters=[userstopwordfilter])
 
 
     def testProcessCooc(self): pass

@@ -655,7 +655,7 @@ class Engine(Backend):
         #self.storage.insertCorpora( corporaObj, overwrite=True )
 
     def updateCorpora( self, corporaObj, overwrite ):
-        """updates a corpora and associations"""
+        """updates or overwrite a corpora and associations"""
         if overwrite is True:
             self.insertCorpora( corporaObj, overwrite=True )
             return
@@ -666,7 +666,7 @@ class Engine(Backend):
         self.insertCorpora( corporaObj, overwrite=True )
 
     def updateCorpus( self, corpusObj, overwrite ):
-        """updates a corpus and associations"""
+        """updates or overwrite a corpus and associations"""
         if overwrite is True:
             self.insertCorpus( corpusObj, overwrite=True )
             return
@@ -677,7 +677,7 @@ class Engine(Backend):
         self.insertCorpus( corpusObj, overwrite=True )
 
     def updateDocument( self, documentObj, overwrite ):
-        """updates a document and associations"""
+        """updates or overwrite a document and associations"""
         if overwrite is True:
             self.insertDocument( documentObj, overwrite=True  )
             return
@@ -687,7 +687,7 @@ class Engine(Backend):
             documentObj = self.updateEdges( documentObj, storedDocument, ['Corpus','NGram'] )
         self.insertDocument( documentObj, overwrite=True )
 
-    def _ngramQueue( self, id, ng, overwrite=True ):
+    def _ngramQueue( self, id, ng, overwrite ):
         """
         Transaction queue grouping by self.MAX_INSERT_QUEUE
         overwrite should be True
@@ -703,7 +703,7 @@ class Engine(Backend):
             return queue
 
     def updateNGram( self, ngObj, overwrite ):
-        """updates a ngram and associations"""
+        """updates or overwrite a ngram and associations"""
         if overwrite is True:
             return self._ngramQueue( ngObj['id'], ngObj, overwrite=overwrite )
         storedNGram = self.loadNGram( ngObj['id'] )

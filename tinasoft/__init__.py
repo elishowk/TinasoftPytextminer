@@ -108,6 +108,11 @@ class TinaApp():
     def deserialize(self, str):
         return jsonpickle.decode(str)
 
+    def commitAll(self):
+        # wait for transactions to finish
+        self.storage.closeAllTxn(commit_pending_transaction=True, commit_root=False)
+        self.storage.closeAllTxn(commit_pending_transaction=True, commit_root=True)
+
     def importFile(self,
             path,
             configFile,
@@ -116,7 +121,7 @@ class TinaApp():
             overwrite=False,
             index=False,
             format= 'tina',
-            filters=[]):
+            userfilters=[]):
         """tina file import method"""
         try:
             # import import config yaml
@@ -126,11 +131,11 @@ class TinaApp():
             return
         # load Stopwords object
         self.stopwords = stopwords.StopWords( "file://%s" % self.config['stopwords'] )
-        self.filters=filters
+        self.userfilters = userfilters
         # load default filters (TODO put it into import.yaml !!)
         filtertag = ngram.PosTagFilter()
         filterContent = ngram.Filter()
-        self.filters += [filtertag,filterContent]
+        defaultextractionfilters = [filtertag,filterContent]
         # sends indexer to the file parser
         if index is True:
             index=self.index
@@ -145,17 +150,19 @@ class TinaApp():
             locale = self.config['locale'],
             fields = self.config['fields']
         )
+        # loads or creates corpora
         corporaObj = self.storage.loadCorpora(corpora_id)
         if corporaObj is None:
             corporaObj = corpora.Corpora(corpora_id)
+
+        # instanciate extractor class
         extractor = corpora.Extractor( fileReader, corporaObj, self.storage )
-        extractor.walkFile( index, None, self.config['ngramMin'], self.config['ngramMax'], self.stopwords, overwrite)
-        self.storage.closeAllTxn(commit_pending_transaction=True, commit_root=False)
+        extractor.walkFile( index, defaultextractionfilters, self.config['ngramMin'], self.config['ngramMax'], self.stopwords, overwrite)
+        self.commitAll()
         # TODO mergepath will overwrite exportpath
         if exportpath is not None:
             self.logger.debug("ending importfile, starting exportNGrams")
-            return self.exportNGrams( ['1'], corpora_id, exportpath )
-            #self.exportNGrams( extractor.corpora['edges']['Corpus'].keys(), corpora_id, exportpath )
+            return self.exportSession( extractor.corpora['edges']['Corpus'].keys(), corpora_id, exportpath, filters=self.userfilters )
         else:
             return extractor.corpora['label']
 
@@ -171,7 +178,7 @@ class TinaApp():
             cooc = cooccurrences.MapReduce(self.storage, corpus=id, filter=[self.filtertag, self.filterContent], whitelist=whitelist)
             cooc.walkCorpus()
             cooc.writeMatrix()
-        self.storage.closeAllTxn()
+        self.commitAll()
         # export gexf file given a liqst of periods=corpus
         return self.exportGraph(gexfpath, periods, threshold, whitelist)
 
@@ -234,7 +241,7 @@ class TinaApp():
         pass
 
     # TODO refactor in tinasoft.data.basecsv and separate exportCorpora into another method.
-    def exportNGrams(self, periods, corporaid, synthesispath, filters=None, mergepath=None, **kwargs):
+    def exportSession(self, periods, corporaid, synthesispath, filters=None, mergepath=None, **kwargs):
         #try:
         rows={}
         self.logger.debug("starting to write to %s"%synthesispath)
@@ -248,7 +255,7 @@ class TinaApp():
             # gets a corpus from the generator
             corpusobj = self.storage.loadCorpus(corpusid)
             if corpusobj is None:
-                self.logger.debug("unknown corpus %s"%str(corpusid))
+                self.logger.error("unknown corpus %s"%str(corpusid))
                 continue
             # goes over every ngram in the corpus
             for ngid, occs in corpusobj['edges']['NGram'].iteritems():
