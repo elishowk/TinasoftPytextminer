@@ -148,7 +148,7 @@ class Exporter(basecsv.Exporter):
                 if filters is not None and tokenizer.TreeBankWordTokenizer.filterNGrams(ng, filters) is True:
                     # status='s'
                     row[0] = self.refuse
-                if whitelist is not None and ng['id'] not in whitelist:
+                if whitelist is not None and ng['id'] in whitelist:
                     row[0] = self.accept
                 # writes the row to the file
                 self.writeRow(row)

@@ -79,8 +79,8 @@ class Extractor():
                 self.storage.updateCorpus( corpusObj, overwrite )
             return
 
-    def extractNGrams(self, document, corpusNum, ngramMin,\
-        ngramMax, filters, stopwords, overwrite):
+    def extractNGrams( self, document, corpusNum, ngramMin,\
+        ngramMax, filters, stopwords, overwrite ):
         """"Main NLP operations for a document"""
         _logger.debug(tokenizer.TreeBankWordTokenizer.__name__+\
             " is working on document "+ document['id'])

@@ -356,7 +356,7 @@ class Backend(Handler):
     def _overwrite( self, key, obj, txn=None ):
         self._db.delete( key, txn=txn )
         self._db.put(key, obj, txn=txn)
-        _logger.debug( "Overwriting an existing key = "+ key )
+        #_logger.debug( "Overwriting an existing key = "+ key )
 
 
     def safewrite( self, key, obj, overwrite, txn=None ):
@@ -368,12 +368,12 @@ class Backend(Handler):
             key = str(key)
         obj = self.pickle(obj)
         try:
-            self._db.put(key, obj, txn=txn)
-        except db.DBKeyExistError, kee:
-            _logger.debug( "existing key = "+ key )
             if overwrite is True:
                 self._overwrite( key, obj, txn )
-
+                return
+            self._db.put(key, obj, txn=txn)
+        except db.DBKeyExistError, kee:
+            _logger.warning( "could not overwrite an existing key = "+ key )
 
     def safewritemany( self, iter, target, overwrite, txn=None ):
         """
@@ -394,11 +394,11 @@ class Backend(Handler):
             self._db.delete( key, txn=txn )
             #print "out of delete"
         except db.DBNotFoundError, dbnf:
-            _logger.debug( "delete failed, key not found = "+ key )
+            _logger.warning( "delete failed, key not found = "+ key )
         except db.DBKeyEmptyError, dbke:
-            _logger.debug( "delete failed, key is empty = "+ key )
+            _logger.warning( "delete failed, key is empty = "+ key )
         except db.DBError, dbe:
-            _logger.debug( dbe )
+            _logger.warning( dbe )
             raise Exception()
 
     def add(self, key, obj, overwrite):
@@ -433,7 +433,7 @@ class Backend(Handler):
 
     def remove(self, id, deltype, delobj=None):
         """
-        deletes a corpus and clean all the associations
+        deletes an object and clean all the associations
         modified from http://www.rdflib.net/
         public method used in Engine
         """
@@ -445,8 +445,8 @@ class Backend(Handler):
                     # deletes an object
                     delobj = self.unpickle(delobj)
                 else:
-                    _logger.error("remove failed, key was not found")
-                    _logger.error(self.prefix[deltype]+id)
+                    _logger.warning("remove key was NOT found")
+                    _logger.warning(self.prefix[deltype]+id)
                     return
             self.safedelete(self.prefix[deltype]+id, txn=txn)
             # deletes all mentions of this object in associated objects
@@ -458,10 +458,10 @@ class Backend(Handler):
                         # removes edges
                         assocobj = self.unpickle(assocobj)
                         if deltype not in assocobj['edges']:
-                            _logger.debug("association type missing ("+deltype+") into obj "+associd)
+                            _logger.warning("association "+deltype+" is missing ("+deltype+") into obj "+associd)
                             continue
                         if id not in assocobj['edges'][deltype]:
-                            _logger.debug("association "+type+" missing ("+id+") into obj "+associd)
+                            _logger.warning("association to "+deltype+" "+id+" is missing  into obj "+associd)
                             continue
                         del assocobj['edges'][deltype][id]
                     else:
@@ -596,6 +596,7 @@ class Engine(Backend):
             self.insertNGram, occs )
 
     def selectCorpusCooc(self, corpusId):
+        """Yields a view on Cooc values given a poeriod=corpus"""
         if isinstance(corpusId, str) is False:
             corpusId = str(corpusId)
         coocGen = self.select( self.prefix['Cooc']+corpusId )
@@ -609,6 +610,7 @@ class Engine(Backend):
 
 
     def select( self, minkey, maxkey=None, raw=False ):
+        """Yields unpickled tuples from a range of key"""
         cursor = self.safereadrange( minkey )
         record = cursor.first()
         while record:
@@ -641,18 +643,6 @@ class Engine(Backend):
                     _logger.debug( "%s addEdge refused, target type = %s, %s" \
                         %(update.__class__.__name__,targets, targetsId) )
         return update
-
-    #def updateObject( self, obj, type, targets, overwrite ):
-        #pass
-        #if overwrite is True:
-        #    self.storage.insert( obj, type, overwrite=True )
-        #    return
-        #stored = self.storage.load( obj['id'], type )
-        #if stored is not None:
-        #    classname = stored['py/object']
-            # TODO HANDLE classname !!??!!
-        #    upObj = self.updateEdges( corporaObj, storedCorpora, targets)
-        #self.storage.insertCorpora( corporaObj, overwrite=True )
 
     def updateCorpora( self, corporaObj, overwrite ):
         """updates or overwrite a corpora and associations"""
@@ -687,10 +677,11 @@ class Engine(Backend):
             documentObj = self.updateEdges( documentObj, storedDocument, ['Corpus','NGram'] )
         self.insertDocument( documentObj, overwrite=True )
 
-    def _ngramQueue( self, id, ng, overwrite ):
+    def _ngramQueue( self, id, ng ):
         """
         Transaction queue grouping by self.MAX_INSERT_QUEUE
-        overwrite should be True
+        overwrite should always be True because updateNGram
+        keep the object updated
         """
         #updated_ng = self.storage.updateNGram( obj, overwrite=False )
         self.ngramqueue += [[id, ng]]
@@ -705,8 +696,9 @@ class Engine(Backend):
     def updateNGram( self, ngObj, overwrite ):
         """updates or overwrite a ngram and associations"""
         #if overwrite is True:
-        #    return self._ngramQueue( ngObj['id'], ngObj, overwrite=overwrite )
+            #self.remove(ngObj['id'], 'NGram')
+            #return self._ngramQueue( ngObj['id'], ngObj, overwrite=overwrite )
         storedNGram = self.loadNGram( ngObj['id'] )
         if storedNGram is not None:
             ngObj = self.updateEdges( ngObj, storedNGram, ['Corpus','Document'] )
-        return self._ngramQueue( ngObj['id'], ngObj, overwrite )
+        return self._ngramQueue( ngObj['id'], ngObj )

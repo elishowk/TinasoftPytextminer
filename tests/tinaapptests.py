@@ -20,17 +20,26 @@ class CoocTestCase(unittest.TestCase):
         self.config['userstopwords'] = '/home/elishowk/TINA/Datas/100224-fetopen-user-stopwords.csv'
 
     def testImportFile(self):
+        return
         userstopwordfilter=stopwords.StopWordFilter( "file://%s" % self.config['userstopwords'] )
         self.tinasoft.importFile(
             'tests/pubmed_tina_200.csv',
             'import.yaml',
             'unit test corpora',
             'tests/tinaapptests-export.csv',
-            overwrite=False,
+            overwrite=False  ,
             index=False,
             format='tina',
             userfilters=[userstopwordfilter],
             whitelistpath= '/home/elishowk/TINA/Datas/100221-fetopen-filteredngrams.csv')
+
+    def testExportCorpora(self):
+        userstopwordfilter=stopwords.StopWordFilter( "file://%s" % self.config['userstopwords'] )
+        print self.tinasoft.exportCorpora( ['1'], 'unit test corpora', \
+            'tests/tinaapptests-exportCorpora.csv', \
+            '/home/elishowk/TINA/Datas/100221-fetopen-filteredngrams.csv', \
+            [userstopwordfilter] \
+        )
 
 
     def testProcessCooc(self): pass

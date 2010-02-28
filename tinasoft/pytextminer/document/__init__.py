@@ -39,8 +39,7 @@ class Document(PyTextMiner):
             return self.date.split('/')
 
     def addEdge(self, type, key, value):
-        if type == 'Corpus':
-            # unique edge with Corpus
+        if type == 'Corpus' or type == 'NGram':
             return self._addUniqueEdge( type, key, value )
         else:
             return self._addEdge( type, key, value )

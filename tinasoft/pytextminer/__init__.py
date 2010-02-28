@@ -44,6 +44,7 @@ class PyTextMiner():
     def _addUniqueEdge( self, type, key, value ):
         if type not in self['edges']:
             self['edges'][type]={}
+            return 0
         if key in self['edges'][type]:
             return False
         else:

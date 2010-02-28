@@ -159,14 +159,37 @@ class TinaApp():
 
         # instanciate extractor class
         extractor = corpora.Extractor( fileReader, corporaObj, self.storage )
-        extractor.walkFile( index, defaultextractionfilters, self.config['ngramMin'], self.config['ngramMax'], self.stopwords, overwrite)
+        extractor.walkFile( index, defaultextractionfilters, \
+            self.config['ngramMin'], self.config['ngramMax'], \
+            self.stopwords, overwrite \
+        )
         self.commitAll()
         # TODO mergepath will overwrite exportpath
         if exportpath is not None:
             self.logger.debug("ending importfile, starting exportNGrams")
-            return self.exportCorpora( extractor.corpora['edges']['Corpus'].keys(), corpora_id, exportpath, whitelistpath )
+            return self.exportCorpora( extractor.corpora['edges']['Corpus'].keys(), corpora_id, exportpath, whitelistpath, userfilters )
         else:
             return extractor.corpora['label']
+
+    def exportCorpora(self, periods, corporaid, synthesispath, \
+        whitelist=None, userfilters=None, **kwargs):
+        """Public acces to tinasoft.data.ngram.exportCorpora()"""
+        exporter = Writer('ngram://'+synthesispath, **kwargs)
+        if whitelist is not None:
+            whitelist = self.importNGrams(
+                whitelist, occsCol='occurrences',
+            )
+        return exporter.exportCorpora( self.storage, periods, corporaid, \
+            userfilters, whitelist )
+
+    def importNGrams(self, filepath, **kwargs):
+        """
+        import an ngram csv file
+        returns a whitelistto be user as input of other methods
+        """
+        importer = Reader('ngram://'+filepath, **kwargs)
+        whitelist = importer.importNGrams()
+        return whitelist
 
     # TODO !!
     def processCooc(self, ngramfile, gexfpath, whitelist, corporaid, periods ):
@@ -183,25 +206,6 @@ class TinaApp():
         self.commitAll()
         # export gexf file given a liqst of periods=corpus
         return self.exportGraph(gexfpath, periods, threshold, whitelist)
-
-    def exportCorpora(self, periods, corporaid, synthesispath, \
-        whitelist=None, **kwargs):
-        """Public acces to tinasoft.data.ngram.exportCorpora()"""
-        exporter = Writer('ngram://'+synthesispath, **kwargs)
-        if whitelist is not None:
-            whitelist = self.importNGrams(
-                whitelist, occsCol='occurrences',
-            )
-        return exporter.exportCorpora( self.storage, periods, corporaid, self.userfilters, whitelist )
-
-    def importNGrams(self, filepath, **kwargs):
-        """
-        import an ngram csv file
-        returns a whitelistto be user as input of other methods
-        """
-        importer = Reader('ngram://'+filepath, **kwargs)
-        whitelist = importer.importNGrams()
-        return whitelist
 
     def exportGraph(self, path, periods, threshold, whitelist, degreemax=None):
         """
