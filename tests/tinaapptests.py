@@ -18,52 +18,50 @@ class CoocTestCase(unittest.TestCase):
                     #storage='tinabsddb://fetopen.test.bsddb')
         self.config = {}
         self.config['userstopwords'] = '/home/elishowk/TINA/Datas/100224-fetopen-user-stopwords.csv'
+        self.whitelist = self.tinasoft.getWhitelist(
+            '/home/elishowk/TINA/Datas/100226-pubmed_whitelist.csv'
+        )
+        self.userstopwordfilter=[stopwords.StopWordFilter( "file://%s" % self.config['userstopwords'] )]
 
     def testImportFile(self):
         return
-        userstopwordfilter=stopwords.StopWordFilter( "file://%s" % self.config['userstopwords'] )
         self.tinasoft.importFile(
             'tests/pubmed_tina_200.csv',
             'import.yaml',
             'unit test corpora',
             'tests/tinaapptests-export.csv',
-            overwrite=False  ,
+            overwrite=True  ,
             index=False,
-            format='tina',
-            userfilters=[userstopwordfilter],
-            whitelistpath= '/home/elishowk/TINA/Datas/100221-fetopen-filteredngrams.csv')
+            format='tina'
+        )
 
     def testExportCorpora(self):
+        return
         userstopwordfilter=stopwords.StopWordFilter( "file://%s" % self.config['userstopwords'] )
         print self.tinasoft.exportCorpora( ['1'], 'unit test corpora', \
             'tests/tinaapptests-exportCorpora.csv', \
-            '/home/elishowk/TINA/Datas/100221-fetopen-filteredngrams.csv', \
-            [userstopwordfilter] \
+            self.whitelist, \
+            self.userstopwordfilter
         )
 
-
-    def testProcessCooc(self): pass
+    def testProcessCooc(self):
+        return
+        self.tinasoft.processCooc( self.whitelist, 'tinaapptests-processCooc.gexf', \
+            'unit test corpora', ['1'], self.userstopwordfilter)
+        self.tinasoft.logger.debug( " processCooc test finished " )
 
     def testExportGraph(self):
-        return
-        whitelist = self.tinasoft.importNGrams(
-            '/home/elishowk/TINA/Datas/100221-fetopen-filteredngrams.csv',
-            occsCol='occurrences',
-        )
-        path = '100223-fetopen-8.gexf'
-        periods=['8']
+        path = 'tinaapptests-exportGraph.gexf'
+        periods=['1']
         threshold=[0.0, 1.0]
-        self.tinasoft.logger.debug( "created : " + self.tinasoft.exportGraph(path, periods, threshold, whitelist) )
+        self.tinasoft.logger.debug( "created : " + \
+            self.tinasoft.exportGraph(path, periods, threshold, self.whitelist) )
 
     def testExportCoocMatrix(self):
-        return
-        whitelist = self.tinasoft.importNGrams(
-            '/home/elishowk/TINA/Datas/100221-fetopen-filteredngrams.csv',
-            occsCol='occurrences',
-        )
-        path = '100223-fetopen-8.txt'
-        periods=['8']
-        self.tinasoft.logger.debug( "created : " + self.tinasoft.exportCooc(path, periods, whitelist) )
+        path = 'tinaapptests-exportCoocMatrix.txt'
+        periods=['1']
+        self.tinasoft.logger.debug( "created : " + \
+            self.tinasoft.exportCooc(path, periods, self.whitelist) )
 
 
 if __name__ == '__main__':

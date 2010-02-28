@@ -14,11 +14,7 @@ class MapReduce():
     A homemade cooccurrences matrix calculator
     get a corpus number as input
     and returns matrix =
-    { 'ngram_id' :
-        {
-            'month1': {  dictionnary of all 'ngid2' : integer }
-        }
-    }
+    { 'ngram_id' : {  dictionnary of all 'ngid2' : integer } }
     """
     def __init__(self, storage, corpus=None, filter=None, whitelist=None):
         self.storage = storage
@@ -43,14 +39,14 @@ class MapReduce():
                 obj = self.storage.loadDocument( doc_id )
                 if obj is not None:
                     # TODO encapsulate doc date parsing
-                    ( day, month, year ) = obj['date'].split('/')
-                    monthyear = month+year
+                    #( day, month, year ) = obj['date'].split('/')
+                    #monthyear = month+year
                     mapgenerator = self.mapper(obj)
                     try:
                         # ngrams loop
                         termDict = mapgenerator.next()
                         while termDict:
-                            self.reducer( monthyear, termDict )
+                            self.reducer( termDict )
                             termDict = mapgenerator.next()
                     except StopIteration, si: pass
                 self.processedDocs += [doc_id]
@@ -89,27 +85,25 @@ class MapReduce():
             if ng in map.keys():
                 yield { ng : map }
 
-    def reducer(self, month, term):
+    def reducer(self, term):
         """updates the cooc matrix"""
         key = term.keys()
         row = term[key[0]]
         # key[0] is the processed ngram
         if key[0] not in self.matrix:
-            self.matrix[key[0]] = {}
-        if month not in self.matrix[key[0]]:
-            self.matrix[key[0]][month] = row
+            self.matrix[key[0]] = row
         else:
             for assocterm in row.iterkeys():
-                if assocterm in self.matrix[key[0]][month]:
+                if assocterm in self.matrix[key[0]]:
                     #_logger.debug( "=== Incrementing cooc value for "+ assocterm )
-                    self.matrix[key[0]][month][assocterm] += row[assocterm]
+                    self.matrix[key[0]][assocterm] += row[assocterm]
                 else:
-                    self.matrix[key[0]][month][assocterm] = row[assocterm]
+                    self.matrix[key[0]][assocterm] = row[assocterm]
 
-    def writeMatrix(self):
+    def writeMatrix(self, overwrite):
         """
         writes in the db rows of the matrix
-        'Cooc::corpus::ngramid::yearmonth' => '{ 'ngx' : y, 'ngy': z }'
+        'Cooc::corpus::ngramid' => '{ 'ngx' : y, 'ngy': z }'
         """
         if self.corpus is not None:
             key = self.corpus+'::'
@@ -119,14 +113,8 @@ class MapReduce():
         countng = 0
         for ng in self.matrix:
             countng+=1
-            #count = 0
-            for month in self.matrix[ng]:
-                count += 1
-                self.storage.insertCooc(self.matrix[ng][month],\
-                    key+ng+'::'+month)
-            #_logger.debug( "Wrote total months = "+ str(count) )
+            self.storage.updateCooc( key+ng, self.matrix[ng], overwrite )
         _logger.debug( "total ngrams analysed = "+ str(countng) )
-        _logger.debug( "total cooc rows written = "+ str(count) )
 
 
 class Multiprocessing(MapReduce):

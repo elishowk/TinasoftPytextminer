@@ -368,12 +368,13 @@ class Backend(Handler):
             key = str(key)
         obj = self.pickle(obj)
         try:
+            self._db.put(key, obj, txn=txn)
+        except db.DBKeyExistError, kee:
             if overwrite is True:
                 self._overwrite( key, obj, txn )
                 return
-            self._db.put(key, obj, txn=txn)
-        except db.DBKeyExistError, kee:
-            _logger.warning( "could not overwrite an existing key = "+ key )
+            _logger.warning( "NOT overwriting key " + key )
+
 
     def safewritemany( self, iter, target, overwrite, txn=None ):
         """
@@ -483,6 +484,7 @@ class Engine(Backend):
     bsddb Engine
     """
     ngramqueue = []
+    coocqueue = []
 
     def load(self, id, target, raw=False):
         read = self.saferead( self.prefix[target]+id )
@@ -541,8 +543,12 @@ class Engine(Backend):
     def insertManyNGram(self, iter, overwrite=False ):
         self.insertMany( iter, 'NGram', overwrite )
 
+
     def insertCooc(self, obj, id, overwrite=False ):
-        self.insert( obj, 'Cooc', id, overwrite )
+        self.insertCooc( obj, 'Cooc', id, overwrite )
+
+    def insertManyCooc( self, iter, overwrite=False ):
+        self.insertMany( iter, 'Cooc', overwrite )
 
     def insertAssoc(self, loadsource, sourcename, sourceid, insertsource,\
             loadtarget, targetname, targetid, inserttarget, occs, overwrite=False  ):
@@ -596,7 +602,7 @@ class Engine(Backend):
             self.insertNGram, occs )
 
     def selectCorpusCooc(self, corpusId):
-        """Yields a view on Cooc values given a poeriod=corpus"""
+        """Yields a view on Cooc values given a period=corpus"""
         if isinstance(corpusId, str) is False:
             corpusId = str(corpusId)
         coocGen = self.select( self.prefix['Cooc']+corpusId )
@@ -604,7 +610,7 @@ class Engine(Backend):
             record = coocGen.next()
             while record:
                 key = record[0].split('::')
-                yield ( (key[2],key[3]), record[1])
+                yield ( key[2], record[1])
                 record = coocGen.next()
         except StopIteration, si: return
 
@@ -639,9 +645,9 @@ class Engine(Backend):
         for targets in types:
             for targetsId, targetWeight in canditate['edges'][targets].iteritems():
                 res = update.addEdge( targets, targetsId, targetWeight )
-                if res is False:
-                    _logger.debug( "%s addEdge refused, target type = %s, %s" \
-                        %(update.__class__.__name__,targets, targetsId) )
+                #if res is False:
+                    #_logger.debug( "%s addEdge refused, target type = %s, %s" \
+                    #    %(update.__class__.__name__,targets, targetsId) )
         return update
 
     def updateCorpora( self, corporaObj, overwrite ):
@@ -677,6 +683,7 @@ class Engine(Backend):
             documentObj = self.updateEdges( documentObj, storedDocument, ['Corpus','NGram'] )
         self.insertDocument( documentObj, overwrite=True )
 
+
     def _ngramQueue( self, id, ng ):
         """
         Transaction queue grouping by self.MAX_INSERT_QUEUE
@@ -702,3 +709,24 @@ class Engine(Backend):
         if storedNGram is not None:
             ngObj = self.updateEdges( ngObj, storedNGram, ['Corpus','Document'] )
         return self._ngramQueue( ngObj['id'], ngObj )
+
+    def _coocQueue( self, id, obj, overwrite ):
+        """
+        Transaction queue grouping by self.MAX_INSERT_QUEUE
+        overwrite should always be True because updateNGram
+        keep the object updated
+        """
+        #updated_ng = self.storage.updateNGram( obj, overwrite=False )
+        self.coocqueue += [[id, obj]]
+        queue = len( self.coocqueue )
+        if queue > self.MAX_INSERT_QUEUE:
+            #_logger.debug(self.coocqueue)
+            self.insertManyCooc( self.coocqueue, overwrite=overwrite )
+            self.coocqueue = []
+            return 0
+        else:
+            return queue
+
+    def updateCooc( self, id, obj, overwrite ):
+        """updates or overwrite Cooc row"""
+        return self._coocQueue( id, obj, overwrite )

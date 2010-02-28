@@ -55,13 +55,10 @@ class Exporter (GEXFHandler):
             #_logger.error("ng_id,ng_label,ng_edges_corp_occ,corp_edges_ng_occ,cooc")
             try:
                 while i:
-                    i+=1
-                    key,row = generator.next()
+                    ngid1,row = generator.next()
                     if i % 25 == 0: _logger.debug( "Cooc values processed : " + str(i) )
 
-                    # FIXME "month" will be deprecated in the next version
-                    ngid1,month = key
-                    if ngid1 not in whitelist:
+                    if whitelist is not None and ngid1 not in whitelist:
                         continue
                     # adds the source NGram to the nodes dict
                     if ngid1 not in nodes:
@@ -88,7 +85,7 @@ class Exporter (GEXFHandler):
 
                     # goes through every target NGram  object
                     for ngid2, cooc in row.iteritems():
-                        if ngid2 not in whitelist:
+                        if whitelist is not None and ngid2 not in whitelist:
                             continue
                         # adds the target NGram to the nodes dict
                         if ngid2 not in nodes:
@@ -126,7 +123,7 @@ class Exporter (GEXFHandler):
                         # filters proximity
                         if threshold[0] <= w and w <= threshold[1]:
                             nodes[ngid1]['weight'][ngid2] = w
-
+                    i+=1
                 # FIXME debugging with eg : while i < debuglimit
                 raise StopIteration
 
@@ -157,7 +154,6 @@ class Exporter (GEXFHandler):
             except Exception, e:
                 import sys,traceback
                 traceback.print_exc(file=sys.stdout)
-
         # renders gexf
         return engine.render('tinasoft/data/gexf.template',gexf)
 

@@ -3,7 +3,8 @@ __author__="Elias Showk"
 __all__ = ["pytextminer","data"]
 
 # tinasoft core modules
-from tinasoft.pytextminer import stopwords, indexer, tagger, tokenizer, corpora, ngram
+from tinasoft.pytextminer import stopwords, indexer, tagger, tokenizer, \
+    corpora, ngram, cooccurrences
 from tinasoft.data import Engine, Reader, Writer
 
 # checks or creates aaplication directories
@@ -121,8 +122,7 @@ class TinaApp():
             overwrite=False,
             index=False,
             format= 'tina',
-            userfilters=None,
-            whitelistpath=None):
+        ):
         """tina file import method"""
         try:
             # import import config yaml
@@ -132,7 +132,6 @@ class TinaApp():
             return
         # load Stopwords object
         self.stopwords = stopwords.StopWords( "file://%s" % self.config['stopwords'] )
-        self.userfilters = userfilters
         # load default filters (TODO put it into import.yaml !!)
         filtertag = ngram.PosTagFilter()
         filterContent = ngram.Filter()
@@ -164,61 +163,51 @@ class TinaApp():
             self.stopwords, overwrite \
         )
         self.commitAll()
-        # TODO mergepath will overwrite exportpath
-        if exportpath is not None:
-            self.logger.debug("ending importfile, starting exportNGrams")
-            return self.exportCorpora( extractor.corpora['edges']['Corpus'].keys(), corpora_id, exportpath, whitelistpath, userfilters )
-        else:
-            return extractor.corpora['label']
+        return extractor.corpora
 
     def exportCorpora(self, periods, corporaid, synthesispath, \
         whitelist=None, userfilters=None, **kwargs):
         """Public acces to tinasoft.data.ngram.exportCorpora()"""
         exporter = Writer('ngram://'+synthesispath, **kwargs)
         if whitelist is not None:
-            whitelist = self.importNGrams(
-                whitelist, occsCol='occurrences',
+            whitelist = self.getWhitelist(
+                whitelist, occsCol='corpus-ngram w',
             )
         return exporter.exportCorpora( self.storage, periods, corporaid, \
             userfilters, whitelist )
 
-    def importNGrams(self, filepath, **kwargs):
+    def getWhitelist(self, filepath, **kwargs):
         """
         import an ngram csv file
-        returns a whitelistto be user as input of other methods
+        returns a whitelist to be used as input of other methods
         """
         importer = Reader('ngram://'+filepath, **kwargs)
         whitelist = importer.importNGrams()
         return whitelist
 
-    # TODO !!
-    def processCooc(self, ngramfile, gexfpath, whitelist, corporaid, periods ):
-        """Main function importing a whitelist and generating cooccurrences then exporting a graph"""
-        # import ngram whitelist
-        whitelist = self.importNGrams( ngramfile )
-        # process cooccurrences
-        self.filtertag = ngram.PosTagFilter()
-        self.filterContent = ngram.Filter()
+    def processCooc(self, whitelist, gexfpath, corporaid, periods, userfilters ):
+        """
+        Main function importing a whitelist and generating cooccurrences
+        """
+        # process cooccurrences for each period=corpus
         for id in periods:
-            cooc = cooccurrences.MapReduce(self.storage, corpus=id, filter=[self.filtertag, self.filterContent], whitelist=whitelist)
+            cooc = cooccurrences.MapReduce(self.storage, corpus=id, filter=userfilters, whitelist=whitelist)
             cooc.walkCorpus()
-            cooc.writeMatrix()
-        self.commitAll()
-        # export gexf file given a liqst of periods=corpus
-        return self.exportGraph(gexfpath, periods, threshold, whitelist)
+            cooc.writeMatrix(True)
+            self.commitAll()
 
-    def exportGraph(self, path, periods, threshold, whitelist, degreemax=None):
+    def exportGraph(self, path, periods, threshold, whitelist=None, degreemax=None):
         """
         returns a GEXF file path
         the graph is an ngram's 'proximity graph
         for a list of periods and an ngram whitelist
         """
         GEXF = Writer('gexf://').ngramCoocGraph(
-            db=self.storage,
-            periods=periods,
-            threshold=threshold,
+            db = self.storage,
+            periods = periods,
+            threshold = threshold,
             whitelist = whitelist,
-            degreemax=degreemax
+            degreemax = degreemax
         )
         #fileid = "%s-%s_"%(threshold[0],threshold[1])
         #path = fileid+path

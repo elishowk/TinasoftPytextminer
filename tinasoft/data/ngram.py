@@ -11,14 +11,14 @@ class CsvKeyError(KeyError): pass
 class Importer (basecsv.Importer):
     """A class for csv imports of selected ngram lists"""
     options = {
-        'statusCol':'status',
-        'dbidCol':'db ID',
-        'occsCol':'occs',
-        'labelCol':'label',
-        'accept':'w',
-        'refuse':'s',
-        'whitelist':{},
-        'stopwords':{},
+        'statusCol': 'status',
+        'dbidCol': 'db ID',
+        'occsCol': 'corpus-ngram w',
+        'labelCol': 'label',
+        'accept': 'w',
+        'refuse': 's',
+        'whitelist': {},
+        'stopwords': {},
         'encoding'  : 'utf-8',
     }
 
@@ -55,9 +55,9 @@ class Importer (basecsv.Importer):
                 occs = row[self.occsCol]
                 label = row[self.labelCol]
             except KeyError, keyexc:
-                _logger.error("unable to find a column "
-                    " at line " + str(line) + \
-                    " of file " + self.filepath)
+                _logger.error("Required column missing "
+                    + " at line " + str(line) )
+                _logger.error( keyexc )
                 continue
             dbid = str(abs(hash( label )))
             if status == self.accept:
@@ -87,16 +87,15 @@ class Exporter(basecsv.Exporter):
             try:
                 generator = db.selectCorpusCooc(corpusid)
                 while 1:
-                    key,row = generator.next()
-                    id,month = key
-                    if id not in whitelist:
+                    id,row = generator.next()
+                    if whitelist is not None and id not in whitelist:
                         continue
                     if id not in nodes:
                         nodes[id] = {
                             'edges' : {}
                         }
                     for ngram, cooc in row.iteritems():
-                        if ngram not in whitelist:
+                        if whitelist is not None and ngram not in whitelist:
                             continue
                         if ngram in nodes[id]['edges']:
                             nodes[id]['edges'][ngram] += cooc
