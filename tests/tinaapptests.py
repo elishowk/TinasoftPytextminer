@@ -29,7 +29,6 @@ class CoocTestCase(unittest.TestCase):
             'tests/pubmed_tina_200.csv',
             'import.yaml',
             'unit test corpora',
-            'tests/tinaapptests-export.csv',
             overwrite=True  ,
             index=False,
             format='tina'
@@ -38,7 +37,9 @@ class CoocTestCase(unittest.TestCase):
     def testExportCorpora(self):
         return
         userstopwordfilter=stopwords.StopWordFilter( "file://%s" % self.config['userstopwords'] )
-        print self.tinasoft.exportCorpora( ['1'], 'unit test corpora', \
+        print self.tinasoft.exportCorpora( \
+            ['1'], \
+            'unit test corpora', \
             'tests/tinaapptests-exportCorpora.csv', \
             self.whitelist, \
             self.userstopwordfilter
@@ -46,8 +47,12 @@ class CoocTestCase(unittest.TestCase):
 
     def testProcessCooc(self):
         return
-        self.tinasoft.processCooc( self.whitelist, 'tinaapptests-processCooc.gexf', \
-            'unit test corpora', ['1'], self.userstopwordfilter)
+        self.tinasoft.processCooc( _
+            self.whitelist, \
+            'unit test corpora', \
+            ['1'], \
+            self.userstopwordfilter \
+        )
         self.tinasoft.logger.debug( " processCooc test finished " )
 
     def testExportGraph(self):

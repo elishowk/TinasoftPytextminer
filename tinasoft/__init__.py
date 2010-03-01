@@ -118,7 +118,6 @@ class TinaApp():
             path,
             configFile,
             corpora_id,
-            exportpath=None,
             overwrite=False,
             index=False,
             format= 'tina',
@@ -171,7 +170,7 @@ class TinaApp():
         exporter = Writer('ngram://'+synthesispath, **kwargs)
         if whitelist is not None:
             whitelist = self.getWhitelist(
-                whitelist, occsCol='corpus-ngram w',
+                whitelist
             )
         return exporter.exportCorpora( self.storage, periods, corporaid, \
             userfilters, whitelist )
@@ -185,7 +184,7 @@ class TinaApp():
         whitelist = importer.importNGrams()
         return whitelist
 
-    def processCooc(self, whitelist, gexfpath, corporaid, periods, userfilters ):
+    def processCooc(self, whitelist, corporaid, periods, userfilters ):
         """
         Main function importing a whitelist and generating cooccurrences
         """
@@ -195,6 +194,7 @@ class TinaApp():
             cooc.walkCorpus()
             cooc.writeMatrix(True)
             self.commitAll()
+        return True
 
     def exportGraph(self, path, periods, threshold, whitelist=None, degreemax=None):
         """
@@ -234,13 +234,15 @@ class TinaApp():
     def getNGram(self, ngramid):
         return self.serialize(self.storage.loadNGram(ngramid))
 
-    def listCorpora(self, default=[]):
+    def listCorpora(self, default=None):
+        if default is None:
+            default=[]
         select = self.storage.select('Corpora')
         try:
             while 1:
-                default += [self.serialize(select.next()[1])]
+                default += [select.next()[1]]
         except StopIteration, si:
-            return self.storage.encode( default )
+            return self.serialize( default )
 
 
 class ThreadPool:
