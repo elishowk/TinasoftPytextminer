@@ -29,7 +29,7 @@ class CoocTestCase(unittest.TestCase):
             'tests/pubmed_tina_200.csv',
             'import.yaml',
             'unit test corpora',
-            overwrite=True  ,
+            overwrite=True,
             index=False,
             format='tina'
         )

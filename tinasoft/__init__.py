@@ -16,6 +16,8 @@ if not exists('index'):
     makedirs('index')
 if not exists('db'):
     makedirs('db')
+if not exists('user'):
+    makedirs('user')
 
 # locale management
 import locale
@@ -52,6 +54,9 @@ class TinaApp():
             self.config = yaml.safe_load( file( configFile, 'rU' ) )
         except yaml.YAMLError, exc:
             return
+
+        # Set up user generated data directory
+        self.user = self.config['user']
 
         # Set up a specific logger with our desired output level
         self.LOG_FILENAME = self.config['log']
@@ -162,11 +167,14 @@ class TinaApp():
             self.stopwords, overwrite \
         )
         self.commitAll()
+        self.logger.debug( extractor.corpora )
         return extractor.corpora
 
-    def exportCorpora(self, periods, corporaid, synthesispath, \
+    def exportCorpora(self, periods, corporaid, synthesispath=None, \
         whitelist=None, userfilters=None, **kwargs):
         """Public acces to tinasoft.data.ngram.exportCorpora()"""
+        if synthesispath is None:
+            synthesis = self.config['user']
         exporter = Writer('ngram://'+synthesispath, **kwargs)
         if whitelist is not None:
             whitelist = self.getWhitelist(
