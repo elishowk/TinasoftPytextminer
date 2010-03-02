@@ -4,7 +4,7 @@ __author__="Elias Showk"
 #from multiprocessing import Process, Queue, Manager
 from tinasoft.pytextminer import corpus
 from datetime import date
-from threading import Thread
+#from threading import Thread
 
 import logging
 _logger = logging.getLogger('TinaAppLogger')
@@ -16,45 +16,44 @@ class MapReduce():
     and returns matrix =
     { 'ngram_id' : {  dictionnary of all 'ngid2' : integer } }
     """
-    def __init__(self, storage, corpus=None, filter=None, whitelist=None):
+    def __init__(self, storage, corpusid=None, filter=None, whitelist=None):
         self.storage = storage
         self.filter = filter
-        self.corpus=corpus
+        self.corpusid=corpusid
         self.matrix = {}
         self.processedDocs = []
         self.whitelist = whitelist
 
     def walkCorpus(self):
-        """another way to generate a cooc matrix"""
-        corpus = self.storage.loadCorpus( self.corpus )
+        """processes a list of documents into a corpus"""
+        corpus = self.storage.loadCorpus( self.corpusid )
         if corpus is not None:
             docs = corpus['edges']['Document']
-            _logger.debug( "Documents in the corpus = "+ str(len( docs.keys())))
-            self.mapReduceDocs( docs )
-
-    def mapReduceDocs(self, docs):
-        """processes a list document sent by the ngram"""
-        for doc_id in docs.iterkeys():
-            if doc_id not in self.processedDocs:
-                obj = self.storage.loadDocument( doc_id )
-                if obj is not None:
-                    # TODO encapsulate doc date parsing
-                    #( day, month, year ) = obj['date'].split('/')
-                    #monthyear = month+year
-                    mapgenerator = self.mapper(obj)
-                    try:
-                        # ngrams loop
-                        termDict = mapgenerator.next()
-                        while termDict:
-                            self.reducer( termDict )
+            #_logger.debug( "Documents in the corpus = "+ str(len( docs.keys())))
+            for doc_id in docs.iterkeys():
+                if doc_id not in self.processedDocs:
+                    obj = self.storage.loadDocument( doc_id )
+                    if obj is not None:
+                        # TODO encapsulate doc date parsing
+                        #( day, month, year ) = obj['date'].split('/')
+                        #monthyear = month+year
+                        mapgenerator = self.mapper(obj)
+                        try:
+                            # ngrams loop
                             termDict = mapgenerator.next()
-                    except StopIteration, si: pass
-                self.processedDocs += [doc_id]
-            else:
-                _logger.debug( "Already processed Doc = "+ str(doc_id) )
+                            while termDict:
+                                self.reducer( termDict )
+                                termDict = mapgenerator.next()
+                        except StopIteration, si: pass
+                    self.processedDocs += [doc_id]
+                else:
+                    _logger.debug( "Already processed Doc = "+ str(doc_id) )
 
 
     def filterNGrams(self, ngrams):
+        """
+        Construct the filtered & white-listed map of an ngrams list
+        """
         map = {}
         for ng in ngrams:
             obj = self.storage.loadNGram(ng)
@@ -68,7 +67,7 @@ class MapReduce():
                             map[ng]=1
                     else:
                         map[ng]=1
-        _logger.debug( "Ngrams passing filters = "+ str(len( map.keys() )) )
+        #_logger.debug( "Ngrams passing filters = "+ str(len( map.keys() )) )
         return map
 
     def mapper(self, doc):
@@ -76,8 +75,8 @@ class MapReduce():
         generates a row for each ngram in the doc,
         cooccurrences to 1 to every other ngram in the doc
         """
+        _logger.debug( doc )
         ngrams = doc['edges']['NGram'].keys()
-        _logger.debug( "Ngrams found in doc = "+ str(len(ngrams) ))
         map = self.filterNGrams(ngrams)
         # map is a dict of each ngrams in the document
         # associated with a 1 cooc score with every other ngrams
@@ -105,8 +104,8 @@ class MapReduce():
         writes in the db rows of the matrix
         'Cooc::corpus::ngramid' => '{ 'ngx' : y, 'ngy': z }'
         """
-        if self.corpus is not None:
-            key = self.corpus+'::'
+        if self.corpusid is not None:
+            key = self.corpusid+'::'
         else:
             return self.matrix
         count = 0
@@ -114,11 +113,12 @@ class MapReduce():
         for ng in self.matrix:
             countng+=1
             self.storage.updateCooc( key+ng, self.matrix[ng], overwrite )
-        _logger.debug( "total ngrams analysed = "+ str(countng) )
+        _logger.debug( "total cooc rows updated = "+ str(countng) )
 
 
 class Multiprocessing(MapReduce):
     """
+    OBSOLETE
     Multiprocessing cooccurrences processor based on Simple()
     """
     def processDocs( self, result_queue, task_queue ):

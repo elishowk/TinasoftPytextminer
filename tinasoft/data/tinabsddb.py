@@ -135,6 +135,9 @@ class Backend(Handler):
         self.__sync_thread = t
         self.cursor = self._db.cursor
         self.MAX_INSERT_QUEUE = 500
+        self.ngramqueue = []
+        self.ngramindex = []
+        self.coocqueue = []
 
     def __sync_run(self):
         """
@@ -193,6 +196,7 @@ class Backend(Handler):
         # when closing, no new transactions are allowed
         # problem is that a thread can already have passed the test and is
         # half-way through begin_txn when close is called...
+        self.flushQueues()
         self.__closing = True
         if not self.is_open():
             return
@@ -483,8 +487,7 @@ class Engine(Backend):
     """
     bsddb Engine
     """
-    ngramqueue = []
-    coocqueue = []
+
 
     def load(self, id, target, raw=False):
         read = self.saferead( self.prefix[target]+id )
@@ -542,7 +545,6 @@ class Engine(Backend):
 
     def insertManyNGram(self, iter, overwrite=False ):
         self.insertMany( iter, 'NGram', overwrite )
-
 
     def insertCooc(self, obj, id, overwrite=False ):
         self.insertCooc( obj, 'Cooc', id, overwrite )
@@ -679,10 +681,16 @@ class Engine(Backend):
             return
         storedDocument = self.loadDocument( documentObj['id'] )
         if storedDocument is not None:
-            #_logger.debug(storedDocument)
             documentObj = self.updateEdges( documentObj, storedDocument, ['Corpus','NGram'] )
         self.insertDocument( documentObj, overwrite=True )
 
+
+    def flushQueues(self):
+        self.insertManyNGram( self.ngramqueue, overwrite=True )
+        self.ngramqueue = []
+        self.ngramindex= []
+        self.insertManyCooc( self.coocqueue, overwrite=True )
+        self.coocqueue
 
     def _ngramQueue( self, id, ng ):
         """
@@ -695,6 +703,7 @@ class Engine(Backend):
         queue = len( self.ngramqueue )
         if queue > self.MAX_INSERT_QUEUE:
             self.insertManyNGram( self.ngramqueue, overwrite=True )
+            self.ngramindex += [item[0] for item in self.ngramqueue]
             self.ngramqueue = []
             return 0
         else:
@@ -702,9 +711,9 @@ class Engine(Backend):
 
     def updateNGram( self, ngObj, overwrite ):
         """updates or overwrite a ngram and associations"""
-        #if overwrite is True:
-            #self.remove(ngObj['id'], 'NGram')
-            #return self._ngramQueue( ngObj['id'], ngObj, overwrite=overwrite )
+        # overwrites while ngrams is not in self.ngramindex
+        if overwrite is True and ngObj['id'] not in self.ngramindex:
+            return self._ngramQueue( ngObj['id'], ngObj )
         storedNGram = self.loadNGram( ngObj['id'] )
         if storedNGram is not None:
             ngObj = self.updateEdges( ngObj, storedNGram, ['Corpus','Document'] )

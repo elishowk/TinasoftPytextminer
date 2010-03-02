@@ -70,6 +70,7 @@ class Extractor():
 
         # Second part of file parsing = document graph updating
         except StopIteration, stop:
+            self.storage.flushQueues()
             # commit changes to indexer
             if index is not None:
                 writer.commit()

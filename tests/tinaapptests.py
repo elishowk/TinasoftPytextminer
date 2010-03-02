@@ -35,8 +35,7 @@ class CoocTestCase(unittest.TestCase):
         )
 
     def testExportCorpora(self):
-        return
-        userstopwordfilter=stopwords.StopWordFilter( "file://%s" % self.config['userstopwords'] )
+        #return
         print self.tinasoft.exportCorpora( \
             ['1'], \
             'unit test corpora', \
@@ -47,23 +46,25 @@ class CoocTestCase(unittest.TestCase):
 
     def testProcessCooc(self):
         return
-        self.tinasoft.processCooc( _
+        self.tinasoft.processCooc( \
             self.whitelist, \
             'unit test corpora', \
             ['1'], \
             self.userstopwordfilter \
         )
-        self.tinasoft.logger.debug( " processCooc test finished " )
+        self.tinasoft.logger.debug( "processCooc test finished " )
 
     def testExportGraph(self):
-        path = 'tinaapptests-exportGraph.gexf'
+        return
+        path = 'tests/tinaapptests-exportGraph.gexf'
         periods=['1']
         threshold=[0.0, 1.0]
         self.tinasoft.logger.debug( "created : " + \
             self.tinasoft.exportGraph(path, periods, threshold, self.whitelist) )
 
     def testExportCoocMatrix(self):
-        path = 'tinaapptests-exportCoocMatrix.txt'
+        return
+        path = 'tests/tinaapptests-exportCoocMatrix.txt'
         periods=['1']
         self.tinasoft.logger.debug( "created : " + \
             self.tinasoft.exportCooc(path, periods, self.whitelist) )

@@ -176,10 +176,6 @@ class TinaApp():
         if synthesispath is None:
             synthesis = self.config['user']
         exporter = Writer('ngram://'+synthesispath, **kwargs)
-        if whitelist is not None:
-            whitelist = self.getWhitelist(
-                whitelist
-            )
         return exporter.exportCorpora( self.storage, periods, corporaid, \
             userfilters, whitelist )
 
@@ -198,7 +194,7 @@ class TinaApp():
         """
         # process cooccurrences for each period=corpus
         for id in periods:
-            cooc = cooccurrences.MapReduce(self.storage, corpus=id, filter=userfilters, whitelist=whitelist)
+            cooc = cooccurrences.MapReduce(self.storage, corpusid=id, filter=userfilters, whitelist=whitelist)
             cooc.walkCorpus()
             cooc.writeMatrix(True)
             self.commitAll()
