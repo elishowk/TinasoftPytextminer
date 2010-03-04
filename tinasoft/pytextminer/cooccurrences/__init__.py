@@ -5,9 +5,38 @@ __author__="Elias Showk"
 from tinasoft.pytextminer import corpus
 from datetime import date
 #from threading import Thread
+from numpy import *
 
 import logging
 _logger = logging.getLogger('TinaAppLogger')
+
+class CoocMatrix():
+
+    def __init__(self, size):
+        self.reverse = {}
+        self.lastindex = -1
+        self.array = zeros((size,size),dtype=int8)
+
+    def _getindex(self, key):
+        if key in self.reverse:
+            return self.reverse[key]
+        else:
+            self.lastindex += 1
+            self.reverse[key] = self.lastindex
+            return self.reverse[key]
+
+    def get( self, key1, key2=None ):
+        if key2 is None:
+            return self.array[ self._getindex(key1), : ]
+        else:
+            return self.array[ self._getindex(key1), self._getindex(key2) ]
+
+    def set( self, key1, key2, value=1 ):
+        index1 = self._getindex(key1)
+        index2 = self._getindex(key2)
+        self.array[ index1, index2 ] += value
+
+
 
 class MapReduce():
     """
@@ -19,36 +48,26 @@ class MapReduce():
     def __init__(self, storage, corpusid=None, filter=None, whitelist=None):
         self.storage = storage
         self.filter = filter
-        self.corpusid=corpusid
-        self.matrix = {}
-        self.processedDocs = []
+        self.corpusid = corpusid
+        self.corpus = self.storage.loadCorpus( self.corpusid )
+        if self.corpus is None:
+            raise Warning()
+        self.matrix = CoocMatrix(len( self.corpus['edges']['NGram'].keys() ))
         self.whitelist = whitelist
+        self.watcher = None
 
     def walkCorpus(self):
         """processes a list of documents into a corpus"""
-        corpus = self.storage.loadCorpus( self.corpusid )
-        if corpus is not None:
-            docs = corpus['edges']['Document']
-            #_logger.debug( "Documents in the corpus = "+ str(len( docs.keys())))
-            for doc_id in docs.iterkeys():
-                if doc_id not in self.processedDocs:
-                    obj = self.storage.loadDocument( doc_id )
-                    if obj is not None:
-                        # TODO encapsulate doc date parsing
-                        #( day, month, year ) = obj['date'].split('/')
-                        #monthyear = month+year
-                        mapgenerator = self.mapper(obj)
-                        try:
-                            # ngrams loop
-                            termDict = mapgenerator.next()
-                            while termDict:
-                                self.reducer( termDict )
-                                termDict = mapgenerator.next()
-                        except StopIteration, si: pass
-                    self.processedDocs += [doc_id]
-                else:
-                    _logger.debug( "Already processed Doc = "+ str(doc_id) )
-
+        for doc_id in self.corpus['edges']['Document']:
+            obj = self.storage.loadDocument( doc_id )
+            if obj is not None:
+                mapgenerator = self.mapper(obj)
+                try:
+                    # documents loop
+                    while 1 :
+                        term_map = mapgenerator.next()
+                        self.reducer( term_map )
+                except StopIteration, si: pass
 
     def filterNGrams(self, ngrams):
         """
@@ -57,17 +76,17 @@ class MapReduce():
         map = {}
         for ng in ngrams:
             obj = self.storage.loadNGram(ng)
-            if obj is not None:
-                if obj['id'] in self.whitelist:
-                    if self.filter is not None:
-                        passFilter = True
-                        for filt in self.filter:
-                            passFilter &= filt.test(obj)
-                        if passFilter is True:
-                            map[ng]=1
-                    else:
-                        map[ng]=1
-        #_logger.debug( "Ngrams passing filters = "+ str(len( map.keys() )) )
+            if obj is None:
+                continue
+            if obj['id'] not in self.whitelist:
+                continue
+            if self.filter is not None:
+                passFilter = True
+                for filt in self.filter:
+                    passFilter &= filt.test(obj)
+                if passFilter is False:
+                    continue
+            map[ng] = 1
         return map
 
     def mapper(self, doc):
@@ -75,31 +94,48 @@ class MapReduce():
         generates a row for each ngram in the doc,
         cooccurrences to 1 to every other ngram in the doc
         """
-        _logger.debug( doc )
         ngrams = doc['edges']['NGram'].keys()
         map = self.filterNGrams(ngrams)
         # map is a dict of each ngrams in the document
         # associated with a 1 cooc score with every other ngrams
-        for ng in ngrams:
-            if ng in map.keys():
-                yield { ng : map }
+        for ng in map.keys():
+            yield [ng,map]
 
-    def reducer(self, term):
+    def reducer(self, term_map):
         """updates the cooc matrix"""
-        key = term.keys()
-        row = term[key[0]]
-        # key[0] is the processed ngram
-        if key[0] not in self.matrix:
-            self.matrix[key[0]] = row
-        else:
-            for assocterm in row.iterkeys():
-                if assocterm in self.matrix[key[0]]:
-                    #_logger.debug( "=== Incrementing cooc value for "+ assocterm )
-                    self.matrix[key[0]][assocterm] += row[assocterm]
-                else:
-                    self.matrix[key[0]][assocterm] = row[assocterm]
 
-    def writeMatrix(self, overwrite):
+        ng1 = term_map[0]
+        map = term_map[1]
+
+        self.watcher = ng1
+        #if self.watcher == '987366822206555044':
+        #    _logger.debug( "BEFORE ==== " + self.watcher )
+        #    _logger.debug( self.matrix.get(self.watcher) )
+        #if self.watcher == '8818667644350330404':
+        #    _logger.debug( "BEFORE ==== " + self.watcher )
+        #    _logger.debug( self.matrix.get('987366822206555044') )
+
+        # key is the processed ngram
+        #if ng1 not in self.matrix:
+        #    self.matrix[ng1] = map
+        #else:
+        #    for ngi,ngicooc in map.iteritems():
+        #        if ngi in self.matrix[ng1]:
+        #            self.matrix[ng1][ngi] += ngicooc
+        #        else:
+        #            self.matrix[ng1][ngi] = ngicooc
+        for ngi in map.iterkeys():
+            self.matrix.set( ng1, ngi )
+            #self.matrix[ng1][ngi] += ngicooc
+
+        #if self.watcher == '987366822206555044':
+        #    _logger.debug( "AFTER ==== " + self.watcher )
+        #    _logger.debug( self.matrix.get(self.watcher) )
+        #if self.watcher == '8818667644350330404':
+        #   _logger.debug( "AFTER ==== " + self.watcher )
+        #    _logger.debug( self.matrix.get('987366822206555044') )
+
+    def writeMatrix(self, overwrite=True):
         """
         writes in the db rows of the matrix
         'Cooc::corpus::ngramid' => '{ 'ngx' : y, 'ngy': z }'
@@ -107,14 +143,56 @@ class MapReduce():
         if self.corpusid is not None:
             key = self.corpusid+'::'
         else:
-            return self.matrix
-        count = 0
+            return
         countng = 0
-        for ng in self.matrix:
-            countng+=1
-            self.storage.updateCooc( key+ng, self.matrix[ng], overwrite )
-        _logger.debug( "total cooc rows updated = "+ str(countng) )
+        #for ng in self.matrix:
+        countcooc = 0
+        #for destng in self.matrix[ng].iterkeys():
+            #if self.matrix[ng][destng] > self.matrix[ng][ng]:
+            #    _logger.error("inconsistent cooc : (diag %s) %d < %d (cooc %s)"%(ng,self.matrix[ng][ng],self.matrix[ng][destng],destng))
+                #self.countDoc( ng )
+        for ngi in self.matrix.reverse.iterkeys():
+            row = {}
+            countng += 1
+            for ngj in self.matrix.reverse.iterkeys():
+                cooc = self.matrix.get( ngi, ngj )
+                if cooc > 0:
+                    countcooc += 1
+                    row[ngj] = cooc
+            self.storage.updateCooc( key+ngi, row, overwrite )
+        self.storage.flushCoocQueue()
+        self.storage.commitAll()
+        _logger.debug( "%d ngram processed & %d non-zero cooccurrences found"\
+            %(countng,countcooc) )
 
+    def readMatrix( self ):
+        nodes = {}
+        try:
+            generator = self.storage.selectCorpusCooc( self.corpusid )
+            while 1:
+                id,row = generator.next()
+                if self.whitelist is not None and id not in self.whitelist:
+                    continue
+                if id not in nodes:
+                    nodes[id] = {}
+                for ngram, cooc in row.iteritems():
+                    if self.whitelist is not None and ngram not in self.whitelist:
+                        continue
+                    nodes[id][ngram] = cooc
+        except StopIteration, si:
+            return nodes
+
+    def countDoc(self, ng):
+        countdoc = 0
+        ngobj = self.storage.loadNGram( ng )
+        cursor = self.storage.safereadrange( "Document::" )
+        record = cursor.next()
+        while record[0].startswith("Document::"):
+            docObj = self.storage.unpickle(record[1])
+            if ng in docObj['edges']['NGram']:
+                countdoc += 1
+            record = cursor.next()
+        _logger.error( "inconsistent NGram %s (with %d doc edges) appears in %d documents"%(ng,len(ngobj['edges']['Document'].keys()),countdoc) )
 
 class Multiprocessing(MapReduce):
     """

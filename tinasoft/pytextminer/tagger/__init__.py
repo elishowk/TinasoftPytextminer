@@ -23,3 +23,8 @@ class TreeBankPosTagger():
     def getContent( sentence ):
         """return words from a tagged list"""
         return [tagged[0] for tagged in sentence]
+    
+    @staticmethod
+    def getTag( sentence ):
+        """return TAGS from a tagged list"""
+        return [tagged[1] for tagged in sentence]

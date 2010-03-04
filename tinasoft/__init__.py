@@ -114,18 +114,14 @@ class TinaApp():
     def deserialize(self, str):
         return jsonpickle.decode(str)
 
-    def commitAll(self):
-        # wait for transactions to finish
-        self.storage.closeAllTxn(commit_pending_transaction=True, commit_root=False)
-        self.storage.closeAllTxn(commit_pending_transaction=True, commit_root=True)
 
     def importFile(self,
             path,
             configFile,
             corpora_id,
-            overwrite=False,
             index=False,
             format= 'tina',
+            overwrite=False,
         ):
         """tina file import method"""
         try:
@@ -164,9 +160,8 @@ class TinaApp():
         extractor = corpora.Extractor( fileReader, corporaObj, self.storage )
         extractor.walkFile( index, defaultextractionfilters, \
             self.config['ngramMin'], self.config['ngramMax'], \
-            self.stopwords, overwrite \
+            self.stopwords, overwrite=overwrite
         )
-        self.commitAll()
         self.logger.debug( extractor.corpora )
         return extractor.corpora
 
@@ -194,10 +189,13 @@ class TinaApp():
         """
         # process cooccurrences for each period=corpus
         for id in periods:
-            cooc = cooccurrences.MapReduce(self.storage, corpusid=id, filter=userfilters, whitelist=whitelist)
-            cooc.walkCorpus()
-            cooc.writeMatrix(True)
-            self.commitAll()
+            try:
+                cooc = cooccurrences.MapReduce(self.storage, corpusid=id, filter=userfilters, whitelist=whitelist)
+                cooc.walkCorpus()
+                cooc.writeMatrix(True)
+            except Warning, warn:
+                self.logger.warning( "Corpus %s does not exists"%corpusid )
+                continue
         return True
 
     def exportGraph(self, path, periods, threshold, whitelist=None, degreemax=None):

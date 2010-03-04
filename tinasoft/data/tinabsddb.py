@@ -136,6 +136,7 @@ class Backend(Handler):
         self.cursor = self._db.cursor
         self.MAX_INSERT_QUEUE = 500
         self.ngramqueue = []
+        self.ngramqueueindex = []
         self.ngramindex = []
         self.coocqueue = []
 
@@ -172,6 +173,11 @@ class Backend(Handler):
         if self.__open:
             self._db.sync()
 
+    def commitAll(self):
+        # wait for transactions to finish
+        self.closeAllTxn(commit_pending_transaction=True, commit_root=False)
+        self.closeAllTxn(commit_pending_transaction=True, commit_root=True)
+
     def closeAllTxn(self, commit_pending_transaction=True, commit_root=False):
         # this should close all existing transactions, not only by this thread,
         # uses the number of active transactions to sync on.
@@ -179,6 +185,7 @@ class Backend(Handler):
             # this will block for a while, depending on how long it takes
             # before the active transactions are committed/aborted
             # nactive = Number of transactions currently active.
+            _logger.debug( self.db_env.txn_stat() )
             while self.db_env.txn_stat()['nactive'] > 0:
                 active_threads = self.__dbTxn.keys()
                 for t in active_threads:
@@ -200,7 +207,7 @@ class Backend(Handler):
         self.__closing = True
         if not self.is_open():
             return
-        self.closeAllTxn(commit_pending_transaction=True, commit_root=True)
+        self.commitAll()
 
         # there may still be open transactions
         self.__open = False
@@ -534,7 +541,7 @@ class Engine(Backend):
         """automatically removes text content before storing"""
         #content = obj['content']
         #obj['content'] = ""
-        self.insert( obj, 'Document', id, overwrite  )
+        self.insert( obj, 'Document', id, overwrite )
         #obj['content'] = content
 
     def insertManyDocument(self, iter, overwrite=False ):
@@ -618,9 +625,9 @@ class Engine(Backend):
 
 
     def select( self, minkey, maxkey=None, raw=False ):
-        """Yields unpickled tuples from a range of key"""
+        """Yields raw or unpickled tuples from a range of key"""
         cursor = self.safereadrange( minkey )
-        record = cursor.first()
+        record = cursor.next()
         while record:
             if maxkey is None:
                 if record[0].startswith(minkey):
@@ -677,43 +684,50 @@ class Engine(Backend):
     def updateDocument( self, documentObj, overwrite ):
         """updates or overwrite a document and associations"""
         if overwrite is True:
-            self.insertDocument( documentObj, overwrite=True  )
+            self.insertDocument( documentObj, overwrite=True )
             return
         storedDocument = self.loadDocument( documentObj['id'] )
         if storedDocument is not None:
             documentObj = self.updateEdges( documentObj, storedDocument, ['Corpus','NGram'] )
         self.insertDocument( documentObj, overwrite=True )
 
-
-    def flushQueues(self):
+    def flushNGramQueue(self):
         self.insertManyNGram( self.ngramqueue, overwrite=True )
         self.ngramqueue = []
-        self.ngramindex= []
+        self.ngramqueueindex = []
+
+
+    def flushCoocQueue(self):
         self.insertManyCooc( self.coocqueue, overwrite=True )
-        self.coocqueue
+        self.coocqueue = []
+
+    def flushQueues(self):
+        self.flushCoocQueue()
+        self.flushNGramQueue()
+        self.ngramindex= []
+        _logger.debug("flushing ngram and cooc queues")
 
     def _ngramQueue( self, id, ng ):
         """
-        Transaction queue grouping by self.MAX_INSERT_QUEUE
-        overwrite should always be True because updateNGram
-        keep the object updated
+        add a ngram to the queue and session index
         """
-        #updated_ng = self.storage.updateNGram( obj, overwrite=False )
+        self.ngramqueueindex += [id]
         self.ngramqueue += [[id, ng]]
+        self.ngramindex += [id]
         queue = len( self.ngramqueue )
-        if queue > self.MAX_INSERT_QUEUE:
-            self.insertManyNGram( self.ngramqueue, overwrite=True )
-            self.ngramindex += [item[0] for item in self.ngramqueue]
-            self.ngramqueue = []
-            return 0
-        else:
-            return queue
+        return queue
+
 
     def updateNGram( self, ngObj, overwrite ):
         """updates or overwrite a ngram and associations"""
         # overwrites while ngrams is not in self.ngramindex
+        # if ngram is already into queue, flushes it to permit incremental updates
+        if ngObj['id'] in self.ngramqueueindex:
+            self.flushNGramQueue()
+        # if overwriting and NGram yet NOT in the current index
         if overwrite is True and ngObj['id'] not in self.ngramindex:
-            return self._ngramQueue( ngObj['id'], ngObj )
+            self._ngramQueue( ngObj['id'], ngObj )
+        # else updates NGram
         storedNGram = self.loadNGram( ngObj['id'] )
         if storedNGram is not None:
             ngObj = self.updateEdges( ngObj, storedNGram, ['Corpus','Document'] )

@@ -31,76 +31,93 @@ class Extractor():
     """corpora.Extractor is a source file importer = session = corpora"""
 
 
-    def __init__( self, reader, corpora, storage ):
+    def __init__( self, reader, corpora, storage, index=None ):
         self.reader = reader
         self.corpora = corpora
         self.storage = storage
+        self.index = index
+        if self.index is not None:
+            self.writer = index.getWriter()
 
-    def _indexDocument( self ): pass
+    def _indexDocument( self, documentobj, overwrite ):
+        if self.index is not None:
+            if self.index.write(document, self.writer, overwrite) is None:
+                _logger.debug("document content indexation skipped :" \
+                    + str(document['id']))
+
 
     def walkFile( self, index, filters, ngramMin, ngramMax, stopwords, overwrite=False ):
-        """Main method for parsing tina csv source file"""
-        if index is not None:
-            writer = index.getWriter()
-        fileGenerator = self.reader.parseFile( )
+        """Main parsing tina source file"""
+        #if overwrite is False and self.storage.loadCorpora( self.corpora['id'] ) is not None:
+        #    _logger.error( "Corpora %s is already in DB"%self.corpora['id'] )
+        #    return
+        fileGenerator = self.reader.parseFile()
         # 1st part = ngram extraction
         try:
             while 1:
-                # document parsing
+                # document parsing, doc-corpus edge is written
                 document, corpusNum = fileGenerator.next()
+
+                # add Corpora-Corpus edges if possible
+                self.corpora.addEdge( 'Corpus', corpusNum, 1 )
+                self.reader.corpusDict[ corpusNum ].addEdge( 'Corpora', self.corpora['id'], 1)
+
                 # indexation
-                if index is not None:
-                    res = index.write(document, writer, overwrite)
-                    if res is not None:
-                        _logger.debug("document content indexation skipped :" \
-                            + str(document['id']))
-                storedDoc = self.storage.loadDocument( document['id'] )
-                if overwrite is True or storedDoc is None:
-                    # writes corpus-document edges
-                    self.reader.corpusDict[ corpusNum ]['content'] += [ document['id'] ]
-                    self.reader.corpusDict[ corpusNum ].addEdge( 'Document', document['id'], 1)
-                    # writes corpus-corpora edges : must occur only once
-                    if corpusNum not in self.corpora['edges']['Corpus']:
-                        self.corpora.addEdge( 'Corpus', corpusNum, 1 )
-                        self.corpora['content'] += [ corpusNum ]
-                        self.reader.corpusDict[ corpusNum ].addEdge( 'Corpora', self.corpora['id'], 1)
-                    # document's ngrams extraction
-                    self.extractNGrams( document, corpusNum,\
-                        ngramMin, ngramMax, filters, stopwords, overwrite )
+                self._indexDocument( document, overwrite )
+
+                # adds Corpus-Doc edge if possible
+                self.reader.corpusDict[ corpusNum ].addEdge( 'Document', document['id'], 1)
+
+                # checks document in storage
+                if overwrite is False:
+                    storedDoc = self.storage.loadDocument( document['id'] )
+                    if storedDoc is not None:
+                        # add the doc-corpus edge if possible
+                        storedDoc.addEgde( 'Corpus', corpusNum, 1 )
+                        # force update
+                        self.storage.updateDocument( storedDoc, True )
+                        _logger.debug( "Skipping Document %s : \
+                            already in DB, only updating edges"%document['id'] )
+                        # skip document
+                        continue
+
+                # document's ngrams extraction
+                self.extractNGrams( document, corpusNum,\
+                ngramMin, ngramMax, filters, stopwords, overwrite )
 
         # Second part of file parsing = document graph updating
         except StopIteration, stop:
-            self.storage.flushQueues()
             # commit changes to indexer
             if index is not None:
-                writer.commit()
-            # updates corpus and corpora
+                self.writer.commit()
+            # inserts/updates corpus and corpora
             self.storage.updateCorpora( self.corpora, overwrite )
             for corpusObj in self.reader.corpusDict.values():
                 self.storage.updateCorpus( corpusObj, overwrite )
+            self.storage.flushNGramQueue()
+            self.storage.commitAll()
             return
 
     def extractNGrams( self, document, corpusNum, ngramMin,\
         ngramMax, filters, stopwords, overwrite ):
-        """"Main NLP operations for a document"""
+        """"Main NLP operations on a document THAT IS NOT ALREADY IN DATABASE"""
         _logger.debug(tokenizer.TreeBankWordTokenizer.__name__+\
-            " is working on document "+ document['id'])
-        # get filtered ngrams
+            " is extracting document "+ document['id'])
+        # extract filtered ngrams
         docngrams = tokenizer.TreeBankWordTokenizer.extract( document,\
             stopwords, ngramMin, ngramMax, filters )
         for ngid, ng in docngrams.iteritems():
             # increments document-ngram edge
             docOccs = ng['occs']
             del ng['occs']
-            # increment ngram's edges
+            # init ngram's edges
             ng.addEdge( 'Corpus', corpusNum, 1 )
             ng.addEdge( 'Document', document['id'], docOccs )
-            # increments doc-ngram edge
+            # updates doc-ngram and corpus-ngram edges
             document.addEdge( 'NGram', ng['id'], docOccs )
-            # increments corpus-ngram edge
-            self.reader.corpusDict[ corpusNum ].addEdge('NGram', ngid, 1)
-            # prepares and queue insertion or update of the ngram into storage
-            queueSize = self.storage.updateNGram( ng, overwrite )
+            self.reader.corpusDict[ corpusNum ].addEdge( 'NGram', ngid, 1 )
+            # queue the update of the ngram
+            self.storage.updateNGram( ng, overwrite )
         # update or create document into storage
-        self.storage.updateDocument( document, overwrite )
-
+        self.storage.insertDocument( document, overwrite=True )
+        self.storage.flushNGramQueue()

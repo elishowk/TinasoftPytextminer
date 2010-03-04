@@ -23,19 +23,19 @@ class CoocTestCase(unittest.TestCase):
         )
         self.userstopwordfilter=[stopwords.StopWordFilter( "file://%s" % self.config['userstopwords'] )]
 
-    def testImportFile(self):
+    def testAImportFile(self):
         return
         self.tinasoft.importFile(
             'tests/pubmed_tina_200.csv',
             'import.yaml',
             'unit test corpora',
-            overwrite=True,
             index=False,
-            format='tina'
+            format='tina',
+            overwrite=True
         )
 
-    def testExportCorpora(self):
-        #return
+    def testBExportCorpora(self):
+        return
         print self.tinasoft.exportCorpora( \
             ['1'], \
             'unit test corpora', \
@@ -44,8 +44,8 @@ class CoocTestCase(unittest.TestCase):
             self.userstopwordfilter
         )
 
-    def testProcessCooc(self):
-        return
+    def testCProcessCooc(self):
+        #return
         self.tinasoft.processCooc( \
             self.whitelist, \
             'unit test corpora', \
@@ -54,7 +54,7 @@ class CoocTestCase(unittest.TestCase):
         )
         self.tinasoft.logger.debug( "processCooc test finished " )
 
-    def testExportGraph(self):
+    def testDExportGraph(self):
         return
         path = 'tests/tinaapptests-exportGraph.gexf'
         periods=['1']
@@ -62,13 +62,22 @@ class CoocTestCase(unittest.TestCase):
         self.tinasoft.logger.debug( "created : " + \
             self.tinasoft.exportGraph(path, periods, threshold, self.whitelist) )
 
-    def testExportCoocMatrix(self):
-        return
-        path = 'tests/tinaapptests-exportCoocMatrix.txt'
+    def testEExportCoocMatrix(self):
+        #return
+        path = 'tests/tinaapptests-exportCoocMatrix.csv'
         periods=['1']
         self.tinasoft.logger.debug( "created : " + \
             self.tinasoft.exportCooc(path, periods, self.whitelist) )
 
+    def testFExportDocuments(self):
+        return
+        from tinasoft.data import Writer
+        path = 'tests/tinaapptests-exportDocuments.csv'
+        exporter = Writer( 'ngram://'+path )
+        return exporter.exportDocuments( self.tinasoft.storage, \
+            ['1'], \
+            'unit test corpora', \
+        )
 
 if __name__ == '__main__':
     unittest.main()

@@ -46,7 +46,7 @@ class Importer (basecsv.Importer):
             # TODO check if corpus already exists
             newdoc = self.parseDocument( doc, tmpfields, corpusNumber )
             if newdoc is None:
-                _logger.warning( "skipping a document" )
+                _logger.error( "skipping a document" )
                 continue
             # if corpus DOES NOT already exist
             if corpusNumber not in self.corpusDict:
