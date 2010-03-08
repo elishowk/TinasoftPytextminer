@@ -19,9 +19,9 @@
     <attributes class="edge" type="#{type}">
 <?py i = 0 ?>
 <?py for name,type in attredges.iteritems(): ?>
-<?py     i += 1 ?>
       <attribute id="#{i}" title="#{name}" type="#{type}">
       </attribute>
+<?py     i += 1 ?>
 <?py #endfor ?>
     </attributes>
     <nodes>
@@ -43,8 +43,11 @@
 <?py        if source == target: ?>
 <?py            continue ?>
 <?py        i += 1 ?>
-      <edge id="#{i}" source="#{source}" target="#{target}" weight="#{weight}">
-      </edge>
+        <edge id="#{i}" source="#{source}" target="#{target}" weight="#{weight}">
+            <attvalues>
+                <attvalue for="0" value="#{ngram['cooc'][target]}" />
+            </attvalues>
+        </edge>
 <?py    #endfor ?>
 <?py #endfor ?>
     </edges>

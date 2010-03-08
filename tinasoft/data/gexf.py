@@ -56,7 +56,7 @@ class Exporter (GEXFHandler):
             try:
                 while i:
                     ngid1,row = generator.next()
-                    if i % 25 == 0: _logger.debug( "Cooc values processed : " + str(i) )
+                    if i % 25 == 0: _logger.debug( "%d graph nodes processed"%i )
 
                     if whitelist is not None and ngid1 not in whitelist:
                         continue
@@ -64,7 +64,7 @@ class Exporter (GEXFHandler):
                     if ngid1 not in nodes:
                         # loads the source NGram object
                         ngram1 = db.loadNGram(ngid1)
-                        nodes[ngid1] = { \
+                        nodes[ngid1] = {
                             #'label' : ngram1["label"],
                             'category' : 'NGram',
                             'weight' : {},
