@@ -4,7 +4,8 @@ import datetime
 
 # Tenjin, the fastest template engine in the world !
 import tenjin
-from tenjin.helpers import *   # or escape, to_str
+from tenjin.helpers import *
+
 engine = tenjin.Engine()
 
 # tinasoft logger
@@ -20,6 +21,7 @@ class GEXFHandler (Handler):
         'debug'      : False,
         'compression': None,
         'threshold'  : 2,
+        'template'   : 'shared/gexf/gexf.template',
     }
 
     def __init__(self, path, **opts):
@@ -46,12 +48,12 @@ class Exporter (GEXFHandler):
         }
         gexf.update(meta)
         i = 1
+        nodes = {}
         for period in periods:
             # loads the corpus (=period) object
             corp = db.loadCorpus(period)
             # gets the database cursor for the current period
             generator = db.selectCorpusCooc(period)
-            nodes = {}
             #_logger.error("ng_id,ng_label,ng_edges_corp_occ,corp_edges_ng_occ,cooc")
             try:
                 while i:
@@ -155,7 +157,7 @@ class Exporter (GEXFHandler):
                 import sys,traceback
                 traceback.print_exc(file=sys.stdout)
         # renders gexf
-        return engine.render('tinasoft/data/gexf.template',gexf)
+        engine.render(self.template,gexf)
 
 
     # appellee avec selectCorpusCooc
@@ -268,7 +270,7 @@ class Exporter (GEXFHandler):
                         'nodes' : nodes,
                         'threshold' : threshold
             })
-            return engine.render('tinasoft/data/gexf.template',gexf)
+            return engine.render(self.template,gexf)
         except Exception, e:
             import sys,traceback
             traceback.print_exc(file=sys.stdout)

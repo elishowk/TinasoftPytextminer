@@ -153,8 +153,8 @@ class Exporter(basecsv.Exporter):
                 if ng is None:
                     #_logger.error("Corpus['edges']['NGram'] inconsistency,"\
                     #    +" ngram not found = %s"%ngid)
-                    _logger.error(ng)
-                    return
+                    _logger.error("NGram %s not found"%ngid)
+                    continue
                 # prepares the row
                 tag = " ".join ( tagger.TreeBankPosTagger.getTag( ng['postag'] ) )
                 n=len(ng['content'])
@@ -170,7 +170,7 @@ class Exporter(basecsv.Exporter):
                     storedDoc = storage.loadDocument(docid)
                     if storedDoc is None:
                         _logger.error("document object not found " + docid)
-                        return
+                        continue
                     if ng['id'] not in storedDoc['edges']['NGram']:
                         _logger.error( "NGram %s not found in the document %"%(ngid,docid) )
                     if ng['edges']['Document'][docid] != storedDoc['edges']['NGram'][ng['id']]:
@@ -178,7 +178,6 @@ class Exporter(basecsv.Exporter):
 
                 # check corpus data integrity
                 if ng['edges']['Corpus'][corpusid] != occs:
-                    print ngid
                     _logger.error( "corpus-ngram weight (in ng %s != in corp %s) inconsistency (corp=%s, ng=%s)"%(str(ng['edges']['Corpus'][corpusid]),str(occs),corpusid,ngid) )
 
                 row= [ "", ng['label'], tag, str(n), str(occs), str(occsn), \

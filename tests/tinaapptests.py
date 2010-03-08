@@ -19,7 +19,10 @@ class CoocTestCase(unittest.TestCase):
         self.config = {}
         self.config['userstopwords'] = '/home/elishowk/TINA/Datas/100224-fetopen-user-stopwords.csv'
         self.whitelist = self.tinasoft.getWhitelist(
-            '/home/elishowk/TINA/Datas/100226-pubmed_whitelist.csv'
+            #'/home/elishowk/TINA/Datas/100226-pubmed_whitelist.csv'
+            'user/100221-fetopen-filteredngrams.csv',
+            occsCol='occurrences',
+            accept='x'
         )
         self.userstopwordfilter=[stopwords.StopWordFilter( "file://%s" % self.config['userstopwords'] )]
 
@@ -35,21 +38,21 @@ class CoocTestCase(unittest.TestCase):
         )
 
     def testBExportCorpora(self):
-        return
+        #return
         print self.tinasoft.exportCorpora( \
-            ['1'], \
-            'unit test corpora', \
+            ['8'], \
+            'fet open', \
             'tests/tinaapptests-exportCorpora.csv', \
             self.whitelist, \
             self.userstopwordfilter
         )
 
     def testCProcessCooc(self):
-        #return
+        return
         self.tinasoft.processCooc( \
             self.whitelist, \
-            'unit test corpora', \
-            ['1'], \
+            'fet open', \
+            ['8'], \
             self.userstopwordfilter \
         )
         self.tinasoft.logger.debug( "processCooc test finished " )
@@ -57,15 +60,15 @@ class CoocTestCase(unittest.TestCase):
     def testDExportGraph(self):
         return
         path = 'tests/tinaapptests-exportGraph.gexf'
-        periods=['1']
+        periods=['8']
         threshold=[0.0, 1.0]
         self.tinasoft.logger.debug( "created : " + \
             self.tinasoft.exportGraph(path, periods, threshold, self.whitelist) )
 
     def testEExportCoocMatrix(self):
-        #return
+        return
         path = 'tests/tinaapptests-exportCoocMatrix.csv'
-        periods=['1']
+        periods=['8']
         self.tinasoft.logger.debug( "created : " + \
             self.tinasoft.exportCooc(path, periods, self.whitelist) )
 
@@ -75,7 +78,7 @@ class CoocTestCase(unittest.TestCase):
         path = 'tests/tinaapptests-exportDocuments.csv'
         exporter = Writer( 'ngram://'+path )
         return exporter.exportDocuments( self.tinasoft.storage, \
-            ['1'], \
+            ['8'], \
             'unit test corpora', \
         )
 

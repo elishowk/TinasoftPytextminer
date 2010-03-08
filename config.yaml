@@ -2,7 +2,7 @@
 ---
 # TinaApp main params
 locale: 'en_US.UTF-8'
-storage: "tinabsddb://test.bsddb"
+storage: "tinabsddb://fetopen.bsddb"
 index: 'index/'
 dbenv: 'db/'
 log: 'log/tinasoft.log'

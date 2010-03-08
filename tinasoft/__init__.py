@@ -2,6 +2,9 @@
 __author__="Elias Showk"
 __all__ = ["pytextminer","data"]
 
+import tenjin
+from tenjin.helpers import *
+
 # tinasoft core modules
 from tinasoft.pytextminer import stopwords, indexer, tagger, tokenizer, \
     corpora, ngram, cooccurrences
@@ -186,8 +189,8 @@ class TinaApp():
     def processCooc(self, whitelist, corporaid, periods, userfilters ):
         """
         Main function importing a whitelist and generating cooccurrences
+        process cooccurrences for each period=corpus
         """
-        # process cooccurrences for each period=corpus
         for id in periods:
             try:
                 cooc = cooccurrences.MapReduce(self.storage, corpusid=id, filter=userfilters, whitelist=whitelist)
@@ -196,7 +199,7 @@ class TinaApp():
             except Warning, warn:
                 self.logger.warning( "Corpus %s does not exists"%corpusid )
                 continue
-        return True
+        return corporaid
 
     def exportGraph(self, path, periods, threshold, whitelist=None, degreemax=None):
         """
@@ -239,7 +242,7 @@ class TinaApp():
     def listCorpora(self, default=None):
         if default is None:
             default=[]
-        select = self.storage.select('Corpora')
+        select = self.storage.select('Corpora::')
         try:
             while 1:
                 default += [select.next()[1]]
