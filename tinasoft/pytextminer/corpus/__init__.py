@@ -8,16 +8,16 @@ class Corpus(PyTextMiner):
     def __init__(self,
             id,
             edges=None,
-            period_start=None,
-            period_end=None,
+            #period_start=None,
+            #period_end=None,
             **metas):
         # dict of documents {'id' : occurences, ... } in the coprus
         if edges is None:
             edges={ 'Document' : {}, 'NGram' : {} }
         if 'Document' not in edges:
             edges['Document'] = {}
-        self.period_start = period_start
-        self.period_end = period_end
+        #self.period_start = period_start
+        #self.period_end = period_end
         # edges['Document'].keys() list could be used as an ID generator
         PyTextMiner.__init__(self, edges['Document'].keys(), id, id, edges, **metas)
 
