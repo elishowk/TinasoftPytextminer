@@ -627,8 +627,8 @@ class Engine(Backend):
     def select( self, minkey, maxkey=None, raw=False ):
         """Yields raw or unpickled tuples from a range of key"""
         cursor = self.safereadrange( minkey )
-        record = cursor.next()
-        while record:
+        record = cursor.current()
+        while record is not None:
             if maxkey is None:
                 if record[0].startswith(minkey):
                     if raw is True:
@@ -726,7 +726,7 @@ class Engine(Backend):
             self.flushNGramQueue()
         # if overwriting and NGram yet NOT in the current index
         if overwrite is True and ngObj['id'] not in self.ngramindex:
-            self._ngramQueue( ngObj['id'], ngObj )
+            return self._ngramQueue( ngObj['id'], ngObj )
         # else updates NGram
         storedNGram = self.loadNGram( ngObj['id'] )
         if storedNGram is not None:
