@@ -1,19 +1,19 @@
 # -*- coding: utf-8 -*-
-from tinasoft.data import Handler
+from tinasoft.data import Exporter
 import datetime
 
 # Tenjin, the fastest template engine in the world !
 import tenjin
 from tenjin.helpers import *
 
-engine = tenjin.Engine()
+#print dir(tenjin)
 
 # tinasoft logger
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
 # generic GEXF handler
-class GEXFHandler (Handler):
+class GEXFHandler (Exporter):
 
     options = {
         'locale'     : 'en_US.UTF-8',
@@ -28,6 +28,7 @@ class GEXFHandler (Handler):
         self.path = path
         self.loadOptions(opts)
         self.lang,self.encoding = self.locale.split('.')
+        self.engine = tenjin.Engine()
 
 # specific GEXF handler
 class Exporter (GEXFHandler):
@@ -157,7 +158,7 @@ class Exporter (GEXFHandler):
                 import sys,traceback
                 traceback.print_exc(file=sys.stdout)
         # renders gexf
-        engine.render(self.template,gexf)
+        self.engine.render(self.template,gexf)
 
 
     # appellee avec selectCorpusCooc
@@ -270,9 +271,9 @@ class Exporter (GEXFHandler):
                         'nodes' : nodes,
                         'threshold' : threshold
             })
-            return engine.render(self.template,gexf)
+            return self.engine.render(self.template,gexf)
         except Exception, e:
             import sys,traceback
             traceback.print_exc(file=sys.stdout)
 
-        return engine.render({})
+        return self.engine.render({})

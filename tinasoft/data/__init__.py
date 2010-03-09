@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-__all__ = ['basecsv', 'mozstorage', 'tina', 'tinabsddb','gexf']
 
-import jsonpickle
+__all__ = ['basecsv', 'tina', 'tinabsddb', 'gexf']
 
+# changing jsonpickle serializer
 #jsonpickle.load_backend('django.util.simplejson', 'dumps', 'loads', ValueError))
 #jsonpickle.set_preferred_backend('django.util.simplejson')
 
+# used by the factory
 import sys
 
 class Handler (object):
@@ -38,8 +39,7 @@ class Handler (object):
 class Importer(Handler):
     pass
 
-class Exporter(Handler):
-    pass
+class Exporter(Handler): pass
 
 # Factories
 
@@ -55,7 +55,7 @@ def _factory(arg):
         obj = sys.modules[name]
         return obj, path
     except ImportError, exc:
-        raise Exception("couldn't find module %s: %s"%(protocol,exc))
+        raise Exception("couldn't  module %s: %s"%(protocol,exc))
 
 def Engine(arg, **options):
     module, path = _factory(arg)

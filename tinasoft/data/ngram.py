@@ -150,16 +150,15 @@ class Exporter(basecsv.Exporter):
             for ngid, occs in corpusobj['edges']['NGram'].iteritems():
                 totalcount += 1
                 ng = storage.loadNGram(ngid)
-                if ng is None:
-                    #_logger.error("Corpus['edges']['NGram'] inconsistency,"\
-                    #    +" ngram not found = %s"%ngid)
-                    _logger.error("NGram %s not found"%ngid)
+                if ng is None or 'Document' not in ng['edges'] or 'Corpus' not in ng['edges']:
+                    _logger.error( "NGram %s inconsistent"%ngid )
+                    _logger.error( ng )
                     continue
                 # prepares the row
                 tag = " ".join ( tagger.TreeBankPosTagger.getTag( ng['postag'] ) )
-                n=len(ng['content'])
+                n = len( ng['content'] )
                 docedges = len( ng['edges']['Document'].keys() )
-                totaldococcs= sum( ng['edges']['Document'].values() )
+                totaldococcs = sum( ng['edges']['Document'].values() )
                 corpedges = len( ng['edges']['Corpus'].keys() )
                 totalcorpoccs= sum( ng['edges']['Corpus'].values() )
                 occs=int(occs)

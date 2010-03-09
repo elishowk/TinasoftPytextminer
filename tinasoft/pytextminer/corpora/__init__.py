@@ -73,7 +73,7 @@ class Extractor():
                     storedDoc = self.storage.loadDocument( document['id'] )
                     if storedDoc is not None:
                         # add the doc-corpus edge if possible
-                        storedDoc.addEgde( 'Corpus', corpusNum, 1 )
+                        storedDoc.addEdge( 'Corpus', corpusNum, 1 )
                         # force update
                         self.storage.updateDocument( storedDoc, True )
                         _logger.debug( "Skipping Document %s : \
