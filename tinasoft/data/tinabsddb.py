@@ -734,6 +734,8 @@ class Engine(Backend):
                 if corpId in storedNGram['edges']['Corpus']:
                     del storedNGram['edges']['Corpus'][corpId]
                 # NOTE : document edges are protected
+                if docId in storedNGram['edges']['Document']:
+                    del storedNGram['edges']['Document'][corpId]
             ngObj = self.updateEdges( ngObj, storedNGram, ['Corpus','Document'] )
         return self._ngramQueue( ngObj['id'], ngObj )
 
