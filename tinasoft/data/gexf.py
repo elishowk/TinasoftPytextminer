@@ -36,7 +36,10 @@ class Exporter (GEXFHandler):
     Gexf Engine
     """
 
-    def ngramCoocGraph(self, db, periods, threshold=[0,9999999999999999],\
+    def getProximity( self, cooc, occ1, occ2, alpha=0.01 ):
+        return ( float(cooc) / float(occ1) )**alpha * (float(cooc) / float(occ2) )
+
+    def ngramCoocGraph(self, db, periods, threshold=[0,1],\
             meta={}, whitelist=None, degreemax=None):
         """uses Cooc from database to write a cooc graph for a given list of periods"""
         if len(periods) == 0: return
@@ -55,7 +58,6 @@ class Exporter (GEXFHandler):
             corp = db.loadCorpus(period)
             # gets the database cursor for the current period
             generator = db.selectCorpusCooc(period)
-            #_logger.error("ng_id,ng_label,ng_edges_corp_occ,corp_edges_ng_occ,cooc")
             try:
                 while i:
                     ngid1,row = generator.next()
@@ -120,8 +122,8 @@ class Exporter (GEXFHandler):
                             continue
 
                         # calculates the nodes proximity
-                        w = ( float(cooc) / float(occ1) )**0.01 * (float(cooc) / float(occ2) )
-                        #print "(%s,%s) : %s = (%s / %s)**0.01*(%s / %s)" % (ngram1['label'],ngram2['label'],w,cooc,occs[ngid1],cooc,occs[ngid2])
+                        # TODO proximity function from config
+                        w = getProximity( cooc, occ1, occ2 )
 
                         # filters proximity
                         if threshold[0] <= w and w <= threshold[1]:
@@ -132,8 +134,6 @@ class Exporter (GEXFHandler):
 
             # End of database cursor handler
             except StopIteration:
-
-                # FIXME only checks the data and logs it
                 # TODO filters N nearest neighbours
                 #for nodesource,row in nodes.iteritems():
                 #    for nodetarget,cooc in row['cooc'].iteritems():
