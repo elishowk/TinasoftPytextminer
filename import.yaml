@@ -23,3 +23,4 @@ ngramMin: 1
 ngramMax: 4
 stopwords: 'shared/stopwords/en.txt'
 userstopwords: '/home/elishowk/TINA/Datas/100224-fetopen-user-stopwords.csv'
+overwrite: 0

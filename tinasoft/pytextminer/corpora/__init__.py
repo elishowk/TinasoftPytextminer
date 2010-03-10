@@ -76,8 +76,7 @@ class Extractor():
                         storedDoc.addEdge( 'Corpus', corpusNum, 1 )
                         # force update
                         self.storage.updateDocument( storedDoc, True )
-                        _logger.debug( "Skipping Document %s : \
-                            already in DB, only updating edges"%document['id'] )
+                        _logger.debug( "Skipping Document %s : already in DB, only updating edges"%document['id'] )
                         # skip document
                         continue
 
@@ -95,14 +94,14 @@ class Extractor():
             for corpusObj in self.reader.corpusDict.values():
                 self.storage.updateCorpus( corpusObj, overwrite )
             self.storage.flushNGramQueue()
+            self.storage.ngramindex = []
             self.storage.commitAll()
             return
 
     def extractNGrams( self, document, corpusNum, ngramMin,\
         ngramMax, filters, stopwords, overwrite ):
         """"Main NLP operations on a document THAT IS NOT ALREADY IN DATABASE"""
-        _logger.debug(tokenizer.TreeBankWordTokenizer.__name__+\
-            " is extracting document "+ document['id'])
+        _logger.debug( "%s is extracting document %s (overwrite=%s)"%(tokenizer.TreeBankWordTokenizer.__name__, document['id'], str(overwrite)) )
         # extract filtered ngrams
         docngrams = tokenizer.TreeBankWordTokenizer.extract( document,\
             stopwords, ngramMin, ngramMax, filters )
@@ -117,7 +116,7 @@ class Extractor():
             document.addEdge( 'NGram', ng['id'], docOccs )
             self.reader.corpusDict[ corpusNum ].addEdge( 'NGram', ngid, 1 )
             # queue the update of the ngram
-            self.storage.updateNGram( ng, overwrite )
-        # update or create document into storage
+            self.storage.updateNGram( ng, overwrite, document['id'], corpusNum )
+        # creates or OVERWRITES document into storage
         self.storage.insertDocument( document, overwrite=True )
         self.storage.flushNGramQueue()

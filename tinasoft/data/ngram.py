@@ -195,7 +195,8 @@ class Exporter(basecsv.Exporter):
 
     def logIntegrity( self, type ):
         for id, obj in self.integrity[type].iteritems():
-            _logger.error( "%s %s has errors"%(type,id) )
+            msg = "\n".join(obj)
+            _logger.error( "%s %s has errors\n%s"%(type,id,msg) )
 
     def exportCorpora(self, storage, periods, corporaid, filters=None, whitelist=None):
         """exports selected periods=corpus in a corpora, synthetize importFile()"""

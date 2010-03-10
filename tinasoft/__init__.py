@@ -162,7 +162,6 @@ class TinaApp():
             self.config['ngramMin'], self.config['ngramMax'], \
             self.stopwords, overwrite=overwrite
         )
-        self.logger.debug( extractor.corpora )
         return extractor.corpora
 
     def exportCorpora(self, periods, corporaid, synthesispath=None, \
@@ -266,7 +265,7 @@ class ThreadPool:
 
     def setThreadCount(self, newNumThreads):
 
-        """ External method to set the current pool size.  Acquires
+        """ External method to set the current pool size. Acquires
         the resizing lock, then calls the internal version to do real
         work."""
 

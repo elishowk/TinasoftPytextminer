@@ -40,7 +40,7 @@ class Importer (basecsv.Importer):
                 corpusNumber = self.decode( doc[self.fields['corpusNumberField']] )
                 del tmpfields['corpusNumberField']
             except Exception, exc:
-                _logger.error( "parsing error : corpus number is required at line %d"%line )
+                _logger.error( "parsing error : corpus number is required at line %d"%self.line )
                 _logger.error( exc )
                 continue
             # TODO check if corpus already exists

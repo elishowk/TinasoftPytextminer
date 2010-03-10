@@ -705,7 +705,7 @@ class Engine(Backend):
         self.flushCoocQueue()
         self.flushNGramQueue()
         self.ngramindex= []
-        _logger.debug("flushing ngram and cooc queues")
+        _logger.debug("flushing ngram and cooc queues and indices")
 
     def _ngramQueue( self, id, ng ):
         """
@@ -718,18 +718,22 @@ class Engine(Backend):
         return queue
 
 
-    def updateNGram( self, ngObj, overwrite ):
+    def updateNGram( self, ngObj, overwrite, docId, corpId ):
         """updates or overwrite a ngram and associations"""
         # overwrites while ngrams is not in self.ngramindex
         # if ngram is already into queue, flushes it to permit incremental updates
         if ngObj['id'] in self.ngramqueueindex:
             self.flushNGramQueue()
-        # if overwriting and NGram yet NOT in the current index
-        if overwrite is True and ngObj['id'] not in self.ngramindex:
-            return self._ngramQueue( ngObj['id'], ngObj )
         # else updates NGram
         storedNGram = self.loadNGram( ngObj['id'] )
         if storedNGram is not None:
+            # if overwriting and NGram yet NOT in the current index
+            if overwrite is True and ngObj['id'] not in self.ngramindex:
+                _logger.debug( "overwriting ngram %s"%ngObj['id'] )
+                # cleans current corpus edges
+                if corpId in storedNGram['edges']['Corpus']:
+                    del storedNGram['edges']['Corpus'][corpId]
+                # NOTE : document edges are protected
             ngObj = self.updateEdges( ngObj, storedNGram, ['Corpus','Document'] )
         return self._ngramQueue( ngObj['id'], ngObj )
 
