@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from tinasoft import TinaApp
 from tinasoft.data import basecsv
 from tinasoft.pytextminer import document, corpus, tokenizer
 import codecs
@@ -34,6 +35,7 @@ class Importer (basecsv.Importer):
         self.line = 0
         for doc in self.csv:
             self.line += 1
+            TinaApp.notify( None, 'tinasoft_runImportFile_running_status', str(self.line) )
             tmpfields=dict(self.fields)
             # decoding & parsing TRY
             try:

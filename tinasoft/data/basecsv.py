@@ -6,9 +6,6 @@ import csv
 from datetime import datetime
 import logging
 _logger = logging.getLogger('TinaAppLogger')
-#corpusID;docID;docAuthor;docTitle;docAbstract;index1;index2
-
-#class CsvKeyError(KeyError): pass
 
 class Exporter (Exporter):
 

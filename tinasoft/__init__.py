@@ -41,6 +41,15 @@ class DBInconsistency(Exception): pass
 
 class TinaApp():
     """ base class for a tinasoft.pytextminer application"""
+
+    STATUS_RUNNING = 0
+    STATUS_ERROR = -1
+    STATUS_OK = 100
+
+    @staticmethod
+    def notify( subject, msg, data ):
+        pass
+
     def __init__(
         self,
         configFile='config.yaml',
@@ -49,14 +58,11 @@ class TinaApp():
         stopw=None,
         index=None):
 
-        # import config yaml
+        # import config yaml to self.config
         try:
             self.config = yaml.safe_load( file( configFile, 'rU' ) )
         except yaml.YAMLError, exc:
-            return
-
-        # Set up user generated data directory
-        self.user = self.config['user']
+            return self.STATUS_ERROR
 
         # Set up a specific logger with our desired output level
         self.LOG_FILENAME = self.config['log']
@@ -106,14 +112,13 @@ class TinaApp():
             self.index = indexer.TinaIndex(self.config['index'])
         else:
             self.index = indexer.TinaIndex(index)
-        self.logger.debug("Starting TinaApp")
+        self.logger.debug("TinaApp started")
 
     def serialize(self, obj):
         return jsonpickle.encode(obj)
 
     def deserialize(self, str):
         return jsonpickle.decode(str)
-
 
     def importFile(self,
             path,
@@ -123,15 +128,15 @@ class TinaApp():
             format= 'tina',
             overwrite=False,
         ):
-        """tina file import method"""
+        """tina csv file import controller"""
         try:
             # import import config yaml
-            self.config = yaml.safe_load( file( configFile, 'rU' ) )
+            self.importConfig = yaml.safe_load( file( configFile, 'rU' ) )
         except yaml.YAMLError, exc:
             self.logger.error( "Unable to read the importFile special config : " + exc)
             return
         # load Stopwords object
-        self.stopwords = stopwords.StopWords( "file://%s" % self.config['stopwords'] )
+        self.stopwords = stopwords.StopWords( "file://%s" % self.importConfig['stopwords'] )
         # load default filters (TODO put it into import.yaml !!)
         filtertag = ngram.PosTagFilter()
         filterContent = ngram.Filter()
@@ -143,26 +148,23 @@ class TinaApp():
             index = None
         # loads the source file
         dsn = format+"://"+path
-        #self.logger.debug(dsn)
+
         fileReader = Reader( dsn,
-            delimiter = self.config['delimiter'],
-            quotechar = self.config['quotechar'],
-            locale = self.config['locale'],
-            fields = self.config['fields']
+            delimiter = self.importConfig['delimiter'],
+            quotechar = self.importConfig['quotechar'],
+            locale = self.importConfig['locale'],
+            fields = self.importConfig['fields']
         )
-        # loads or creates corpora
-        #corporaObj = self.storage.loadCorpora(corpora_id)
-        #if corporaObj is not None:
 
         corporaObj = corpora.Corpora(corpora_id)
 
         # instanciate extractor class
         extractor = corpora.Extractor( fileReader, corporaObj, self.storage )
         extractor.walkFile( index, defaultextractionfilters, \
-            self.config['ngramMin'], self.config['ngramMax'], \
+            self.importConfig['ngramMin'], self.importConfig['ngramMax'], \
             self.stopwords, overwrite=overwrite
         )
-        return extractor.corpora
+        return self.STATUS_OK
 
     def exportCorpora(self, periods, corporaid, synthesispath=None, \
         whitelist=None, userfilters=None, **kwargs):
@@ -170,8 +172,9 @@ class TinaApp():
         if synthesispath is None:
             synthesis = self.config['user']
         exporter = Writer('ngram://'+synthesispath, **kwargs)
-        return exporter.exportCorpora( self.storage, periods, corporaid, \
-            userfilters, whitelist )
+        if exporter.exportCorpora( self.storage, periods, corporaid, \
+            userfilters, whitelist ) is not None:
+            return self.STATUS_OK
 
     def getWhitelist(self, filepath, **kwargs):
         """
@@ -195,7 +198,7 @@ class TinaApp():
             except Warning, warn:
                 self.logger.warning( "Corpus %s does not exists"%corpusid )
                 continue
-        return corporaid
+        return self.STATUS_OK
 
     def exportGraph(self, path, periods, threshold, whitelist=None, degreemax=None):
         """
@@ -213,7 +216,7 @@ class TinaApp():
         #fileid = "%s-%s_"%(threshold[0],threshold[1])
         #path = fileid+path
         open(path, 'wb').write(GEXF)
-        return path
+        return STATUS_ERROR
 
     def exportCooc(self, path, periods, whitelist, **kwargs):
         """
