@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from tinasoft import TinaApp
 from tinasoft.data import basecsv
 from tinasoft.pytextminer import tokenizer, tagger, cooccurrences
 import logging
@@ -206,16 +207,25 @@ class Exporter(basecsv.Exporter):
         self.writeRow(["status","label","pos tag","length","corpus-ngram w","^length",\
             "ng-doc edges","ng-doc w sum","doc list","ng-corpus edges",\
             "ng-corp w sum","corp list","db ID","corpus ID","corpora ID"])
-        totalcount=0
+
+        # basic counters
+        ngramcount=0
+        ngramtotal=0
+
+        corpuscache = []
+
         for corpusid in periods:
             # gets a corpus from the generator
             corpusobj = storage.loadCorpus(corpusid)
             if self.corpusIntegrity( corpusid, corpusobj ) is False: continue
+            ngramtotal += len( corpusobj['edges']['NGram'].keys() )
+            corpuscache += [corpusobj]
+
+        for corpusobj in corpuscache:
             # goes over every ngram in the corpus
             for ngid, occs in corpusobj['edges']['NGram'].iteritems():
                 ng = storage.loadNGram(ngid)
                 if self.ngramIntegrity( ng, ngid ) is False : continue
-                totalcount += 1
 
                 # prepares the row
                 tag = " ".join ( tagger.TreeBankPosTagger.getTag( ng['postag'] ) )
@@ -248,9 +258,15 @@ class Exporter(basecsv.Exporter):
                     row[0] = self.accept
                 # writes the row to the file
                 self.writeRow(row)
+                ngramcount += 1
+                # notifies progression
+                TinaApp.notify( None,
+                    'tinasoft_runExportCorpora_running_status',
+                    str((ngramcount*100)/ngramtotal)
+                )
             _logger.debug( "corpus %s ngrams edges count = %d"%(corpusid,len(corpusobj['edges']['NGram'].keys())) )
         self.logIntegrity('Corpus')
         self.logIntegrity('Document')
         self.logIntegrity('NGram')
-        _logger.debug( "Total ngrams exported = %d"%(totalcount) )
+        _logger.debug( "Total ngrams exported = %d"%(ngramcount) )
         return self.filepath
