@@ -201,10 +201,11 @@ class TinaApp():
                 cooc.walkCorpus()
                 cooc.writeMatrix(True)
             except Warning, warn:
-                self.logger.warning( "Corpus %s does not exists"%corpusid )
+                self.logger.warning( "Corpus %s does not exists"%id  )
                 continue
             except Exception, exc:
-                self.logger.error( "error during cooc processing of corpus %s"%corpusid )
+                self.logger.error( "error during cooc processing of corpus %s"%id )
+                print "Exception !", exc
                 self.logger.error( exc )
                 return self.STATUS_ERROR
         return self.STATUS_OK

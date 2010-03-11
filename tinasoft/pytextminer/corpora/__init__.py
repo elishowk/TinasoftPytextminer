@@ -96,7 +96,7 @@ class Extractor():
             self.storage.flushNGramQueue()
             self.storage.ngramindex = []
             self.storage.commitAll()
-            return
+            return True
 
     def extractNGrams( self, document, corpusNum, ngramMin,\
         ngramMax, filters, stopwords, overwrite ):
@@ -120,3 +120,4 @@ class Extractor():
         # creates or OVERWRITES document into storage
         self.storage.insertDocument( document, overwrite=True )
         self.storage.flushNGramQueue()
+        self.storage.commitAll()

@@ -2,6 +2,7 @@
 __author__="Elias Showk"
 
 #from multiprocessing import Process, Queue, Manager
+import tinasoft
 from tinasoft.pytextminer import corpus
 from datetime import date
 #from threading import Thread
@@ -58,16 +59,23 @@ class MapReduce():
 
     def walkCorpus(self):
         """processes a list of documents into a corpus"""
+        totaldocs = len(self.corpus['edges']['Document'].keys())
+        doccount = 0
         for doc_id in self.corpus['edges']['Document']:
             obj = self.storage.loadDocument( doc_id )
             if obj is not None:
                 mapgenerator = self.mapper(obj)
                 try:
                     # documents loop
-                    while 1 :
+                    while mapgenerator:
                         term_map = mapgenerator.next()
                         self.reducer( term_map )
                 except StopIteration, si: pass
+            doccount += 1
+            tinasoft.TinaApp.notify( None,
+                'tinasoft_runProcessCoocGraph_running_status',
+                'processed cooccurrences for %d of %d documents in period %s'%(doccount,totaldocs,self.corpusid)
+            )
 
     def filterNGrams(self, ngrams):
         """
@@ -108,12 +116,6 @@ class MapReduce():
         map = term_map[1]
 
         self.watcher = ng1
-        #if self.watcher == '987366822206555044':
-        #    _logger.debug( "BEFORE ==== " + self.watcher )
-        #    _logger.debug( self.matrix.get(self.watcher) )
-        #if self.watcher == '8818667644350330404':
-        #    _logger.debug( "BEFORE ==== " + self.watcher )
-        #    _logger.debug( self.matrix.get('987366822206555044') )
 
         # key is the processed ngram
         #if ng1 not in self.matrix:
@@ -128,23 +130,22 @@ class MapReduce():
             self.matrix.set( ng1, ngi )
             #self.matrix[ng1][ngi] += ngicooc
 
-        #if self.watcher == '987366822206555044':
-        #    _logger.debug( "AFTER ==== " + self.watcher )
-        #    _logger.debug( self.matrix.get(self.watcher) )
-        #if self.watcher == '8818667644350330404':
-        #   _logger.debug( "AFTER ==== " + self.watcher )
-        #    _logger.debug( self.matrix.get('987366822206555044') )
 
     def writeMatrix(self, overwrite=True):
         """
         writes in the db rows of the matrix
         'Cooc::corpus::ngramid' => '{ 'ngx' : y, 'ngy': z }'
         """
+        tinasoft.TinaApp.notify( None,
+            'tinasoft_runProcessCoocGraph_running_status',
+            'writing cooccurrences in database'
+        )
         if self.corpusid is not None:
             key = self.corpusid+'::'
         else:
             return
         countng = 0
+        totalrows = len(self.matrix.reverse.keys())
         #for ng in self.matrix:
         countcooc = 0
         #for destng in self.matrix[ng].iterkeys():
@@ -153,17 +154,24 @@ class MapReduce():
                 #self.countDoc( ng )
         for ngi in self.matrix.reverse.iterkeys():
             row = {}
-            countng += 1
             for ngj in self.matrix.reverse.iterkeys():
                 cooc = self.matrix.get( ngi, ngj )
                 if cooc > 0:
                     countcooc += 1
                     row[ngj] = cooc
             self.storage.updateCooc( key+ngi, row, overwrite )
+            countng += 1
+            #if (countng % 100) == 0:
+            #    tinasoft.TinaApp.notify( None,
+            #        'tinasoft_runProcessCoocGraph_running_status',
+            #        'processed %d / %d cooccurrences'%(countng,totalrows)
+            #    )
         self.storage.flushCoocQueue()
         self.storage.commitAll()
-        _logger.debug( "%d ngram processed & %d non-zero cooccurrences found"\
-            %(countng,countcooc) )
+        tinasoft.TinaApp.notify( None,
+            'tinasoft_runProcessCoocGraph_running_status',
+            'stored %d non-zero cooccurrences values'%(countcooc)
+        )
 
     def readMatrix( self ):
         nodes = {}

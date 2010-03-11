@@ -73,13 +73,17 @@ class Exporter(basecsv.Exporter):
     options = {
         'statusCol': 'status',
         'dbidCol': 'db ID',
-        'occsCol': 'occurences',
+        'occsCol': "corpus-ngram w",
         'labelCol': 'label',
         'accept': 'w',
         'refuse': 's',
         'encoding': 'utf-8',
         'integrity': { 'NGram' : {}, 'Document': {}, 'Corpus': {} },
     }
+
+    columns = ["status","label","pos tag","length","corpus-ngram w","^length",\
+            "ng-doc edges","ng-doc w sum","doc list","ng-corpus edges",\
+            "ng-corp w sum","corp list","db ID","corpus ID","corpora ID"]
 
     def exportNGrams(self): pass
 
@@ -133,66 +137,78 @@ class Exporter(basecsv.Exporter):
 
     def ngramIntegrity( self, ng, ngid ):
         """checks and logs ngrams object"""
-        if ng is None:
-            #_logger.error( "NGram %s not in DB"%ngid )
-            #_logger.error( ng )
-            if ngid not in self.integrity['NGram']:
-                 self.integrity['NGram'][ngid] = []
-            self.integrity['NGram'][ngid] += ["NGram %s not in DB"%ngid]
-            return False
-        if 'Document' not in ng['edges']:
-            #_logger.error( "NGram %s inconsistent, no Document edges"%ngid )
-            #_logger.error( ng )
-            if ngid not in self.integrity['NGram']:
-                 self.integrity['NGram'][ngid] = []
-            self.integrity['NGram'][ngid] += ["NGram %s inconsistent, no Document edges"%ngid]
-            return False
-        if 'Corpus' not in ng['edges']:
-            #_logger.error( "NGram %s inconsistent, no Corpus edges"%ngid )
-            #_logger.error( ng )
-            if ngid not in self.integrity['NGram']:
-                 self.integrity['NGram'][ngid] = []
-            self.integrity['NGram'][ngid] += ["NGram %s inconsistent, no Corpus edges"%ngid]
-            return False
-        return True
+        try:
+            if ng is None:
+                #_logger.error( "NGram %s not in DB"%ngid )
+                #_logger.error( ng )
+                if ngid not in self.integrity['NGram']:
+                     self.integrity['NGram'][ngid] = []
+                self.integrity['NGram'][ngid] += ["NGram %s not in DB"%ngid]
+                return False
+            if 'Document' not in ng['edges']:
+                #_logger.error( "NGram %s inconsistent, no Document edges"%ngid )
+                #_logger.error( ng )
+                if ngid not in self.integrity['NGram']:
+                     self.integrity['NGram'][ngid] = []
+                self.integrity['NGram'][ngid] += ["NGram %s inconsistent, no Document edges"%ngid]
+                return False
+            if 'Corpus' not in ng['edges']:
+                #_logger.error( "NGram %s inconsistent, no Corpus edges"%ngid )
+                #_logger.error( ng )
+                if ngid not in self.integrity['NGram']:
+                     self.integrity['NGram'][ngid] = []
+                self.integrity['NGram'][ngid] += ["NGram %s inconsistent, no Corpus edges"%ngid]
+                return False
+            return True
+        except Exception, exc:
+            return True
 
     def docIntegrity( self, docid, storedDoc ):
         """checks and logs document object"""
-        if storedDoc is None:
-            #_logger.error("document object not found " + docid)
-            if docid not in self.integrity['Document']:
-                self.integrity['Document'][docid] = []
-            self.integrity['Document'][docid] += ["document object not found " + docid]
-            return False
-        return True
+        try:
+            if storedDoc is None:
+                #_logger.error("document object not found " + docid)
+                if docid not in self.integrity['Document']:
+                    self.integrity['Document'][docid] = []
+                self.integrity['Document'][docid] += ["document object not found " + docid]
+                return False
+            return True
+        except Exception, exc:
+            return True
 
     def corpusIntegrity( self, corpusobj, corpusid ):
         """checks and logs corpus object"""
-        if corpusobj is None:
-            #_logger.error("unknown corpus %s"%str(corpusid))
-            if corpusid not in self.integrity['Corpus']:
-                self.integrity['Corpus'][corpusid] = []
-            self.integrity['Corpus'][corpusid] +=  ["unknown corpus %s"%str(corpusid)]
-            return False
-        return True
+        try:
+            if corpusobj is None:
+                #_logger.error("unknown corpus %s"%str(corpusid))
+                if corpusid not in self.integrity['Corpus']:
+                    self.integrity['Corpus'][corpusid] = []
+                self.integrity['Corpus'][corpusid] +=  ["unknown corpus %s"%str(corpusid)]
+                return False
+            return True
+        except Exception, exc:
+            return True
 
     def ngramEdgesIntegrity( self, ngid, ng, docid, storedDoc, corpusid, occs ):
         """checks and logs ngram edges"""
-        if self.docIntegrity( docid, storedDoc ) is False: return False
-        if ngid not in storedDoc['edges']['NGram']:
-            if ngid not in self.integrity['NGram']:
-                self.integrity['NGram'][ngid] = []
-            self.integrity['NGram'][ngid] += ["NGram %s not found in the document %"%(ngid,docid)]
-        if ng['edges']['Document'][docid] != storedDoc['edges']['NGram'][ng['id']]:
-            if ngid not in self.integrity['NGram']:
-                self.integrity['NGram'][ngid] = []
-            self.integrity['NGram'][ngid] += [ "document-ngram weight inconsistency (doc=%s, ng=%s)"%(docid,ngid) ]
+        try:
+            if self.docIntegrity( docid, storedDoc ) is False: return False
+            if ngid not in storedDoc['edges']['NGram']:
+                if ngid not in self.integrity['NGram']:
+                    self.integrity['NGram'][ngid] = []
+                self.integrity['NGram'][ngid] += ["NGram %s not found in the document %"%(ngid,docid)]
+            if ng['edges']['Document'][docid] != storedDoc['edges']['NGram'][ng['id']]:
+                if ngid not in self.integrity['NGram']:
+                    self.integrity['NGram'][ngid] = []
+                self.integrity['NGram'][ngid] += [ "document-ngram weight inconsistency (doc=%s, ng=%s)"%(docid,ngid) ]
 
-        if ng['edges']['Corpus'][corpusid] != occs:
-            if ngid not in self.integrity['NGram']:
-                self.integrity['NGram'][ngid] = []
-            self.integrity['NGram'][ngid] += [ "corpus-ngram weight (in ng %s != in corp %s) inconsistency (corp=%s, ng=%s)"%(str(ng['edges']['Corpus'][corpusid]),str(occs),corpusid,ngid) ]
-        return True
+            if ng['edges']['Corpus'][corpusid] != occs:
+                if ngid not in self.integrity['NGram']:
+                    self.integrity['NGram'][ngid] = []
+                self.integrity['NGram'][ngid] += [ "corpus-ngram weight (in ng %s != in corp %s) inconsistency (corp=%s, ng=%s)"%(str(ng['edges']['Corpus'][corpusid]),str(occs),corpusid,ngid) ]
+            return True
+        except Exception, exc:
+            return True
 
     def logIntegrity( self, type ):
         for id, obj in self.integrity[type].iteritems():
@@ -204,9 +220,7 @@ class Exporter(basecsv.Exporter):
         #rows={}
         _logger.debug("starting to export to %s"%self.filepath)
 
-        self.writeRow(["status","label","pos tag","length","corpus-ngram w","^length",\
-            "ng-doc edges","ng-doc w sum","doc list","ng-corpus edges",\
-            "ng-corp w sum","corp list","db ID","corpus ID","corpora ID"])
+        self.writeRow(self.columns)
 
         # basic counters
         ngramcount=0
@@ -215,7 +229,7 @@ class Exporter(basecsv.Exporter):
         corpuscache = []
 
         for corpusid in periods:
-            # gets a corpus from the generator
+            # gets a corpus from the storage
             corpusobj = storage.loadCorpus(corpusid)
             if self.corpusIntegrity( corpusid, corpusobj ) is False: continue
             ngramtotal += len( corpusobj['edges']['NGram'].keys() )
@@ -262,7 +276,7 @@ class Exporter(basecsv.Exporter):
                 # notifies progression
                 TinaApp.notify( None,
                     'tinasoft_runExportCorpora_running_status',
-                    str((ngramcount*100)/ngramtotal)
+                    str(float( (ngramcount*100) / ngramtotal ))
                 )
             _logger.debug( "corpus %s ngrams edges count = %d"%(corpusid,len(corpusobj['edges']['NGram'].keys())) )
         self.logIntegrity('Corpus')
