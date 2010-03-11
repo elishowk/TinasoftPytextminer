@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import tinasoft
 from tinasoft.data import Exporter
 import datetime
 
@@ -59,7 +60,7 @@ class Exporter (GEXFHandler):
             # gets the database cursor for the current period
             generator = db.selectCorpusCooc(period)
             try:
-                while i:
+                while 1:
                     ngid1,row = generator.next()
                     if i % 25 == 0: _logger.debug( "%d graph nodes processed"%i )
 
@@ -123,14 +124,14 @@ class Exporter (GEXFHandler):
 
                         # calculates the nodes proximity
                         # TODO proximity function from config
-                        w = getProximity( cooc, occ1, occ2 )
+                        w = self.getProximity( cooc, occ1, occ2 )
 
                         # filters proximity
                         if threshold[0] <= w and w <= threshold[1]:
                             nodes[ngid1]['weight'][ngid2] = w
                     i+=1
                 # FIXME debugging with eg : while i < debuglimit
-                raise StopIteration
+                #raise StopIteration
 
             # End of database cursor handler
             except StopIteration:
@@ -157,8 +158,9 @@ class Exporter (GEXFHandler):
             except Exception, e:
                 import sys,traceback
                 traceback.print_exc(file=sys.stdout)
+                return tinasoft.TinaApp.STATUS_ERROR
         # renders gexf
-        self.engine.render(self.template,gexf)
+        return self.engine.render(self.template,gexf)
 
 
     # appellee avec selectCorpusCooc

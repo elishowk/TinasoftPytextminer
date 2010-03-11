@@ -43,8 +43,8 @@ class TinaApp():
     """ base class for a tinasoft.pytextminer application"""
 
     STATUS_RUNNING = 0
-    STATUS_ERROR = -1
-    STATUS_OK = 100
+    STATUS_ERROR = 666
+    STATUS_OK = 1
 
     @staticmethod
     def notify( subject, msg, data ):
@@ -74,7 +74,8 @@ class TinaApp():
         # Add the log message handler to the logger
         rotatingFileHandler = logging.handlers.RotatingFileHandler(
             filename=self.LOG_FILENAME,
-            maxBytes=100000000, backupCount=5
+            maxBytes=100000000,
+            backupCount=5
         )
         # formatting
         formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
@@ -107,7 +108,7 @@ class TinaApp():
         else:
             self.storage = Engine(storage)
 
-        # connect to text-index
+        # connect to text-indexer
         if index is None:
             self.index = indexer.TinaIndex(self.config['index'])
         else:
@@ -160,11 +161,13 @@ class TinaApp():
 
         # instanciate extractor class
         extractor = corpora.Extractor( fileReader, corporaObj, self.storage )
-        extractor.walkFile( index, defaultextractionfilters, \
+        if extractor.walkFile( index, defaultextractionfilters, \
             self.importConfig['ngramMin'], self.importConfig['ngramMax'], \
             self.stopwords, overwrite=overwrite
-        )
-        return self.STATUS_OK
+        ) is True:
+            return self.STATUS_OK
+        else:
+            return self.STATUS_ERROR
 
     def exportCorpora(self, periods, corporaid, synthesispath=None, \
         whitelist=None, userfilters=None, **kwargs):
@@ -175,6 +178,8 @@ class TinaApp():
         if exporter.exportCorpora( self.storage, periods, corporaid, \
             userfilters, whitelist ) is not None:
             return self.STATUS_OK
+        else:
+            return self.STATUS_ERROR
 
     def getWhitelist(self, filepath, **kwargs):
         """
@@ -185,7 +190,7 @@ class TinaApp():
         whitelist = importer.importNGrams()
         return whitelist
 
-    def processCooc(self, whitelist, corporaid, periods, userfilters ):
+    def processCooc(self, whitelist, corporaid, periods, userfilters, *opts ):
         """
         Main function importing a whitelist and generating cooccurrences
         process cooccurrences for each period=corpus
@@ -198,6 +203,10 @@ class TinaApp():
             except Warning, warn:
                 self.logger.warning( "Corpus %s does not exists"%corpusid )
                 continue
+            except Exception, exc:
+                self.logger.error( "error during cooc processing of corpus %s"%corpusid )
+                self.logger.error( exc )
+                return self.STATUS_ERROR
         return self.STATUS_OK
 
     def exportGraph(self, path, periods, threshold, whitelist=None, degreemax=None):
@@ -213,10 +222,17 @@ class TinaApp():
             whitelist = whitelist,
             degreemax = degreemax
         )
+        if GEXF == self.STATUS_ERROR:
+            print "GEXF", GEXF
+            return self.STATUS_ERROR
         #fileid = "%s-%s_"%(threshold[0],threshold[1])
         #path = fileid+path
+        TinaApp.notify( None,
+            'tinasoft_runProcessCoocGraph_running_status',
+            'writing gexf to file %s'%path
+        )
         open(path, 'wb').write(GEXF)
-        return STATUS_ERROR
+        return self.STATUS_OK
 
     def exportCooc(self, path, periods, whitelist, **kwargs):
         """
