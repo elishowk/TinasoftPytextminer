@@ -197,17 +197,21 @@ class TinaApp():
         """
         for id in periods:
             try:
-                cooc = cooccurrences.MapReduce(self.storage, corpusid=id, filter=userfilters, whitelist=whitelist)
-                cooc.walkCorpus()
-                cooc.writeMatrix(True)
-            except Warning, warn:
-                self.logger.warning( "Corpus %s does not exists"%id  )
+                cooc = cooccurrences.MapReduce(self.storage, whitelist, \
+                corpusid=id, filter=userfilters )
+            except Warning, warner:
                 continue
-            except Exception, exc:
-                self.logger.error( "error during cooc processing of corpus %s"%id )
-                print "Exception !", exc
-                self.logger.error( exc )
-                return self.STATUS_ERROR
+            if cooc.walkCorpus() is False:
+                tinasoft.TinaApp.notify( None,
+                'tinasoft_runProcessCoocGraph_running_status',
+                self.serialize( self.STATUS_ERROR )
+                )
+            if cooc.writeMatrix(True) is False:
+                tinasoft.TinaApp.notify( None,
+                'tinasoft_runProcessCoocGraph_running_status',
+                self.serialize( self.STATUS_ERROR )
+                )
+            del cooc
         return self.STATUS_OK
 
     def exportGraph(self, path, periods, threshold, whitelist=None, degreemax=None):

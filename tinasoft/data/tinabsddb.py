@@ -111,7 +111,7 @@ class Backend(Handler):
         dbmode = 0660
         dbsetflags   = 0
         # number of locks, lockers and objects
-        self.__locks = 1000
+        self.__locks = 3000
         # when closing is True, no new transactions are allowed
         self.__closing = False
         # Each thread is responsible for a single transaction
@@ -171,12 +171,14 @@ class Backend(Handler):
     def sync(self):
         """modified from http://www.rdflib.net/"""
         if self.__open:
+            #_logger.debug( self.db_env.memp_stat() )
             self._db.sync()
 
     def commitAll(self):
         # wait for transactions to finish
         self.closeAllTxn(commit_pending_transaction=True, commit_root=False)
         self.closeAllTxn(commit_pending_transaction=True, commit_root=True)
+        self.__needs_sync = True
 
     def closeAllTxn(self, commit_pending_transaction=True, commit_root=False):
         # this should close all existing transactions, not only by this thread,
@@ -729,13 +731,13 @@ class Engine(Backend):
         if storedNGram is not None:
             # if overwriting and NGram yet NOT in the current index
             if overwrite is True and ngObj['id'] not in self.ngramindex:
-                _logger.debug( "overwriting ngram %s"%ngObj['id'] )
+                #_logger.debug( "overwriting ngram %s"%ngObj['id'] )
                 # cleans current corpus edges
                 if corpId in storedNGram['edges']['Corpus']:
                     del storedNGram['edges']['Corpus'][corpId]
                 # NOTE : document edges are protected
                 if docId in storedNGram['edges']['Document']:
-                    del storedNGram['edges']['Document'][corpId]
+                    del storedNGram['edges']['Document'][docId]
             ngObj = self.updateEdges( ngObj, storedNGram, ['Corpus','Document'] )
         return self._ngramQueue( ngObj['id'], ngObj )
 

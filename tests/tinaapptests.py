@@ -12,33 +12,31 @@ import random
 from tinasoft import TinaApp
 from tinasoft.pytextminer import stopwords, ngram
 
-class CoocTestCase(unittest.TestCase):
+class TinaAppTestCase(unittest.TestCase):
     def setUp(self):
         self.tinasoft = TinaApp(configFile='config.yaml')
                     #storage='tinabsddb://fetopen.test.bsddb')
         self.config = {}
-        self.config['userstopwords'] = '/home/elishowk/TINA/Datas/100224-fetopen-user-stopwords.csv'
+        self.config['userstopwords'] = 'user/100224-fetopen-user-stopwords.csv'
         self.whitelist = self.tinasoft.getWhitelist(
             #'/home/elishowk/TINA/Datas/100226-pubmed_whitelist.csv'
-            'user/100221-fetopen-filteredngrams.csv',
-            occsCol='occurrences',
-            accept='x'
+            'user/100221-fetopen-filteredngrams.csv'
         )
         self.userstopwordfilter=[stopwords.StopWordFilter( "file://%s" % self.config['userstopwords'] )]
 
     def testAImportFile(self):
         return
         self.tinasoft.importFile(
-            'tests/pubmed_tina_200.csv',
+            'tests/pubmed_tina_1000.csv',
             'import.yaml',
-            'unit test corpora',
+            'pubmed test 1000',
             index=False,
             format='tina',
-            overwrite=True
+            overwrite=False
         )
 
     def testBExportCorpora(self):
-        #return
+        return
         print self.tinasoft.exportCorpora( \
             ['8'], \
             'fet open', \
@@ -49,21 +47,21 @@ class CoocTestCase(unittest.TestCase):
 
     def testCProcessCooc(self):
         return
+        #self.tinasoft.logger.debug ( self.tinasoft.storage.loadCorpora( 'pubmed test 200', raw=1 ) )
         self.tinasoft.processCooc( \
             self.whitelist, \
-            'fet open', \
-            ['8'], \
+            'pubmed test 1000', \
+            ['1','2'], \
             self.userstopwordfilter \
         )
         self.tinasoft.logger.debug( "processCooc test finished " )
 
     def testDExportGraph(self):
-        return
-        path = 'tests/tinaapptests-exportGraph.gexf'
-        periods=['8']
-        threshold=[0.0, 1.0]
-        self.tinasoft.logger.debug( "created : " + \
-            self.tinasoft.exportGraph(path, periods, threshold, self.whitelist) )
+        #return
+        path = 'tests/tinaapptests1000-exportGraph.gexf'
+        periods=['1','2']
+        threshold=[0.5, 1.0]
+        self.tinasoft.exportGraph(path, periods, threshold, self.whitelist)
 
     def testEExportCoocMatrix(self):
         return

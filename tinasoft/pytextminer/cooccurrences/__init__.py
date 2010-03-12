@@ -46,15 +46,15 @@ class MapReduce():
     and returns matrix =
     { 'ngram_id' : {  dictionnary of all 'ngid2' : integer } }
     """
-    def __init__(self, storage, corpusid=None, filter=None, whitelist=None):
+    def __init__(self, storage, whitelist, corpusid=None, filter=None):
         self.storage = storage
         self.filter = filter
         self.corpusid = corpusid
         self.corpus = self.storage.loadCorpus( self.corpusid )
         if self.corpus is None:
-            raise Warning()
-        self.matrix = CoocMatrix(len( self.corpus['edges']['NGram'].keys() ))
+            raise Warning('Corpus not found')
         self.whitelist = whitelist
+        self.matrix = CoocMatrix( len( self.whitelist.keys() ) )
         self.watcher = None
 
     def walkCorpus(self):
