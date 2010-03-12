@@ -39,7 +39,7 @@ class Exporter (GEXFHandler):
 
     def getProximity( self, cooc, occ1, occ2, alpha=0.01 ):
         prox = ( float(cooc) / float(occ1) )**alpha * (float(cooc) / float(occ2))
-        _logger.debug( prox )
+        #_logger.debug( prox )
         return prox
 
     def ngramCoocGraph(self, db, periods, threshold=[0,1],\

@@ -135,7 +135,7 @@ class TinaApp():
             self.importConfig = yaml.safe_load( file( configFile, 'rU' ) )
         except yaml.YAMLError, exc:
             self.logger.error( "Unable to read the importFile special config : " + exc)
-            return
+            return self.STATUS_ERROR
         # load Stopwords object
         self.stopwords = stopwords.StopWords( "file://%s" % self.importConfig['stopwords'] )
         # load default filters (TODO put it into import.yaml !!)
@@ -161,6 +161,7 @@ class TinaApp():
 
         # instanciate extractor class
         extractor = corpora.Extractor( fileReader, corporaObj, self.storage )
+
         if extractor.walkFile( index, defaultextractionfilters, \
             self.importConfig['ngramMin'], self.importConfig['ngramMax'], \
             self.stopwords, overwrite=overwrite

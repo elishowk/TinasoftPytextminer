@@ -629,7 +629,10 @@ class Engine(Backend):
     def select( self, minkey, maxkey=None, raw=False ):
         """Yields raw or unpickled tuples from a range of key"""
         cursor = self.safereadrange( minkey )
-        record = cursor.current()
+        try:
+            record = cursor.current()
+        except db.DBInvalidArgError, dbinv:
+            record = cursor.first()
         while record is not None:
             if maxkey is None:
                 if record[0].startswith(minkey):
@@ -645,6 +648,7 @@ class Engine(Backend):
             else:
                 return
             record = cursor.next()
+        cursor.close()
 
     def deleteCorpus(self, id, delobj=None):
         """deletes a corpus and clean all the associations"""
