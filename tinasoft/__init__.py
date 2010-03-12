@@ -74,8 +74,8 @@ class TinaApp():
         # Add the log message handler to the logger
         rotatingFileHandler = logging.handlers.RotatingFileHandler(
             filename=self.LOG_FILENAME,
-            maxBytes=100000000,
-            backupCount=5
+            maxBytes=100000,
+            backupCount=2
         )
         # formatting
         formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
