@@ -14,7 +14,7 @@ setup(
     #############################################
     ## Distribution Metadata
     name = 'tinasoft',
-    version = '0.6',
+    version = '1.0alpha',
     packages = find_packages(),
     namespace_packages = ['tinasoft'],
 
@@ -27,7 +27,7 @@ setup(
     author_email = 'elishowk@nonutc.fr',
 
     summary = "Tinasoft's Text-Mining module providing Co-Word analysis",
-    url = 'http://github.com/elishowk/PyTextMiner',
+    url = 'http://github.com/elishowk/TinasoftPyTextMiner',
     license = 'GNU GPL v3',
 
     #url = PyTextMiner.__url__,
