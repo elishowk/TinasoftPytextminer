@@ -28,10 +28,10 @@ class CoocTestCase(unittest.TestCase):
            'description' : "ngram GEXF graph test",
            'creators' : ['Julian bilcke', 'Elias Showk'],
         }
-        threshold=[0.4, 0.9999]
+        threshold=[0.7, 1.0]
         gexfstring = Writer('gexf://').ngramDocGraph(
             self.tinasoft.storage,
-            ['1'],
+            ['1','2'],
             threshold,
             meta,
             self.whitelist

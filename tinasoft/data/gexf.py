@@ -37,6 +37,9 @@ class Graph():
 
     attrTypes = {
         'int' : 'integer',
+        'int8' : 'integer',
+        'int16' : 'integer',
+        'int32' : 'integer',
         'long' : 'long',
         'bool': 'boolean',
         'float' : 'float',
@@ -99,14 +102,14 @@ class NGramGraph():
 
     @staticmethod
     def genSpecProx( occ1, occ2, cooc, alpha ):
-        return (( float(cooc) / float(occ1) )**alpha) * (float(cooc) / float(occ2))
+        prox = (( float(cooc) / float(occ1) )**alpha) * (float(cooc) / float(occ2))
+        return prox
 
     def mapEdges( self, graph ):
         """
         Maps the whole graph to transform cooc edge weight to gen-spec edge weight
         """
         for source in graph.gexf['edges'].keys():
-            print source
             if source in graph.gexf['nodes'] and graph.gexf['nodes'][source]['category'] == 'NGram':
                 for target in graph.gexf['edges'][source].keys():
                     if target in graph.gexf['nodes'] and graph.gexf['nodes'][target]['category'] == 'NGram':
@@ -120,6 +123,7 @@ class NGramGraph():
                             del graph.gexf['edges'][source][target]
 
     def addEdge( self, graph,  source, target, weight, **kwargs ):
+        kwargs['cooccurrences'] = weight
         graph.addEdge( 'NGram::'+source, 'NGram::'+target, weight, **kwargs )
 
     def addNode( self, graph, ngram_id, weight ):
@@ -211,10 +215,10 @@ class Exporter (GEXFHandler):
             corp = db.loadCorpus(period)
             # add documents nodes
             for doc_id, occ in corp['edges']['Document'].iteritems():
+
                 docGraph.addNode( graph, doc_id, occ )
                 self.count += 1
                 self.notify()
-            #docGraph.mapEdges( graph )
             # gets the database cursor for the current period
             generator = db.selectCorpusCooc(period)
             try:
@@ -224,6 +228,7 @@ class Exporter (GEXFHandler):
                     if whitelist is not None and ngid1 not in whitelist:
                         continue
                     occ1 = corp['edges']['NGram'][ngid1]
+                    _logger.debug( "source node weight=%d"%occ1 )
                     # source NGram node
                     ngramGraph.addNode( graph, ngid1, occ1 )
                     # doc-ngram edges
@@ -236,9 +241,9 @@ class Exporter (GEXFHandler):
                         # whitelist check
                         if whitelist is not None and ngid2 not in whitelist:
                             continue
-                        occ2 = corp['edges']['NGram'][ngid2]
-                        ngramGraph.addNode( graph, ngid2, occ2 )
-                        # cooccurences edge's weight
+                        #occ2 = corp['edges']['NGram'][ngid2]
+                        ngramGraph.addNode( graph, ngid2, 0)
+                        # cooccurrences is the edge's weight
                         ngramGraph.addEdge( graph, ngid1, ngid2, cooc )
 
                     self.notify()
