@@ -42,8 +42,7 @@ class CoocMatrix():
 class MapReduce():
     """
     A homemade cooccurrences matrix calculator
-    get a corpus number as input
-    and returns matrix =
+    get a corpus number as input and returns a matrix's slice :
     { 'ngram_id' : {  dictionnary of all 'ngid2' : integer } }
     """
     def __init__(self, storage, whitelist, corpusid=None, filter=None):
@@ -72,10 +71,11 @@ class MapReduce():
                         self.reducer( term_map )
                 except StopIteration, si: pass
             doccount += 1
-            tinasoft.TinaApp.notify( None,
-                'tinasoft_runProcessCoocGraph_running_status',
-                'processed cooccurrences for %d of %d documents in period %s'%(doccount,totaldocs,self.corpusid)
-            )
+            if doccount % 25 == 0:
+                tinasoft.TinaApp.notify( None,
+                    'tinasoft_runProcessCoocGraph_running_status',
+                    'processed cooccurrences for %d of %d documents in period %s'%(doccount,totaldocs,self.corpusid)
+                )
 
     def filterNGrams(self, ngrams):
         """
@@ -104,8 +104,7 @@ class MapReduce():
         """
         ngrams = doc['edges']['NGram'].keys()
         map = self.filterNGrams(ngrams)
-        # map is a dict of each ngrams in the document
-        # associated with a 1 cooc score with every other ngrams
+        # map is a unity slice of the matrix
         for ng in map.keys():
             yield [ng,map]
 
@@ -114,9 +113,6 @@ class MapReduce():
 
         ng1 = term_map[0]
         map = term_map[1]
-
-        self.watcher = ng1
-
         # key is the processed ngram
         #if ng1 not in self.matrix:
         #    self.matrix[ng1] = map

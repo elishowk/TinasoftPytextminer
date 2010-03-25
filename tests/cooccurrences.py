@@ -18,23 +18,24 @@ class CoocTestCase(unittest.TestCase):
         self.config = {}
         self.config['userstopwords'] = '/home/elishowk/TINA/Datas/100224-fetopen-user-stopwords.csv'
         self.whitelist = self.tinasoft.getWhitelist(
-            '/home/elishowk/TINA/Datas/100226-pubmed_whitelist.csv'
+            'user/100221-fetopen-filteredngrams.csv'
         )
         self.userstopwordfilter=[stopwords.StopWordFilter( "file://%s" % self.config['userstopwords'] )]
+        self.periods=['1','2','3','4','5','6','7','8']
 
     def testAllFiltersCooc(self):
-        """analyse a corpus, applying all filters available"""
-        def corpusAnalyse( self, id ):
-            cooc = cooccurrences.MapReduce(self.tinasoft.storage, corpusid=id, filter=self.userfilters, whitelist=self.whitelist)
-            cooc.walkCorpus()
-        corpusAnalyse( self, '1' )
-        #corpusAnalyse( self, '2' )
-        #corpusAnalyse( self, '3' )
-        #corpusAnalyse( self, '4' )
-        #corpusAnalyse( self, '5' )
-        #corpusAnalyse( self, '6' )
-        #corpusAnalyse( self, '7' )
-        #corpusAnalyse( self, '8' )
+        """analyse a list of corpus, applying all filters available"""
+        for id in self.periods:
+            try:
+                cooc = cooccurrences.MapReduce(self.tinasoft.storage, self.whitelist, \
+                corpusid=id, filter=self.userstopwordfilter )
+            except Warning, warner:
+                continue
+            if cooc.walkCorpus() is False:
+                self.tinasoft.logger.error("Error in walkCorpus = %s"%id)
+            if cooc.writeMatrix(True) is False:
+                self.tinasoft.logger.error("Error in writeMatrix = %s"%id)
+            del cooc
 
 
     def testCountCooc(self):

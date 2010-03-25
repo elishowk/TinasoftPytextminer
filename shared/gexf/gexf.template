@@ -1,55 +1,73 @@
 <?py # -*- coding: utf-8 -*- ?>
 <?xml version="1.0" encoding="UTF-8"?>
 <gexf xmlns="http://www.gexf.net/1.1draft" xmlns:viz="http://www.gephi.org/gexf/viz" version="1.1">
-  <meta lastmodifieddate="#{date}">
+<meta lastmodifieddate="#{date}">
     <description>${description}</description>
 <?py for creator in creators: ?>
     <creator>${creator}</creator>
 <?py #end ?>
-  </meta>
-  <graph type="#{type}">
+</meta>
+<graph type="#{type}">
     <attributes class="node" type="#{type}">
 <?py i = 0 ?>
 <?py for name,type in attrnodes.iteritems(): ?>
-      <attribute id="#{i}" title="#{name}" type="#{type}">
-      </attribute>
-<?py     i += 1 ?>
+    <?py if name != 'weight': ?>
+        <attribute id="#{i}" title="#{name}" type="#{type}">
+        </attribute>
+        <?py attrnodes[name] = { 'type' : type, 'id' : i } ?>
+        <?py i += 1 ?>
+    <?py #endif ?>
 <?py #endfor ?>
     </attributes>
     <attributes class="edge" type="#{type}">
 <?py i = 0 ?>
 <?py for name,type in attredges.iteritems(): ?>
-      <attribute id="#{i}" title="#{name}" type="#{type}">
-      </attribute>
-<?py     i += 1 ?>
+    <?py if name != 'weight': ?>
+        <attribute id="#{i}" title="#{name}" type="#{type}">
+        </attribute>
+        <?py attredges[name] = { 'type' : type, 'id' : i } ?>
+        <?py i += 1 ?>
+    <?py #endif ?>
 <?py #endfor ?>
     </attributes>
     <nodes>
-<?py for id,ngram in nodes.iteritems(): ?>
-      <node id="#{id}" label="#{ngram['cache']['label']}">
-        <attvalues>
-          <attvalue for="0" value="#{ngram['category']}" />
-          <attvalue for="1" value="#{ngram['occ']}" />
-        </attvalues>
-      </node>
+<?py for id,node in nodes.iteritems(): ?>
+        <node id="#{id}" label="#{node['label']}" weight="#{node['weight']}">
+    <?py del node['weight'] ?>
+    <?py if len(node.keys()) > 0: ?>
+            <attvalues>
+        <?py for attrname,value in node.iteritems(): ?>
+            <?py if attrname != 'weight': ?>
+                <attvalue for="#{attrnodes[attrname]['id']}" value="#{value}" />
+        <?py #endfor ?>
+    <?py #endif ?>
+            </attvalues>
+        </node>
 <?py #endfor ?>
     </nodes>
     <edges>
 <?py i = 0 ?>
-<?py for source,ngram in nodes.iteritems(): ?>
-<?py    for target, weight in ngram['weight'].iteritems(): ?>
-<?py        if not source in nodes or not target in nodes: ?>
-<?py            continue ?>
-<?py        if source == target: ?>
-<?py            continue ?>
-<?py        i += 1 ?>
-        <edge id="#{i}" source="#{source}" target="#{target}" weight="#{weight}">
+<?py for source,targets in edges.iteritems(): ?>
+<?py    #for target, weight in ngram['weight'].iteritems(): ?>
+<?py    #    if not source in nodes or not target in nodes: ?>
+<?py    #        continue ?>
+<?py    #    if source == target: ?>
+<?py    #        continue ?>
+    <?py for target, edge in targets.iteritems(): ?>
+        <?py i += 1 ?>
+        <edge id="#{i}" source="#{source}" target="#{target}" weight="#{edge['weight']}">
+        <?py del edge['weight'] ?>
+        <?py if len(edge.keys()) > 0: ?>
             <attvalues>
-                <attvalue for="0" value="#{ngram['cooc'][target]}" />
+            <?py for attrname,value in edge.iteritems(): ?>
+                <?py if attrname != 'weight': ?>
+                <attvalue for="#{attredges[attrname]['id']}" value="#{value}" />
+            <?py #endfor ?>
             </attvalues>
+        <?py #endif ?>
         </edge>
-<?py    #endfor ?>
+    <?py #endfor ?>
 <?py #endfor ?>
     </edges>
-  </graph>
+</graph>
 </gexf>

@@ -16,23 +16,28 @@ from tinasoft.data import Writer
 class CoocTestCase(unittest.TestCase):
     def setUp(self):
         self.tinasoft = TinaApp(configFile='config.yaml',\
-            storage='tinabsddb://fetopen.test.bsddb')
-
+            storage='tinabsddb://fetopen.bsddb')
+        self.whitelist = self.tinasoft.getWhitelist(
+            #'/home/elishowk/TINA/Datas/100226-pubmed_whitelist.csv'
+            'user/100221-fetopen-filteredngrams.csv'
+        )
 
     def test0GEXF(self):
         self.tinasoft.logger.debug( "testing tinasoft.data.gexf" )
+        meta={
+           'description' : "ngram GEXF graph test",
+           'creators' : ['Julian bilcke', 'Elias Showk'],
+        }
         threshold=[0.4, 0.9999]
-        test = Writer('gexf://').ngramCoocGraph(
-            db=self.tinasoft.storage,
-            periods=['1','2','3','4','5','6','7','8'],
-            threshold=threshold,
-            meta={
-               'description' : "ngram GEXF graph test",
-               'creators' : ['Julian bilcke', 'Elias Showk'],
-            }
+        gexfstring = Writer('gexf://').ngramDocGraph(
+            self.tinasoft.storage,
+            ['1'],
+            threshold,
+            meta,
+            self.whitelist
         )
         #self.tinasoft.logger.debug(test)
-        open("tina_%s-%s.gexf"%(threshold[0],threshold[1]), 'wb').write(test)
+        open("tina_%s-%s.gexf"%(threshold[0],threshold[1]), 'wb').write(gexfstring)
 
 if __name__ == '__main__':
     unittest.main()

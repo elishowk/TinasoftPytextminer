@@ -2,19 +2,18 @@
 import tinasoft
 from tinasoft.data import Exporter
 import datetime
+import itertools
 
 # Tenjin, the fastest template engine in the world !
 import tenjin
 from tenjin.helpers import *
-
-#print dir(tenjin)
-
+''
 # tinasoft logger
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
 # generic GEXF handler
-class GEXFHandler (Exporter):
+class GEXFHandler(Exporter):
 
     options = {
         'locale'     : 'en_US.UTF-8',
@@ -31,253 +30,231 @@ class GEXFHandler (Exporter):
         self.lang,self.encoding = self.locale.split('.')
         self.engine = tenjin.Engine()
 
-# specific GEXF handler
+    def render( self, gexf ):
+        return self.engine.render(self.template, gexf)
+
+class Graph():
+
+    attrTypes = {
+        'int' : 'integer',
+        'long' : 'long',
+        'bool': 'boolean',
+        'float' : 'float',
+        'str' : 'string',
+        'unicode' : 'string',
+    }
+
+    def __init__( self ):
+        self.gexf = {
+            'description' : "tinasoft graph",
+            'creators'    : [],
+            'date' : "%s"%datetime.datetime.now().strftime("%Y-%m-%d"),
+            'type'        : 'static',
+            'attrnodes'   : {},
+            'attredges'   : {},
+            'nodes': {},
+            'edges' : {},
+        }
+
+    #def getWeight( self, method, *args ):
+    #    return method( *args )
+
+    def updateAttrNodes( self, attr ):
+        for name, value in attr.iteritems():
+            if name not in self.gexf['attrnodes']:
+                self.gexf['attrnodes'][name] = self.attrTypes[ value.__class__.__name__ ]
+
+    def updateAttrEdges( self, attr ):
+        for name, value in attr.iteritems():
+            if name not in self.gexf['attredges']:
+                self.gexf['attredges'][name] = self.attrTypes[ value.__class__.__name__ ]
+
+    def addNode( self, nodeid, weight, **kwargs ):
+        if nodeid not in self.gexf['nodes']:
+            self.gexf['nodes'][nodeid] = kwargs
+            self.gexf['nodes'][nodeid]['weight'] = weight
+            self.updateAttrNodes( kwargs )
+        else:
+
+            self.gexf['nodes'][nodeid]['weight'] += weight
+
+    def addEdge( self, source, target, weight, **kwargs ):
+        if source not in self.gexf['edges']:
+            self.gexf['edges'][source] = {}
+        if target not in self.gexf['edges'][source]:
+            self.gexf['edges'][source][target] = kwargs
+            self.gexf['edges'][source][target]['weight'] = weight
+            self.updateAttrEdges( kwargs )
+        else:
+            self.gexf['edges'][source][target]['weight'] += weight
+
+
+class NGramGraph():
+
+    def __init__(self, db, threshold=[0,1], alpha=0.01 ):
+        self.db = db
+        self.threshold = threshold
+        self.alpha = alpha
+        self.cache = {}
+
+    @staticmethod
+    def genSpecProx( occ1, occ2, cooc, alpha ):
+        return (( float(cooc) / float(occ1) )**alpha) * (float(cooc) / float(occ2))
+
+    def mapEdges( self, graph ):
+        """
+        Maps the whole graph to transform cooc edge weight to gen-spec edge weight
+        """
+        for source in graph.gexf['edges'].keys():
+            print source
+            if source in graph.gexf['nodes'] and graph.gexf['nodes'][source]['category'] == 'NGram':
+                for target in graph.gexf['edges'][source].keys():
+                    if target in graph.gexf['nodes'] and graph.gexf['nodes'][target]['category'] == 'NGram':
+                        occ1 = graph.gexf['nodes'][source]['weight']
+                        occ2 = graph.gexf['nodes'][target]['weight']
+                        cooc = graph.gexf['edges'][source][target]['weight']
+                        prox = NGramGraph.genSpecProx( occ1, occ2, cooc, self.alpha )
+                        if prox <= self.threshold[1] and prox >= self.threshold[0]:
+                            graph.gexf['edges'][source][target]['weight'] = prox
+                        else:
+                            del graph.gexf['edges'][source][target]
+
+    def addEdge( self, graph,  source, target, weight, **kwargs ):
+        graph.addEdge( 'NGram::'+source, 'NGram::'+target, weight, **kwargs )
+
+    def addNode( self, graph, ngram_id, weight ):
+        nodeid = 'NGram::'+ngram_id
+        if nodeid not in self.cache:
+            ngobj = self.db.loadNGram( ngram_id )
+            self.cache[ nodeid ] = ngobj
+        nodeattr = {
+            'category' : 'NGram',
+            'label' :  self.cache[ nodeid ]['label'],
+            'id' :  self.cache[ nodeid ]['id'],
+        }
+        graph.addNode( nodeid, weight, **nodeattr )
+
+
+class DocumentGraph():
+
+    def __init__(self, db):
+        self.db = db
+        self.cache = {}
+
+    @staticmethod
+    def sharedNGramsEdgeWeight( doc1, doc2 ):
+        shared_ngrams = 0
+        for ng1 in doc1['edges']['NGram'].iterkeys():
+            for ng2 in doc2['edges']['NGram'].iterkeys():
+                if ng1 == ng2:
+                    shared_ngrams += 1
+        return shared_ngrams
+
+    def mapEdges( self, graph ):
+        _logger.debug( "Documents in cache = %d"%len(self.cache.keys()) )
+        for (docid1, docid2) in itertools.combinations( self.cache.keys(), 2):
+            if docid1 == docid2: continue
+            weight = DocumentGraph.sharedNGramsEdgeWeight( self.cache[docid1], self.cache[docid2] )
+            edgeattr = { 'shared_ngrams' : weight }
+            self.addEdge( graph, self.cache[docid1]['id'], self.cache[docid2]['id'], weight, **edgeattr)
+
+    def addEdge( self, graph, source, target, weight, **kwargs ):
+        graph.addEdge( 'Document::'+source, 'Document::'+target, weight, **kwargs )
+
+    def addNode( self, graph,  doc_id, weight ):
+        nodeid = 'Document::'+doc_id
+        if nodeid not in self.cache:
+            docobj = self.db.loadDocument( doc_id )
+            if docobj is None:
+                _logger.error( "Document %s not found in db"%doc_id )
+                return
+            self.cache[ nodeid ] = docobj
+        nodeattr = {
+            'category' : 'Document',
+            'id' : doc_id,
+            'label' : self.cache[ nodeid ]['label'],
+            'occurrences' : weight,
+            'date': self.cache[ nodeid ]['date'],
+            #'summary': '',
+            #'keywords': docobj['doc_keywords'],
+        }
+        graph.addNode( nodeid, weight, **nodeattr )
+
+
 class Exporter (GEXFHandler):
     """
     Gexf Engine
     """
 
-    def getProximity( self, cooc, occ1, occ2, alpha=0.01 ):
-        prox = ( float(cooc) / float(occ1) )**alpha * (float(cooc) / float(occ2))
-        #_logger.debug( prox )
-        return prox
+    def notify( self ):
+        if self.count % 25 == 0:
+            tinasoft.TinaApp.notify( None,
+                'tinasoft_runProcessCoocGraph_running_status',
+                "%d graph nodes processed"%self.count
+            )
+            _logger.debug( "%d graph nodes processed"%self.count )
 
-    def ngramCoocGraph(self, db, periods, threshold=[0,1],\
-            meta={}, whitelist=None, degreemax=None):
-        """uses Cooc from database to write a cooc graph for a given list of periods"""
+    def ngramDocGraph(self, db, periods, threshold=[0,1],\
+        meta={}, whitelist=None, degreemax=None):
+        """
+        uses Cooc from database to write a cooc-proximity based
+        graph for a given list of periods
+        """
         if len(periods) == 0: return
-        gexf = {
-            'description' : "",
-            'creators'    : [],
-            'type'        : 'static',
-            'attrnodes'   : { 'category' : 'string', 'occ' : 'integer' },
-            'attredges'   : { 'cooc' : 'integer' }
-        }
-        gexf.update(meta)
-        i = 1
-        nodes = {}
+        self.count = 1
+        graph = Graph()
+        graph.gexf.update(meta)
+        ngramGraph = NGramGraph( db, threshold )
+        docGraph = DocumentGraph( db )
         for period in periods:
             # loads the corpus (=period) object
             corp = db.loadCorpus(period)
+            # add documents nodes
+            for doc_id, occ in corp['edges']['Document'].iteritems():
+                docGraph.addNode( graph, doc_id, occ )
+                self.count += 1
+                self.notify()
+            #docGraph.mapEdges( graph )
             # gets the database cursor for the current period
             generator = db.selectCorpusCooc(period)
             try:
                 while 1:
                     ngid1,row = generator.next()
-                    if i % 25 == 0: _logger.debug( "%d graph nodes processed"%i )
-
+                    # whitelist check
                     if whitelist is not None and ngid1 not in whitelist:
                         continue
-                    # adds the source NGram to the nodes dict
-                    if ngid1 not in nodes:
-                        # loads the source NGram object
-                        ngram1 = db.loadNGram(ngid1)
-                        nodes[ngid1] = {
-                            #'label' : ngram1["label"],
-                            'category' : 'NGram',
-                            'weight' : {},
-                            'occ' : 0,
-                            'cooc' : {},
-                            'cache' : ngram1
-                        }
-                    else:
-                        ngram1 = nodes[ngid1]['cache']
-
-                    # gets the source occurrences for the current period
-                    if ngid1 in corp['edges']['NGram']:
-                        occ1 = nodes[ngid1]['occ'] = corp['edges']['NGram'][ngid1]
-                    else:
-                        _logger.error("inconsistency found in database,\
-                            missing NGram %s edge in Corpus %s"%(ngid1,corp['id']))
-                        continue
-
-                    # goes through every target NGram  object
+                    occ1 = corp['edges']['NGram'][ngid1]
+                    # source NGram node
+                    ngramGraph.addNode( graph, ngid1, occ1 )
+                    # doc-ngram edges
+                    for docid, dococcs in ngramGraph.cache["NGram::"+ngid1]['edges']['Document'].iteritems():
+                        if "Document::"+docid in docGraph.cache:
+                            graph.addEdge( "Document::"+docid, "NGram::"+ngid1, dococcs )
+                            graph.addEdge( "NGram::"+ngid1, "Document::"+docid, dococcs )
+                    # target NGram nodes
                     for ngid2, cooc in row.iteritems():
+                        # whitelist check
                         if whitelist is not None and ngid2 not in whitelist:
                             continue
-                        # adds the target NGram to the nodes dict
-                        if ngid2 not in nodes:
-                            ngram2 = db.loadNGram(ngid2)
-                            nodes[ngid2] = { \
-                                #'label' : ngram2["label"],
-                                'category' : 'NGram',
-                                'weight' : {},
-                                'occ' : 0,
-                                'cooc' : {},
-                                'cache' : ngram2
-                            }
-                        else:
-                            ngram2 = nodes[ngid2]['cache']
+                        occ2 = corp['edges']['NGram'][ngid2]
+                        ngramGraph.addNode( graph, ngid2, occ2 )
+                        # cooccurences edge's weight
+                        ngramGraph.addEdge( graph, ngid1, ngid2, cooc )
 
-                        # Sums cooccurences values into nodes dict
-                        if ngid2 in nodes[ngid1]['cooc']:
-                            nodes[ngid1]['cooc'][ngid2] += cooc
-                        else:
-                            nodes[ngid1]['cooc'][ngid2] = cooc
-                        cooc = nodes[ngid1]['cooc'][ngid2]
+                    self.notify()
+                    self.count += 1
 
-                        # gets the target occurrences for the current period
-                        if ngid2 in corp['edges']['NGram']:
-                            occ2 = nodes[ngid2]['occ'] = corp['edges']['NGram'][ngid2]
-                        else:
-                            _logger.error("inconsistency found in database,\
-                                missing NGram %s edge in Corpus %s"%(ngid1,corp['id']))
-                            continue
-
-                        # calculates the nodes proximity
-                        # TODO proximity function from config
-                        w = self.getProximity( cooc, occ1, occ2 )
-
-                        # filters proximity
-                        if threshold[0] <= w and w <= threshold[1]:
-                            nodes[ngid1]['weight'][ngid2] = w
-                    i+=1
-                # FIXME debugging with eg : while i < debuglimit
-                #raise StopIteration
-
-            # End of database cursor handler
+            # End of database cursor
             except StopIteration:
+                pass
                 # TODO filters N nearest neighbours
-                #for nodesource,row in nodes.iteritems():
-                #    for nodetarget,cooc in row['cooc'].iteritems():
-                #        try:
-                #            occ = nodes[nodetarget]['occ']
-                #        except:
-                #            occ = 0
-                #        try:
-                #            label = nodes[nodetarget]['label']
-                #        except:
-                #            label = 0
-                #        if occ < cooc:
-                #            _logger.error("%s,%s,%s,%s" % (nodetarget,label,cooc,occ))
-                # sends data to the templating system
-                gexf.update({
-                    'date' : "%s"%datetime.datetime.now().strftime("%Y-%m-%d"),
-                    'nodes' : nodes,
-                    'threshold' : threshold
-                })
             # global exception handler
             except Exception, e:
                 import sys,traceback
                 traceback.print_exc(file=sys.stdout)
                 return tinasoft.TinaApp.STATUS_ERROR
-        # renders gexf
-        return self.engine.render(self.template,gexf)
-
-
-    # appellee avec selectCorpusCooc
-    #
-    def documentCoocGraph(self, db, corpus, threshold=[0,9999999999999999], meta={}):
-
-        gexf = {
-            'description' : "",
-            'creators'    : [],
-            'type'        : 'static',
-            'attrnodes'   : { 'category' : 'string', 'occ' : 'integer' },
-            'attredges'   : { 'cooc' : 'integer' }
-        }
-        gexf.update(meta)
-
-        corpusID = str(corpus)
-
-        corp = db.loadCorpus(corpusID)
-
-        generator = db.selectCorpusCooc(corpusID)
-        nodes = {}
-        occs = {}
-        i = 1
-        curr = 1
-        #_logger.error("ng_id,ng_label,ng_edges_corp_occ,corp_edges_ng_occ,cooc")
-        try:
-            while i:
-                i+=1
-                key,row = generator.next()
-                if i % 25 == 0: print i
-
-                #print "row:",row
-                ngid1,month = key
-                ngram1 = db.loadNGram(ngid1)
-                if ngid1 not in nodes:
-                    nodes[ngid1] = { \
-                      'label' : ngram1["label"],
-                      'category' : 'NGram',
-                      'weight' : {},
-                      'occ' : 0,
-                      'cooc' : {}
-                      }
-
-                if ngid1 in corp['edges']['NGram']:
-                    nodes[ngid1]['occ'] = corp['edges']['NGram'][ngid1]
-                    occ1 = nodes[ngid1]['occ']
-
-                for ngid2, cooc in row.iteritems():
-                    ngram2 = db.loadNGram(ngid2)
-
-                    if ngid2 not in nodes:
-                        nodes[ngid2] = { \
-                          'label' : ngram2["label"],
-                          'category' : 'NGram',
-                          'weight' : {},
-                          'occ' : 0,
-                          'cooc' : {}
-                        }
-
-                    if ngid2 in nodes[ngid1]['cooc']:
-                        nodes[ngid1]['cooc'][ngid2] += cooc
-                    else:
-                        nodes[ngid1]['cooc'][ngid2] = cooc
-
-                    cooc = nodes[ngid1]['cooc'][ngid2]
-
-                    if ngid2 in corp['edges']['NGram']:
-                        occ2 = nodes[ngid2]['occ'] = corp['edges']['NGram'][ngid2]
-
-
-                    #if ngid2 not in nodes[ngid1]['distance']:
-                    #w = ( cooc/float(ngram['edges']['Corpus'][corpusID]))**0.01*(cooc/float(ngram2['edges']['Corpus'][corpusID]))
-                    #if w == 1.0:
-                    #    print "ng1 %s : ng2 %s : %s = (%s / %s)**0.01*(%s / %s)" % (ngram['label'],ngram2['label'],w,cooc,float(ngram['edges']['Corpus'][corpusID]),cooc,float(ngram2['edges']['Corpus'][corpusID]))
-                    w = ( float(cooc) / float(occ1) )**0.01 * (float(cooc) / float(occ2) )
-                    #print "(%s,%s) : %s = (%s / %s)**0.01*(%s / %s)" % (ngram1['label'],ngram2['label'],w,cooc,occs[ngid1],cooc,occs[ngid2])
-                    if threshold[0] <= w and w <= threshold[1]:
-                        nodes[ngid1]['weight'][ngid2] = w
-
-
-            raise StopIteration
-        except StopIteration:
-            _logger.error("ng_id,ng_label,occ,cooc")
-            for n1,r1 in nodes.iteritems():
-                for n2,cooc in r1['cooc'].iteritems():
-                    try:
-                        occ = nodes[n2]['occ']
-                    except:
-                        occ = 0
-                    try:
-                        label = nodes[n2]['label']
-                    except:
-                        label = 0
-                    if occ < cooc:
-                        _logger.error("%s,%s,%s,%s" % (n2,label,cooc,occ))
-
-            #if occ1 < cooc:
-            #    #err = "(%s,!%s) : %s = (%s / %s)**0.01*(%s / %s)" % (ngram1['label'],ngram2['label'],w,cooc,occs[ngid1],cooc,occs[ngid2])
-            #    err = "%s,%s,%s,%s,%s" % (ngid1, ngram1['label'],ngram1['edges']['Corpus'][corpusID],occ1,cooc)
-            #    #occs[ngid1] = cooc
-            #    _logger.error(err)
-
-            #if occ2 < cooc:
-            #    err = "%s,%s,%s,%s,%s" % (ngid2, ngram2['label'],ngram2['edges']['Corpus'][corpusID],occ2,cooc)
-            #    #occs[ngid2] = cooc
-            #    _logger.error(err)
-
-            gexf.update({
-                        'date' : "%s"%datetime.datetime.now().strftime("%Y-%m-%d"),
-                        'nodes' : nodes,
-                        'threshold' : threshold
-            })
-            return self.engine.render(self.template,gexf)
-        except Exception, e:
-            import sys,traceback
-            traceback.print_exc(file=sys.stdout)
-
-        return self.engine.render({})
+        ngramGraph.mapEdges( graph )
+        docGraph.mapEdges( graph )
+        ngramGraph.cache = {}
+        docGraph.cache = {}
+        return self.render( graph.gexf )
