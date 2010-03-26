@@ -11,7 +11,7 @@
     <attributes class="node" type="#{type}">
 <?py i = 0 ?>
 <?py for name,type in attrnodes.iteritems(): ?>
-    <?py if name != 'weight': ?>
+    <?py if name != 'weight' or name != 'type': ?>
         <attribute id="#{i}" title="${name}" type="#{type}">
         </attribute>
         <?py attrnodes[name] = { 'type' : type, 'id' : i } ?>
@@ -22,7 +22,7 @@
     <attributes class="edge" type="#{type}">
 <?py i = 0 ?>
 <?py for name,type in attredges.iteritems(): ?>
-    <?py if name != 'weight': ?>
+    <?py if name != 'weight' or name != 'type':: ?>
         <attribute id="#{i}" title="${name}" type="#{type}">
         </attribute>
         <?py attredges[name] = { 'type' : type, 'id' : i } ?>
@@ -60,7 +60,7 @@
         <?py if len(edge.keys()) > 0: ?>
             <attvalues>
             <?py for attrname,value in edge.iteritems(): ?>
-                <?py if attrname != 'weight': ?>
+                <?py if attrname != 'weight' or attrname != 'type': ?>
                 <attvalue for="#{attredges[attrname]['id']}" value="${value}" />
             <?py #endfor ?>
             </attvalues>
