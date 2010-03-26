@@ -221,7 +221,7 @@ class TinaApp():
         the graph is an ngram's 'proximity graph
         for a list of periods and an ngram whitelist
         """
-        GEXF = Writer('gexf://').ngramCoocGraph(
+        GEXF = Writer('gexf://').ngramDocGraph(
             db = self.storage,
             periods = periods,
             threshold = threshold,
@@ -229,7 +229,6 @@ class TinaApp():
             degreemax = degreemax
         )
         if GEXF == self.STATUS_ERROR:
-            print "GEXF", GEXF
             return self.STATUS_ERROR
         #fileid = "%s-%s_"%(threshold[0],threshold[1])
         #path = fileid+path
