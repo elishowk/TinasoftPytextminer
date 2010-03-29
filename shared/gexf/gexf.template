@@ -32,12 +32,11 @@
     </attributes>
     <nodes>
 <?py for id,node in nodes.iteritems(): ?>
-        <node id="#{id}" label="${node['label']}" weight="#{node['weight']}">
+        <node id="#{id}" label="${node['label']}">
     <?py del node['weight'] ?>
     <?py if len(node.keys()) > 0: ?>
             <attvalues>
         <?py for attrname,value in node.iteritems(): ?>
-            <?py if attrname != 'weight': ?>
                 <attvalue for="#{attrnodes[attrname]['id']}" value="${value}" />
         <?py #endfor ?>
     <?py #endif ?>
@@ -60,7 +59,7 @@
         <?py if len(edge.keys()) > 0: ?>
             <attvalues>
             <?py for attrname,value in edge.iteritems(): ?>
-                <?py if attrname != 'weight' and attrname != 'type': ?>
+                <?py if attrname not in ('weight','type','label'): ?>
                 <attvalue for="#{attredges[attrname]['id']}" value="${value}" />
             <?py #endfor ?>
             </attvalues>
