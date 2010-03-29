@@ -79,7 +79,8 @@ class MapReduce():
 
     def filterNGrams(self, ngrams):
         """
-        Construct the filtered & white-listed map of an ngrams list
+        Construct the filtered & white-listed
+        slice of the matrix
         """
         map = {}
         for ng in ngrams:

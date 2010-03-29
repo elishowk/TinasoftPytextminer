@@ -79,7 +79,7 @@ class Graph():
             self.gexf['nodes'][nodeid]['weight'] = weight
             self.updateAttrNodes( kwargs )
         else:
-
+            # sums the weight attr
             self.gexf['nodes'][nodeid]['weight'] += weight
 
     def addEdge( self, source, target, weight, type, **kwargs ):
@@ -91,14 +91,18 @@ class Graph():
             self.gexf['edges'][source][target]['type'] = type
             self.updateAttrEdges( kwargs )
         else:
+            # sums the weight attr
             self.gexf['edges'][source][target]['weight'] += weight
 
 
 class NGramGraph():
 
-    def __init__(self, db, threshold=[0,1], alpha=0.01 ):
+    def __init__(self, db, threshold=[0,1], proximity=None, alpha=0.01):
         self.db = db
         self.threshold = threshold
+        self.proximity = proximity
+        if self.proximity is None:
+            self.proximity = NGramGraph.genSpecProx
         self.alpha = alpha
         self.cache = {}
 
@@ -117,17 +121,22 @@ class NGramGraph():
 
     def mapEdges( self, graph ):
         """
-        Maps the whole graph to transform cooc edge weight to gen-spec edge weight
+        Maps the whole graph to transform cooc edge weight to gen-spec prox
         """
         count = 0
         for source in graph.gexf['edges'].keys():
-            if source in graph.gexf['nodes'] and graph.gexf['nodes'][source]['category'] == 'NGram':
+            sourceCategory = source.split('::')[0]
+            if source in graph.gexf['nodes'] and sourceCategory == 'NGram':
                 for target in graph.gexf['edges'][source].keys():
-                    if target in graph.gexf['nodes'] and graph.gexf['nodes'][target]['category'] == 'NGram':
+                    targetCategory = target.split('::')[0]
+                    if target == source:
+                        del graph.gexf['edges'][source][target]
+                        continue
+                    if target in graph.gexf['nodes'] and targetCategory == 'NGram':
                         occ1 = graph.gexf['nodes'][source]['weight']
                         occ2 = graph.gexf['nodes'][target]['weight']
                         cooc = graph.gexf['edges'][source][target]['weight']
-                        prox = NGramGraph.genSpecProx( occ1, occ2, cooc, self.alpha )
+                        prox = self.proximity( occ1, occ2, cooc, self.alpha )
                         count+=1
                         self.notify(count)
                         if prox <= self.threshold[1] and prox >= self.threshold[0]:
@@ -137,7 +146,7 @@ class NGramGraph():
                             del graph.gexf['edges'][source][target]
 
     def addEdge( self, graph,  source, target, weight, type, **kwargs ):
-        kwargs['cooccurrences'] = weight
+        #kwargs['cooccurrences'] = weight
         graph.addEdge( 'NGram::'+source, 'NGram::'+target, weight, type, **kwargs )
 
     def addNode( self, graph, ngram_id, weight ):
@@ -146,30 +155,33 @@ class NGramGraph():
             ngobj = self.db.loadNGram( ngram_id )
             self.cache[ nodeid ] = ngobj
         nodeattr = {
-            'category' : 'NGram',
+            #'category' : 'NGram',
             'label' :  self.cache[ nodeid ]['label'],
-            'id' :  self.cache[ nodeid ]['id'],
+            #'id' :  self.cache[ nodeid ]['id'],
         }
         graph.addNode( nodeid, weight, **nodeattr )
 
 
 class DocumentGraph():
 
-    def __init__(self, db):
+    def __init__(self, db, proximity = None, whitelist = None):
         self.db = db
         self.cache = {}
+        self.proximity = proximity
+        if self.proximity is None:
+            self.proximity = DocumentGraph.sharedNGramsEdgeWeight
+        self.whitelist = whitelist
 
     @staticmethod
-    def sharedNGramsEdgeWeight( doc1, doc2 ):
-        shared_ngrams = 0
-        for ng1 in doc1['edges']['NGram'].iterkeys():
-            for ng2 in doc2['edges']['NGram'].iterkeys():
-                if ng1 == ng2:
-                    shared_ngrams += 1
-        return shared_ngrams
+    def sharedNGramsEdgeWeight( doc1, doc2, whitelist ):
+        """ intersection of doc1 ngrams with a whitelist
+        then return length of the intersection with doc2 ngrams
+        """
+        doc1ngrams = set( doc1['edges']['NGram'].keys() ) & set( whitelist )
+        return len( doc1ngrams & set( doc2['edges']['NGram'].keys() ) )
 
     def notify( self, count ):
-        if count % 200 == 0:
+        if count % 1000 == 0:
             tinasoft.TinaApp.notify( None,
                 'tinasoft_runProcessCoocGraph_running_status',
                 "%d document's edges processed"%count
@@ -183,12 +195,12 @@ class DocumentGraph():
             if docid1 == docid2: continue
             count+=1
             self.notify(count)
-            weight = DocumentGraph.sharedNGramsEdgeWeight( self.cache[docid1], self.cache[docid2] )
-            edgeattr = { 'shared_ngrams' : weight }
-            self.addEdge( graph, self.cache[docid1]['id'], self.cache[docid2]['id'], weight, 'mutual',**edgeattr)
+            weight = self.proximity( self.cache[docid1], self.cache[docid2], self.whitelist )
+            self.addEdge( graph, self.cache[docid1]['id'], self.cache[docid2]['id'], weight, 'mutual' )
 
     def addEdge( self, graph, source, target, weight, type, **kwargs ):
-        graph.addEdge( 'Document::'+source, 'Document::'+target, weight, type, **kwargs )
+        if weight > 0:
+            graph.addEdge( 'Document::'+source, 'Document::'+target, weight, type, **kwargs )
 
     def addNode( self, graph,  doc_id, weight ):
         nodeid = 'Document::'+doc_id
@@ -199,10 +211,10 @@ class DocumentGraph():
                 return
             self.cache[ nodeid ] = docobj
         nodeattr = {
-            'category' : 'Document',
-            'id' : doc_id,
+            #'category' : 'Document',
+            #'id' : doc_id,
             'label' : self.cache[ nodeid ]['label'],
-            'occurrences' : weight,
+            #'occurrences' : weight,
             #'date': self.cache[ nodeid ]['date'],
             #'summary': '',
             #'keywords': docobj['doc_keywords'],
@@ -233,8 +245,8 @@ class Exporter (GEXFHandler):
         self.count = 1
         graph = Graph()
         graph.gexf.update(meta)
-        ngramGraph = NGramGraph( db, threshold )
-        docGraph = DocumentGraph( db )
+        ngramGraph = NGramGraph( db, threshold=threshold )
+        docGraph = DocumentGraph( db, whitelist=whitelist )
         coocMatrix = cooccurrences.CoocMatrix( len( whitelist.keys() ) )
         for period in periods:
             # loads the corpus (=period) object
@@ -249,29 +261,28 @@ class Exporter (GEXFHandler):
                 self.count += 1
                 self.notify()
             # gets the database cursor for the current period
-            generator = db.selectCorpusCooc(period)
+            coocmatrix = db.selectCorpusCooc(period)
             try:
                 while 1:
-                    ngid1,row = generator.next()
+                    ngid1,row = coocmatrix.next()
                     # whitelist check
                     if whitelist is not None and ngid1 not in whitelist:
                         continue
                     occ1 = corp['edges']['NGram'][ngid1]
-                    #_logger.debug( "source node weight=%d"%occ1 )
                     # source NGram node
                     ngramGraph.addNode( graph, ngid1, occ1 )
                     # doc-ngram edges
-                    for docid, dococcs in ngramGraph.cache["NGram::"+ngid1]['edges']['Document'].iteritems():
-                        if "Document::"+docid in docGraph.cache:
-                            graph.addEdge( "Document::"+docid, "NGram::"+ngid1, dococcs, 'mutual' )
+                    #for docid, dococcs in ngramGraph.cache["NGram::"+ngid1]['edges']['Document'].iteritems():
+                    #    if "Document::"+docid in docGraph.cache:
+                    #        graph.addEdge( "Document::"+docid, "NGram::"+ngid1, dococcs, 'mutual' )
                     # target NGram nodes
                     for ngid2, cooc in row.iteritems():
                         # whitelist check
                         if whitelist is not None and ngid2 not in whitelist:
                             continue
-                        #occ2 = corp['edges']['NGram'][ngid2]
+                        # weight must be 0 here because the coocmatrix is symmetric
                         ngramGraph.addNode( graph, ngid2, 0)
-                        # cooccurrences is the edge's weight
+                        # cooccurrences is the temporary edge's weight
                         ngramGraph.addEdge( graph, ngid1, ngid2, cooc, 'directed' )
 
                     self.notify()
@@ -280,7 +291,6 @@ class Exporter (GEXFHandler):
             # End of database cursor
             except StopIteration:
                 pass
-                # TODO filters N nearest neighbours
             # global exception handler
             except Exception, e:
                 import sys,traceback
@@ -290,4 +300,5 @@ class Exporter (GEXFHandler):
         docGraph.mapEdges( graph )
         ngramGraph.cache = {}
         docGraph.cache = {}
+        #_logger.debug( graph.gexf )
         return self.render( graph.gexf )

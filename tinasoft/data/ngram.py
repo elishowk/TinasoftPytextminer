@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from operator import itemgetter
 
 from tinasoft import TinaApp
 from tinasoft.data import basecsv
@@ -215,11 +216,8 @@ class Exporter(basecsv.Exporter):
             msg = "\n".join(obj)
             _logger.error( "%s %s has errors\n%s"%(type,id,msg) )
 
-    def exportCorpora(self, storage, periods, corporaid, filters=None, whitelist=None):
+    def exportCorpora(self, storage, periods, corporaid, filters=None, whitelist=None, ngramlimit=2000):
         """exports selected periods=corpus in a corpora, synthetize importFile()"""
-        #rows={}
-        _logger.debug("starting to export to %s"%self.filepath)
-
         self.writeRow(self.columns)
 
         # basic counters
@@ -235,29 +233,42 @@ class Exporter(basecsv.Exporter):
             ngramtotal += len( corpusobj['edges']['NGram'].keys() )
             corpuscache += [corpusobj]
 
+        _logger.debug( "Starting the export of %d ngrams to %s"%(ngramtotal,self.filepath) )
+
         for corpusobj in corpuscache:
+            sortedngrams = sorted(corpusobj['edges']['NGram'].iteritems(), key=itemgetter(1), reverse=True)
             # goes over every ngram in the corpus
-            for ngid, occs in corpusobj['edges']['NGram'].iteritems():
+            for ngid, occ in sortedngrams.iteritems():
+                print occ
+                #notifies progression
+                ngramcount += 1
+                _logger.debug( ngramcount )
+                TinaApp.notify( None,
+                    'tinasoft_runExportCorpora_running_status',
+                    str(float( (ngramcount*100) / ngramlimit ))
+                )
+                if ngramcount >= ngramlimit :
+                    print ngramcount, ngramlimit
+                    break
                 ng = storage.loadNGram(ngid)
                 if self.ngramIntegrity( ng, ngid ) is False : continue
 
                 # prepares the row
+                occs=int(occ)
                 tag = " ".join ( tagger.TreeBankPosTagger.getTag( ng['postag'] ) )
                 n = len( ng['content'] )
                 docedges = len( ng['edges']['Document'].keys() )
                 totaldococcs = sum( ng['edges']['Document'].values() )
                 corpedges = len( ng['edges']['Corpus'].keys() )
                 totalcorpoccs= sum( ng['edges']['Corpus'].values() )
-                occs=int(occs)
                 occsn=occs**n
-
                 # check document data integrity
-                for docid in ng['edges']['Document'].keys():
-                    storedDoc = storage.loadDocument(docid)
-                    if self.docIntegrity( docid, storedDoc ) is False: continue
+                #for docid in ng['edges']['Document'].keys():
+                #    storedDoc = storage.loadDocument(docid)
+                #    if self.docIntegrity( docid, storedDoc ) is False: continue
 
                 # check corpus data integrity
-                if self.ngramEdgesIntegrity( ngid, ng, docid, storedDoc, corpusid, occs ) is False : continue
+                #if self.ngramEdgesIntegrity( ngid, ng, docid, storedDoc, corpusid, occs ) is False : continue
 
                 row= [ "", ng['label'], tag, str(n), str(occs), str(occsn), \
                     str(docedges), str(totaldococcs), " ".join(ng['edges']['Document'].keys()), \
@@ -265,22 +276,16 @@ class Exporter(basecsv.Exporter):
                     ng['id'], str(corpusobj['id']), str(corporaid) ]
 
                 # filtering activated
-                if filters is not None and tokenizer.TreeBankWordTokenizer.filterNGrams(ng, filters) is True:
+                if filters is not None and tokenizer.TreeBankWordTokenizer.filterNGrams(ng, filters) is False:
                     # status='s'
                     row[0] = self.refuse
                 if whitelist is not None and ng['id'] in whitelist:
+                    # status='w'
                     row[0] = self.accept
                 # writes the row to the file
                 self.writeRow(row)
-                ngramcount += 1
-                # notifies progression
-                TinaApp.notify( None,
-                    'tinasoft_runExportCorpora_running_status',
-                    str(float( (ngramcount*100) / ngramtotal ))
-                )
-            _logger.debug( "corpus %s ngrams edges count = %d"%(corpusid,len(corpusobj['edges']['NGram'].keys())) )
-        self.logIntegrity('Corpus')
-        self.logIntegrity('Document')
-        self.logIntegrity('NGram')
+        #self.logIntegrity('Corpus')
+        #self.logIntegrity('Document')
+        #self.logIntegrity('NGram')
         _logger.debug( "Total ngrams exported = %d"%(ngramcount) )
         return self.filepath
