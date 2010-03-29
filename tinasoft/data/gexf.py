@@ -97,14 +97,22 @@ class Graph():
 
 class NGramGraph():
 
-    def __init__(self, db, threshold=[0,1], proximity=None, alpha=0.01):
+    def __init__(self, db, opts):
         self.db = db
-        self.threshold = threshold
-        self.proximity = proximity
-        if self.proximity is None:
-            self.proximity = NGramGraph.genSpecProx
-        self.alpha = alpha
         self.cache = {}
+
+        if 'proximity' not in opts:
+            self.proximity = NGramGraph.genSpecProx
+        else:
+            self.proximity = opts['proximity']
+        if 'threshold' not in opts:
+            self.threshold = [0.0,1.0]
+        else:
+            self.threshold = opts['threshold']
+        if 'alpha' not in opts:
+            self.alpha = 0.01
+        else:
+            self.alpha = opts['alpha']
 
     @staticmethod
     def genSpecProx( occ1, occ2, cooc, alpha ):
@@ -164,12 +172,21 @@ class NGramGraph():
 
 class DocumentGraph():
 
-    def __init__(self, db, proximity = None, whitelist = None):
+    def __init__(self, db, opts, whitelist = None):
         self.db = db
         self.cache = {}
-        self.proximity = proximity
-        if self.proximity is None:
+
+        if 'proximity' not in opts:
             self.proximity = DocumentGraph.sharedNGramsEdgeWeight
+        else:
+            self.proximity = opts['proximity']
+        if 'threshold' not in opts:
+            self.threshold = [1.0,float('inf')]
+        else:
+            if opts['threshold'][1] == 'inf':
+                opts['threshold'][1] = float('inf')
+            self.threshold = opts['threshold']
+
         self.whitelist = whitelist
 
     @staticmethod
@@ -177,7 +194,10 @@ class DocumentGraph():
         """ intersection of doc1 ngrams with a whitelist
         then return length of the intersection with doc2 ngrams
         """
-        doc1ngrams = set( doc1['edges']['NGram'].keys() ) & set( whitelist )
+        if whitelist is not None:
+            doc1ngrams = set( doc1['edges']['NGram'].keys() ) & set( whitelist )
+        else:
+            doc1ngrams = set( doc1['edges']['NGram'].keys() )
         return len( doc1ngrams & set( doc2['edges']['NGram'].keys() ) )
 
     def notify( self, count ):
@@ -190,13 +210,14 @@ class DocumentGraph():
 
     def mapEdges( self, graph ):
         _logger.debug( "Documents in cache = %d"%len(self.cache.keys()) )
-        count=0
-        for (docid1, docid2) in itertools.combinations( self.cache.keys(), 2):
+        total=0
+        for (docid1, docid2) in itertools.combinations(self.cache.keys(), 2):
             if docid1 == docid2: continue
-            count+=1
-            self.notify(count)
+            total+=1
+            self.notify(total)
             weight = self.proximity( self.cache[docid1], self.cache[docid2], self.whitelist )
-            self.addEdge( graph, self.cache[docid1]['id'], self.cache[docid2]['id'], weight, 'mutual' )
+            if weight <= self.threshold[1] and weight >= self.threshold[0]:
+                self.addEdge( graph, self.cache[docid1]['id'], self.cache[docid2]['id'], weight, 'mutual' )
 
     def addEdge( self, graph, source, target, weight, type, **kwargs ):
         if weight > 0:
@@ -235,8 +256,7 @@ class Exporter (GEXFHandler):
             )
             _logger.debug( "%d graph nodes processed"%self.count )
 
-    def ngramDocGraph(self, db, periods, threshold=[0,1],\
-        meta={}, whitelist=None, degreemax=None):
+    def ngramDocGraph(self, db, periods, meta={}, whitelist=None):
         """
         uses Cooc from database to write a cooc-proximity based
         graph for a given list of periods
@@ -245,9 +265,10 @@ class Exporter (GEXFHandler):
         self.count = 1
         graph = Graph()
         graph.gexf.update(meta)
-        ngramGraph = NGramGraph( db, threshold=threshold )
-        docGraph = DocumentGraph( db, whitelist=whitelist )
-        coocMatrix = cooccurrences.CoocMatrix( len( whitelist.keys() ) )
+        ngramGraph = NGramGraph( db, self.NGramGraph )
+        docGraph = DocumentGraph( db, self.DocumentGraph, whitelist=whitelist)
+        # TODO move patrix transformation into the cooc object
+        #coocMatrix = cooccurrences.CoocMatrix( len( whitelist.keys() ) )
         for period in periods:
             # loads the corpus (=period) object
             corp = db.loadCorpus(period)

@@ -60,8 +60,15 @@ class TinaAppTestCase(unittest.TestCase):
         #return
         path = 'tests/tinaapptests1000-exportGraph.gexf'
         periods=['1','2']
-        threshold=[0.5, 1.0]
-        self.tinasoft.exportGraph(path, periods, threshold, self.whitelist)
+        opts={
+            'DocumentGraph': {
+                'threshold': [15, 16],
+            },
+            'NGramGraph': {
+                'threshold': [0.0, 1.0],
+            }
+        }
+        self.tinasoft.exportGraph(path, periods, opts, self.whitelist)
 
     def testEExportCoocMatrix(self):
         return

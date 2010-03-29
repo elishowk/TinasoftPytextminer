@@ -215,20 +215,20 @@ class TinaApp():
             del cooc
         return self.STATUS_OK
 
-    def exportGraph(self, path, periods, threshold, whitelist=None, degreemax=None):
+    def exportGraph(self, path, periods, opts, whitelist=None):
         """
         returns a GEXF file path
         the graph is an ngram's 'proximity graph
         for a list of periods and an ngram whitelist
         """
-        GEXF = Writer('gexf://').ngramDocGraph(
+        GEXFWriter = Writer('gexf://', **opts)
+
+        GEXFString = GEXFWriter.ngramDocGraph(
             db = self.storage,
             periods = periods,
-            threshold = threshold,
             whitelist = whitelist,
-            degreemax = degreemax
         )
-        if GEXF == self.STATUS_ERROR:
+        if GEXFString == self.STATUS_ERROR:
             return self.STATUS_ERROR
         #fileid = "%s-%s_"%(threshold[0],threshold[1])
         #path = fileid+path
@@ -236,7 +236,7 @@ class TinaApp():
             'tinasoft_runProcessCoocGraph_running_status',
             'writing gexf to file %s'%path
         )
-        open(path, 'wb').write(GEXF)
+        open(path, 'wb').write(GEXFString)
         return self.STATUS_OK
 
     def exportCooc(self, path, periods, whitelist, **kwargs):
