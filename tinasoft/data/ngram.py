@@ -233,23 +233,20 @@ class Exporter(basecsv.Exporter):
             ngramtotal += len( corpusobj['edges']['NGram'].keys() )
             corpuscache += [corpusobj]
 
-        _logger.debug( "Starting the export of %d ngrams to %s"%(ngramtotal,self.filepath) )
+        _logger.debug( "Exporting %d ngrams to %s"%(ngramtotal,self.filepath) )
 
         for corpusobj in corpuscache:
-            sortedngrams = sorted(corpusobj['edges']['NGram'].iteritems(), key=itemgetter(1), reverse=True)
+            # sorts ngrams by occs
+            #sortedngrams = sorted(corpusobj['edges']['NGram'].iteritems(), key=itemgetter(1), reverse=True)
             # goes over every ngram in the corpus
-            for ngid, occ in sortedngrams.iteritems():
-                print occ
+            for ngid, occ in corpusobj['edges']['NGram'].iteritems():
                 #notifies progression
                 ngramcount += 1
-                _logger.debug( ngramcount )
                 TinaApp.notify( None,
                     'tinasoft_runExportCorpora_running_status',
-                    str(float( (ngramcount*100) / ngramlimit ))
+                    str(float( (ngramcount*100) / ngramtotal ))
                 )
-                if ngramcount >= ngramlimit :
-                    print ngramcount, ngramlimit
-                    break
+                # loads an checks ngram
                 ng = storage.loadNGram(ngid)
                 if self.ngramIntegrity( ng, ngid ) is False : continue
 
