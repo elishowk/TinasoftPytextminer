@@ -62,7 +62,7 @@ class TinaAppTestCase(unittest.TestCase):
         periods=['1','2']
         opts={
             'DocumentGraph': {
-                'threshold': [15, 16],
+                'threshold': [0, 'inf'],
             },
             'NGramGraph': {
                 'threshold': [0.0, 1.0],

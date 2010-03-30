@@ -4,6 +4,7 @@ from tinasoft.data import Exporter
 from tinasoft.pytextminer import cooccurrences
 import datetime
 import itertools
+import math
 
 # Tenjin, the fastest template engine in the world !
 import tenjin
@@ -177,7 +178,7 @@ class DocumentGraph():
         self.cache = {}
 
         if 'proximity' not in opts:
-            self.proximity = DocumentGraph.sharedNGramsEdgeWeight
+            self.proximity = DocumentGraph.inverseOccNGramsEdgeWeight
         else:
             self.proximity = opts['proximity']
         if 'threshold' not in opts:
@@ -191,7 +192,8 @@ class DocumentGraph():
 
     @staticmethod
     def sharedNGramsEdgeWeight( doc1, doc2, whitelist ):
-        """ intersection of doc1 ngrams with a whitelist
+        """
+        intersection of doc1 ngrams with a whitelist
         then return length of the intersection with doc2 ngrams
         """
         if whitelist is not None:
@@ -199,6 +201,25 @@ class DocumentGraph():
         else:
             doc1ngrams = set( doc1['edges']['NGram'].keys() )
         return len( doc1ngrams & set( doc2['edges']['NGram'].keys() ) )
+
+    @staticmethod
+    def inverseOccNGramsEdgeWeight( doc1, doc2, whitelist, graph ):
+        """
+        intersection of doc1 & doc2 ngrams with a whitelist
+        then returns :
+            - 0 if no common ngrams found
+            - a very little floating value if intersection's ngrams have many occurrences
+            - ~1.44 if intersection's ngrams occurs only 1 time
+        """
+        if whitelist is not None:
+            doc1ngrams = set( doc1['edges']['NGram'].keys() ) & set( whitelist )
+        else:
+            doc1ngrams = set( doc1['edges']['NGram'].keys() )
+        ngrams = doc1ngrams & set( doc2['edges']['NGram'].keys() )
+        return sum(
+            [(1/( math.log( 1+ graph.gexf['nodes']['NGram::'+ngramid]['weight'] ) )) for ngramid in ngrams],
+            0
+        )
 
     def notify( self, count ):
         if count % 1000 == 0:
@@ -215,7 +236,7 @@ class DocumentGraph():
             if docid1 == docid2: continue
             total+=1
             self.notify(total)
-            weight = self.proximity( self.cache[docid1], self.cache[docid2], self.whitelist )
+            weight = self.proximity( self.cache[docid1], self.cache[docid2], self.whitelist, graph )
             if weight <= self.threshold[1] and weight >= self.threshold[0]:
                 self.addEdge( graph, self.cache[docid1]['id'], self.cache[docid2]['id'], weight, 'mutual' )
 
@@ -232,13 +253,7 @@ class DocumentGraph():
                 return
             self.cache[ nodeid ] = docobj
         nodeattr = {
-            #'category' : 'Document',
-            #'id' : doc_id,
             'label' : self.cache[ nodeid ]['label'],
-            #'occurrences' : weight,
-            #'date': self.cache[ nodeid ]['date'],
-            #'summary': '',
-            #'keywords': docobj['doc_keywords'],
         }
         graph.addNode( nodeid, weight, **nodeattr )
 

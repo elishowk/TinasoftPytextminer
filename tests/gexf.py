@@ -31,7 +31,7 @@ class CoocTestCase(unittest.TestCase):
 
         opts={
             'DocumentGraph': {
-                'threshold': [15, 16],
+                'threshold': [0, 'inf'],
             },
             'NGramGraph': {
                 'threshold': [0.0, 1.0],
@@ -46,7 +46,7 @@ class CoocTestCase(unittest.TestCase):
             self.whitelist
         )
         #self.tinasoft.logger.debug(test)
-        open("tinasoft_test_%s-%s.gexf"%(threshold[0],threshold[1]), 'wb').write(gexfstring)
+        open("tinasoft_test.gexf", 'wb').write(gexfstring)
 
 if __name__ == '__main__':
     unittest.main()
