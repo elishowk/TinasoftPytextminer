@@ -14,9 +14,11 @@ from tenjin.helpers import *
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
-# generic GEXF handler
-class GEXFHandler(Exporter):
 
+class GEXFHandler(Exporter):
+    """
+    A generic GEXF handler
+    """
     options = {
         'locale'     : 'en_US.UTF-8',
         'dieOnError' : False,
@@ -36,7 +38,9 @@ class GEXFHandler(Exporter):
         return self.engine.render(self.template, gexf)
 
 class Graph():
-
+    """
+    Main Graph class for graph construction
+    """
     attrTypes = {
         'int' : 'integer',
         'int8' : 'integer',
@@ -97,7 +101,10 @@ class Graph():
 
 
 class NGramGraph():
-
+    """
+    A NGram graph constructor
+    depends on Graph object
+    """
     def __init__(self, db, opts):
         self.db = db
         self.cache = {}
@@ -172,6 +179,10 @@ class NGramGraph():
 
 
 class DocumentGraph():
+    """
+    A document graph constructor
+    depends on Graph object
+    """
 
     def __init__(self, db, opts, whitelist = None):
         self.db = db
@@ -260,7 +271,7 @@ class DocumentGraph():
 
 class Exporter (GEXFHandler):
     """
-    Gexf Engine
+    A Gexf Exporter engine providing various graph construction methods
     """
 
     def notify( self ):
