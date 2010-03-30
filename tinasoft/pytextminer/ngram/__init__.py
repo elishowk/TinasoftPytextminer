@@ -4,6 +4,8 @@ __author__="Elias Showk"
 
 from tinasoft.pytextminer import PyTextMiner
 
+import re
+
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
@@ -133,7 +135,6 @@ class Filter():
 class PosTagFilter(Filter):
     """
     Rule-based POS tag filtering
-    applies on a generator of (ngram_objects)
     """
     # TODO move rules into app config, and add language support
     rules = {
@@ -148,3 +149,37 @@ class PosTagFilter(Filter):
         """selects NGram's postag"""
         return [token[1] for token in ng['postag']]
 
+class PosTagValid(PosTagFilter):
+    """
+    Regexp-based POS tag filteringvalidation
+
+    """
+    # TODO move rules into app config, and add language support
+    rules = {
+        'standard': re.compile(r"^(VB.|JJ.)?NN.((IN.|CC.)(VB.|JJ.)?NN.)?$")
+    }
+
+    def standard(self, nggenerator):
+        """NGram generator, applies the _end() filter"""
+        try:
+            record = nggenerator.next()
+            while record:
+                if self._standard(record[1]) is True:
+                    yield record
+                record = nggenerator.next()
+        except StopIteration, si:
+            return
+
+    def _standard(self, ng):
+        content = self.get_content(ng)
+        pattern = "".join(content)
+        if self.rules['standard'].match( pattern ) is None:
+            print "REFUSE %s : %s"%(ng['label'],pattern)
+            return False
+        else:
+            print "ACCEPT %s : %s"%(ng['label'],pattern)
+            return True
+
+    def test(self, ng):
+        """returns True if ALL the tests passed"""
+        return self._standard(ng)

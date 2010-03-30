@@ -47,10 +47,8 @@ class Extractor():
 
 
     def walkFile( self, index, filters, ngramMin, ngramMax, stopwords, overwrite=False ):
-        """Main parsing tina source file"""
-        #if overwrite is False and self.storage.loadCorpora( self.corpora['id'] ) is not None:
-        #    _logger.error( "Corpora %s is already in DB"%self.corpora['id'] )
-        #    return
+        """Main parsing source file method"""
+        self.duplicate = []
         fileGenerator = self.reader.parseFile()
         # 1st part = ngram extraction
         try:
@@ -76,8 +74,9 @@ class Extractor():
                         storedDoc.addEdge( 'Corpus', corpusNum, 1 )
                         # force update
                         self.storage.updateDocument( storedDoc, True )
-                        _logger.debug( "Skipping Document %s : already in DB, only updating edges"%document['id'] )
+                        _logger.warning( "Document is already stored %s : only updating its edges"%document['id'] )
                         # skip document
+                        self.duplicate += [document]
                         continue
 
                 # document's ngrams extraction

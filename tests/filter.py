@@ -18,23 +18,28 @@ class TestsTestCase(unittest.TestCase):
     def testAll(self):
         filtertag = ngram.PosTagFilter()
         filtercontent = ngram.Filter()
+        validtag = ngram.PosTagValid()
         try:
             count=0
             countFilterContent =0
             countFilterTag = 0
+            countValid = 0
             for record in self.cursor:
                 count+=1
                 if filtertag.test( record[1] ) is False:
                     countFilterTag += 1
                 if filtercontent.test( record[1] ) is False:
                     countFilterContent += 1
+                if validtag.test( record[1] ) is False:
+                    countValid += 1
             raise StopIteration()
         except StopIteration, si:
             print "content filters eliminated = ", countFilterContent
             print "POS tag filter eliminated = ", countFilterTag
+            print "POS tag VALIDATOR eliminated = ", countValid
             print "Total NGrams = ", count
             self.assertEqual( countFilterContent, 4 )
-            self.assertEqual( countFilterTag, 8 )
+            self.assertEqual( countFilterTag, 11 )
             self.assertEqual( count, 50 )
 
 if __name__ == '__main__':

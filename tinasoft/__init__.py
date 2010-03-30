@@ -48,6 +48,9 @@ class TinaApp():
 
     @staticmethod
     def notify( subject, msg, data ):
+        """
+        This method should be overwritten by a context-dependent notifier
+        """
         pass
 
     def __init__(
@@ -57,7 +60,9 @@ class TinaApp():
         loc=None,
         stopw=None,
         index=None):
-
+        """
+        Initiate config.yaml, logger, locale, storage and index
+        """
         # import config yaml to self.config
         try:
             self.config = yaml.safe_load( file( configFile, 'rU' ) )
@@ -93,7 +98,7 @@ class TinaApp():
                 self.locale = loc
             locale.setlocale(locale.LC_ALL, self.locale)
         except:
-            self.locale = 'en_US.UTF-8'
+            self.locale = ''
             self.logger.error( "locale %s was not found,\
                 switching to en_US.UTF-8 by default"%self.locale)
             locale.setlocale(locale.LC_ALL, self.locale)
@@ -116,9 +121,15 @@ class TinaApp():
         self.logger.debug("TinaApp started")
 
     def serialize(self, obj):
+        """
+        Encoder to send messages to the host appllication
+        """
         return jsonpickle.encode(obj)
 
     def deserialize(self, str):
+        """
+        Decoder for the host's application messages
+        """
         return jsonpickle.decode(str)
 
     def importFile(self,
@@ -129,7 +140,11 @@ class TinaApp():
             format= 'tina',
             overwrite=False,
         ):
-        """tina csv file import controller"""
+        """
+        tinasoft common csv file import controler
+        initiate the import.yaml config file, default ngram's filters,
+        a file Reader() to be sent to the Extractor()
+        """
         try:
             # import import config yaml
             self.importConfig = yaml.safe_load( file( configFile, 'rU' ) )
@@ -141,7 +156,8 @@ class TinaApp():
         # load default filters (TODO put it into import.yaml !!)
         filtertag = ngram.PosTagFilter()
         filterContent = ngram.Filter()
-        defaultextractionfilters = [filtertag,filterContent]
+        validTag = ngram.PosTagValid()
+        defaultextractionfilters = [filtertag,filterContent,validTag]
         # sends indexer to the file parser
         if index is True:
             index=self.index
@@ -166,7 +182,8 @@ class TinaApp():
             self.importConfig['ngramMin'], self.importConfig['ngramMax'], \
             self.stopwords, overwrite=overwrite
         ) is True:
-            return self.STATUS_OK
+            return self.serialize( extractor.duplicate )
+
         else:
             return self.STATUS_ERROR
 
@@ -185,7 +202,7 @@ class TinaApp():
     def getWhitelist(self, filepath, **kwargs):
         """
         import an ngram csv file
-        returns a whitelist to be used as input of other methods
+        returns a whitelist object to be used as input of other methods
         """
         importer = Reader('ngram://'+filepath, **kwargs)
         whitelist = importer.importNGrams()
@@ -217,9 +234,9 @@ class TinaApp():
 
     def exportGraph(self, path, periods, opts, whitelist=None):
         """
-        returns a GEXF file path
-        the graph is an ngram's 'proximity graph
-        for a list of periods and an ngram whitelist
+        Produce and write Tinasoft's default GEXF graph
+        for given list of periods (to aggregate)
+        and a given ngram whitelist
         """
         GEXFWriter = Writer('gexf://', **opts)
 
@@ -230,8 +247,7 @@ class TinaApp():
         )
         if GEXFString == self.STATUS_ERROR:
             return self.STATUS_ERROR
-        #fileid = "%s-%s_"%(threshold[0],threshold[1])
-        #path = fileid+path
+
         TinaApp.notify( None,
             'tinasoft_runProcessCoocGraph_running_status',
             'writing gexf to file %s'%path
@@ -248,18 +264,33 @@ class TinaApp():
         return exporter.exportCooc( self.storage, periods, whitelist )
 
     def getCorpora(self, corporaid):
+        """
+        Part of the Storage API
+        """
         return self.serialize(self.storage.loadCorpora(corporaid))
 
     def getCorpus(self, corpusid):
+        """
+        Part of the Storage API
+        """
         return self.serialize(self.storage.loadCorpus(corpusid))
 
     def getDocument(self, documentid):
+        """
+        Part of the Storage API
+        """
         return self.serialize(self.storage.loadDocument(documentid))
 
     def getNGram(self, ngramid):
+        """
+        Part of the Storage API
+        """
         return self.serialize(self.storage.loadNGram(ngramid))
 
     def listCorpora(self, default=None):
+        """
+        Part of the Storage API
+        """
         if default is None:
             default=[]
         try:
@@ -270,11 +301,13 @@ class TinaApp():
             return self.serialize( default )
 
 
-class ThreadPool:
+class ThreadPool():
 
-    """Flexible thread pool class.  Creates a pool of threads, then
+    """
+    Flexible thread pool class.  Creates a pool of threads, then
     accepts tasks that will be dispatched to the next available
-    thread."""
+    thread.
+    """
 
     def __init__(self, numThreads=4):
 
