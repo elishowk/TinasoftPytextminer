@@ -156,11 +156,11 @@ class PosTagValid(PosTagFilter):
     """
     # TODO move rules into app config, and add language support
     rules = {
-        'standard': re.compile(r"^(VB.|JJ.)?NN.((IN.|CC.)(VB.|JJ.)?NN.)?$")
+        'standard': re.compile(r"^((VB.?,|JJ.?,){0,2}?NN.?,)+?((IN.?,|CC.?,)((VB.?,|JJ.?,){0,2}?NN.?,)+?)*?$")
     }
 
     def standard(self, nggenerator):
-        """NGram generator, applies the _end() filter"""
+        """NGram generator, applies the _standard() filter"""
         try:
             record = nggenerator.next()
             while record:
@@ -172,7 +172,8 @@ class PosTagValid(PosTagFilter):
 
     def _standard(self, ng):
         content = self.get_content(ng)
-        pattern = "".join(content)
+        pattern = ",".join(content)
+        pattern += ","
         if self.rules['standard'].match( pattern ) is None:
             print "REFUSE %s : %s"%(ng['label'],pattern)
             return False
