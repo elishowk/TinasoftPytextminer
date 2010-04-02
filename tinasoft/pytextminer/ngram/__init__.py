@@ -175,10 +175,10 @@ class PosTagValid(PosTagFilter):
         pattern = ",".join(content)
         pattern += ","
         if self.rules['standard'].match( pattern ) is None:
-            print "REFUSE %s : %s"%(ng['label'],pattern)
+            #rint "REFUSE %s : %s"%(ng['label'],pattern)
             return False
         else:
-            print "ACCEPT %s : %s"%(ng['label'],pattern)
+            #print "ACCEPT %s : %s"%(ng['label'],pattern)
             return True
 
     def test(self, ng):
