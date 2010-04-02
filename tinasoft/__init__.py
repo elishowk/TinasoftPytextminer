@@ -238,6 +238,7 @@ class TinaApp():
         for given list of periods (to aggregate)
         and a given ngram whitelist
         """
+        opts['template'] = self.config['template']
         GEXFWriter = Writer('gexf://', **opts)
 
         GEXFString = GEXFWriter.ngramDocGraph(
