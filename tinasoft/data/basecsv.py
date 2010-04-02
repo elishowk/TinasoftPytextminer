@@ -21,7 +21,7 @@ class Exporter (Exporter):
         self.quotechar = quotechar
         self.dialect = dialect
         self.loadOptions(kwargs)
-        self.file = codecs.open(self.filepath, "w", encoding=self.encoding, errors='replace' )
+        self.file = codecs.open(self.filepath, "w+", encoding=self.encoding, errors='replace' )
 
     def writeRow( self, row ):
         #row=map(str, row)

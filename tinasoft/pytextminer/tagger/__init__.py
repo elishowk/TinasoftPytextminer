@@ -5,7 +5,7 @@ __date__ ="$Nov 19, 2009 6:32:44 PM$"
 
 # warning : nltk imports it's own copy of pyyaml
 import nltk
-nltk.data.path = ['shared/nltk_data']
+#nltk.data.path = ['shared/nltk_data']
 from nltk import pos_tag
 
 class TreeBankPosTagger():
@@ -23,7 +23,7 @@ class TreeBankPosTagger():
     def getContent( sentence ):
         """return words from a tagged list"""
         return [tagged[0] for tagged in sentence]
-    
+
     @staticmethod
     def getTag( sentence ):
         """return TAGS from a tagged list"""

@@ -252,7 +252,7 @@ class TinaApp():
             'tinasoft_runProcessCoocGraph_running_status',
             'writing gexf to file %s'%path
         )
-        open(path, 'wb').write(GEXFString)
+        open(path, 'w+b').write(GEXFString)
         return self.STATUS_OK
 
     def exportCooc(self, path, periods, whitelist, **kwargs):

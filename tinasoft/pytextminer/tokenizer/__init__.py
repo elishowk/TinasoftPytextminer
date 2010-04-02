@@ -7,7 +7,7 @@ import string, re
 
 # warning : nltk imports it's own copy of yaml
 import nltk
-nltk.data.path = ['shared/nltk_data']
+#nltk.data.path = ['shared/nltk_data']
 from tinasoft.pytextminer import ngram, tagger
 
 import logging

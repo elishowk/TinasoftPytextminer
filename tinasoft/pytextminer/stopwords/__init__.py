@@ -62,7 +62,7 @@ class StopWords( object ):
             raise Exception("you need to install NLTK library")
         try:
             import nltk
-            nltk.data.path = ['shared/nltk_data']
+            #nltk.data.path = ['shared/nltk_data']
             from nltk.corpus import stopwords
             for word in stopwords.words(lang):
                 self.add([word])
