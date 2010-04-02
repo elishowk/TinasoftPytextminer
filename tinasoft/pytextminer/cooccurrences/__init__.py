@@ -141,7 +141,7 @@ class MapReduce():
                 if cooc > 0:
                     countcooc += 1
                     row[ngj] = cooc
-             if len( row.keys() ) > 0:
+            if len( row.keys() ) > 0:
                 self.storage.updateCooc( key+ngi, row, overwrite )
             countng += 1
         self.storage.flushCoocQueue()
