@@ -37,8 +37,6 @@ class Importer (Importer):
 
     def __init__(self,
             filepath,
-            #minSize='1',
-            #maxSize='4',
             delimiter=',',
             quotechar='"',
             **kwargs
@@ -72,7 +70,6 @@ class Importer (Importer):
             self.corpusDict = {}
         except Exception, e:
             _logger.error("error during basecsv.Importer.__init__", + e)
-        #_logger.debug("end of basecsv.Importer.__init__ " )
 
     def open( self, filepath ):
         return codecs.open( filepath,'rU', errors='replace' )

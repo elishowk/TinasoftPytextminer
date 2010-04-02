@@ -83,8 +83,11 @@ class Exporter(basecsv.Exporter):
     }
 
     columns = ["status","label","pos tag","length","corpus-ngram w","^length",\
-            "ng-doc edges","ng-doc w sum","doc list","ng-corpus edges",\
-            "ng-corp w sum","corp list","db ID","corpus ID","corpora ID"]
+            "doc list","corp list","ngram db ID","corpora ID"]
+
+    #columns = ["status","label","pos tag","length","corpus-ngram w","^length",\
+    #        "ng-doc edges","ng-doc w sum","doc list","ng-corpus edges",\
+    #        "ng-corp w sum","corp list","ngram db ID","corpus ID","corpora ID"]
 
     def exportNGrams(self): pass
 
@@ -254,10 +257,10 @@ class Exporter(basecsv.Exporter):
                 occs=int(occ)
                 tag = " ".join ( tagger.TreeBankPosTagger.getTag( ng['postag'] ) )
                 n = len( ng['content'] )
-                docedges = len( ng['edges']['Document'].keys() )
-                totaldococcs = sum( ng['edges']['Document'].values() )
-                corpedges = len( ng['edges']['Corpus'].keys() )
-                totalcorpoccs= sum( ng['edges']['Corpus'].values() )
+                #docedges = len( ng['edges']['Document'].keys() )
+                #totaldococcs = sum( ng['edges']['Document'].values() )
+                #corpedges = len( ng['edges']['Corpus'].keys() )
+                #totalcorpoccs= sum( ng['edges']['Corpus'].values() )
                 occsn=occs**n
                 # check document data integrity
                 #for docid in ng['edges']['Document'].keys():
@@ -266,11 +269,14 @@ class Exporter(basecsv.Exporter):
 
                 # check corpus data integrity
                 #if self.ngramEdgesIntegrity( ngid, ng, docid, storedDoc, corpusid, occs ) is False : continue
-
                 row= [ "", ng['label'], tag, str(n), str(occs), str(occsn), \
-                    str(docedges), str(totaldococcs), " ".join(ng['edges']['Document'].keys()), \
-                    str(corpedges), str(totalcorpoccs), " ".join(ng['edges']['Corpus'].keys()),\
-                    ng['id'], str(corpusobj['id']), str(corporaid) ]
+                    " ".join(ng['edges']['Document'].keys()), \
+                    " ".join(ng['edges']['Corpus'].keys()),\
+                    ng['id'], str(corporaid) ]
+                #row= [ "", ng['label'], tag, str(n), str(occs), str(occsn), \
+                #    str(docedges), str(totaldococcs), " ".join(ng['edges']['Document'].keys()), \
+                #    str(corpedges), str(totalcorpoccs), " ".join(ng['edges']['Corpus'].keys()),\
+                #    ng['id'], str(corpusobj['id']), str(corporaid) ]
 
                 # filtering activated
                 if filters is not None and tokenizer.TreeBankWordTokenizer.filterNGrams(ng, filters) is False:

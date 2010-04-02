@@ -182,7 +182,7 @@ class TinaApp():
             self.importConfig['ngramMin'], self.importConfig['ngramMax'], \
             self.stopwords, overwrite=overwrite
         ) is True:
-            return self.serialize( extractor.duplicate )
+            return extractor.duplicate
 
         else:
             return self.STATUS_ERROR
@@ -254,7 +254,7 @@ class TinaApp():
             'writing gexf to file %s'%path
         )
         open(path, 'w+b').write(GEXFString)
-        return self.STATUS_OK
+        return path
 
     def exportCooc(self, path, periods, whitelist, **kwargs):
         """

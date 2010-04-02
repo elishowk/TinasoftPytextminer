@@ -24,7 +24,6 @@ class GEXFHandler(Exporter):
         'dieOnError' : False,
         'debug'      : False,
         'compression': None,
-        'threshold'  : 2,
         'template'   : 'shared/gexf/gexf.template',
     }
 
@@ -99,24 +98,49 @@ class Graph():
             # sums the weight attr
             self.gexf['edges'][source][target]['weight'] += weight
 
+class SubGraph():
+    """
+    Base class for subgraph classes
+    """
+    def __init__(self, db, opts):
 
-class NGramGraph():
+        self.db = db
+        self.cache = {}
+
+        if 'edgethreshold' not in opts:
+            self.edgethreshold = self.defaults['edgethreshold']
+        else:
+            if opts['edgethreshold'][1] == 'inf':
+                opts['edgethreshold'][1] = float('inf')
+            self.edgethreshold = opts['edgethreshold']
+
+        if 'nodethreshold' not in opts:
+            self.nodethreshold = self.defaults['nodethreshold']
+        else:
+            if opts['nodethreshold'][1] == 'inf':
+                opts['nodethreshold'][1] = float('inf')
+            self.nodethreshold = opts['nodethreshold']
+
+
+class NGramGraph(SubGraph):
     """
     A NGram graph constructor
     depends on Graph object
     """
+
+    defaults = {
+        'edgethreshold': [0.0,1.0],
+        'nodethreshold': [1,float('inf')]
+    }
+
     def __init__(self, db, opts):
-        self.db = db
-        self.cache = {}
+        SubGraph.__init__(self,db, opts)
 
         if 'proximity' not in opts:
             self.proximity = NGramGraph.genSpecProx
         else:
             self.proximity = opts['proximity']
-        if 'threshold' not in opts:
-            self.threshold = [0.0,1.0]
-        else:
-            self.threshold = opts['threshold']
+
         if 'alpha' not in opts:
             self.alpha = 0.01
         else:
@@ -155,11 +179,20 @@ class NGramGraph():
                         prox = self.proximity( occ1, occ2, cooc, self.alpha )
                         count+=1
                         self.notify(count)
-                        if prox <= self.threshold[1] and prox >= self.threshold[0]:
+                        if prox <= self.edgethreshold[1] and prox >= self.edgethreshold[0]:
                             graph.gexf['edges'][source][target]['weight'] = prox
                             graph.gexf['edges'][source][target]['type'] = 'directed'
                         else:
                             del graph.gexf['edges'][source][target]
+
+    def mapNodes(self, graph):
+        for source in graph.gexf['nodes'].keys():
+            sourceCategory = source.split('::')[0]
+            if source in graph.gexf['nodes'] and sourceCategory == 'NGram':
+                if graph.gexf['nodes'][source]['weight'] > self.nodethreshold[1]\
+                    or graph.gexf['nodes'][source]['weight'] < self.edgethreshold[0]:
+                        del graph.gexf['nodes'][source]
+                        del self.cache[source.split('::')[1]]
 
     def addEdge( self, graph,  source, target, weight, type, **kwargs ):
         #kwargs['cooccurrences'] = weight
@@ -178,28 +211,28 @@ class NGramGraph():
         graph.addNode( nodeid, weight, **nodeattr )
 
 
-class DocumentGraph():
+class DocumentGraph(SubGraph):
     """
     A document graph constructor
     depends on Graph object
     """
 
+    defaults = {
+        'edgethreshold': [0.0,2.0],
+        'nodethreshold': [1,float('inf')]
+    }
+
     def __init__(self, db, opts, whitelist = None):
-        self.db = db
-        self.cache = {}
+
+        SubGraph.__init__(self,db, opts)
 
         if 'proximity' not in opts:
             self.proximity = DocumentGraph.inverseOccNGramsEdgeWeight
         else:
             self.proximity = opts['proximity']
-        if 'threshold' not in opts:
-            self.threshold = [1.0,float('inf')]
-        else:
-            if opts['threshold'][1] == 'inf':
-                opts['threshold'][1] = float('inf')
-            self.threshold = opts['threshold']
 
         self.whitelist = whitelist
+
 
     @staticmethod
     def sharedNGramsEdgeWeight( doc1, doc2, whitelist ):
@@ -248,8 +281,17 @@ class DocumentGraph():
             total+=1
             self.notify(total)
             weight = self.proximity( self.cache[docid1], self.cache[docid2], self.whitelist, graph )
-            if weight <= self.threshold[1] and weight >= self.threshold[0]:
+            if weight <= self.edgethreshold[1] and weight >= self.edgethreshold[0]:
                 self.addEdge( graph, self.cache[docid1]['id'], self.cache[docid2]['id'], weight, 'mutual' )
+
+    def mapNodes(self, graph):
+        for source in graph.gexf['nodes'].keys():
+            sourceCategory = source.split('::')[0]
+            if source in graph.gexf['nodes'] and sourceCategory == 'NGram':
+                if graph.gexf['nodes'][source]['weight'] > self.nodethreshold[1]\
+                    or graph.gexf['nodes'][source]['weight'] < self.edgethreshold[0]:
+                        del graph.gexf['nodes'][source]
+                        del self.cache[source.split('::')[1]]
 
     def addEdge( self, graph, source, target, weight, type, **kwargs ):
         if weight > 0:
@@ -343,7 +385,9 @@ class Exporter (GEXFHandler):
                 import sys,traceback
                 traceback.print_exc(file=sys.stdout)
                 return tinasoft.TinaApp.STATUS_ERROR
+        ngramGraph.mapNodes( graph )
         ngramGraph.mapEdges( graph )
+        docGraph.mapNodes( graph )
         docGraph.mapEdges( graph )
         ngramGraph.cache = {}
         docGraph.cache = {}
