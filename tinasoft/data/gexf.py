@@ -382,8 +382,8 @@ class Exporter (GEXFHandler):
                 pass
             # global exception handler
             except Exception, e:
-                import sys,traceback
-                traceback.print_exc(file=sys.stdout)
+                import traceback
+                _logger.error( traceback.format_exc() )
                 return tinasoft.TinaApp.STATUS_ERROR
         ngramGraph.mapNodes( graph )
         ngramGraph.mapEdges( graph )

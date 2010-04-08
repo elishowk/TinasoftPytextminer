@@ -83,11 +83,11 @@ class Exporter(basecsv.Exporter):
     }
 
     columns = ["status","label","pos tag","length","corpus-ngram w","^length",\
-            "doc list","corp list","ngram db ID","corpora ID"]
+            "doc list","corp list","db ID","corpora ID"]
 
     #columns = ["status","label","pos tag","length","corpus-ngram w","^length",\
     #        "ng-doc edges","ng-doc w sum","doc list","ng-corpus edges",\
-    #        "ng-corp w sum","corp list","ngram db ID","corpus ID","corpora ID"]
+    #        "ng-corp w sum","corp list","db ID","corpus ID","corpora ID"]
 
     def exportNGrams(self): pass
 
