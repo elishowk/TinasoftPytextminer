@@ -152,7 +152,7 @@ class NGramGraph(SubGraph):
         return prox
 
     def notify( self, count ):
-        if count % 200 == 0:
+        if count % 500 == 0:
             tinasoft.TinaApp.notify( None,
                 'tinasoft_runProcessCoocGraph_running_status',
                 "%d ngram's edges processed"%count
@@ -317,7 +317,7 @@ class Exporter (GEXFHandler):
     """
 
     def notify( self ):
-        if self.count % 25 == 0:
+        if self.count % 100 == 0:
             tinasoft.TinaApp.notify( None,
                 'tinasoft_runProcessCoocGraph_running_status',
                 "%d graph nodes processed"%self.count

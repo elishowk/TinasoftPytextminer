@@ -244,14 +244,15 @@ class Exporter(basecsv.Exporter):
             # goes over every ngram in the corpus
             for ngid, occ in corpusobj['edges']['NGram'].iteritems():
                 #notifies progression
+                ngramcount += 1
+                if ngramcount % 10000 == 0:
+                    TinaApp.notify( None,
+                        'tinasoft_runExportCorpora_running_status',
+                        str(float( (ngramcount*100) / ngramtotal ))
+                    )
                 occs=int(occ)
                 if occs < 2:
                     continue
-                ngramcount += 1
-                TinaApp.notify( None,
-                    'tinasoft_runExportCorpora_running_status',
-                    str(float( (ngramcount*100) / ngramtotal ))
-                )
                 # loads an checks ngram
                 ng = storage.loadNGram(ngid)
                 if self.ngramIntegrity( ng, ngid ) is False : continue
