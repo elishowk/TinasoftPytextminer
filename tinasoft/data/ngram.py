@@ -244,6 +244,9 @@ class Exporter(basecsv.Exporter):
             # goes over every ngram in the corpus
             for ngid, occ in corpusobj['edges']['NGram'].iteritems():
                 #notifies progression
+                occs=int(occ)
+                if occs < 2:
+                    continue
                 ngramcount += 1
                 TinaApp.notify( None,
                     'tinasoft_runExportCorpora_running_status',
@@ -254,7 +257,6 @@ class Exporter(basecsv.Exporter):
                 if self.ngramIntegrity( ng, ngid ) is False : continue
 
                 # prepares the row
-                occs=int(occ)
                 tag = " ".join ( tagger.TreeBankPosTagger.getTag( ng['postag'] ) )
                 n = len( ng['content'] )
                 #docedges = len( ng['edges']['Document'].keys() )
