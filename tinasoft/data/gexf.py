@@ -148,6 +148,9 @@ class NGramGraph(SubGraph):
 
     @staticmethod
     def genSpecProx( occ1, occ2, cooc, alpha ):
+        if 0 in [ occ1, occ2 ]:
+            _logger.error( "Zero occ found" )
+            return 0
         prox = (( float(cooc) / float(occ1) )**alpha) * (float(cooc) / float(occ2))
         return prox
 
@@ -176,6 +179,7 @@ class NGramGraph(SubGraph):
                         occ1 = graph.gexf['nodes'][source]['weight']
                         occ2 = graph.gexf['nodes'][target]['weight']
                         cooc = graph.gexf['edges'][source][target]['weight']
+
                         prox = self.proximity( occ1, occ2, cooc, self.alpha )
                         count+=1
                         self.notify(count)
@@ -356,6 +360,8 @@ class Exporter (GEXFHandler):
                     ngid1,row = coocmatrix.next()
                     # whitelist check
                     if whitelist is not None and ngid1 not in whitelist:
+                        continue
+                    if ngid1 not in corp['edges']['NGram']:
                         continue
                     occ1 = corp['edges']['NGram'][ngid1]
                     # source NGram node
