@@ -32,6 +32,7 @@ import logging.handlers
 
 # json
 import jsonpickle
+import codecs
 
 # Threads
 from time import sleep
@@ -132,6 +133,88 @@ class TinaApp():
         """
         return jsonpickle.decode(str)
 
+    def extractWhitelist(self,
+            path,
+            configFile,
+            corpora_id,
+            index=False,
+            format='tina',
+            overwrite=False,
+        ):
+        """
+        tinasoft common csv file import controler
+        initiate the import.yaml config file, default ngram's filters,
+        a file Reader() to be sent to the Extractor()
+        """
+        try:
+            # import import config yaml
+            self.importConfig = yaml.safe_load( file( configFile, 'rU' ) )
+        except yaml.YAMLError, exc:
+            self.logger.error( "Unable to read the importFile special config : " + exc)
+            return self.STATUS_ERROR
+        # load Stopwords object
+        self.stopwords = stopwords.StopWords( "file://%s" % self.importConfig['stopwords'] )
+        # load default filters (TODO put it into import.yaml !!)
+        #filtertag = ngram.PosTagFilter()
+        filterContent = ngram.Filter()
+        validTag = ngram.PosTagValid()
+        defaultextractionfilters = [filterContent,validTag]
+        # sends indexer to the file parser
+        if index is True:
+            index=self.index
+        else:
+            index = None
+        # instance of the counter
+        corporaCounter = corpora.Counter()
+
+        # loads the source file
+        dsn = format+"://"+path
+        fileReader = Reader( dsn,
+            delimiter = self.importConfig['delimiter'],
+            quotechar = self.importConfig['quotechar'],
+            locale = self.importConfig['locale'],
+            fields = self.importConfig['fields']
+        )
+        # instanciate the tagger
+        hometagger = tagger.TreeBankPosTagger()
+
+        # starts the parsing
+        fileGenerator = fileReader.parseFile()
+        count=0
+        try:
+            while 1:
+                document, corpusNum = fileGenerator.next()
+                #self.logger.debug( "%s is extracting document %s (overwrite=%s)"%(tokenizer.TreeBankWordTokenizer.__name__, document['id'], str(overwrite)) )
+                # extract filtered ngrams
+                docngrams = tokenizer.TreeBankWordTokenizer.extract( \
+                    document,\
+                    self.stopwords, \
+                    self.importConfig['ngramMin'], \
+                    self.importConfig['ngramMax'], \
+                    defaultextractionfilters, \
+                    hometagger
+                    )
+                corporaCounter.add( docngrams, corpusNum )
+                count+=1
+                #if count % 100 == 0:
+                #    for period in corporaCounter.index.iterkeys():
+                #        self.logger.debug(
+                #            "I got %d ngrams in period %s"\
+                #            %( len(corporaCounter.index[period].keys()), period )
+                #        )
+                if count % 10000 == 0:
+                    for period in corporaCounter.index.iterkeys():
+                        path = "%d-%s-extractWhitelist.csv"%(count,period)
+                        csvfile = Exporter("ngram://"+path)
+                        self.logger.debug( "saving partial whitelist to %s"%path )
+                        csvfile.writeRow( ["status","label","corpus-ngrams w","pos tag","db ID"] )
+                        for ngid in corporaCounter.index[period].iterkeys():
+                            csvfile.writeRow( ["",corporaCounter.index[period][ngid]['label'],corporaCounter.index[period][ngid]['occs'],corporaCounter.index[period][ngid]['postag'],ngid] )
+                    corporaCounter.index={}
+        except StopIteration, stop:
+            self.logger.debug("Finished parsing %d documents"%count)
+            return True
+
     def importFile(self,
             path,
             configFile,
@@ -154,10 +237,10 @@ class TinaApp():
         # load Stopwords object
         self.stopwords = stopwords.StopWords( "file://%s" % self.importConfig['stopwords'] )
         # load default filters (TODO put it into import.yaml !!)
-        filtertag = ngram.PosTagFilter()
+        #filtertag = ngram.PosTagFilter()
         filterContent = ngram.Filter()
         validTag = ngram.PosTagValid()
-        defaultextractionfilters = [filtertag,filterContent,validTag]
+        defaultextractionfilters = [filterContent,validTag]
         # sends indexer to the file parser
         if index is True:
             index=self.index
@@ -204,8 +287,13 @@ class TinaApp():
         import an ngram csv file
         returns a whitelist object to be used as input of other methods
         """
-        importer = Reader('ngram://'+filepath, **kwargs)
-        whitelist = importer.importNGrams()
+        if isinstance(filepath,"str"):
+            filepath=[filepath]
+        whitelist = {}
+        for path in filepath:
+            importer = Reader('ngram://'+filepath, **kwargs)
+            importer.whitelist = whitelist
+            whitelist = importer.importNGrams()
         return whitelist
 
     def processCooc(self, whitelist, corporaid, periods, userfilters, *opts ):
