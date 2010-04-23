@@ -25,7 +25,9 @@ class Exporter (Exporter):
 
     def writeRow( self, row ):
         #row=map(str, row)
-        self.file.write( self.delimiter.join( row ) + "\n" )
+        self.file.write( self.delimiter.join( \
+            ["".join([self.quotechar,cell,self.quotechar]) \
+            for cell in row] ) + "\n" )
 
     def writeFile( self, columns, rows ):
         self.writeRow( columns )
@@ -69,7 +71,7 @@ class Importer (Importer):
             self.docDict = {}
             self.corpusDict = {}
         except Exception, e:
-            _logger.error("error during basecsv.Importer.__init__", + e)
+            _logger.error(e)
 
     def open( self, filepath ):
         return codecs.open( filepath,'rU', errors='replace' )

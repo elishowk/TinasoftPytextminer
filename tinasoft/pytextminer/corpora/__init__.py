@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 __author__="Elias Showk"
 
-from tinasoft.pytextminer import PyTextMiner, tokenizer, ngram, document, corpus
+from tinasoft.pytextminer import PyTextMiner, tokenizer, tagger, ngram, document, corpus
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
@@ -26,6 +26,21 @@ class Corpora(PyTextMiner):
         else:
             return self._addEdge( type, key, value )
 
+class Counter():
+    def __init__(self):
+        self.index={}
+
+    def add(self, docngrams, corpus):
+        if corpus not in self.index:
+            self.index[corpus]={}
+        for ngid, ng in docngrams.iteritems():
+            if ngid in self.index[corpus]:
+                self.index[corpus][ngid]['occs'] += 1
+            else:
+                self.index[corpus][ngid] = {}
+                self.index[corpus][ngid]['label'] = ng['label']
+                self.index[corpus][ngid]['postag'] = tag = " ".join ( tagger.TreeBankPosTagger.getTag( ng['postag'] ) )
+                self.index[corpus][ngid]['occs'] = 1
 
 class Extractor():
     """corpora.Extractor is a source file importer = session = corpora"""
@@ -38,6 +53,8 @@ class Extractor():
         self.index = index
         if self.index is not None:
             self.writer = index.getWriter()
+        # instanciate the tagger
+        self.tagger = tagger.TreeBankPosTagger()
 
     def _indexDocument( self, documentobj, overwrite ):
         if self.index is not None:
@@ -103,7 +120,7 @@ class Extractor():
         _logger.debug( "%s is extracting document %s (overwrite=%s)"%(tokenizer.TreeBankWordTokenizer.__name__, document['id'], str(overwrite)) )
         # extract filtered ngrams
         docngrams = tokenizer.TreeBankWordTokenizer.extract( document,\
-            stopwords, ngramMin, ngramMax, filters )
+            stopwords, ngramMin, ngramMax, filters, self.tagger )
         for ngid, ng in docngrams.iteritems():
             # increments document-ngram edge
             docOccs = ng['occs']
@@ -120,3 +137,5 @@ class Extractor():
         self.storage.insertDocument( document, overwrite=True )
         self.storage.flushNGramQueue()
         self.storage.commitAll()
+
+

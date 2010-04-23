@@ -155,7 +155,7 @@ class NGramGraph(SubGraph):
         return prox
 
     def notify( self, count ):
-        if count % 500 == 0:
+        if count % 1000 == 0:
             tinasoft.TinaApp.notify( None,
                 'tinasoft_runProcessCoocGraph_running_status',
                 "%d ngram's edges processed"%count
@@ -339,7 +339,7 @@ class Exporter (GEXFHandler):
         graph.gexf.update(meta)
         ngramGraph = NGramGraph( db, self.NGramGraph )
         docGraph = DocumentGraph( db, self.DocumentGraph, whitelist=whitelist)
-        # TODO move patrix transformation into the cooc object
+        # TODO move matrix transformation into the cooc object
         #coocMatrix = cooccurrences.CoocMatrix( len( whitelist.keys() ) )
         for period in periods:
             # loads the corpus (=period) object

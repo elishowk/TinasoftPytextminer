@@ -196,20 +196,15 @@ class TinaApp():
                     )
                 corporaCounter.add( docngrams, corpusNum )
                 count+=1
-                #if count % 100 == 0:
-                #    for period in corporaCounter.index.iterkeys():
-                #        self.logger.debug(
-                #            "I got %d ngrams in period %s"\
-                #            %( len(corporaCounter.index[period].keys()), period )
-                #        )
                 if count % 10000 == 0:
                     for period in corporaCounter.index.iterkeys():
                         path = "%d-%s-extractWhitelist.csv"%(count,period)
-                        csvfile = Exporter("ngram://"+path)
+                        csvfile = Writer("ngram://"+path)
                         self.logger.debug( "saving partial whitelist to %s"%path )
                         csvfile.writeRow( ["status","label","corpus-ngrams w","pos tag","db ID"] )
                         for ngid in corporaCounter.index[period].iterkeys():
-                            csvfile.writeRow( ["",corporaCounter.index[period][ngid]['label'],corporaCounter.index[period][ngid]['occs'],corporaCounter.index[period][ngid]['postag'],ngid] )
+                            row=["",corporaCounter.index[period][ngid]['label'],corporaCounter.index[period][ngid]['occs'],corporaCounter.index[period][ngid]['postag'],ngid]
+                            csvfile.writeRow( map(str, row) )
                     corporaCounter.index={}
         except StopIteration, stop:
             self.logger.debug("Finished parsing %d documents"%count)
@@ -287,11 +282,11 @@ class TinaApp():
         import an ngram csv file
         returns a whitelist object to be used as input of other methods
         """
-        if isinstance(filepath,"str"):
+        if isinstance(filepath,str) is True:
             filepath=[filepath]
         whitelist = {}
         for path in filepath:
-            importer = Reader('ngram://'+filepath, **kwargs)
+            importer = Reader('ngram://'+path, **kwargs)
             importer.whitelist = whitelist
             whitelist = importer.importNGrams()
         return whitelist

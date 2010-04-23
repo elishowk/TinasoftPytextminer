@@ -27,7 +27,7 @@ class RegexpTokenizer():
         striped = string.strip( input )
         #replaces forbidden characters by a separator
         sanitized = re.sub( forbiddenChars, emptyString, striped )
-        return sanitized
+        return sanitized.lower()
 
     @staticmethod
     def cleanPunct( text, emptyString, punct=u'[\,\.\;\:\!\?\"\[\]\{\}\(\)\<\>]' ):
@@ -116,7 +116,7 @@ class TreeBankWordTokenizer(RegexpTokenizer):
         return sentences
 
     @staticmethod
-    def extract( doc, stopwords, ngramMin, ngramMax, filters ):
+    def extract( doc, stopwords, ngramMin, ngramMax, filters, tagger ):
         sanitizedTarget = TreeBankWordTokenizer.sanitize(
             doc['content'],
             doc['forbChars'],
@@ -128,7 +128,7 @@ class TreeBankWordTokenizer(RegexpTokenizer):
         )
         tokens=[]
         for sentence in sentenceTokens:
-            tokens.append( tagger.TreeBankPosTagger.posTag( sentence ) )
+            tokens.append( tagger.tag( sentence ) )
         return TreeBankWordTokenizer.ngramize(
             minSize = ngramMin,
             maxSize = ngramMax,

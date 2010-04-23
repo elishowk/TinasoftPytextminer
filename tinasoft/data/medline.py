@@ -5,58 +5,6 @@ import codecs
 
 from tinasoft.pytextminer import *
 
-class Model ():
-    def __init__(self, lines):
-        self.binds = {
-            "TI"  : ("title", str, ""),
-            "AB"  : ("abstract", str, ""),
-            "AU"  : ("author", str, ""),
-            "FAU" : ("fullname", str, ""),
-            "JT"  : ("pubname", str, ""),
-            "DP"  : ("pubdate", datetime, None),
-            "STAT": ("stat", str, "MEDLINE"),
-            "PMID": ("pmid", str, "0"),
-        }
-        buff = ""
-
-        for line in lines:
-            prefix = line[:4].strip().upper()
-            raw =  line[6:]
-
-            if len(buff) > 0 and prefix == "":
-                buff = "%s%s" % (buff,raw)
-
-            elif prefix == "AB":
-                buff = "%s"%raw
-            else:
-                # complete the abstract buffer and add it as attribute
-                if len(buff) > 0:
-                    content = "%s" % buff
-                    attribute, type, default = self.binds["AB"]
-                    try:
-                        cont = type(content)
-                        self.__setattr__(attribute, content)
-                    except Exception, exc:
-                        self.__setattr__(attribute, default)
-                        #print exc
-                        pass
-                    buff = ""
-
-                # add the attribute
-                content = "%s" % raw
-                try:
-                    attribute, type, default = self.binds[prefix]
-                    try:
-                        cont = type(content)
-                        self.__setattr__(attribute, content)
-                    except Exception, exc:
-                        self.__setattr__(attribute, default)
-                        #print exc
-                        pass
-                except Exception, exc:
-                    #print exc
-                    pass
-
 class Record(dict):
     """A dictionary holding information from a Medline record.
     All data are stored under the mnemonic appearing in the Medline
@@ -199,21 +147,19 @@ class Importer (Importer):
         self.corpusDict = {}
         #self.locale = self.get_property(options, 'locale', 'en_US.UTF-8')
         #self.lang,self.encoding = self.locale.split('.')
-        self.file = codecs.open(path, "rU", self.encoding)
+        self.file = codecs.open(path, "rU", errors='replace')
 
-    def parse(self):
+    def parsePeriod(self, record):
+        if 'DP' not in record:
+            return None
+        return str(record['DP'][0:8])
+
+
+    def parseFile(self):
         """Read Medline records one by one from the handle.
 
         The handle is either is a Medline file, a file-like object, or a list
         of lines describing one or more Medline records.
-
-        Typical usage:
-
-            from Bio import Medline
-            handle = open("mymedlinefile")
-            records = Medline.parse(handle)
-            for record in record:
-                print record['TI']
 
         """
         # These keys point to string values
@@ -227,8 +173,8 @@ class Importer (Importer):
             line = line.rstrip()
             if line:
                 break
-        else:
-            return
+            else:
+                return
         record = Record()
         finished = False
         while not finished:
@@ -251,16 +197,19 @@ class Importer (Importer):
             for key in textkeys:
                 if key in record:
                     record[key] = " ".join(record[key])
-            if record and 'DP' in record:
-                corpusid = record['DP']
-                newdoc = self.parseDocument( record )
+            corpusid = self.parsePeriod(record)
+            if corpusid is not None:
+                if corpusid not in self.corpusDict:
+                    # creates a new corpus and adds it to the global dict
+                    self.corpusDict[ corpusid ] = corpus.Corpus( corpusid )
+                newdoc = self.parseDocument( record, corpusid )
                 if newdoc is not None:
                     yield newdoc, corpusid
             record = Record()
 
 
 
-    def parseDocument(self, model):
+    def parseDocument(self, model, corpusid):
         try:
             content = "%s %s"%(model['AB'],model['TI'])
             title = model['TI']
@@ -281,51 +230,6 @@ class Importer (Importer):
             **model
         )
         # document's edges
-
+        newdoc.addEdge('Corpus', corpusid, 1)
         return newdoc
-
-    def parseFile(self):
-        for line in self.file.readlines():
-            lines = []
-            # walks the document's group of lines
-            line = line.rstrip()
-            # document separator is an empty line
-            if line != "":
-                lines += [line]
-            # parses the lines using Model
-            model = Model(lines)
-            fields={}
-            for key in model.binds.iterkeys():
-                value, type, default = model.binds[key]
-                fields[key] = value
-            if hasattr( model, 'pubdate' ):
-                newdoc = self.parseDocument( model, fields, model.pubdate )
-                # sends the document and the corpus id
-                yield newdoc, corpusNumber
-
-#    def parseDocument(self, model, fields, corpusId ):
-#        content = "%s %s"%(model.__getattr__(fields['AB']),\
-#            model.__getattr__(fields['TI']) )
-#        title = model.__getattr__(fields['TI'])
-#        pubdate = model.__getattr__(fields['DP'])
-#        docid = model.__getattr__(fields['PMID'])
-#        del fields['PMID']
-#        del fields['DP']
-#        del fields['TI']
-#        del fields['AB']
-#        docArgs = {}
-#        for value in fields.itervalues():
-#            docArgs[ value ] =  model.__getattr__( value )
-#        # document instance
-#        newdoc = document.Document(
-#            content,
-#            docid,
-#            title,
-#            datestamp = pubdate,
-#            **docArgs
-#        )
-#        # document's edges
-
-#        return newdoc
-
 

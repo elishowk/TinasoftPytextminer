@@ -14,8 +14,8 @@ from tinasoft.pytextminer import stopwords, ngram
 
 class TinaAppTestCase(unittest.TestCase):
     def setUp(self):
-        self.tinasoft = TinaApp(configFile='config.yaml')
-                    #storage='tinabsddb://fetopen.test.bsddb')
+        self.tinasoft = TinaApp(configFile='config.yaml',
+            storage='tinabsddb://test.bsddb')
         self.config = {}
         self.config['userstopwords'] = 'user/100224-fetopen-user-stopwords.csv'
         self.whitelist = self.tinasoft.getWhitelist(
@@ -24,14 +24,24 @@ class TinaAppTestCase(unittest.TestCase):
         )
         self.userstopwordfilter=[stopwords.StopWordFilter( "file://%s" % self.config['userstopwords'] )]
 
+    def testExtractWhitelist(self):
+        self.tinasoft.extractWhitelist(
+            '/home/elishowk/TINA/Datas/pubmed_cancer_tina_toydb.txt',
+            'import.yaml',
+            'pubmed cancer',
+            index=False,
+            format='medline',
+            overwrite=False
+        )
+
     def testAImportFile(self):
         return
         self.tinasoft.importFile(
-            'tests/pubmed_tina_1000.csv',
+            '/home/elishowk/TINA/Datas/pubmed_cancer_tina_toydb.txt',
             'import.yaml',
-            'pubmed test 1000',
+            'pubmed cancer',
             index=False,
-            format='tina',
+            format='medline',
             overwrite=False
         )
 
@@ -57,7 +67,7 @@ class TinaAppTestCase(unittest.TestCase):
         self.tinasoft.logger.debug( "processCooc test finished " )
 
     def testDExportGraph(self):
-        #return
+        return
         path = 'tests/tinaapptests1000-exportGraph.gexf'
         periods=['1','2']
         opts={
