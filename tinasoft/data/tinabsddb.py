@@ -235,7 +235,7 @@ class Backend(Handler):
             self.destroy()
         except db.DBError, e:
             _logger.error( "DBError exception during __del__() : " + e[1] )
-            raise Exception
+            raise Exception(e)
 
     def begin_txn(self):
         """
@@ -298,7 +298,7 @@ class Backend(Handler):
                 del self.__dbTxn[thread.get_ident()]
             except Exception, e:
                 _logger.error( "Got exception in commit " + e )
-                raise e
+                raise Exception(e)
         else:
             _logger.warning("No transaction to commit")
 
@@ -328,7 +328,7 @@ class Backend(Handler):
                 del self.__dbTxn[thread.get_ident()]
             except Exception, e:
                 _logger.error( "Got exception in rollback " + e )
-                raise e
+                raise Exception(e)
         else:
             _logger.warning("No transaction to rollback")
 
@@ -350,7 +350,7 @@ class Backend(Handler):
             return None
         except db.DBKeyEmptyError, e2:
             _logger.error( "DBError exception during saferead() : " + e[1] )
-            raise Exception
+            raise Exception(e2)
 
     def safereadrange( self, smallestkey=None, txn=None ):
         """returns a cursor, optional smallest key"""
@@ -363,7 +363,7 @@ class Backend(Handler):
             return cur
         except db.DBError, e:
             _logger.error( "DBError exception during safereadrange() : " + e[1] )
-            raise Exception
+            raise Exception(e)
 
 
     def _overwrite( self, key, obj, txn=None ):
@@ -413,7 +413,7 @@ class Backend(Handler):
             _logger.warning( "delete failed, key is empty = "+ key )
         except db.DBError, dbe:
             _logger.warning( dbe )
-            raise Exception()
+            raise Exception(dbe)
 
     def add(self, key, obj, overwrite):
         """
@@ -428,7 +428,7 @@ class Backend(Handler):
         except Exception, e:
             _logger.error( "Got exception in add " )
             _logger.error( e )
-            raise e
+            raise Exception(e)
 
     def addmany(self, iter, target, overwrite):
         """
@@ -443,7 +443,7 @@ class Backend(Handler):
         except Exception, e:
             _logger.error( "Got exception in add " )
             _logger.error( e )
-            raise e
+            raise Exception(e)
 
     def remove(self, id, deltype, delobj=None):
         """
@@ -487,7 +487,7 @@ class Backend(Handler):
         except Exception, e:
             _logger.error("Got exception in remove ")
             _logger.error(e)
-            raise e
+            raise Exception(e)
 
     def clear( self ):
         self._db.truncate()
