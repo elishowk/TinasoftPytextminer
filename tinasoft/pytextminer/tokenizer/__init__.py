@@ -51,21 +51,6 @@ class RegexpTokenizer():
         #return cleanTokens
         return tokens
 
-    ### deprecated
-    @staticmethod
-    def filterBySize( words, min=2, max=255 ):
-        """Filter a list of word by size
-
-        > filterBySize(["a", "aaa", "aa", "aaaa", "aa"], min=2 , max=3)
-        ["aaa", "aa", "aa"]
-        """
-        filtered = []
-        for word in words:
-            length = len(word)
-            if length >= min and length <= max:
-                filtered += [ word ]
-        return filtered
-
     @staticmethod
     def filterNGrams(ngram, filters=None):
         passFilter = True

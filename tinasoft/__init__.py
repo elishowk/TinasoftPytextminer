@@ -3,8 +3,7 @@ __author__="Elias Showk"
 __all__ = ["pytextminer","data"]
 
 # tinasoft core modules
-from tinasoft.pytextminer import stopwords, indexer, tagger, tokenizer, \
-    corpora, ngram, cooccurrences
+from tinasoft.pytextminer import *
 from tinasoft.data import Engine, Reader, Writer
 
 # checks or creates aaplication directories
@@ -30,9 +29,8 @@ import yaml
 import logging
 import logging.handlers
 
-# json
+# json encoder for communicate with the outer world
 import jsonpickle
-import codecs
 
 # Threads
 from time import sleep
@@ -101,7 +99,7 @@ class TinaApp():
         except:
             self.locale = ''
             self.logger.error( "locale %s was not found,\
-                switching to en_US.UTF-8 by default"%self.locale)
+                switching to default"%self.locale)
             locale.setlocale(locale.LC_ALL, self.locale)
 
 
@@ -119,7 +117,7 @@ class TinaApp():
             self.index = indexer.TinaIndex(self.config['index'])
         else:
             self.index = indexer.TinaIndex(index)
-        self.logger.debug("TinaApp started")
+        self.logger.debug("TinaApp started components = config, logger, locale, indexer, storage")
 
     def serialize(self, obj):
         """
@@ -133,7 +131,7 @@ class TinaApp():
         """
         return jsonpickle.decode(str)
 
-    def extractWhitelist(self,
+    def extractFile(self,
             path,
             configFile,
             corpora_id,
@@ -146,69 +144,26 @@ class TinaApp():
         initiate the import.yaml config file, default ngram's filters,
         a file Reader() to be sent to the Extractor()
         """
-        try:
-            # import import config yaml
-            self.importConfig = yaml.safe_load( file( configFile, 'rU' ) )
-        except yaml.YAMLError, exc:
-            self.logger.error( "Unable to read the importFile special config : " + exc)
-            return self.STATUS_ERROR
-        # load Stopwords object
-        self.stopwords = stopwords.StopWords( "file://%s" % self.importConfig['stopwords'] )
-        # load default filters (TODO put it into import.yaml !!)
-        #filtertag = ngram.PosTagFilter()
-        filterContent = ngram.Filter()
-        validTag = ngram.PosTagValid()
-        defaultextractionfilters = [filterContent,validTag]
+
         # sends indexer to the file parser
         if index is True:
             index=self.index
         else:
             index = None
-        # instance of the counter
-        corporaCounter = corpora.Counter()
 
-        # loads the source file
-        dsn = format+"://"+path
-        fileReader = Reader( dsn,
-            delimiter = self.importConfig['delimiter'],
-            quotechar = self.importConfig['quotechar'],
-            locale = self.importConfig['locale'],
-            fields = self.importConfig['fields']
-        )
-        # instanciate the tagger
-        hometagger = tagger.TreeBankPosTagger()
+        corporaObj = corpora.Corpora(corpora_id)
+        # instanciate extractor class
+        extractor = extractor.Extractor( self.storage, corporaObj, index )
 
-        # starts the parsing
-        fileGenerator = fileReader.parseFile()
-        count=0
-        try:
-            while 1:
-                document, corpusNum = fileGenerator.next()
-                #self.logger.debug( "%s is extracting document %s (overwrite=%s)"%(tokenizer.TreeBankWordTokenizer.__name__, document['id'], str(overwrite)) )
-                # extract filtered ngrams
-                docngrams = tokenizer.TreeBankWordTokenizer.extract( \
-                    document,\
-                    self.stopwords, \
-                    self.importConfig['ngramMin'], \
-                    self.importConfig['ngramMax'], \
-                    defaultextractionfilters, \
-                    hometagger
-                    )
-                corporaCounter.add( docngrams, corpusNum )
-                count+=1
-                if count % 10000 == 0:
-                    for period in corporaCounter.index.iterkeys():
-                        path = "%d-%s-extractWhitelist.csv"%(count,period)
-                        csvfile = Writer("ngram://"+path)
-                        self.logger.debug( "saving partial whitelist to %s"%path )
-                        csvfile.writeRow( ["status","label","corpus-ngrams w","pos tag","db ID"] )
-                        for ngid in corporaCounter.index[period].iterkeys():
-                            row=["",corporaCounter.index[period][ngid]['label'],corporaCounter.index[period][ngid]['occs'],corporaCounter.index[period][ngid]['postag'],ngid]
-                            csvfile.writeRow( map(str, row) )
-                    corporaCounter.index={}
-        except StopIteration, stop:
-            self.logger.debug("Finished parsing %d documents"%count)
-            return True
+        if extractor.extractFile( path, \
+            configFile, \
+            format, \
+            overwrite
+        ) is True:
+            return self.STATUS_OK
+
+        else:
+            return self.STATUS_ERROR
 
     def importFile(self,
             path,
@@ -223,42 +178,20 @@ class TinaApp():
         initiate the import.yaml config file, default ngram's filters,
         a file Reader() to be sent to the Extractor()
         """
-        try:
-            # import import config yaml
-            self.importConfig = yaml.safe_load( file( configFile, 'rU' ) )
-        except yaml.YAMLError, exc:
-            self.logger.error( "Unable to read the importFile special config : " + exc)
-            return self.STATUS_ERROR
-        # load Stopwords object
-        self.stopwords = stopwords.StopWords( "file://%s" % self.importConfig['stopwords'] )
-        # load default filters (TODO put it into import.yaml !!)
-        #filtertag = ngram.PosTagFilter()
-        filterContent = ngram.Filter()
-        validTag = ngram.PosTagValid()
-        defaultextractionfilters = [filterContent,validTag]
         # sends indexer to the file parser
         if index is True:
             index=self.index
         else:
             index = None
-        # loads the source file
-        dsn = format+"://"+path
-
-        fileReader = Reader( dsn,
-            delimiter = self.importConfig['delimiter'],
-            quotechar = self.importConfig['quotechar'],
-            locale = self.importConfig['locale'],
-            fields = self.importConfig['fields']
-        )
 
         corporaObj = corpora.Corpora(corpora_id)
-
         # instanciate extractor class
-        extractor = corpora.Extractor( fileReader, corporaObj, self.storage )
+        extractor = extractor.Extractor( self.storage, corporaObj, index )
 
-        if extractor.walkFile( index, defaultextractionfilters, \
-            self.importConfig['ngramMin'], self.importConfig['ngramMax'], \
-            self.stopwords, overwrite=overwrite
+        if extractor.importFile( path, \
+            configFile,\
+            format, \
+            overwrite
         ) is True:
             return extractor.duplicate
 

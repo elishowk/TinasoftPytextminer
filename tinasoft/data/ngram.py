@@ -195,8 +195,9 @@ class Exporter(basecsv.Exporter):
     def exportNGrams(self, index, period ):
         """Dump to a whitelist-like file
         the contents of a corpora.Counter instance"""
-        _logger.debug( "saving partial whitelist to %s"%self.filepath )
-        self.writeRow( ["status","label","corpus-ngrams w","pos tag","db ID"] )
+        _logger.debug( "saving partial whitelist to %s for period %s"%\
+            (self.filepath, period) )
+        #self.writeRow( ["status","label","corpus-ngrams w","pos tag","db ID"] )
         #occssorted =reversed(sorted(index[period].items(), key=itemgetter(1)))
         for ngid in index[period].iterkeys():
             row=[index[period][ngid]['status'],
