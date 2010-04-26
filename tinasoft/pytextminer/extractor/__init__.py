@@ -1,5 +1,14 @@
 # -*- coding: utf-8 -*-
 __author__="Elias Showk"
+from tinasoft.pytextminer import tagger, stopwords, tokenizer, ngram
+from tinasoft.data import Engine, Reader, Writer
+
+# configuration file parsing
+import yaml
+
+import logging
+_logger = logging.getLogger('TinaAppLogger')
+
 
 class Counter():
     """Utility object counting ngrams for different period"""
@@ -86,7 +95,7 @@ class Extractor():
                 _logger.debug( "Extracting document %s"%document['id'] )
                 count += 1
                 yield document, corpus
-         except StopIteration, stop:
+        except StopIteration, stop:
             _logger.debug("Finished walking %d documents"%count)
             return
 
@@ -158,15 +167,13 @@ class Extractor():
                     corpusNum,\
                     self.config['ngramMax'], \
                     self.config['ngramMax'], \
-                    self.filters, \
-                    self.stopwords, \
                     overwrite \
                 )
 
         # Second part of file parsing = document graph updating
         except StopIteration, stop:
             # commit changes to indexer
-            if index is not None:
+            if self.index is not None:
                 self.writer.commit()
             # bottle-neck here on big big corpus
             # inserts/updates corpus and corpora

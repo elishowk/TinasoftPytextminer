@@ -78,7 +78,7 @@ class TinaApp():
         # Add the log message handler to the logger
         rotatingFileHandler = logging.handlers.RotatingFileHandler(
             filename=self.LOG_FILENAME,
-            maxBytes=100000,
+            maxBytes=10000,
             backupCount=2
         )
         # formatting
@@ -99,7 +99,7 @@ class TinaApp():
         except:
             self.locale = ''
             self.logger.error( "locale %s was not found,\
-                switching to default"%self.locale)
+                switching to default = "%self.locale)
             locale.setlocale(locale.LC_ALL, self.locale)
 
 
@@ -153,9 +153,9 @@ class TinaApp():
 
         corporaObj = corpora.Corpora(corpora_id)
         # instanciate extractor class
-        extractor = extractor.Extractor( self.storage, corporaObj, index )
+        extract = extractor.Extractor( self.storage, corporaObj, index )
 
-        if extractor.extractFile( path, \
+        if extract.extractFile( path, \
             configFile, \
             format, \
             overwrite
@@ -186,14 +186,14 @@ class TinaApp():
 
         corporaObj = corpora.Corpora(corpora_id)
         # instanciate extractor class
-        extractor = extractor.Extractor( self.storage, corporaObj, index )
+        extract = extractor.Extractor( self.storage, corporaObj, index )
 
-        if extractor.importFile( path, \
+        if extract.importFile( path, \
             configFile,\
             format, \
             overwrite
         ) is True:
-            return extractor.duplicate
+            return extract.duplicate
 
         else:
             return self.STATUS_ERROR
@@ -215,13 +215,16 @@ class TinaApp():
         import an ngram csv file
         returns a whitelist object to be used as input of other methods
         """
-        if isinstance(filepath,str) is True:
+        print "entering getWhiteL", filepath
+        if isinstance(filepath,str) or isinstance(filepath, unicode):
             filepath=[filepath]
+            print filepath
         whitelist = {}
         for path in filepath:
-            importer = Reader('ngram://'+path, **kwargs)
-            importer.whitelist = whitelist
-            whitelist = importer.importNGrams()
+            print "calling Reader on ", path
+            wlimport = Reader('ngram://'+path, **kwargs)
+            wlimport.whitelist = whitelist
+            whitelist = wlimport.importNGrams()
         return whitelist
 
     def processCooc(self, whitelist, corporaid, periods, userfilters, *opts ):

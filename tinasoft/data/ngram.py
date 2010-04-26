@@ -4,8 +4,11 @@ from operator import itemgetter
 import os
 from operator import itemgetter
 
+from tinasoft import TinaApp
 from tinasoft.data import basecsv
 from tinasoft.pytextminer import tokenizer, tagger, cooccurrences
+
+# logger
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
