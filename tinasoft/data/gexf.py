@@ -155,7 +155,7 @@ class NGramGraph(SubGraph):
         return prox
 
     def notify( self, count ):
-        if count % 1000 == 0:
+        if count % 100 == 0:
             tinasoft.TinaApp.notify( None,
                 'tinasoft_runProcessCoocGraph_running_status',
                 "%d ngram's edges processed"%count
@@ -270,7 +270,7 @@ class DocumentGraph(SubGraph):
         )
 
     def notify( self, count ):
-        if count % 1000 == 0:
+        if count % 5000 == 0:
             tinasoft.TinaApp.notify( None,
                 'tinasoft_runProcessCoocGraph_running_status',
                 "%d document's edges processed"%count

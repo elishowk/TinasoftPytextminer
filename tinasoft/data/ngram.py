@@ -6,7 +6,7 @@ from operator import itemgetter
 
 from tinasoft import TinaApp
 from tinasoft.data import basecsv
-from tinasoft.pytextminer import tokenizer, tagger, cooccurrences
+from tinasoft.pytextminer import tokenizer, tagger, extractor
 
 # logger
 import logging
@@ -228,7 +228,7 @@ class Exporter(basecsv.Exporter):
                 continue
         return self.filepath
 
-    def exportCorpora(self, storage, periods, corporaid, filters=None, whitelist=None, ngramlimit=65000):
+    def exportCorpora(self, storage, periods, corporaid, filters=None, whitelist=None, ngramlimit=65000, minOccs=1):
         """exports selected periods=corpus in a corpora, synthetize importFile()"""
         self.writeRow(self.columns)
 
@@ -237,6 +237,7 @@ class Exporter(basecsv.Exporter):
         ngramtotal=0
 
         corpuscache = []
+        ngramcache = {}
 
         for corpusid in periods:
             # gets a corpus from the storage
@@ -255,55 +256,66 @@ class Exporter(basecsv.Exporter):
                 # notifies progression and stops if limit exceeded
                 ngramcount += 1
                 if ngramlimit <= ngramcount: break
-                if ngramcount % 10000 == 0:
+                if ngramcount % 500 == 0:
                     TinaApp.notify( None,
                         'tinasoft_runExportCorpora_running_status',
                         str(float( (ngramcount*100) / ngramtotal ))
                     )
-                occs=int(occ)
-                if occs < 2:
-                    continue
                 # loads an checks ngram
                 ng = storage.loadNGram(ngid)
                 if self.ngramIntegrity( ng, ngid ) is False : continue
-
-                # prepares the row
-                tag = " ".join ( tagger.TreeBankPosTagger.getTag( ng['postag'] ) )
+                occs=int(occ)
                 n = len( ng['content'] )
-                #docedges = len( ng['edges']['Document'].keys() )
-                #totaldococcs = sum( ng['edges']['Document'].values() )
-                #corpedges = len( ng['edges']['Corpus'].keys() )
-                #totalcorpoccs= sum( ng['edges']['Corpus'].values() )
                 occsn=occs**n
-                # check document data integrity
-                #for docid in ng['edges']['Document'].keys():
-                #    storedDoc = storage.loadDocument(docid)
-                #    if self.docIntegrity( docid, storedDoc ) is False: continue
+                if ngid not in ngramcache:
+                    # prepares the row
+                    tag = " ".join ( tagger.TreeBankPosTagger.getTag( ng['postag'] ) )
+                    #docedges = len( ng['edges']['Document'].keys() )
+                    #totaldococcs = sum( ng['edges']['Document'].values() )
+                    #corpedges = len( ng['edges']['Corpus'].keys() )
+                    #totalcorpoccs= sum( ng['edges']['Corpus'].values() )
+                    # check document data integrity
+                    #for docid in ng['edges']['Document'].keys():
+                    #    storedDoc = storage.loadDocument(docid)
+                    #    if self.docIntegrity( docid, storedDoc ) is False: continue
 
-                # check corpus data integrity
-                #if self.ngramEdgesIntegrity( ngid, ng, docid, storedDoc, corpusid, occs ) is False : continue
-                row= [ "", ng['label'], tag, str(n), str(occs), str(occsn), \
-                    " ".join(ng['edges']['Document'].keys()), \
-                    " ".join(ng['edges']['Corpus'].keys()),\
-                    ng['id'], str(corporaid) ]
-                #row= [ "", ng['label'], tag, str(n), str(occs), str(occsn), \
-                #    str(docedges), str(totaldococcs), " ".join(ng['edges']['Document'].keys()), \
-                #    str(corpedges), str(totalcorpoccs), " ".join(ng['edges']['Corpus'].keys()),\
-                #    ng['id'], str(corpusobj['id']), str(corporaid) ]
+                    # check corpus data integrity
+                    #if self.ngramEdgesIntegrity( ngid, ng, docid, storedDoc, corpusid, occs ) is False : continue
+                    row= [ "", ng['label'], tag, str(n), str(occs), str(occsn), \
+                        " ".join(ng['edges']['Document'].keys()), \
+                        " ".join(ng['edges']['Corpus'].keys()),\
+                        ng['id'], str(corporaid) ]
+                    #row= [ "", ng['label'], tag, str(n), str(occs), str(occsn), \
+                    #    str(docedges), str(totaldococcs), " ".join(ng['edges']['Document'].keys()), \
+                    #    str(corpedges), str(totalcorpoccs), " ".join(ng['edges']['Corpus'].keys()),\
+                    #    ng['id'], str(corpusobj['id']), str(corporaid) ]
 
-                # filtering activated
-                if filters is not None and tokenizer.TreeBankWordTokenizer.filterNGrams(ng, filters) is False:
-                    # status='s'
-                    row[0] = self.refuse
-                if whitelist is not None and ng['id'] in whitelist:
-                    # status='w'
-                    row[0] = self.accept
+                    # filtering activated
+                    if filters is not None and tokenizer.TreeBankWordTokenizer.filterNGrams(ng, filters) is False:
+                        # status='s'
+                        row[0] = self.refuse
+                    if whitelist is not None and ng['id'] in whitelist:
+                        # status='w'
+                        row[0] = self.accept
+                    ngramcache[ngid]=row
+                else:
+                    # increments occs and occs^lenght
+                    sum = int(ngramcache[ngid][4]) + int(occs)
+                    ngramcache[ngid][4] = str(sum)
+                    ngramcache[ngid][5] = str( sum**n )
+        del corpuscache
+        totalexport = 0
+        _logger.debug("Writing export to %s"%self.filepath)
+        for ngid in ngramcache.keys():
+            if int(ngramcache[ngid][4]) >= minOccs:
                 # writes the row to the file
-                self.writeRow(row)
+                self.writeRow(ngramcache[ngid])
+                del ngramcache[ngid]
+                totalexport+=1
         #self.logIntegrity('Corpus')
         #self.logIntegrity('Document')
         #self.logIntegrity('NGram')
-        _logger.debug( "Total ngrams exported = %d"%(ngramcount) )
+        _logger.debug( "Total ngrams exported = %d"%totalexport )
         return self.filepath
 
 

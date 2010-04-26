@@ -150,6 +150,7 @@ class MapReduce():
             'tinasoft_runProcessCoocGraph_running_status',
             'stored %d non-zero cooccurrences values'%(countcooc)
         )
+        _logger.debug( 'stored %d non-zero cooccurrences values'%countcooc )
 
     def readMatrix( self ):
         try:

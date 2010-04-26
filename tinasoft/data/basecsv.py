@@ -70,7 +70,6 @@ class Importer (Importer):
             del f2
             self.docDict = {}
             self.corpusDict = {}
-            print self.csv
         except Exception, e:
             _logger.error(e)
 

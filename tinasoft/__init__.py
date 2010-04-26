@@ -215,13 +215,10 @@ class TinaApp():
         import an ngram csv file
         returns a whitelist object to be used as input of other methods
         """
-        print "entering getWhiteL", filepath
         if isinstance(filepath,str) or isinstance(filepath, unicode):
             filepath=[filepath]
-            print filepath
         whitelist = {}
         for path in filepath:
-            print "calling Reader on ", path
             wlimport = Reader('ngram://'+path, **kwargs)
             wlimport.whitelist = whitelist
             whitelist = wlimport.importNGrams()
@@ -232,6 +229,7 @@ class TinaApp():
         Main function importing a whitelist and generating cooccurrences
         process cooccurrences for each period=corpus
         """
+        self.logger.debug( "entering processCooc with a whitelist of size = %d"%len(whitelist.keys()) )
         for id in periods:
             try:
                 cooc = cooccurrences.MapReduce(self.storage, whitelist, \
