@@ -191,7 +191,6 @@ class Extractor():
         Main NLP operations and extractions on a document
         FOR DOCUMENT THAT IS NOT ALREADY IN THE DATABASE
         """
-        print ngramMin, ngramMax
         # extract filtered ngrams
         docngrams = tokenizer.TreeBankWordTokenizer.extract( \
             document,\
