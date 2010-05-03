@@ -228,7 +228,7 @@ class Exporter(basecsv.Exporter):
                 continue
         return self.filepath
 
-    def exportCorpora(self, storage, periods, corporaid, filters=None, whitelist=None, ngramlimit=65000, minOccs=1):
+    def exportCorpora(self, storage, periods, corporaid, filters=None, whitelist=None, ngramlimit=65000, minOccs=2):
         """exports selected periods=corpus in a corpora, synthetize importFile()"""
         self.writeRow(self.columns)
 

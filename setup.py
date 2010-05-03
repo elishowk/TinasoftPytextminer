@@ -19,14 +19,14 @@ setup(
     namespace_packages = ['tinasoft'],
 
     # Declare your packages' dependencies here, for eg:
-    install_requires=['numpy', 'nltk', 'jsonpickle', 'pysqlite','tenjin'],
+    install_requires=['numpy','bsddb3','nltk','jsonpickle','tenjin','whoosh'],
 
     # Fill in these to make your Egg ready for upload to
     # PyPI
     author = 'elias showk & julian bilcke',
     author_email = 'elishowk@nonutc.fr',
 
-    summary = "Tinasoft's Text-Mining module providing Co-Word analysis",
+    summary = "Tinasoft's Text-Mining module",
     url = 'http://github.com/elishowk/TinasoftPyTextMiner',
     license = 'GNU GPL v3',
 
