@@ -73,6 +73,7 @@ class RegexpTokenizer():
             content = tagger.TreeBankPosTagger.getContent(sent)
             for i in range(len(content)):
                 for n in range( minSize, maxSize+1 ):
+                    _logger.debug("lenght=%d"%n)
                     if len(content) >= i+n:
                         #content = tagger.TreeBankPosTagger.getContent(sent[i:n+i])
                         ng = ngram.NGram( content[i:n+i], occs = 1, postag = sent[i:n+i] )
@@ -83,6 +84,7 @@ class RegexpTokenizer():
                             if stopwords is None or stopwords.contains( ng ) is False:
                                 if RegexpTokenizer.filterNGrams( ng, filters ) is True:
                                     ngrams[ ng['id'] ] = ng
+                                    _logger.debug( ng['label'] )
         return ngrams
 
 class TreeBankWordTokenizer(RegexpTokenizer):

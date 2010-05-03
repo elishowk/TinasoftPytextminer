@@ -103,7 +103,7 @@ class Extractor():
         # instance of the counter
         corporaCounter = Counter()
         # starts the parsing
-        fileGenerator = self.walkFile( path, configFile, format )
+        fileGenerator = self._walkFile( path, configFile, format )
         count=0
         try:
             while 1:
@@ -165,7 +165,7 @@ class Extractor():
                 self.insertNGrams( \
                     document, \
                     corpusNum,\
-                    self.config['ngramMax'], \
+                    self.config['ngramMin'], \
                     self.config['ngramMax'], \
                     overwrite \
                 )
@@ -191,6 +191,7 @@ class Extractor():
         Main NLP operations and extractions on a document
         FOR DOCUMENT THAT IS NOT ALREADY IN THE DATABASE
         """
+        print ngramMin, ngramMax
         # extract filtered ngrams
         docngrams = tokenizer.TreeBankWordTokenizer.extract( \
             document,\

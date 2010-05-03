@@ -255,7 +255,7 @@ class Exporter(basecsv.Exporter):
             for ngid, occ in corpusobj['edges']['NGram'].iteritems():
                 # notifies progression and stops if limit exceeded
                 ngramcount += 1
-                if ngramlimit <= ngramcount: break
+                #if ngramlimit <= ngramcount: break
                 if ngramcount % 500 == 0:
                     TinaApp.notify( None,
                         'tinasoft_runExportCorpora_running_status',

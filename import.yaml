@@ -20,7 +20,7 @@ delimiter: ','
 quotechar: '"'
 locale: 'en_US.UTF-8'
 ngramMin: 1
-ngramMax: 4
+ngramMax: 5
 stopwords: 'shared/stopwords/en.txt'
 userstopwords: '/home/elishowk/TINA/Datas/100224-fetopen-user-stopwords.csv'
-overwrite: 0
+overwrite: 1
