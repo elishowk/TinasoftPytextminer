@@ -23,7 +23,7 @@ class CoocTestCase(unittest.TestCase):
 
     def testImportNGrams(self):
         return
-        whitelist = self.tinasoft.importNGrams(
+        whitelist = self.tinasoft.import_whitelist(
             'tests/test-importNGrams.csv',
             occsCol='occurrences',
         )
@@ -49,7 +49,7 @@ class CoocTestCase(unittest.TestCase):
         synthesispath = '100218-fetopen-corpora-synthesis.csv'
         mergepath = '100218-fetopen-ngrams.csv'
         generator = generate()
-        self.tinasoft.exportNGrams(generator, synthesispath, filters=filters, mergepath=mergepath)
+        self.tinasoft.export_ngrams(generator, synthesispath, filters=filters, mergepath=mergepath)
 
     def testExportAllNGram(self):
         return

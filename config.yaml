@@ -1,11 +1,54 @@
-# tinasoft.TinaApp configuration (YAML format)
+# tinasoft configuration (YAML format)
 ---
-# TinaApp main params
-locale: 'en_US.UTF-8'
-storage: "tinabsddb://fetopen.bsddb"
-index: 'index/'
-dbenv: 'db/'
-log: 'log/tinasoft.log'
-stopwords: 'shared/stopwords/en.txt'
-user: 'user'
-template: 'shared/gexf/gexf.template'
+# application main params
+general:
+    locale: 'en_US.UTF-8'
+    storage: "tinabsddb://tinasoft.bsddb"
+    index: 'index'
+    dbenv: 'db'
+    log: 'log'
+    loglevel: 'debug'
+    user: 'user'
+# extraction settings
+datasets:
+    # tina csv columns declaration
+    # will ignore undeclared fields
+    # and warn not found optional fields
+    tina:
+        fields:
+            titleField: 'doc_titl'
+            contentField: 'doc_abst'
+            authorField: 'doc_acrnm'
+            corpusNumberField: 'corp_id'
+            docNumberField: 'doc_id'
+            # next fields are optional
+            index1Field: 'doc_index_1'
+            index2Field: 'doc_index_2'
+            dateField: 'doc_date'
+            keywordsField: 'doc_keywords'
+        # csv reader params
+        delimiter: ','
+        quotechar: '"'
+        locale: 'en_US.UTF-8'
+    # extraction params
+    ngramMin: 1
+    ngramMax: 5
+    stopwords: 'shared/stopwords/en.txt'
+    #userstopwords: 'path/to/your/stop-ngrams-file.txt'
+    overwrite: 0
+datamining:
+    template: 'shared/gexf/gexf.template'
+    DocumentGraph:
+        edgethreshold:
+            - 0.0
+            - 2.0
+        nodethreshold:
+            - 1
+            - 'inf'
+    NGramGraph:
+        edgethreshold: 
+            - 0.0
+            - 1.0
+        nodethreshold: 
+            - 2
+            - 'inf'

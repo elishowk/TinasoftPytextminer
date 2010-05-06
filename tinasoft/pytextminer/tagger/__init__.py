@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 
 __author__="Elias Showk"
-__date__ ="$Nov 19, 2009 6:32:44 PM$"
+__date__ ="$Nov 19, 2009$"
 
 # warning : nltk imports it's own copy of pyyaml
-import nltk.corpus, nltk.tag, itertools
+import nltk.corpus
+import nltk.tag
+import itertools
 from nltk.tag import brill
 from nltk import pos_tag
+
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
@@ -40,8 +43,8 @@ class TreeBankPosTagger():
         #brown_lore_sents = nltk.corpus.brown.tagged_sents(categories=['lore'])
         #brown_romance_sents = nltk.corpus.brown.tagged_sents(categories=['romance'])
 
-        brown_train = list(nltk.corpus.brown.tagged_sents()[:10000])
-        conll_train = list(nltk.corpus.conll2000.tagged_sents()[:10000])
+        brown_train = list(nltk.corpus.brown.tagged_sents()[:8000])
+        conll_train = list(nltk.corpus.conll2000.tagged_sents()[:8000])
         train_sents = list(itertools.chain( brown_train, conll_train ))
         # base tagger classes for initial tagger
         tagger_classes = [nltk.tag.AffixTagger, nltk.tag.UnigramTagger, nltk.tag.BigramTagger, nltk.tag.TrigramTagger]

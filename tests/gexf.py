@@ -17,7 +17,7 @@ class CoocTestCase(unittest.TestCase):
     def setUp(self):
         self.tinasoft = TinaApp(configFile='config.yaml',\
             storage='tinabsddb://fetopen.bsddb')
-        self.whitelist = self.tinasoft.getWhitelist(
+        self.whitelist = self.tinasoft.get_whitelist(
             #'/home/elishowk/TINA/Datas/100226-pubmed_whitelist.csv'
             'user/100221-fetopen-filteredngrams.csv'
         )

@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
-from tinasoft.data import Exporter, Importer
+from tinasoft.data import Handler
 
 import codecs
 import csv
-from datetime import datetime
+#from datetime import datetime
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
-class Exporter (Exporter):
-
+class Exporter (Handler):
+    """exporter class for csv file"""
     def __init__(self,
             filepath,
             delimiter = ',',
@@ -35,8 +35,8 @@ class Exporter (Exporter):
             self.writeRow( row )
 
 
-class Importer (Importer):
-
+class Importer (Handler):
+    """importer class for csv file"""
     def __init__(self,
             filepath,
             delimiter=',',

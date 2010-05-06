@@ -6,59 +6,56 @@ __date__ ="$Jan, 21 2010 5:29:16 PM$"
 
 # core modules
 import unittest
-import os
-import random
 
 from tinasoft import TinaApp
-from tinasoft.pytextminer import stopwords, ngram
+from tinasoft.pytextminer import stopwords
 
 class TinaAppTestCase(unittest.TestCase):
     def setUp(self):
-        self.tinasoft = TinaApp(configFile='config.yaml',
-            storage='tinabsddb://test.bsddb')
-        self.config = {}
-        self.config['userstopwords'] = 'user/100224-fetopen-user-stopwords.csv'
-        self.whitelist = self.tinasoft.getWhitelist(
+        self.tinasoft = TinaApp(storage='tinabsddb://test.bsddb')
+        self.config = { 'datasets': {} }
+        self.config['datasets']['userstopwords'] = 'user/100224-fetopen-user-stopwords.csv'
+        self.whitelist = self.tinasoft.get_whitelist(
             #'/home/elishowk/TINA/Datas/100226-pubmed_whitelist.csv'
-            'user/100221-fetopen-filteredngrams.csv'
+            'tests/data/pubmed_whitelist.csv'
         )
-        self.userstopwordfilter=[stopwords.StopWordFilter( "file://%s" % self.config['userstopwords'] )]
+        self.userstopwordfilter=[stopwords.StopWordFilter( "file://%s" % self.config['datasets']['userstopwords'] )]
 
-    def testExtractWhitelist(self):
-        self.tinasoft.extractWhitelist(
-            '/home/elishowk/TINA/Datas/pubmed_cancer_tina_toydb.txt',
-            'import.yaml',
-            'pubmed cancer',
+    def testA_ExtractFile(self):
+        """testing extract_file"""
+        self.tinasoft.extract_file(
+            'tests/data/pubmed_tina_test.csv',
+            'test data set',
             index=False,
-            format='medline',
+            format='tina',
             overwrite=False
         )
 
-    def testAImportFile(self):
-        return
-        self.tinasoft.importFile(
-            '/home/elishowk/TINA/Datas/pubmed_cancer_tina_toydb.txt',
-            'import.yaml',
-            'pubmed cancer',
+    def testB_ImportFile(self):
+        """testing import_file"""
+        #return
+        self.tinasoft.import_file(
+            "tests/data/pubmed_tina_test.csv",
+            "test data set",
             index=False,
-            format='medline',
+            format="tina",
             overwrite=False
         )
 
-    def testBExportCorpora(self):
-        return
-        print self.tinasoft.exportCorpora( \
+    def testC_ExportCorpora(self):
+        #return
+        print self.tinasoft.export_whitelist( \
             ['8'], \
-            'fet open', \
+            "test data", \
             'tests/tinaapptests-exportCorpora.csv', \
             self.whitelist, \
             self.userstopwordfilter
         )
 
-    def testCProcessCooc(self):
-        return
+    def testD_ProcessCooc(self):
+        #return
         #self.tinasoft.logger.debug ( self.tinasoft.storage.loadCorpora( 'pubmed test 200', raw=1 ) )
-        self.tinasoft.processCooc( \
+        self.tinasoft.process_cooc( \
             self.whitelist, \
             'pubmed test 1000', \
             ['1','2'], \
@@ -66,28 +63,20 @@ class TinaAppTestCase(unittest.TestCase):
         )
         self.tinasoft.logger.debug( "processCooc test finished " )
 
-    def testDExportGraph(self):
-        return
-        path = 'tests/tinaapptests1000-exportGraph.gexf'
+    def testE_ExportGraph(self):
+        #return
+        path = 'tests/tinaapptests-exportGraph.gexf'
         periods=['1','2']
-        opts={
-            'DocumentGraph': {
-                'threshold': [0, 'inf'],
-            },
-            'NGramGraph': {
-                'threshold': [0.0, 1.0],
-            }
-        }
-        self.tinasoft.exportGraph(path, periods, opts, self.whitelist)
+        self.tinasoft.export_graph(path, periods, self.whitelist)
 
-    def testEExportCoocMatrix(self):
+    def testF_ExportCoocMatrix(self):
         return
         path = 'tests/tinaapptests-exportCoocMatrix.csv'
         periods=['8']
         self.tinasoft.logger.debug( "created : " + \
-            self.tinasoft.exportCooc(path, periods, self.whitelist) )
+            self.tinasoft.export_cooc(path, periods, self.whitelist) )
 
-    def testFExportDocuments(self):
+    def testG_ExportDocuments(self):
         return
         from tinasoft.data import Writer
         path = 'tests/tinaapptests-exportDocuments.csv'

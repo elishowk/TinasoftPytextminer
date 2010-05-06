@@ -2,9 +2,9 @@
 
 from tinasoft import TinaApp
 from tinasoft.data import basecsv
-from tinasoft.pytextminer import document, corpus, tokenizer
-import codecs
-import csv
+#from tinasoft.pytextminer import document, corpus, tokenizer
+#import codecs
+#import csv
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
@@ -13,7 +13,9 @@ class Importer (basecsv.Importer):
     tina csv format
     instanciation example:
     from tinasoft.data import Reader
-    tinaReader = Reader( "tina://text_file_to_import.csv", fields={
+    tinaReader = Reader( "tina://text_file_to_import.csv", config )
+    config must contain a 'fields' dict, like :
+    fields = {
         titleField: 'doc_titl',
         contentField: 'doc_abst',
         authorField: 'doc_acrnm',

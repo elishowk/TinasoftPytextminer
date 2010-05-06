@@ -4,7 +4,7 @@ from tinasoft.pytextminer import tagger, stopwords, tokenizer, ngram
 from tinasoft.data import Engine, Reader, Writer
 
 # configuration file parsing
-import yaml
+#import yaml
 
 import logging
 _logger = logging.getLogger('TinaAppLogger')
@@ -29,11 +29,12 @@ class Counter():
 
 class Extractor():
     """A source file importer = data set = corpora"""
-    def __init__( self, storage, corpora, index=None ):
+    def __init__( self, storage, config, corpora, index=None ):
+
+        self.config=config
 
         # init by methods
         self.filters=None
-        self.config=None
         self.stopwords=None
 
         # params from the controler
@@ -48,19 +49,17 @@ class Extractor():
 
     def _openFile(self,
             path,
-            configFile,
             format='tina'
         ):
-        try:
+        #try:
             # import import config yaml
-            self.config = yaml.safe_load( file( configFile, 'rU' ) )
-        except yaml.YAMLError, exc:
-            _logger.error( "Unable to read the importFile : "+exc )
-            return False
+        #    self.config = yaml.safe_load( file( configFile, 'rU' ) )
+        #except yaml.YAMLError, exc:
+        #    _logger.error( "Unable to read the importFile : "+exc )
+        #    return False
         # load Stopwords object
         self.stopwords = stopwords.StopWords( "file://%s"%self.config['stopwords'] )
 
-        # load default filters (TODO put it into import.yaml !!)
         #filtertag = ngram.PosTagFilter()
         filterContent = ngram.Filter()
         validTag = ngram.PosTagValid()
@@ -68,12 +67,12 @@ class Extractor():
 
         # loads the source file
         dsn = format+"://"+path
-        fileReader = Reader( dsn,
-            delimiter = self.config['delimiter'],
-            quotechar = self.config['quotechar'],
-            locale = self.config['locale'],
-            fields = self.config['fields']
-        )
+        fileReader = Reader( dsn, **self.config[format] )
+        #    delimiter = self.config['delimiter'],
+        #    quotechar = self.config['quotechar'],
+        #    locale = self.config['locale'],
+        #    fields = self.config['fields']
+        #)
         return fileReader
 
     def _indexDocument( self, documentobj, overwrite ):
@@ -83,10 +82,10 @@ class Extractor():
                     + str(document['id']))
 
 
-    def _walkFile( self, path, configFile, format ):
+    def _walkFile( self, path, format ):
         """Main parsing source file method"""
         # starts parsing
-        self.reader = self._openFile( path, configFile, format )
+        self.reader = self._openFile( path, format )
         fileGenerator = self.reader.parseFile()
         count=0
         try:
@@ -95,15 +94,15 @@ class Extractor():
                 _logger.debug( "Extracting document %s"%document['id'] )
                 count += 1
                 yield document, corpus
-        except StopIteration, stop:
+        except StopIteration:
             _logger.debug("Finished walking %d documents"%count)
             return
 
-    def extractFile(self, path, configFile, format ):
+    def extract_file(self, path, format):
         # instance of the counter
         corporaCounter = Counter()
         # starts the parsing
-        fileGenerator = self._walkFile( path, configFile, format )
+        fileGenerator = self._walkFile( path, format )
         count=0
         try:
             while 1:
@@ -125,18 +124,18 @@ class Extractor():
                         path = "%d-%s-extractWhitelist.csv"%(count,period)
                         csvfile = Writer("ngram://"+path)
                         csvfile.writeRow( ["status","label","corpus-ngrams w","pos tag","db ID"] )
-                        csvfile.exportNGrams(corporaCounter, period)
+                        csvfile.export_ngrams(corporaCounter, period)
                         del corporaCounter.index[period]
                     corporaCounter.index={}
-        except StopIteration, stop:
+        except StopIteration:
             _logger.debug("Finished parsing %d documents"%count)
             return True
 
-    def importFile( self, path, configFile, format, overwrite=False ):
+    def import_file(self, path, format, overwrite=False):
         # keep duplicate document objects
         self.duplicate = []
         # opens and starts walking a file
-        fileGenerator = self._walkFile( path, configFile, format )
+        fileGenerator = self._walkFile( path, format )
         # 1st part = ngram extraction
         try:
             while 1:
@@ -157,7 +156,7 @@ class Extractor():
                         storedDoc.addEdge( 'Corpus', corpusNum, 1 )
                         # force update
                         self.storage.updateDocument( storedDoc, True )
-                        _logger.warning( "Document is already stored %s : only updating its edges"%document['id'] )
+                        _logger.warning( "Doc %s is already stored : only updating edges"%document['id'] )
                         # skip document
                         self.duplicate += [document]
                         continue
@@ -171,7 +170,7 @@ class Extractor():
                 )
 
         # Second part of file parsing = document graph updating
-        except StopIteration, stop:
+        except StopIteration:
             # commit changes to indexer
             if self.index is not None:
                 self.writer.commit()

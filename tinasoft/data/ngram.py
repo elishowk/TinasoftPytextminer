@@ -45,7 +45,7 @@ class WhitelistHandler():
                 self.reducer( period, self.mapper(file) )
             #path = self.getPath(period)
             #exporter = Exporter( path )
-            #exporter.exportNGrams( self.whitelist, period )
+            #exporter.export_ngrams( self.whitelist, period )
             del self.whitelist[period]
         synth = Exporter( os.path.join( directory, "synthesis-whitelist.csv" ) )
         synth.exportSynthesis( self.ngrams )
@@ -132,16 +132,16 @@ class Importer (basecsv.Importer):
         'encoding'  : 'utf-8',
     }
 
-    def _addToWhiteList(self, row, dbid, occs):
+    def _add_whitelist(self, row, dbid, occs):
         if row[self.dbidCol] in self.whitelist:
             self.whitelist[dbid] += occs
         else:
             self.whitelist[dbid] = occs
 
-    def _addStopWord(self, row, dbid):
+    def _add_stopword(self, row, dbid):
         pass
 
-    def importNGrams(self):
+    def import_whitelist(self):
         line=1
         keys=[self.statusCol, self.dbidCol, self.occsCol]
         for row in self.csv:
@@ -157,9 +157,9 @@ class Importer (basecsv.Importer):
             # manual recalculate db ID
             dbid = str(abs(hash( label )))
             if status == self.accept:
-                self._addToWhiteList(row, dbid, occs)
+                self._add_whitelist(row, dbid, occs)
             elif status == self.refuse:
-                self._addStopWord(row, dbid)
+                self._add_stopword(row, dbid)
             line+=1
         return self.whitelist
 
@@ -195,7 +195,7 @@ class Exporter(basecsv.Exporter):
             self.writeRow([ng[0], ng[1]['tot'], ng[2]['max']])
             lines += 1
 
-    def exportNGrams(self, index, period ):
+    def export_ngrams(self, index, period ):
         """Dump to a whitelist-like file
         the contents of a corpora.Counter instance"""
         _logger.debug( "saving partial whitelist to %s for period %s"%\
@@ -209,7 +209,7 @@ class Exporter(basecsv.Exporter):
             index[period][ngid]['postag'], ngid]
             self.writeRow( map(str, row) )
 
-    def exportCooc(self, storage, periods, whitelist, **kwargs):
+    def export_cooc(self, storage, periods, whitelist, **kwargs):
         """exports a reconstitued cooc matrix, applying whitelist filtering"""
         for corpusid in periods:
             try:
@@ -228,7 +228,7 @@ class Exporter(basecsv.Exporter):
                 continue
         return self.filepath
 
-    def exportCorpora(self, storage, periods, corporaid, filters=None, whitelist=None, ngramlimit=65000, minOccs=2):
+    def export_whitelist(self, storage, periods, corporaid, filters=None, whitelist=None, ngramlimit=65000, minOccs=2):
         """exports selected periods=corpus in a corpora, synthetize importFile()"""
         self.writeRow(self.columns)
 

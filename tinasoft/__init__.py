@@ -2,44 +2,42 @@
 __author__="Elias Showk"
 __all__ = ["pytextminer","data"]
 
-# tinasoft core modules
-from tinasoft.pytextminer import *
-from tinasoft.data import Engine, Reader, Writer
-
-# checks or creates aaplication directories
+# python utility modules
+from os.path import exists
+from os.path import join
 from os import makedirs
-from os.path import exists, join
-if not exists('log'):
-    makedirs('log')
-if not exists('index'):
-    makedirs('index')
-if not exists('db'):
-    makedirs('db')
-if not exists('user'):
-    makedirs('user')
-
-# locale management
-import locale
-# command line utility
-from optparse import OptionParser
-# configuration file parsing
 import yaml
-
-# logger
-import logging
-import logging.handlers
 
 # json encoder for communicate with the outer world
 import jsonpickle
 
-# Threads
-from time import sleep
-import threading
+import locale
+import logging
+import logging.handlers
 
-class DBInconsistency(Exception): pass
+# tinasoft core modules
+from tinasoft.data import Engine
+from tinasoft.data import Reader
+from tinasoft.data import Writer
+from tinasoft.pytextminer import corpora
+from tinasoft.pytextminer import extractor
+from tinasoft.pytextminer import cooccurrences
+
+LEVELS = {
+    'debug': logging.DEBUG,
+    'info': logging.INFO,
+    'warning': logging.WARNING,
+    'error': logging.ERROR,
+    'critical': logging.CRITICAL
+}
+
 
 class TinaApp():
-    """ base class for a tinasoft.pytextminer application"""
+    """
+    Main application class
+    should be used in conjunction with ThreadPool()
+    see below the standard return codes
+    """
 
     STATUS_RUNNING = 0
     STATUS_ERROR = 666
@@ -58,7 +56,8 @@ class TinaApp():
         storage=None,
         loc=None,
         stopw=None,
-        index=None):
+        index=None,
+        loglevel=logging.DEBUG):
         """
         Initiate config.yaml, logger, locale, storage and index
         """
@@ -66,58 +65,73 @@ class TinaApp():
         try:
             self.config = yaml.safe_load( file( configFile, 'rU' ) )
         except yaml.YAMLError, exc:
+            print exc
             return self.STATUS_ERROR
+        # creates app directories
+        if not exists(self.config['general']['dbenv']):
+            makedirs(self.config['general']['dbenv'])
+        if not exists(self.config['general']['index']):
+            makedirs(self.config['general']['index'])
+        if not exists(self.config['general']['user']):
+            makedirs(self.config['general']['user'])
+        if not exists(self.config['general']['log']):
+            makedirs(self.config['general']['log'])
 
         # Set up a specific logger with our desired output level
-        self.LOG_FILENAME = self.config['log']
+        self.LOG_FILENAME = join( self.config['general']['log'], 'tinasoft.log' )
+        # set default level to DEBUG
+        if 'loglevel' in self.config['general']:
+            loglevel = LEVELS[self.config['general']['loglevel']]
         # logger config
-        logging.basicConfig(filename=self.LOG_FILENAME,
-            level=logging.DEBUG,
-            datefmt='%Y-%m-%d %H:%M:%S',
-            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        logging.basicConfig(
+            filename = self.LOG_FILENAME,
+            level = loglevel,
+            datefmt = '%Y-%m-%d %H:%M:%S',
+            format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        )
         # Add the log message handler to the logger
         rotatingFileHandler = logging.handlers.RotatingFileHandler(
-            filename=self.LOG_FILENAME,
-            maxBytes=10000,
-            backupCount=2
+            filename = self.LOG_FILENAME,
+            maxBytes = 1024,
+            backupCount = 3
         )
         # formatting
         formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
         rotatingFileHandler.setFormatter(formatter)
         self.logger = logging.getLogger('TinaAppLogger')
-        # set default level to DEBUG
-        self.logger.setLevel(logging.DEBUG)
 
+        #self.logger.setLevel(loglevel)
         #self.logger.addHandler(handler)
+
         # tries support of the locale by the host system
         try:
             if loc is None:
-                self.locale = self.config['locale']
+                self.locale = self.config['general']['locale']
             else:
                 self.locale = loc
             locale.setlocale(locale.LC_ALL, self.locale)
         except:
             self.locale = ''
-            self.logger.error( "locale %s was not found,\
+            self.logger.warning( "locale %s was not found,\
                 switching to default = "%self.locale)
             locale.setlocale(locale.LC_ALL, self.locale)
 
 
-        options = {
-            'home' : self.config['dbenv']
-        }
+        #options = {
+        #    'home' : self.config['dbenv']
+        #}
         # connection to storage
-        if storage is None:
-            self.storage = Engine(self.config['storage'], **options)
-        else:
-            self.storage = Engine(storage)
+        #if storage is None:
+        #    self.storage = Engine(self.config['storage'], **options)
+        #else:
+        #    self.storage = Engine(storage)
 
         # connect to text-indexer
-        if index is None:
-            self.index = indexer.TinaIndex(self.config['index'])
-        else:
-            self.index = indexer.TinaIndex(index)
-        self.logger.debug("TinaApp started components = config, logger, locale, indexer, storage")
+        #if index is None:
+        #    self.index = indexer.TinaIndex(self.config['index'])
+        #else:
+        #    self.index = indexer.TinaIndex(index)
+        self.logger.debug("TinaApp started components = config, logger, locale")
 
     def serialize(self, obj):
         """
@@ -130,34 +144,50 @@ class TinaApp():
         Decoder for the host's application messages
         """
         return jsonpickle.decode(str)
+        
+    def set_storage( self, dataset_id ):
+        """
+        connection to the dataset's DB
+        always check self.storage is not None before using it
+        """
+        try:
+            storagedir = join( self.config['general']['dbenv'], dataset_id )
+            if not exists( storagedir ):
+                makedirs( storagedir )
+            options = {
+                'home' : storagedir
+            }
+            self.storage = Engine(self.config['general']['storage'], **options)
+        except Exception, exception:
+            self.logger.error( exception )
+            self.storage = None
 
-    def extractFile(self,
+    def extract_file(self,
             path,
-            configFile,
             corpora_id,
             index=False,
             format='tina',
             overwrite=False,
         ):
         """
-        tinasoft common csv file import controler
-        initiate the import.yaml config file, default ngram's filters,
-        a file Reader() to be sent to the Extractor()
+        tinasoft common file extraction controler
+        send a corpora and the storage handler to an Extractor() instance
         """
 
         # sends indexer to the file parser
         if index is True:
-            index=self.index
+            index = self.index
         else:
             index = None
-
         corporaObj = corpora.Corpora(corpora_id)
+        self.set_storage( corpora_id )
+        if self.storage is None:
+            return self.STATUS_ERROR
         # instanciate extractor class
-        extract = extractor.Extractor( self.storage, corporaObj, index )
+        extract = extractor.Extractor( self.storage, self.config['datasets'], corporaObj, index )
 
-        if extract.extractFile( path, \
-            configFile, \
-            format, \
+        if extract.extract_file( path,
+            format,
             overwrite
         ) is True:
             return self.STATUS_OK
@@ -165,9 +195,8 @@ class TinaApp():
         else:
             return self.STATUS_ERROR
 
-    def importFile(self,
+    def import_file(self,
             path,
-            configFile,
             corpora_id,
             index=False,
             format= 'tina',
@@ -185,79 +214,87 @@ class TinaApp():
             index = None
 
         corporaObj = corpora.Corpora(corpora_id)
+        self.set_storage( corpora_id )
+        if self.storage is None:
+            return self.STATUS_ERROR
         # instanciate extractor class
-        extract = extractor.Extractor( self.storage, corporaObj, index )
-
-        if extract.importFile( path, \
-            configFile,\
-            format, \
+        extract = extractor.Extractor( self.storage, self.config['datasets'], corporaObj, index )
+        if extract.import_file( path,
+            format,
             overwrite
         ) is True:
             return extract.duplicate
-
         else:
             return self.STATUS_ERROR
 
-    def exportCorpora(self, periods, corporaid, synthesispath=None, \
-        whitelist=None, userfilters=None, **kwargs):
-        """Public acces to tinasoft.data.ngram.exportCorpora()"""
+    def export_whitelist( self, periods, corporaid, synthesispath=None, whitelist=None, userfilters=None, **kwargs):
+        """Public access to tinasoft.data.ngram.export_corpora()"""
         if synthesispath is None:
-            synthesis = self.config['user']
+            synthesispath = join( self.config['general']['user'], "export.csv" )
+        self.set_storage( corporaid )
+        if self.storage is None:
+            return self.STATUS_ERROR
         exporter = Writer('ngram://'+synthesispath, **kwargs)
-        if exporter.exportCorpora( self.storage, periods, corporaid, \
-            userfilters, whitelist ) is not None:
+        if exporter.export_whitelist( self.storage, periods, corporaid, userfilters, whitelist ) is not None:
             return self.STATUS_OK
         else:
             return self.STATUS_ERROR
 
-    def getWhitelist(self, filepath, **kwargs):
+    def get_whitelist( self, filepath, **kwargs ):
         """
-        import an ngram csv file
+        import one or a list of whitelits files
         returns a whitelist object to be used as input of other methods
         """
         if isinstance(filepath,str) or isinstance(filepath, unicode):
             filepath=[filepath]
         whitelist = {}
+        # whitelists aggregation
         for path in filepath:
             wlimport = Reader('ngram://'+path, **kwargs)
             wlimport.whitelist = whitelist
-            whitelist = wlimport.importNGrams()
+            whitelist = wlimport.import_whitelist()
         return whitelist
 
-    def processCooc(self, whitelist, corporaid, periods, userfilters, *opts ):
+    def process_cooc ( self, whitelist, corporaid, periods, userfilters, **kwargs ):
         """
         Main function importing a whitelist and generating cooccurrences
         process cooccurrences for each period=corpus
         """
-        self.logger.debug( "entering processCooc with a whitelist of size = %d"%len(whitelist.keys()) )
+        self.logger.debug( "entering process_cooc with %d ngrams"%len(whitelist.keys()) )
+        self.set_storage( corporaid )
+        if self.storage is None:
+            return self.STATUS_ERROR
         for id in periods:
             try:
                 cooc = cooccurrences.MapReduce(self.storage, whitelist, \
                 corpusid=id, filter=userfilters )
             except Warning, warner:
+                self.logger.warning( warner )
                 continue
             if cooc.walkCorpus() is False:
                 tinasoft.TinaApp.notify( None,
-                'tinasoft_runProcessCoocGraph_running_status',
-                self.serialize( self.STATUS_ERROR )
+                    'tinasoft_runProcessCoocGraph_running_status',
+                    self.serialize( self.STATUS_ERROR )
                 )
             if cooc.writeMatrix(True) is False:
                 tinasoft.TinaApp.notify( None,
-                'tinasoft_runProcessCoocGraph_running_status',
-                self.serialize( self.STATUS_ERROR )
+                    'tinasoft_runProcessCoocGraph_running_status',
+                    self.serialize( self.STATUS_ERROR )
                 )
             del cooc
         return self.STATUS_OK
 
-    def exportGraph(self, path, periods, opts, whitelist=None):
+    def export_graph( self, path, corporaid, periods, whitelist=None ):
         """
         Produce and write Tinasoft's default GEXF graph
         for given list of periods (to aggregate)
         and a given ngram whitelist
         """
-        opts['template'] = self.config['template']
-        GEXFWriter = Writer('gexf://', **opts)
-
+        #opts['template'] = self.config['template']
+        GEXFWriter = Writer('gexf://', **self.config['datamining'])
+        self.set_storage( corporaid )
+        if self.storage is None:
+            return self.STATUS_ERROR
         GEXFString = GEXFWriter.ngramDocGraph(
             db = self.storage,
             periods = periods,
@@ -268,18 +305,18 @@ class TinaApp():
 
         TinaApp.notify( None,
             'tinasoft_runProcessCoocGraph_running_status',
-            'writing gexf to file %s'%path
+            'writing gexf to %s'%path
         )
         open(path, 'w+b').write(GEXFString)
         return path
 
-    def exportCooc(self, path, periods, whitelist, **kwargs):
+    def export_cooc(self, path, periods, whitelist, **kwargs):
         """
         returns a text file path containing the db cooc
         for a list of periods ans an ngrams whitelist
         """
         exporter = Writer('ngram://'+path, **kwargs)
-        return exporter.exportCooc( self.storage, periods, whitelist )
+        return exporter.export_cooc( self.storage, periods, whitelist )
 
     def getCorpora(self, corporaid):
         """
@@ -315,171 +352,5 @@ class TinaApp():
             select = self.storage.select('Corpora::')
             while 1:
                 default += [select.next()[1]]
-        except StopIteration, si:
+        except StopIteration:
             return self.serialize( default )
-
-
-class ThreadPool():
-
-    """
-    Flexible thread pool class.  Creates a pool of threads, then
-    accepts tasks that will be dispatched to the next available
-    thread.
-    """
-
-    def __init__(self, numThreads=4):
-
-        """Initialize the thread pool with numThreads workers."""
-
-        self.__threads = []
-        self.__resizeLock = threading.Condition(threading.Lock())
-        self.__taskLock = threading.Condition(threading.Lock())
-        self.__tasks = []
-        self.__isJoining = False
-        self.setThreadCount(numThreads)
-
-    def setThreadCount(self, newNumThreads):
-
-        """ External method to set the current pool size. Acquires
-        the resizing lock, then calls the internal version to do real
-        work."""
-
-        # Can't change the thread count if we're shutting down the pool!
-        if self.__isJoining:
-            return False
-
-        self.__resizeLock.acquire()
-        try:
-            self.__setThreadCountNolock(newNumThreads)
-        finally:
-            self.__resizeLock.release()
-        return True
-
-    def __setThreadCountNolock(self, newNumThreads):
-
-        """Set the current pool size, spawning or terminating threads
-        if necessary.  Internal use only; assumes the resizing lock is
-        held."""
-
-        # If we need to grow the pool, do so
-        while newNumThreads > len(self.__threads):
-            newThread = ThreadPoolThread(self)
-            self.__threads.append(newThread)
-            newThread.start()
-        # If we need to shrink the pool, do so
-        while newNumThreads < len(self.__threads):
-            self.__threads[0].goAway()
-            del self.__threads[0]
-
-    def getThreadCount(self):
-
-        """Return the number of threads in the pool."""
-
-        self.__resizeLock.acquire()
-        try:
-            return len(self.__threads)
-        finally:
-            self.__resizeLock.release()
-
-    def queueTask(self, task, args=(), kwargs={}, taskCallback=None):
-
-        """Insert a task into the queue.  task must be callable;
-        args and taskCallback can be None."""
-
-        if self.__isJoining == True:
-            return False
-        if not callable(task):
-            return False
-
-        self.__taskLock.acquire()
-        try:
-            self.__tasks.append((task, args, kwargs, taskCallback))
-            return True
-        finally:
-            self.__taskLock.release()
-
-    def getNextTask(self):
-
-        """ Retrieve the next task from the task queue.  For use
-        only by ThreadPoolThread objects contained in the pool."""
-
-        self.__taskLock.acquire()
-        try:
-            if self.__tasks == []:
-                return (None, None, None, None)
-            else:
-                return self.__tasks.pop(0)
-        finally:
-            self.__taskLock.release()
-
-    def joinAll(self, waitForTasks = True, waitForThreads = True):
-
-        """ Clear the task queue and terminate all pooled threads,
-        optionally allowing the tasks and threads to finish."""
-
-        # Mark the pool as joining to prevent any more task queueing
-        self.__isJoining = True
-
-        # Wait for tasks to finish
-        if waitForTasks:
-            while self.__tasks != []:
-                sleep(0.1)
-
-        # Tell all the threads to quit
-        self.__resizeLock.acquire()
-        try:
-            # Wait until all threads have exited
-            if waitForThreads:
-                for t in self.__threads:
-                    t.goAway()
-                for t in self.__threads:
-                    t.join()
-                    # print t,"joined"
-                    del t
-            self.__setThreadCountNolock(0)
-            self.__isJoining = True
-
-            # Reset the pool for potential reuse
-            self.__isJoining = False
-        finally:
-            self.__resizeLock.release()
-
-
-
-class ThreadPoolThread(threading.Thread):
-
-    """ Pooled thread class. """
-
-    threadSleepTime = 0.1
-
-    def __init__(self, pool):
-
-        """ Initialize the thread and remember the pool. """
-
-        threading.Thread.__init__(self)
-        self.__pool = pool
-        self.__isDying = False
-
-    def run(self):
-
-        """ Until told to quit, retrieve the next task and execute
-        it, calling the callback if any.  """
-
-        while self.__isDying == False:
-            cmd, args, kwargs, callback = self.__pool.getNextTask()
-            # If there's nothing to do, just sleep a bit
-            if cmd is None:
-                sleep(ThreadPoolThread.threadSleepTime)
-            elif callback is None:
-                cmd(args, kwargs)
-            else:
-                #_logger.debug( cmd )
-                #_logger.debug( args )
-                #_logger.debug( kwargs )
-                #_logger.debug( callback )
-                callback(cmd(*args, **kwargs))
-
-    def goAway(self):
-
-        """ Exit the run loop next time through."""
-        self.__isDying = True

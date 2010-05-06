@@ -36,9 +36,9 @@ class Handler (object):
     def decode(self, toDecode):
         return unicode( toDecode, self.encoding, 'replace' )
 
-class Importer(Handler): pass
+#class Importer(Handler): pass
 
-class Exporter(Handler): pass
+#class Exporter(Handler): pass
 
 # Factories
 

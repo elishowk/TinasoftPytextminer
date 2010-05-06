@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import tinasoft
-from tinasoft.data import Exporter
-from tinasoft.pytextminer import cooccurrences
+from tinasoft.data import Handler
+
 import datetime
 import itertools
 import math
@@ -15,7 +15,7 @@ import logging
 _logger = logging.getLogger('TinaAppLogger')
 
 
-class GEXFHandler(Exporter):
+class GEXFHandler(Handler):
     """
     A generic GEXF handler
     """

@@ -17,7 +17,7 @@ class CoocTestCase(unittest.TestCase):
         self.tinasoft = TinaApp(configFile='config.yaml')
         self.config = {}
         self.config['userstopwords'] = '/home/elishowk/TINA/Datas/100224-fetopen-user-stopwords.csv'
-        self.whitelist = self.tinasoft.getWhitelist(
+        self.whitelist = self.tinasoft.get_whitelist(
             'user/100221-fetopen-filteredngrams.csv'
         )
         self.userstopwordfilter=[stopwords.StopWordFilter( "file://%s" % self.config['userstopwords'] )]
