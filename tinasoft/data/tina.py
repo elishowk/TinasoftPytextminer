@@ -2,7 +2,8 @@
 
 from tinasoft import TinaApp
 from tinasoft.data import basecsv
-#from tinasoft.pytextminer import document, corpus, tokenizer
+from tinasoft.pytextminer import document
+from tinasoft.pytextminer import corpus
 #import codecs
 #import csv
 import logging

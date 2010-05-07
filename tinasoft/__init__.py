@@ -144,7 +144,7 @@ class TinaApp():
         Decoder for the host's application messages
         """
         return jsonpickle.decode(str)
-        
+
     def set_storage( self, dataset_id ):
         """
         connection to the dataset's DB
@@ -167,7 +167,7 @@ class TinaApp():
             corpora_id,
             index=False,
             format='tina',
-            overwrite=False,
+            overwrite=False
         ):
         """
         tinasoft common file extraction controler
@@ -186,12 +186,8 @@ class TinaApp():
         # instanciate extractor class
         extract = extractor.Extractor( self.storage, self.config['datasets'], corporaObj, index )
 
-        if extract.extract_file( path,
-            format,
-            overwrite
-        ) is True:
+        if extract.extract_file( path, format ) is True:
             return self.STATUS_OK
-
         else:
             return self.STATUS_ERROR
 
@@ -228,7 +224,7 @@ class TinaApp():
             return self.STATUS_ERROR
 
     def export_whitelist( self, periods, corporaid, synthesispath=None, whitelist=None, userfilters=None, **kwargs):
-        """Public access to tinasoft.data.ngram.export_corpora()"""
+        """Public access to tinasoft.data.ngram.export_whitelist()"""
         if synthesispath is None:
             synthesispath = join( self.config['general']['user'], "export.csv" )
         self.set_storage( corporaid )
