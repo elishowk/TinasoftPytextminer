@@ -3,8 +3,7 @@ __author__="Elias Showk"
 __all__ = ["pytextminer","data"]
 
 # tinasoft core modules
-from tinasoft.pytextminer import stopwords, indexer, tagger, tokenizer, \
-    corpora, ngram, cooccurrences
+from tinasoft.pytextminer import *
 from tinasoft.data import Engine, Reader, Writer
 
 # checks or creates aaplication directories
@@ -30,7 +29,7 @@ import yaml
 import logging
 import logging.handlers
 
-# json
+# json encoder for communicate with the outer world
 import jsonpickle
 
 # Threads
@@ -79,7 +78,7 @@ class TinaApp():
         # Add the log message handler to the logger
         rotatingFileHandler = logging.handlers.RotatingFileHandler(
             filename=self.LOG_FILENAME,
-            maxBytes=100000,
+            maxBytes=10000,
             backupCount=2
         )
         # formatting
@@ -100,7 +99,7 @@ class TinaApp():
         except:
             self.locale = ''
             self.logger.error( "locale %s was not found,\
-                switching to en_US.UTF-8 by default"%self.locale)
+                switching to default = "%self.locale)
             locale.setlocale(locale.LC_ALL, self.locale)
 
 
@@ -118,7 +117,7 @@ class TinaApp():
             self.index = indexer.TinaIndex(self.config['index'])
         else:
             self.index = indexer.TinaIndex(index)
-        self.logger.debug("TinaApp started")
+        self.logger.debug("TinaApp started components = config, logger, locale, indexer, storage")
 
     def serialize(self, obj):
         """
@@ -131,6 +130,40 @@ class TinaApp():
         Decoder for the host's application messages
         """
         return jsonpickle.decode(str)
+
+    def extractFile(self,
+            path,
+            configFile,
+            corpora_id,
+            index=False,
+            format='tina',
+            overwrite=False,
+        ):
+        """
+        tinasoft common csv file import controler
+        initiate the import.yaml config file, default ngram's filters,
+        a file Reader() to be sent to the Extractor()
+        """
+
+        # sends indexer to the file parser
+        if index is True:
+            index=self.index
+        else:
+            index = None
+
+        corporaObj = corpora.Corpora(corpora_id)
+        # instanciate extractor class
+        extract = extractor.Extractor( self.storage, corporaObj, index )
+
+        if extract.extractFile( path, \
+            configFile, \
+            format, \
+            overwrite
+        ) is True:
+            return self.STATUS_OK
+
+        else:
+            return self.STATUS_ERROR
 
     def importFile(self,
             path,
@@ -145,44 +178,22 @@ class TinaApp():
         initiate the import.yaml config file, default ngram's filters,
         a file Reader() to be sent to the Extractor()
         """
-        try:
-            # import import config yaml
-            self.importConfig = yaml.safe_load( file( configFile, 'rU' ) )
-        except yaml.YAMLError, exc:
-            self.logger.error( "Unable to read the importFile special config : " + exc)
-            return self.STATUS_ERROR
-        # load Stopwords object
-        self.stopwords = stopwords.StopWords( "file://%s" % self.importConfig['stopwords'] )
-        # load default filters (TODO put it into import.yaml !!)
-        filtertag = ngram.PosTagFilter()
-        filterContent = ngram.Filter()
-        validTag = ngram.PosTagValid()
-        defaultextractionfilters = [filtertag,filterContent,validTag]
         # sends indexer to the file parser
         if index is True:
             index=self.index
         else:
             index = None
-        # loads the source file
-        dsn = format+"://"+path
-
-        fileReader = Reader( dsn,
-            delimiter = self.importConfig['delimiter'],
-            quotechar = self.importConfig['quotechar'],
-            locale = self.importConfig['locale'],
-            fields = self.importConfig['fields']
-        )
 
         corporaObj = corpora.Corpora(corpora_id)
-
         # instanciate extractor class
-        extractor = corpora.Extractor( fileReader, corporaObj, self.storage )
+        extract = extractor.Extractor( self.storage, corporaObj, index )
 
-        if extractor.walkFile( index, defaultextractionfilters, \
-            self.importConfig['ngramMin'], self.importConfig['ngramMax'], \
-            self.stopwords, overwrite=overwrite
+        if extract.importFile( path, \
+            configFile,\
+            format, \
+            overwrite
         ) is True:
-            return extractor.duplicate
+            return extract.duplicate
 
         else:
             return self.STATUS_ERROR
@@ -204,8 +215,13 @@ class TinaApp():
         import an ngram csv file
         returns a whitelist object to be used as input of other methods
         """
-        importer = Reader('ngram://'+filepath, **kwargs)
-        whitelist = importer.importNGrams()
+        if isinstance(filepath,str) or isinstance(filepath, unicode):
+            filepath=[filepath]
+        whitelist = {}
+        for path in filepath:
+            wlimport = Reader('ngram://'+path, **kwargs)
+            wlimport.whitelist = whitelist
+            whitelist = wlimport.importNGrams()
         return whitelist
 
     def processCooc(self, whitelist, corporaid, periods, userfilters, *opts ):
@@ -213,6 +229,7 @@ class TinaApp():
         Main function importing a whitelist and generating cooccurrences
         process cooccurrences for each period=corpus
         """
+        self.logger.debug( "entering processCooc with a whitelist of size = %d"%len(whitelist.keys()) )
         for id in periods:
             try:
                 cooc = cooccurrences.MapReduce(self.storage, whitelist, \

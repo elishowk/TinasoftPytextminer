@@ -27,4 +27,4 @@ log/
 outDistribution.png
 report.html
 tinasoft.egg-info/
-
+shared/nltk_data/*

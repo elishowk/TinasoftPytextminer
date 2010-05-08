@@ -3,98 +3,233 @@ from tinasoft.data import Exporter, Importer
 from datetime import datetime
 import codecs
 
-#from tinasoft.pytextminer import *
-        
-class Model (object):
-    def __init__(self, lines):
-        binds = { 
-            "TI"  : ("title", str, ""),
-            "AB"  : ("abstract", str, ""),
-            "AU"  : ("author", str, ""),
-            "FAU" : ("fullname", str, ""),
-            "JT"  : ("pubname", str, ""),
-            "DP"  : ("pubdate", datetime, None),
-            "STAT": ("stat", str, "MEDLINE"),
-            "PMID": ("pmid", str, "0"),
-        }
-        buff = ""
-        for line in lines:
-            prefix = line[:4].strip().upper()
-            raw =  line[6:]
+from tinasoft.pytextminer import *
 
-            if len(buff) > 0 and prefix == "":
-                buff = "%s%s" % (buff,raw)
+class Record(dict):
+    """A dictionary holding information from a Medline record.
+    All data are stored under the mnemonic appearing in the Medline
+    file. These mnemonics have the following interpretations:
 
-            elif prefix == "AB":
-                buff = "%s"%raw
-            else:
-                # complete the abstract buffer and add it as attribute
-                if len(buff) > 0:
-                    content = "%s" % buff
-                    attribute, type, default = binds["AB"]
-                    try:
-                        cont = type(content)
-                        self.__setattr__(attribute, content)
-                    except Exception, exc:
-                        self.__setattr__(attribute, default)
-                        print exc
-                        pass
-                    buff = ""
+    Mnemonic  Description
+    AB        Abstract
+    CI        Copyright Information
+    AD        Affiliation
+    IRAD      Investigator Affiliation
+    AID       Article Identifier
+    AU        Author
+    FAU       Full Author
+    CN        Corporate Author
+    DCOM      Date Completed
+    DA        Date Created
+    LR        Date Last Revised
+    DEP       Date of Electronic Publication
+    DP        Date of Publication
+    EDAT      Entrez Date
+    GS        Gene Symbol
+    GN        General Note
+    GR        Grant Number
+    IR        Investigator Name
+    FIR       Full Investigator Name
+    IS        ISSN
+    IP        Issue
+    TA        Journal Title Abbreviation
+    JT        Journal Title
+    LA        Language
+    LID       Location Identifier
+    MID       Manuscript Identifier
+    MHDA      MeSH Date
+    MH        MeSH Terms
+    JID       NLM Unique ID
+    RF        Number of References
+    OAB       Other Abstract
+    OCI       Other Copyright Information
+    OID       Other ID
+    OT        Other Term
+    OTO       Other Term Owner
+    OWN       Owner
+    PG        Pagination
+    PS        Personal Name as Subject
+    FPS       Full Personal Name as Subject
+    PL        Place of Publication
+    PHST      Publication History Status
+    PST       Publication Status
+    PT        Publication Type
+    PUBM      Publishing Model
+    PMC       PubMed Central Identifier
+    PMID      PubMed Unique Identifier
+    RN        Registry Number/EC Number
+    NM        Substance Name
+    SI        Secondary Source ID
+    SO        Source
+    SFM       Space Flight Mission
+    STAT      Status
+    SB        Subset
+    TI        Title
+    TT        Transliterated Title
+    VI        Volume
+    CON       Comment on
+    CIN       Comment in
+    EIN       Erratum in
+    EFR       Erratum for
+    CRI       Corrected and Republished in
+    CRF       Corrected and Republished from
+    PRIN      Partial retraction in
+    PROF      Partial retraction of
+    RPI       Republished in
+    RPF       Republished from
+    RIN       Retraction in
+    ROF       Retraction of
+    UIN       Update in
+    UOF       Update of
+    SPIN      Summary for patients in
+    ORI       Original report in
+    """
+    def __init__(self):
+        # The __init__ function can be removed when we remove the old parser
+        self.id = ''
+        self.pubmed_id = ''
 
-                # add the attribute
-                content = "%s" % raw
-                try:
-                    attribute, type, default = binds[prefix]
-                    try:
-                        cont = type(content)
-                        self.__setattr__(attribute, content)
-                    except Exception, exc:
-                        self.__setattr__(attribute, default)
-                        print exc
-                        pass
-                except Exception, exc:
-                    print exc
-                    pass
+        self.mesh_headings = []
+        self.mesh_tree_numbers = []
+        self.mesh_subheadings = []
 
+        self.abstract = ''
+        self.comments = []
+        self.abstract_author = ''
+        self.english_abstract = ''
 
+        self.source = ''
+        self.publication_types = []
+        self.number_of_references = ''
+
+        self.authors = []
+        self.no_author = ''
+        self.address = ''
+
+        self.journal_title_code = ''
+        self.title_abbreviation = ''
+        self.issn = ''
+        self.journal_subsets = []
+        self.country = ''
+        self.languages = []
+
+        self.title = ''
+        self.transliterated_title = ''
+        self.call_number = ''
+        self.issue_part_supplement = ''
+        self.volume_issue = ''
+        self.publication_date = ''
+        self.year = ''
+        self.pagination = ''
+
+        self.special_list = ''
+
+        self.substance_name = ''
+        self.gene_symbols = []
+        self.secondary_source_ids = []
+        self.identifications = []
+        self.registry_numbers = []
+
+        self.personal_name_as_subjects = []
+
+        self.record_originators = []
+        self.entry_date = ''
+        self.entry_month = ''
+        self.class_update_date = ''
+        self.last_revision_date = ''
+        self.major_revision_date = ''
+
+        self.undefined = []
 
 class Importer (Importer):
     def __init__(self, path, **options):
-    
-        self.locale = self.get_property(options, 'locale', 'en_US.UTF-8')
+        self.loadOptions(options)
+        self.corpusDict = {}
+        #self.locale = self.get_property(options, 'locale', 'en_US.UTF-8')
+        #self.lang,self.encoding = self.locale.split('.')
+        self.file = codecs.open(path, "rU", errors='replace')
 
-        self.lang,self.encoding = self.locale.split('.')
-        file = codecs.open(path, "rU", self.encoding)
-        self.documents = Importer._load_documents(file, self.locale)
-        self.corpus = corpus.Corpus( name=path, documents=self.documents )
+    def parsePeriod(self, record):
+        if 'DP' not in record:
+            return None
+        return str(record['DP'][0:8])
 
-    @staticmethod
-    def _load_documents(file, locale):
-        docs = []
-        lines = []
-        for line in file.readlines():
+
+    def parseFile(self):
+        """Read Medline records one by one from the handle.
+
+        The handle is either is a Medline file, a file-like object, or a list
+        of lines describing one or more Medline records.
+
+        """
+        # These keys point to string values
+        textkeys = ("ID", "PMID", "SO", "RF", "NI", "JC", "TA", "IS", "CY", "TT",
+                    "CA", "IP", "VI", "DP", "YR", "PG", "LID", "DA", "LR", "OWN",
+                    "STAT", "DCOM", "PUBM", "DEP", "PL", "JID", "SB", "PMC",
+                    "EDAT", "MHDA", "PST", "AB", "AD", "EA", "TI", "JT")
+        handle = iter(self.file)
+        # First skip blank lines
+        for line in handle:
             line = line.rstrip()
-            if line != "":
-                lines.append( line )
-                continue
-
-            model = Model(lines)
+            if line:
+                break
+            else:
+                return
+        record = Record()
+        finished = False
+        while not finished:
+            if line[:6]=="      ": # continuation line
+                record[key].append(line[6:])
+            elif line:
+                key = str(line[:4].rstrip())
+                if not key in record:
+                    record[key] = []
+                record[key].append(line[6:])
             try:
-                concat = "%s"%model.title
-                concat += "%s"%model.abstract
-            except:
-                pass
+                line = handle.next()
+            except StopIteration:
+                finished = True
+            else:
+                line = line.rstrip()
+                if line:
+                    continue
+            # Join each list of strings into one string.
+            for key in textkeys:
+                if key in record:
+                    record[key] = " ".join(record[key])
+            corpusid = self.parsePeriod(record)
+            if corpusid is not None:
+                if corpusid not in self.corpusDict:
+                    # creates a new corpus and adds it to the global dict
+                    self.corpusDict[ corpusid ] = corpus.Corpus( corpusid )
+                newdoc = self.parseDocument( record, corpusid )
+                if newdoc is not None:
+                    yield newdoc, corpusid
+            record = Record()
 
-            docs += [ document.Document(
-                rawContent=model,
-                title=model.title,
-                targets=[ Target(
-                     rawTarget=concat,
-                     type=model.abstract,
-                     locale=locale
-                     )]
-                )]
-            lines = []
-        return docs
-        
+
+
+    def parseDocument(self, model, corpusid):
+        try:
+            content = "%s %s"%(model['AB'],model['TI'])
+            title = model['TI']
+            pubdate = model['DP']
+            docid = model['PMID']
+            del model['PMID']
+            del model['DP']
+            del model['TI']
+            del model['AB']
+        except KeyError, ke:
+            return None
+        # document instance
+        newdoc = document.Document(
+            content,
+            docid,
+            title,
+            datestamp = pubdate,
+            **model
+        )
+        # document's edges
+        newdoc.addEdge('Corpus', corpusid, 1)
+        return newdoc
 

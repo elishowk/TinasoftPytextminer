@@ -27,7 +27,7 @@ class RegexpTokenizer():
         striped = string.strip( input )
         #replaces forbidden characters by a separator
         sanitized = re.sub( forbiddenChars, emptyString, striped )
-        return sanitized
+        return sanitized.lower()
 
     @staticmethod
     def cleanPunct( text, emptyString, punct=u'[\,\.\;\:\!\?\"\[\]\{\}\(\)\<\>]' ):
@@ -50,21 +50,6 @@ class RegexpTokenizer():
         #print "tokens stopped :", count
         #return cleanTokens
         return tokens
-
-    ### deprecated
-    @staticmethod
-    def filterBySize( words, min=2, max=255 ):
-        """Filter a list of word by size
-
-        > filterBySize(["a", "aaa", "aa", "aaaa", "aa"], min=2 , max=3)
-        ["aaa", "aa", "aa"]
-        """
-        filtered = []
-        for word in words:
-            length = len(word)
-            if length >= min and length <= max:
-                filtered += [ word ]
-        return filtered
 
     @staticmethod
     def filterNGrams(ngram, filters=None):
@@ -116,7 +101,7 @@ class TreeBankWordTokenizer(RegexpTokenizer):
         return sentences
 
     @staticmethod
-    def extract( doc, stopwords, ngramMin, ngramMax, filters ):
+    def extract( doc, stopwords, ngramMin, ngramMax, filters, tagger ):
         sanitizedTarget = TreeBankWordTokenizer.sanitize(
             doc['content'],
             doc['forbChars'],
@@ -128,7 +113,7 @@ class TreeBankWordTokenizer(RegexpTokenizer):
         )
         tokens=[]
         for sentence in sentenceTokens:
-            tokens.append( tagger.TreeBankPosTagger.posTag( sentence ) )
+            tokens.append( tagger.tag( sentence ) )
         return TreeBankWordTokenizer.ngramize(
             minSize = ngramMin,
             maxSize = ngramMax,

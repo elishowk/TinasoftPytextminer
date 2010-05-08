@@ -10,13 +10,19 @@ import os
 
 from tinasoft import TinaApp
 from tinasoft.pytextminer import stopwords, ngram
+from tinasoft.data import ngram
 
 class CoocTestCase(unittest.TestCase):
     def setUp(self):
         self.tinasoft = TinaApp(configFile='config.yaml',\
-            storage='tinabsddb://fetopen.test.bsddb')
+            storage='tinabsddb://test.bsddb')
+
+    def testImportWhitelists(self):
+        handle = ngram.WhitelistHandler()
+        handle.walk("/home/elishowk/TINA/Datas/MedlineCancer/intermed-whitelists/")
 
     def testImportNGrams(self):
+        return
         whitelist = self.tinasoft.importNGrams(
             'tests/test-importNGrams.csv',
             occsCol='occurrences',

@@ -71,7 +71,7 @@ class MapReduce():
                         self.reducer( term_map )
                 except StopIteration, si: pass
             doccount += 1
-            if doccount % 25 == 0:
+            if doccount % 50 == 0:
                 tinasoft.TinaApp.notify( None,
                     'tinasoft_runProcessCoocGraph_running_status',
                     'processed cooccurrences for %d of %d documents in period %s'%(doccount,totaldocs,self.corpusid)
@@ -150,6 +150,7 @@ class MapReduce():
             'tinasoft_runProcessCoocGraph_running_status',
             'stored %d non-zero cooccurrences values'%(countcooc)
         )
+        _logger.debug( 'stored %d non-zero cooccurrences values'%countcooc )
 
     def readMatrix( self ):
         try:

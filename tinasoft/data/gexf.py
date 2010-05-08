@@ -148,11 +148,14 @@ class NGramGraph(SubGraph):
 
     @staticmethod
     def genSpecProx( occ1, occ2, cooc, alpha ):
+        if 0 in [ occ1, occ2 ]:
+            _logger.error( "Zero occ found" )
+            return 0
         prox = (( float(cooc) / float(occ1) )**alpha) * (float(cooc) / float(occ2))
         return prox
 
     def notify( self, count ):
-        if count % 200 == 0:
+        if count % 100 == 0:
             tinasoft.TinaApp.notify( None,
                 'tinasoft_runProcessCoocGraph_running_status',
                 "%d ngram's edges processed"%count
@@ -176,6 +179,7 @@ class NGramGraph(SubGraph):
                         occ1 = graph.gexf['nodes'][source]['weight']
                         occ2 = graph.gexf['nodes'][target]['weight']
                         cooc = graph.gexf['edges'][source][target]['weight']
+
                         prox = self.proximity( occ1, occ2, cooc, self.alpha )
                         count+=1
                         self.notify(count)
@@ -266,7 +270,7 @@ class DocumentGraph(SubGraph):
         )
 
     def notify( self, count ):
-        if count % 1000 == 0:
+        if count % 5000 == 0:
             tinasoft.TinaApp.notify( None,
                 'tinasoft_runProcessCoocGraph_running_status',
                 "%d document's edges processed"%count
@@ -317,7 +321,7 @@ class Exporter (GEXFHandler):
     """
 
     def notify( self ):
-        if self.count % 25 == 0:
+        if self.count % 100 == 0:
             tinasoft.TinaApp.notify( None,
                 'tinasoft_runProcessCoocGraph_running_status',
                 "%d graph nodes processed"%self.count
@@ -335,7 +339,7 @@ class Exporter (GEXFHandler):
         graph.gexf.update(meta)
         ngramGraph = NGramGraph( db, self.NGramGraph )
         docGraph = DocumentGraph( db, self.DocumentGraph, whitelist=whitelist)
-        # TODO move patrix transformation into the cooc object
+        # TODO move matrix transformation into the cooc object
         #coocMatrix = cooccurrences.CoocMatrix( len( whitelist.keys() ) )
         for period in periods:
             # loads the corpus (=period) object
@@ -356,6 +360,8 @@ class Exporter (GEXFHandler):
                     ngid1,row = coocmatrix.next()
                     # whitelist check
                     if whitelist is not None and ngid1 not in whitelist:
+                        continue
+                    if ngid1 not in corp['edges']['NGram']:
                         continue
                     occ1 = corp['edges']['NGram'][ngid1]
                     # source NGram node
@@ -382,13 +388,13 @@ class Exporter (GEXFHandler):
                 pass
             # global exception handler
             except Exception, e:
-                import sys,traceback
-                traceback.print_exc(file=sys.stdout)
+                import traceback
+                _logger.error( traceback.format_exc() )
                 return tinasoft.TinaApp.STATUS_ERROR
         ngramGraph.mapNodes( graph )
         ngramGraph.mapEdges( graph )
         docGraph.mapNodes( graph )
-        docGraph.mapEdges( graph )
+        #docGraph.mapEdges( graph )
         ngramGraph.cache = {}
         docGraph.cache = {}
         #_logger.debug( graph.gexf )
