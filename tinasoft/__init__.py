@@ -6,7 +6,7 @@ __all__ = ["pytextminer","data"]
 from os.path import exists
 from os.path import join
 from os import makedirs
-import yaml
+#import yaml
 
 # json encoder for communicate with the outer world
 import jsonpickle

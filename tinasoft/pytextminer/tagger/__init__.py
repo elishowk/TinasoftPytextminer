@@ -55,7 +55,7 @@ class TreeBankPosTagger():
 
         backoff = nltk.tag.RegexpTagger(self.word_patterns)
         #aubtr_tagger = nltk.tag.RegexpTagger(word_patterns, backoff=aubt_tagger)
-        self.tagger = self.backoff(train_sents, tagger_classes, backoff=backoff)
+        self.tagger = self._backoff(train_sents, tagger_classes, backoff=backoff)
 
         #templates = [
         #    brill.SymmetricProximateTokensTemplate(brill.ProximateTagsRule, (1,1)),
@@ -74,7 +74,8 @@ class TreeBankPosTagger():
         #self.tagger = trainer.train(brown_train, max_rules=100, min_score=3)
 
 
-    def backoff(self, tagged_sents, tagger_classes, backoff=None):
+    def _backoff(self, tagged_sents, tagger_classes, backoff=None):
+        """Init backoff classes, takes a lot of time to train..."""
         if not backoff:
             backoff = tagger_classes[0](tagged_sents)
             del tagger_classes[0]
@@ -90,7 +91,8 @@ class TreeBankPosTagger():
         """each tokens becomes ['token','TAG']"""
         return map( list, pos_tag( tokens ) )
 
-    def normalize(self,tagtok):
+    def _normalize(self,tagtok):
+        """returns an empty string when no tag was found"""
         tagtok = list(tagtok)
         if tagtok[1] is None:
             tagtok[1] = ''
@@ -98,8 +100,9 @@ class TreeBankPosTagger():
         return tagtok
 
     def tag(self, tokens):
+        """returns the tagged sentence using trained self.tagger"""
         tag_tokens = map(
-            self.normalize,
+            self._normalize,
             self.tagger.tag( tokens )
         )
         return tag_tokens

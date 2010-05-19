@@ -1,16 +1,15 @@
 # -*- coding: utf-8 -*-
 
-__author__="Elias Showk"
-__date__ ="$Oct 20, 2009 6:32:44 PM$"
+__author__ = "Elias Showk"
+__date__ = "$Oct 20, 2009 6:32:44 PM$"
 
-import string, re
-
-# warning : nltk imports it's own copy of yaml
 import nltk
-#nltk.data.path = ['shared/nltk_data']
-from tinasoft.pytextminer import ngram, tagger
 
 import logging
+import re
+import string
+from tinasoft.pytextminer import ngram
+from tinasoft.pytextminer import tagger
 _logger = logging.getLogger('TinaAppLogger')
 
 class RegexpTokenizer():
@@ -19,27 +18,27 @@ class RegexpTokenizer():
     given a regexp used as a separator
     """
     @staticmethod
-    def sanitize( input, forbiddenChars, emptyString ):
+    def sanitize(input, forbiddenChars, emptyString):
         """sanitized a text
 
         @return str: text
         """
-        striped = string.strip( input )
+        striped = string.strip(input)
         #replaces forbidden characters by a separator
-        sanitized = re.sub( forbiddenChars, emptyString, striped )
+        sanitized = re.sub(forbiddenChars, emptyString, striped)
         return sanitized.lower()
 
     @staticmethod
-    def cleanPunct( text, emptyString, punct=u'[\,\.\;\:\!\?\"\[\]\{\}\(\)\<\>]' ):
+    def cleanPunct(text, emptyString, punct=u'[\,\.\;\:\!\?\"\[\]\{\}\(\)\<\>]'):
         #print text
-        noPunct = re.sub( punct, emptyString, text )
+        noPunct = re.sub(punct, emptyString, text)
         return noPunct
 
     ### deprecated
     @staticmethod
-    def tokenize( text, separator, emptyString, stopwords=None ):
-        noPunct = RegexpTokenizer.cleanPunct( text, emptyString )
-        tokens = re.split( separator, noPunct )
+    def tokenize(text, separator, emptyString, stopwords=None):
+        noPunct = RegexpTokenizer.cleanPunct(text, emptyString)
+        tokens = re.split(separator, noPunct)
         #if stopwords not None
         #cleanTokens = []
         #count=0
@@ -61,7 +60,7 @@ class RegexpTokenizer():
 
 
     @staticmethod
-    def ngramize( minSize, maxSize, tokens, emptyString, stopwords=None, filters=[] ):
+    def ngramize(minSize, maxSize, tokens, emptyString, stopwords=None, filters=[]):
         """
             returns a dict of NGram instances
             using the optional stopwords object to filter by ngram length
@@ -72,17 +71,17 @@ class RegexpTokenizer():
         for sent in tokens:
             content = tagger.TreeBankPosTagger.getContent(sent)
             for i in range(len(content)):
-                for n in range( minSize, maxSize+1 ):
-                    if len(content) >= i+n:
+                for n in range(minSize, maxSize + 1):
+                    if len(content) >= i + n:
                         #content = tagger.TreeBankPosTagger.getContent(sent[i:n+i])
-                        ng = ngram.NGram( content[i:n+i], occs = 1, postag = sent[i:n+i] )
+                        ng = ngram.NGram(content[i:n + i], occs=1, postag=sent[i:n + i])
                         if ng['id'] in ngrams:
                             # exists in document : only increments occs
-                            ngrams[ ng['id'] ]['occs'] += 1
+                            ngrams[ng['id']]['occs'] += 1
                         else:
-                            if stopwords is None or stopwords.contains( ng ) is False:
-                                if RegexpTokenizer.filterNGrams( ng, filters ) is True:
-                                    ngrams[ ng['id'] ] = ng
+                            if stopwords is None or stopwords.contains(ng) is False:
+                                if RegexpTokenizer.filterNGrams(ng, filters) is True:
+                                    ngrams[ng['id']] = ng
         return ngrams
 
 class TreeBankWordTokenizer(RegexpTokenizer):
@@ -92,33 +91,33 @@ class TreeBankWordTokenizer(RegexpTokenizer):
     before tokenizing using nltk.TreebankWordTokenizer()
     """
     @staticmethod
-    def tokenize( text, emptyString, stopwords=None ):
+    def tokenize(text, emptyString, stopwords=None):
         sentences = nltk.sent_tokenize(text)
         # WARNING : only works on english
         sentences = [nltk.TreebankWordTokenizer().\
-            tokenize(RegexpTokenizer.cleanPunct( sent, emptyString )) \
+            tokenize(RegexpTokenizer.cleanPunct(sent, emptyString)) \
             for sent in sentences]
         return sentences
 
     @staticmethod
-    def extract( doc, stopwords, ngramMin, ngramMax, filters, tagger ):
+    def extract(doc, stopwords, ngramMin, ngramMax, filters, tagger):
         sanitizedTarget = TreeBankWordTokenizer.sanitize(
-            doc['content'],
-            doc['forbChars'],
-            doc['ngramEmpty']
-        )
+                                                         doc['content'],
+                                                         doc['forbChars'],
+                                                         doc['ngramEmpty']
+                                                         )
         sentenceTokens = TreeBankWordTokenizer.tokenize(
-            text = sanitizedTarget,
-            emptyString = doc['ngramEmpty'],
-        )
-        tokens=[]
+                                                        text=sanitizedTarget,
+                                                        emptyString=doc['ngramEmpty'],
+                                                        )
+        tokens = []
         for sentence in sentenceTokens:
-            tokens.append( tagger.tag( sentence ) )
+            tokens.append(tagger.tag(sentence))
         return TreeBankWordTokenizer.ngramize(
-            minSize = ngramMin,
-            maxSize = ngramMax,
-            tokens = tokens,
-            emptyString = doc['ngramEmpty'],
-            stopwords = stopwords,
-            filters=filters,
-        )
+                                              minSize=ngramMin,
+                                              maxSize=ngramMax,
+                                              tokens=tokens,
+                                              emptyString=doc['ngramEmpty'],
+                                              stopwords=stopwords,
+                                              filters=filters,
+                                              )

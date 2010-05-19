@@ -141,7 +141,7 @@ class Record(dict):
 
         self.undefined = []
 
-class Importer (Importer):
+class Importer(Handler):
     def __init__(self, path, **options):
         self.loadOptions(options)
         self.corpusDict = {}

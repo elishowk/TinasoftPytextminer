@@ -2,7 +2,7 @@
 __author__="Julian Bilcke, Elias Showk"
 __date__ ="$Oct 20, 2009 5:30:11 PM$"
 
-__all__ = ["indexer", "corpora", "corpus", "document", "ngram", "tokenizer", "tagger", "cooccurrences", "stopwords","extractor"]
+__all__ = ["filtering","indexer", "corpora", "corpus", "document", "ngram", "tokenizer", "tagger", "cooccurrences", "stopwords","extractor"]
 
 import logging
 _logger = logging.getLogger('TinaAppLogger')
@@ -60,6 +60,10 @@ class PyTextMiner():
         else:
             self['edges'][type][key] = value
         return True
+
+    def addEdge(self, type, key, value):
+        return self._addEdge( type, key, value )
+
 
     def normalize(self, tokenlst):
         return [token.lower() for token in tokenlst]

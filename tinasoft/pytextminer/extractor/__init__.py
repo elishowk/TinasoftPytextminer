@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 __author__="Elias Showk"
-from tinasoft.pytextminer import tagger, stopwords, tokenizer, ngram
+from tinasoft.pytextminer import tagger, stopwords, tokenizer, filtering
 from tinasoft.data import Engine, Reader, Writer
 
 # configuration file parsing
@@ -50,9 +50,9 @@ class Extractor():
     def _openFile(self, path, format='tina' ):
         # load Stopwords object
         self.stopwords = stopwords.StopWords( "file://%s"%self.config['stopwords'] )
-        #filtertag = ngram.PosTagFilter()
-        filterContent = ngram.Filter()
-        validTag = ngram.PosTagValid()
+        #filtertag = filtering.PosTagFilter()
+        filterContent = filtering.Content()
+        validTag = filtering.PosTagValid()
         self.filters = [filterContent,validTag]
 
         # loads the source file
