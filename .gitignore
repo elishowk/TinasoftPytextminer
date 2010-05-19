@@ -1,5 +1,6 @@
 .*
 *.pyc
+*.pyo
 src/dist*
 src/dist/*
 src/build
