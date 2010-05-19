@@ -144,7 +144,7 @@ class TinaApp():
         Decoder for the host's application messages
         """
         return jsonpickle.decode(str)
-        
+
     def set_storage( self, dataset_id ):
         """
         connection to the dataset's DB
@@ -170,8 +170,8 @@ class TinaApp():
             overwrite=False,
         ):
         """
-        tinasoft common file extraction controler
-        send a corpora and the storage handler to an Extractor() instance
+        tinasoft source extraction controler
+        send a corpora and a storage handler to an Extractor() instance
         """
 
         # sends indexer to the file parser
@@ -186,10 +186,7 @@ class TinaApp():
         # instanciate extractor class
         extract = extractor.Extractor( self.storage, self.config['datasets'], corporaObj, index )
 
-        if extract.extract_file( path,
-            format,
-            overwrite
-        ) is True:
+        if extract.extract_file( path, format ) is True:
             return self.STATUS_OK
 
         else:
@@ -227,7 +224,7 @@ class TinaApp():
         else:
             return self.STATUS_ERROR
 
-    def export_whitelist( self, periods, corporaid, synthesispath=None, whitelist=None, userfilters=None, **kwargs):
+    def export_whitelist( self, periods, corporaid, synthesispath=None, whitelist=None, userfilters=None, ngramlimit=65000, minOccs=2, **kwargs):
         """Public access to tinasoft.data.ngram.export_corpora()"""
         if synthesispath is None:
             synthesispath = join( self.config['general']['user'], "export.csv" )
@@ -235,7 +232,7 @@ class TinaApp():
         if self.storage is None:
             return self.STATUS_ERROR
         exporter = Writer('ngram://'+synthesispath, **kwargs)
-        if exporter.export_whitelist( self.storage, periods, corporaid, userfilters, whitelist ) is not None:
+        if exporter.export_whitelist( self.storage, periods, corporaid, userfilters, whitelist,  ) is not None:
             return self.STATUS_OK
         else:
             return self.STATUS_ERROR

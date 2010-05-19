@@ -43,5 +43,3 @@ setup(
     #ext_modules=[Extension('foo', ['foo.c'])],
 
 )
-
-

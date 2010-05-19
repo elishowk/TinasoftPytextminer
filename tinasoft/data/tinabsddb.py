@@ -635,6 +635,7 @@ class Engine(Backend):
             record = cursor.first()
         while record is not None:
             if maxkey is None:
+                #_logger.debug(record[0]);
                 if record[0].startswith(minkey):
                     if raw is True:
                         yield record

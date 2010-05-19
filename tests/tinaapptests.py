@@ -23,9 +23,10 @@ class TinaAppTestCase(unittest.TestCase):
 
     def testA_ExtractFile(self):
         """testing extract_file"""
+        #return
         self.tinasoft.extract_file(
-            'tests/data/pubmed_tina_test.csv',
-            'test data set',
+            "tests/data/pubmed_tina_test.csv",
+            "test data set",
             index=False,
             format='tina',
             overwrite=False
@@ -42,14 +43,15 @@ class TinaAppTestCase(unittest.TestCase):
             overwrite=False
         )
 
-    def testC_ExportCorpora(self):
-        #return
-        print self.tinasoft.export_whitelist( \
-            ['8'], \
-            "test data", \
+    def testC_ExportWhitelist(self):
+        return
+        self.tinasoft.export_whitelist( \
+            ['7','23'], \
+            "test data set", \
             'tests/tinaapptests-exportCorpora.csv', \
             self.whitelist, \
-            self.userstopwordfilter
+            self.userstopwordfilter, \
+            minOccs=1
         )
 
     def testD_ProcessCooc(self):
@@ -57,17 +59,18 @@ class TinaAppTestCase(unittest.TestCase):
         #self.tinasoft.logger.debug ( self.tinasoft.storage.loadCorpora( 'pubmed test 200', raw=1 ) )
         self.tinasoft.process_cooc( \
             self.whitelist, \
-            'pubmed test 1000', \
-            ['1','2'], \
+            "test data set", \
+            ['7','23'], \
             self.userstopwordfilter \
         )
         self.tinasoft.logger.debug( "processCooc test finished " )
 
     def testE_ExportGraph(self):
         #return
+        corporaid = "test data set"
         path = 'tests/tinaapptests-exportGraph.gexf'
-        periods=['1','2']
-        self.tinasoft.export_graph(path, periods, self.whitelist)
+        periods=['7','23']
+        self.tinasoft.export_graph(path, corporaid, periods, self.whitelist)
 
     def testF_ExportCoocMatrix(self):
         return

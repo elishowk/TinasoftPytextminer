@@ -133,6 +133,7 @@ class Importer (basecsv.Importer):
     }
 
     def _add_whitelist(self, row, dbid, occs):
+        """Classify a whitelist ngram"""
         if row[self.dbidCol] in self.whitelist:
             self.whitelist[dbid] += occs
         else:
@@ -142,6 +143,7 @@ class Importer (basecsv.Importer):
         pass
 
     def import_whitelist(self):
+        """Reads a whitelist file and return an object"""
         line=1
         keys=[self.statusCol, self.dbidCol, self.occsCol]
         for row in self.csv:
@@ -228,7 +230,7 @@ class Exporter(basecsv.Exporter):
                 continue
         return self.filepath
 
-    def export_whitelist(self, storage, periods, corporaid, filters=None, whitelist=None, ngramlimit=65000, minOccs=2):
+    def export_whitelist(self, storage, periods, corporaid, filters=None, whitelist=None, ngramlimit=65000, minOccs=1):
         """exports selected periods=corpus in a corpora, synthetize importFile()"""
         self.writeRow(self.columns)
 
@@ -243,6 +245,7 @@ class Exporter(basecsv.Exporter):
             # gets a corpus from the storage
             corpusobj = storage.loadCorpus(corpusid)
             if self.corpusIntegrity( corpusid, corpusobj ) is False: continue
+            _logger.debug(corpusobj)
             ngramtotal += len( corpusobj['edges']['NGram'].keys() )
             corpuscache += [corpusobj]
 
@@ -389,7 +392,7 @@ class Exporter(basecsv.Exporter):
         except Exception, exc:
             return True
 
-    def corpusIntegrity( self, corpusobj, corpusid ):
+    def corpusIntegrity( self, corpusid, corpusobj ):
         """checks and logs corpus object"""
         try:
             if corpusobj is None:
