@@ -344,6 +344,9 @@ class Exporter (GEXFHandler):
         for period in periods:
             # loads the corpus (=period) object
             corp = db.loadCorpus(period)
+            if corp is None:
+                _logger.warning("Period %s not found, passing"%period)
+                continue
             # updates the cooc matrix
             #coocReader = cooccurrences.MapReduce( db, whitelist, period )
             #coocReader.readMatrix()

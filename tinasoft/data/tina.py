@@ -2,9 +2,9 @@
 
 from tinasoft import TinaApp
 from tinasoft.data import basecsv
-from tinasoft.pytextminer import document, corpus
-#import codecs
-#import csv
+from tinasoft.pytextminer import document
+from tinasoft.pytextminer import corpus
+
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 

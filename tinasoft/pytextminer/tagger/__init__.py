@@ -15,8 +15,12 @@ _logger = logging.getLogger('TinaAppLogger')
 
 class TreeBankPosTagger():
     """
-     integration of nltk's standard POS tagger
-     need nltk data 'taggers/maxent_treebank_pos_tagger/english.pickle'
+    integration of nltk Part Of Speech taggers
+    static posTag method implemets default MaxentClassifier algorithm tagger
+        needs nltk data 'taggers/maxent_treebank_pos_tagger/english.pickle'
+    otherwise, instance of this class provides a self trained and composite tagger
+        thanks to http://streamhacker.com/2010/04/12/pos-tag-nltk-brill-classifier/
+        needs nltk data 'corpus/brown' and 'corpus/conll2000'
     """
 
     word_patterns = [

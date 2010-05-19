@@ -19,7 +19,7 @@ setup(
     namespace_packages = ['tinasoft'],
 
     # Declare your packages' dependencies here, for eg:
-    install_requires=['numpy','bsddb3','nltk','jsonpickle','tenjin','whoosh'],
+    install_requires=['numpy','jsonpickle','tenjin','whoosh'],
 
     # Fill in these to make your Egg ready for upload to
     # PyPI

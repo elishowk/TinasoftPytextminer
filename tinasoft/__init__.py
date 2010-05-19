@@ -167,7 +167,7 @@ class TinaApp():
             corpora_id,
             index=False,
             format='tina',
-            overwrite=False,
+            overwrite=False
         ):
         """
         tinasoft source extraction controler
@@ -188,7 +188,6 @@ class TinaApp():
 
         if extract.extract_file( path, format ) is True:
             return self.STATUS_OK
-
         else:
             return self.STATUS_ERROR
 
@@ -224,15 +223,16 @@ class TinaApp():
         else:
             return self.STATUS_ERROR
 
+
     def export_whitelist( self, periods, corporaid, synthesispath=None, whitelist=None, userfilters=None, ngramlimit=65000, minOccs=2, **kwargs):
-        """Public access to tinasoft.data.ngram.export_corpora()"""
+        """Public access to tinasoft.data.ngram.export_whitelist()"""
         if synthesispath is None:
             synthesispath = join( self.config['general']['user'], "export.csv" )
         self.set_storage( corporaid )
         if self.storage is None:
             return self.STATUS_ERROR
         exporter = Writer('ngram://'+synthesispath, **kwargs)
-        if exporter.export_whitelist( self.storage, periods, corporaid, userfilters, whitelist,  ) is not None:
+        if exporter.export_whitelist( self.storage, periods, corporaid, userfilters, whitelist, ngramlimit=65000, minOccs=2 ) is not None:
             return self.STATUS_OK
         else:
             return self.STATUS_ERROR

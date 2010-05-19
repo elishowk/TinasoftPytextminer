@@ -1,6 +1,12 @@
 # -*- coding: utf-8 -*-
 from tinasoft.data import Handler
-from bsddb3 import db
+
+try:
+    import bsddb3 as bsddb
+except ImportError:
+    import bsddb
+from bsddb import db
+
 import thread
 from threading import Thread
 from os.path import dirname
@@ -384,7 +390,7 @@ class Backend(Handler):
             self._db.put(key, obj, txn=txn)
         except db.DBKeyExistError, kee:
             if overwrite is True:
-                self._overwrite( key, obj, txn )
+                self._overwrite( key, obj, txn=txn )
                 return
             _logger.warning( "NOT overwriting key " + key )
 
@@ -426,9 +432,9 @@ class Backend(Handler):
         try:
             _add(self, key, obj, overwrite)
         except Exception, e:
-            _logger.error( "Got exception in add " )
+            _logger.error( "Got exception in add()" )
             _logger.error( e )
-            raise Exception(e)
+            raise Exception()
 
     def addmany(self, iter, target, overwrite):
         """

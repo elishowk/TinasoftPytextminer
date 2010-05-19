@@ -34,7 +34,7 @@ datasets:
     ngramMin: 1
     ngramMax: 5
     stopwords: 'shared/stopwords/en.txt'
-    #userstopwords: 'path/to/your/stop-ngrams-file.txt'
+    userstopwords: 'tests/data/user_stopwords.csv'
     overwrite: 0
 datamining:
     template: 'shared/gexf/gexf.template'
@@ -46,9 +46,9 @@ datamining:
             - 1
             - 'inf'
     NGramGraph:
-        edgethreshold: 
+        edgethreshold:
             - 0.0
             - 1.0
-        nodethreshold: 
+        nodethreshold:
             - 2
             - 'inf'

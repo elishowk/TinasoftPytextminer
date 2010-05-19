@@ -47,19 +47,9 @@ class Extractor():
         # instanciate the tagger, takes times on learning
         self.tagger = tagger.TreeBankPosTagger()
 
-    def _openFile(self,
-            path,
-            format='tina'
-        ):
-        #try:
-            # import import config yaml
-        #    self.config = yaml.safe_load( file( configFile, 'rU' ) )
-        #except yaml.YAMLError, exc:
-        #    _logger.error( "Unable to read the importFile : "+exc )
-        #    return False
+    def _openFile(self, path, format='tina' ):
         # load Stopwords object
         self.stopwords = stopwords.StopWords( "file://%s"%self.config['stopwords'] )
-
         #filtertag = ngram.PosTagFilter()
         filterContent = ngram.Filter()
         validTag = ngram.PosTagValid()
@@ -128,7 +118,7 @@ class Extractor():
                         del corporaCounter.index[period]
                     corporaCounter.index={}
         except StopIteration:
-            _logger.debug("Finished parsing %d documents"%count)
+            #_logger.debug("Finished parsing %d documents"%count)
             return True
 
     def import_file(self, path, format, overwrite=False):
