@@ -19,7 +19,7 @@ class PyTextMiner():
     def __init__(self, content, id=None, label=None, edges=None, **metas):
         self.content = content
         if id is None:
-            self.id = self.getId( content )
+            self.id = PyTextMiner.getId( content )
         else:
             self.id = id
         self.label = label
@@ -31,11 +31,13 @@ class PyTextMiner():
         for attr, value in metas.iteritems():
             setattr(self,attr,value)
 
+    @staticmethod
     def getId(self, content):
         if type(content).__name__ == 'list':
             # for NGrams
             return str(abs( hash( " ".join(content) ) ))
         elif type(content).__name__ == 'str' or type(content).__name__ == 'unicode':
+            # for all other string content
             return str(abs( hash( content ) ))
         else:
             raise ValueError

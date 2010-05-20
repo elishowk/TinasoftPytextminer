@@ -23,7 +23,7 @@ class CoocTestCase(unittest.TestCase):
 
     def testImportNGrams(self):
         return
-        whitelist = self.tinasoft.import_whitelist(
+        whitelist = self.tinasoft.parseFile(
             'tests/test-importNGrams.csv',
             occsCol='occurrences',
         )

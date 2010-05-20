@@ -49,7 +49,7 @@ class Importer (basecsv.Importer):
                 _logger.error( exc )
                 continue
             # TODO check if corpus already exists
-            newdoc = self.parseDocument( doc, tmpfields, corpusNumber )
+            newdoc = self._parse_document( doc, tmpfields, corpusNumber )
             if newdoc is None:
                 _logger.error( "skipping a document" )
                 continue
@@ -60,7 +60,7 @@ class Importer (basecsv.Importer):
             # sends the document and the corpus id
             yield newdoc, corpusNumber
 
-    def parseDocument( self, doc, tmpfields, corpusNum ):
+    def _parse_document( self, doc, tmpfields, corpusNum ):
         """
         parses a row to extract a document object
         with its edges

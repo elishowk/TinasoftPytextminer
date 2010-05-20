@@ -249,7 +249,7 @@ class TinaApp():
         for path in filepath:
             wlimport = Reader('whitelist://'+path, **kwargs)
             wlimport.whitelist = whitelist
-            whitelist = wlimport.import_whitelist()
+            whitelist = wlimport.parse_file()
         return whitelist
 
     def process_cooc ( self, whitelist, corporaid, periods, userfilters, **kwargs ):

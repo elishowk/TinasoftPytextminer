@@ -4,9 +4,9 @@ from operator import itemgetter
 import os
 from operator import itemgetter
 
-from tinasoft import TinaApp
+from tinasoft import TinaApp, PyTextMiner
 from tinasoft.data import basecsv
-from tinasoft.pytextminer import tokenizer, tagger
+from tinasoft.pytextminer import tokenizer, tagger, ngram
 
 # logger
 import logging
@@ -14,11 +14,70 @@ _logger = logging.getLogger('TinaAppLogger')
 
 class CsvKeyError(KeyError): pass
 
-class WhitelistHandler():
+class Whitelist():
 
-    keys = ["status", "label", "corpus-ngrams w", "pos tag", "db ID"]
-    whitelist = {}
-    ngrams = {}
+	# internal data structure cut by ngram size
+	whitelist = []
+	stopwords = []
+	# status tag
+	accept = 'w'
+	refuse = 's'
+
+    def __setitem__(self, ng, status, occs):
+        """ng must be an list of words"""
+        if not isinstance( ng, list ):
+            raise Exception("%s is not a valid ngram (not a list)"%ng)
+	    return
+	length = len(ng)
+        while len(self.whitelist) < length + 1:
+            self.whitelist += [{}]
+        ngobj = ngram.NGram( ng )
+	ngobj['occs'] = occs
+        if status == self.accept:
+		while len(self.whitelist) <length + 1:
+			self.whitelist += [{}]
+		self._add_whitelist( ngobj, length)
+	else status == self.refuse:
+		while len(self.stopwords) < length + 1:
+			self.stopwords += [{}]
+		self._add_stopword( ngobj, length )
+
+    def __len__(self):
+        """ return the max length of ngrams in the registry"""
+        return len(self.whitelist)
+
+    def __getitem__(self, length):
+        while len(self.whitelist) < length + 1:
+            self.whitelist += [{}]
+        return self.whitelist[length]
+
+    def _add_whitelist(self, ngobj, length):
+        """adds a whitelisted ngram to the contained object"""
+        if self.contains(ng['id']) is True:
+            self.whitelist[length][ng['id']]["occs"] += ng['occs']
+        else:
+            self.whitelist[dbid] = ng
+
+    def _add_stopword(self, ngobj):
+	"""adds a stopngram to the contained object"""
+	 if self.isWhite(ng['id']) is True:
+            self.whitelist[length][ng['id']]["occs"] += ng['occs']
+        else:
+            self.whitelist[dbid] = ng
+        pass
+
+    def isWhite(self, ngramobj):
+        """Checks if an ngram object is in the whitelist"""
+        if ngramobj['id'] in self[len(ngramobj['content'])]:
+            return True
+        else:
+            return False
+    def isStopped(self, ngramobj):
+	"""Checks if an ngram object is in the stopwords"""
+        if ngramobj['id'] in self.stopwords[len(ngramobj['content'])]:
+            return True
+        else:
+            return False
 
     def walk(self, directory):
         periods = {}
@@ -119,45 +178,46 @@ class WhitelistHandler():
 
 
 class Importer (basecsv.Importer):
-    """A class for csv imports of selected ngram lists"""
+    """A class for csv imports of selected ngrams whitelists"""
+ 
+    # options will be automatically loaded as attributes
     options = {
-        'statusCol': 'status',
-        'dbidCol': 'db ID',
-        'occsCol': 'corpus-ngram w',
-        'labelCol': 'label',
+	'columns': {
+		'statusCol': 'status',
+		'dbidCol': 'db ID',
+		'occsCol': 'corpus-ngram w',
+		'labelCol': 'label',
+	},
         'accept': 'w',
         'refuse': 's',
-        'whitelist': {},
-        'stopwords': {},
+        'whitelist': Whitelist(),
+        'stopwords': stopword.StopWords(),
         'encoding'  : 'utf-8',
     }
 
     def _add_whitelist(self, row, dbid, occs):
-        """Classify a whitelist ngram"""
+        """adds a whitelisted ngram to the contained object"""
         if row[self.dbidCol] in self.whitelist:
             self.whitelist[dbid] += occs
         else:
             self.whitelist[dbid] = occs
 
     def _add_stopword(self, row, dbid):
+	"""adds a stopngram to the contained object"""
         pass
 
-    def import_whitelist(self):
+    def parse_file(self):
         """Reads a whitelist file and return an object"""
-        line=1
-        keys=[self.statusCol, self.dbidCol, self.occsCol]
         for row in self.csv:
             try:
-                status = row[self.statusCol]
-                occs = row[self.occsCol]
-                label = row[self.labelCol]
+                status = row[self.columns.statusCol]
+                occs = row[self.columns.occsCol]
+                label = row[self.columns.labelCol]
             except KeyError, keyexc:
-                _logger.error("Required column missing "
-                    + " at line " + str(line) )
                 _logger.error( keyexc )
                 continue
-            # manual recalculate db ID
-            dbid = str(abs(hash( label )))
+            # calculates db ID from the label, does not trust the file's db id
+            dbid = PyTextMiner.getId(label)
             if status == self.accept:
                 self._add_whitelist(row, dbid, occs)
             elif status == self.refuse:
