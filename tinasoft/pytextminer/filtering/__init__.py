@@ -16,6 +16,8 @@
 __author__="elishowk"
 __date__ ="$19 mai 2010$"
 
+import re
+
 class Content():
     """
     Rule-based NGram content filtering

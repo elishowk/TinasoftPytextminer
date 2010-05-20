@@ -26,7 +26,7 @@ setup(
     author = 'elias showk & julian bilcke',
     author_email = 'elishowk@nonutc.fr',
 
-    summary = "Tinasoft's Text-Mining module",
+    #summary = "Tinasoft's Text-Mining module",
     url = 'http://github.com/elishowk/TinasoftPyTextMiner',
     license = 'GNU GPL v3',
 
