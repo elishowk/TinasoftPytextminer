@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 __author__="Elias Showk"
 
-from tinasoft.pytextminer import PyTextMiner, tokenizer, tagger, ngram, document, corpus
+from tinasoft.pytextminer import PyTextMiner
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 

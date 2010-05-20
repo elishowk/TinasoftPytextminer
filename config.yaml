@@ -14,7 +14,7 @@ datasets:
     # tina csv columns declaration
     # will ignore undeclared fields
     # and warn not found optional fields
-    tina:
+    tinacsv:
         fields:
             titleField: 'doc_titl'
             contentField: 'doc_abst'

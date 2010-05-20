@@ -47,7 +47,7 @@ class Extractor():
         # instanciate the tagger, takes times on learning
         self.tagger = tagger.TreeBankPosTagger()
 
-    def _openFile(self, path, format='tina' ):
+    def _openFile(self, path, format='tinacsv' ):
         # load Stopwords object
         self.stopwords = stopwords.StopWords( "file://%s"%self.config['stopwords'] )
         #filtertag = filtering.PosTagFilter()

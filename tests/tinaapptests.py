@@ -84,7 +84,7 @@ class TinaAppTestCase(unittest.TestCase):
         return
         path = 'tinaapptests-exportDocuments.csv'
         exporter = Writer( 'ngram://'+path )
-        return exporter.exportDocuments( self.tinasoft.storage, \
+        return exporter.export_documents( self.tinasoft.storage, \
             self.periods, \
             self.datasetId, \
         )

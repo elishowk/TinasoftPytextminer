@@ -1,15 +1,10 @@
 # -*- coding: utf-8 -*-
 from tinasoft.data import Handler
 
-try:
-    import bsddb3 as bsddb
-except ImportError:
-    import bsddb
-from bsddb import db
+from bsddb3 import db
 
 import thread
 from threading import Thread
-from os.path import dirname
 
 import pickle
 
@@ -500,10 +495,8 @@ class Backend(Handler):
 
 class Engine(Backend):
     """
-    bsddb Engine
+    tinabsddb Engine
     """
-
-
     def load(self, id, target, raw=False):
         read = self.saferead( self.prefix[target]+id )
         if read is not None:

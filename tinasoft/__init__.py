@@ -166,7 +166,7 @@ class TinaApp():
             path,
             corpora_id,
             index=False,
-            format='tina',
+            format='tinacsv',
             overwrite=False
         ):
         """
@@ -195,7 +195,7 @@ class TinaApp():
             path,
             corpora_id,
             index=False,
-            format= 'tina',
+            format= 'tinacsv',
             overwrite=False,
         ):
         """
@@ -231,7 +231,7 @@ class TinaApp():
         self.set_storage( corporaid )
         if self.storage is None:
             return self.STATUS_ERROR
-        exporter = Writer('ngram://'+synthesispath, **kwargs)
+        exporter = Writer('whitelist://'+synthesispath, **kwargs)
         if exporter.export_whitelist( self.storage, periods, corporaid, userfilters, whitelist, ngramlimit=65000, minOccs=2 ) is not None:
             return self.STATUS_OK
         else:
@@ -247,7 +247,7 @@ class TinaApp():
         whitelist = {}
         # whitelists aggregation
         for path in filepath:
-            wlimport = Reader('ngram://'+path, **kwargs)
+            wlimport = Reader('whitelist://'+path, **kwargs)
             wlimport.whitelist = whitelist
             whitelist = wlimport.import_whitelist()
         return whitelist
@@ -312,7 +312,7 @@ class TinaApp():
         returns a text file path containing the db cooc
         for a list of periods ans an ngrams whitelist
         """
-        exporter = Writer('ngram://'+path, **kwargs)
+        exporter = Writer('whitelist://'+path, **kwargs)
         return exporter.export_cooc( self.storage, periods, whitelist )
 
     def getCorpora(self, corporaid):
