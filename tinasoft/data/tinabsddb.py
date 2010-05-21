@@ -446,49 +446,50 @@ class Backend(Handler):
             _logger.error( e )
             raise Exception(e)
 
-    def remove(self, id, deltype, delobj=None):
+    def remove(self, id, deltype):
         """
+        OBSOLETE
         deletes an object and clean all the associations
         modified from http://www.rdflib.net/
         public method used in Engine
         """
         @transaction
-        def _remove(self, id, deltype, delobj, txn=None):
-            if delobj is None:
-                delobj = self.saferead(self.prefix[deltype]+id, txn=txn)
-                if delobj is not None:
-                    # deletes an object
-                    delobj = self.unpickle(delobj)
-                else:
-                    _logger.warning("remove key was NOT found")
-                    _logger.warning(self.prefix[deltype]+id)
-                    return
+        def _remove(self, id, deltype, txn=None):
+            #if delobj is None:
+            #    delobj = self.saferead(self.prefix[deltype]+id, txn=txn)
+            #    if delobj is not None:
+            #        # deletes an object
+            #        delobj = self.unpickle(delobj)
+            #    else:
+            #        _logger.warning("remove key was NOT found")
+            #        _logger.warning(self.prefix[deltype]+id)
+            #        return
             self.safedelete(self.prefix[deltype]+id, txn=txn)
             # deletes all mentions of this object in associated objects
-            for type, assoc in delobj['edges'].iteritems():
-                for associd in assoc.iterkeys():
-                    # loads the associated object
-                    assocobj = self.saferead(self.prefix[type]+associd, txn=txn)
-                    if assocobj is not None:
-                        # removes edges
-                        assocobj = self.unpickle(assocobj)
-                        if deltype not in assocobj['edges']:
-                            _logger.warning("association "+deltype+" is missing ("+deltype+") into obj "+associd)
-                            continue
-                        if id not in assocobj['edges'][deltype]:
-                            _logger.warning("association to "+deltype+" "+id+" is missing  into obj "+associd)
-                            continue
-                        del assocobj['edges'][deltype][id]
-                    else:
-                        _logger.debug("Found inconsistent association, object not found :"+ self.prefix[type]+associd)
-                        continue
-                    self.safewrite(self.prefix[type]+associd, assocobj, True, txn)
+            #for type, assoc in delobj['edges'].iteritems():
+            #    for associd in assoc.iterkeys():
+            #        # loads the associated object
+            #        assocobj = self.saferead(self.prefix[type]+associd, txn=txn)
+            #        if assocobj is not None:
+            #            # removes edges
+            #            assocobj = self.unpickle(assocobj)
+            #            if deltype not in assocobj['edges']:
+            #                _logger.warning("association "+deltype+" is missing ("+deltype+") into obj "+associd)
+            #                continue
+            #            if id not in assocobj['edges'][deltype]:
+            #                _logger.warning("association to "+deltype+" "+id+" is missing  into obj "+associd)
+            #                continue
+            #            del assocobj['edges'][deltype][id]
+            #        else:
+            #            _logger.debug("Found inconsistent association, object not found :"+ self.prefix[type]+associd)
+            #            continue
+            #        self.safewrite(self.prefix[type]+associd, assocobj, True, txn)
         try:
-            _remove(self, id, deltype, delobj)
+            _remove(self, id, deltype)
         except Exception, e:
             _logger.error("Got exception in remove ")
             _logger.error(e)
-            raise Exception(e)
+            raise Exception()
 
     def clear( self ):
         self._db.truncate()
@@ -497,6 +498,10 @@ class Engine(Backend):
     """
     tinabsddb Engine
     """
+    def delete(self, id, deltype):
+        """deletes a object given its type and id"""
+        self.remove(id, deltype)
+
     def load(self, id, target, raw=False):
         read = self.saferead( self.prefix[target]+id )
         if read is not None:
@@ -521,6 +526,12 @@ class Engine(Backend):
     def loadCooc(self, id, raw=False ):
         return self.load(id, 'Cooc', raw)
 
+    def loadWhitelist(self, id, raw=False):
+        return self.load(id, 'Whitelist', raw)
+
+    def loadCluster(self, id, raw=False):
+        return self.load(id, 'Cluster', raw)
+
     def insertMany(self, iter, target, overwrite=False):
         self.addmany(iter, target, overwrite)
 
@@ -540,10 +551,7 @@ class Engine(Backend):
 
     def insertDocument(self, obj, id=None, overwrite=False ):
         """automatically removes text content before storing"""
-        #content = obj['content']
-        #obj['content'] = ""
         self.insert( obj, 'Document', id, overwrite )
-        #obj['content'] = content
 
     def insertManyDocument(self, iter, overwrite=False ):
         self.insertMany( iter, 'Document', overwrite )
@@ -560,56 +568,17 @@ class Engine(Backend):
     def insertManyCooc( self, iter, overwrite=False ):
         self.insertMany( iter, 'Cooc', overwrite )
 
-    def insertAssoc(self, loadsource, sourcename, sourceid, insertsource,\
-            loadtarget, targetname, targetid, inserttarget, occs, overwrite=False  ):
-        """adds a unique edge from source to target et and increments occs=weight"""
-        try:
-            sourceobj = loadsource( sourceid )
-            targetobj = loadtarget( targetid )
-            # returns None if one of the objects does NOT exists
-            if sourceobj is None or targetobj is None:
-                raise DBInsertError()
-        except DBInsertError, dbie:
-            _logger.debug( "insertAssoc impossible" )
-            return
+    def insertWhitelist(self, obj, id, overwrite=False ):
+        self.insertCooc( obj, 'Whitelist', id, overwrite )
 
-        # inserts the edge in the source obj
-        if targetname not in sourceobj['edges']:
-            sourceobj['edges'][targetname]={}
-        if targetid in sourceobj['edges'][targetname]:
-            sourceobj['edges'][targetname][targetid]+=occs
-        else:
-            sourceobj['edges'][targetname][targetid]=occs
-        insertsource( sourceobj, str(sourceobj['id']), overwrite )
+    def insertManyWhitelist( self, iter, overwrite=False ):
+        self.insertMany( iter, 'Whitelist', overwrite )
 
-        # in the target obj
-        if sourcename not in targetobj['edges']:
-            targetobj['edges'][sourcename]={}
-        if sourceid in targetobj['edges'][sourcename]:
-            targetobj['edges'][sourcename][sourceid]+=occs
-        else:
-            targetobj['edges'][sourcename][sourceid]=occs
-        inserttarget( targetobj, str(targetobj['id']), overwrite )
+    def insertCluster(self, obj, id, overwrite=False ):
+        self.insertCooc( obj, 'Cluster', id, overwrite )
 
-    def insertAssocCorpus(self, corpusID, corporaID, occs=1 ):
-        self.insertAssoc( self.loadCorpora, 'Corpora', corporaID,\
-            self.insertCorpora, self.loadCorpus, 'Corpus', corpusID, \
-            self.insertCorpus, occs )
-
-    def insertAssocDocument(self, docID, corpusID, occs=1 ):
-        self.insertAssoc( self.loadCorpus, 'Corpus', corpusID,\
-            self.insertCorpus, self.loadDocument, 'Document', docID, \
-            self.insertDocument, occs )
-
-    def insertAssocNGramDocument(self, ngramID, docID, occs=1 ):
-        self.insertAssoc( self.loadDocument, 'Document', docID,\
-            self.insertDocument, self.loadNGram, 'NGram', ngramID, \
-            self.insertNGram, occs )
-
-    def insertAssocNGramCorpus(self, ngramID, corpID, occs=1 ):
-        self.insertAssoc( self.loadCorpus, 'Corpus', corpID,\
-            self.insertCorpus, self.loadNGram, 'NGram', ngramID, \
-            self.insertNGram, occs )
+    def insertManyCluster( self, iter, overwrite=False ):
+        self.insertMany( iter, 'Cluster', overwrite )
 
     def selectCorpusCooc(self, corpusId):
         """Yields a view on Cooc values given a period=corpus"""
@@ -650,11 +619,6 @@ class Engine(Backend):
             record = cursor.next()
         cursor.close()
 
-    def deleteCorpus(self, id, delobj=None):
-        """deletes a corpus and clean all the associations"""
-        self.remove(id, 'Corpus', delobj)
-
-
     def updateEdges(self, canditate, update, types):
         """updates an existent object's edges with the candidate object's edges"""
         for targets in types:
@@ -665,6 +629,27 @@ class Engine(Backend):
                     #    %(update.__class__.__name__,targets, targetsId) )
         return update
 
+    def updateWhitelist( self, whitelistObj, overwrite ):
+        """updates or overwrite a Whitelist and associations"""
+        if overwrite is True:
+            self.insertWhitelist( whitelistObj, overwrite=True )
+            return
+        stored = self.loadWhitelist( whitelistObj['id'] )
+        if stored is not None:
+            whitelistObj = self.updateEdges( whitelistObj, stored, ['NGram'] )
+        self.insertWhitelist( whitelistObj, overwrite=True )
+
+    def updateCluster( self, obj, overwrite ):
+        """updates or overwrite a Cluster and associations"""
+        if overwrite is True:
+            self.insertCluster( obj, overwrite=True )
+            return
+        stored = self.loadCluster( obj['id'] )
+        if stored is not None:
+            obj = self.updateEdges( obj, stored, ['NGram'] )
+        self.insertCluster( obj, overwrite=True )
+
+
     def updateCorpora( self, corporaObj, overwrite ):
         """updates or overwrite a corpora and associations"""
         if overwrite is True:
@@ -672,7 +657,6 @@ class Engine(Backend):
             return
         storedCorpora = self.loadCorpora( corporaObj['id'] )
         if storedCorpora is not None:
-            #_logger.debug(storedCorpora)
             corporaObj = self.updateEdges( corporaObj, storedCorpora, ['Corpus'] )
         self.insertCorpora( corporaObj, overwrite=True )
 
@@ -683,7 +667,6 @@ class Engine(Backend):
             return
         storedCorpus = self.loadCorpus( corpusObj['id'] )
         if storedCorpus is not None:
-            #_logger.debug(storedCorpus)
             corpusObj = self.updateEdges( corpusObj, storedCorpus, ['Document','NGram'] )
         self.insertCorpus( corpusObj, overwrite=True )
 
@@ -701,7 +684,6 @@ class Engine(Backend):
         self.insertManyNGram( self.ngramqueue, overwrite=True )
         self.ngramqueue = []
         self.ngramqueueindex = []
-
 
     def flushCoocQueue(self):
         self.insertManyCooc( self.coocqueue, overwrite=True )
@@ -735,7 +717,6 @@ class Engine(Backend):
         if storedNGram is not None:
             # if overwriting and NGram yet NOT in the current index
             if overwrite is True and ngObj['id'] not in self.ngramindex:
-                #_logger.debug( "overwriting ngram %s"%ngObj['id'] )
                 # cleans current corpus edges
                 if corpId in storedNGram['edges']['Corpus']:
                     del storedNGram['edges']['Corpus'][corpId]
@@ -751,11 +732,9 @@ class Engine(Backend):
         overwrite should always be True because updateNGram
         keep the object updated
         """
-        #updated_ng = self.storage.updateNGram( obj, overwrite=False )
         self.coocqueue += [[id, obj]]
         queue = len( self.coocqueue )
         if queue > self.MAX_INSERT_QUEUE:
-            #_logger.debug(self.coocqueue)
             self.insertManyCooc( self.coocqueue, overwrite=overwrite )
             self.coocqueue = []
             return 0
@@ -765,3 +744,5 @@ class Engine(Backend):
     def updateCooc( self, id, obj, overwrite ):
         """updates or overwrite Cooc row"""
         return self._coocQueue( id, obj, overwrite )
+
+
