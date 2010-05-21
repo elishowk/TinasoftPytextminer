@@ -7,13 +7,16 @@ import csv
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
+#class Handler(Handler):
+
+
 class Exporter (Handler):
     """exporter class for csv file"""
     def __init__(self,
             filepath,
             delimiter = ',',
             quotechar = '"',
-            dialect = 'excel',
+            #dialect = 'excel',
             **kwargs
         ):
         self.filepath = filepath

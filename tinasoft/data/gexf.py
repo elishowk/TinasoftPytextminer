@@ -9,7 +9,7 @@ import math
 # Tenjin, the fastest template engine in the world !
 import tenjin
 from tenjin.helpers import *
-''
+
 # tinasoft logger
 import logging
 _logger = logging.getLogger('TinaAppLogger')

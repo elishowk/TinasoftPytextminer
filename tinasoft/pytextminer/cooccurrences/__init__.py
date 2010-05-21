@@ -3,7 +3,7 @@ __author__="Elias Showk"
 
 #from multiprocessing import Process, Queue, Manager
 import tinasoft
-from tinasoft.pytextminer import corpus
+from tinasoft.pytextminer import corpus, filtering
 from datetime import date
 #from threading import Thread
 from numpy import *
@@ -89,12 +89,14 @@ class MapReduce():
                 continue
             if obj['id'] not in self.whitelist:
                 continue
-            if self.filter is not None:
-                passFilter = True
-                for filt in self.filter:
-                    passFilter &= filt.test(obj)
-                if passFilter is False:
-                    continue
+            if filtering.apply_filters( obj, self.filter ) is False:
+                continue
+            #if self.filter is not None:
+            #    passFilter = True
+            #    for filt in self.filter:
+            #        passFilter &= filt.test(obj)
+            #    if passFilter is False:
+            #        continue
             map[ng] = 1
         return map
 

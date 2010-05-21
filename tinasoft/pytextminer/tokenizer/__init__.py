@@ -10,6 +10,7 @@ import re
 import string
 from tinasoft.pytextminer import ngram
 from tinasoft.pytextminer import tagger
+from tinasoft.pytextminer import filtering
 _logger = logging.getLogger('TinaAppLogger')
 
 class RegexpTokenizer():
@@ -51,15 +52,6 @@ class RegexpTokenizer():
         return tokens
 
     @staticmethod
-    def filterNGrams(ngram, filters=None):
-        passFilter = True
-        if filters is not None:
-            for filt in filters:
-                passFilter &= filt.test(ngram)
-        return passFilter
-
-
-    @staticmethod
     def ngramize(minSize, maxSize, tokens, emptyString, stopwords=None, filters=[]):
         """
             returns a dict of NGram instances
@@ -80,7 +72,7 @@ class RegexpTokenizer():
                             ngrams[ng['id']]['occs'] += 1
                         else:
                             if stopwords is None or stopwords.contains(ng) is False:
-                                if RegexpTokenizer.filterNGrams(ng, filters) is True:
+                                if filtering.apply_filter(ng, filters) is True:
                                     ngrams[ng['id']] = ng
         return ngrams
 
