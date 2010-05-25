@@ -102,7 +102,7 @@ class TreeBankWordTokenizer(RegexpTokenizer):
                                                     doc['content'],
                                                     doc['forbChars'],
                                                     doc['ngramEmpty']
-                                                        )
+                                                    )
         sentenceTokens = TreeBankWordTokenizer.tokenize(
                                                     text=sanitizedTarget,
                                                     emptyString=doc['ngramEmpty'],
@@ -117,4 +117,4 @@ class TreeBankWordTokenizer(RegexpTokenizer):
                                         emptyString=doc['ngramEmpty'],
                                         stopwords=stopwords,
                                         filters=filters,
-                                            )
+                                        )

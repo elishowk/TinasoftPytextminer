@@ -48,48 +48,47 @@ class Whitelist(PyTextMiner):
     def create(self, storage, periods, filters=None, wlinstance=None):
         """Whitelist creator/updater utility"""
         # initialize ngram cache
-        if wlinstance is not None:
-            self['edges'] = wlinstance['edges']
+        _logger.debug( wlinstance )
+        #if wlinstance is not None:
+            #self['edges'] = wlinstance['edges']
         ngrams = {}
         for corpusid in periods:
             # gets a corpus from the storage or continue
             corpusobj = storage.loadCorpus(corpusid)
             if corpusobj is None:
+                _logger.error( "corpus %s not found"%corpusid )
                 continue
             # TODO sorts ngrams by occs
             #sortedngrams = reversed(sorted(corpusobj['edges']['NGram'].items(), key=itemgetter(1)))
             # goes over every ngram in the corpus
             for ngid, occ in corpusobj['edges']['NGram'].iteritems():
-                # increment edge weight by status
-                if ngid in self['edges']['StopNGram']:
-                    self.addEdge('StopNGram', ngid, occ)
-                    continue
-                if ngid in self['edges']['NGram']:
-                    self.addEdge('NGram', ngid, occ)
-                    continue
                 # if NGram's unknown, then loads an checks ngram
                 ng = storage.loadNGram(ngid)
-                ng['status'] = ''
-                # if filtering is activated
-                if filters is not None and filtering.apply_filters(ng, filters) is False:
-                    ng['status'] = self.refuse
-                    self.addEdge('StopNGram', ngid, occ)
+                if ngid is None:
+                    _logger.error( "ngram not found %s in corpus %s"%(ngid,corpusid) )
                     continue
-                # wlinstance NGram edges has the priority on filtering
+                # default status
+                ng['status'] = ''
+                # if a complementary whitelist is given
                 if wlinstance is not None:
-                    # merging the new whitelist with the complementary one
-                    if ngid in wlinstance['edges']['NGram']:
-                        ng['status'] = self.accept
-                        #occ += wlinstance['edges']['NGrams'][ngid]
-                        #self.addEdge( 'NGram', ng['id'], occ )
-                        #continue
+                    # increment edge weight by status
                     if ngid in wlinstance['edges']['StopNGram']:
                         ng['status'] = self.refuse
-                        #occ += wlinstance['edges']['StopNGrams'][ngid]
-                        #self.addEdge( 'StopNGram', ng['id'], occ )
-                        #continue
-                self.addEdge( 'NGram', ngid, occ )
-                self.addEdge( 'Normalized', ngid, self['edges']['NGram'][ngid]**len(ng['content']) )
+                    if ngid in wlinstance['edges']['NGram']:
+                        ng['status'] = self.accept
+                # if filtering is active
+                if filters is not None and filtering.apply_filters(ng, filters) is False:
+                    ng['status'] = self.refuse
+                # updates whitelist edges
+                if ng['status'] == self.refuse:
+                    self.addEdge('StopNGram', ngid, occ)
+                    self.addEdge( 'Normalized', ngid, self['edges']['StopNGram'][ngid]**len(ng['content']) )
+                else:
+                    self.addEdge( 'NGram', ngid, occ )
+                    self.addEdge( 'Normalized', ngid, self['edges']['NGram'][ngid]**len(ng['content']) )
                 self.addEdge( 'Corpus', ngid, 1 )
-                ngrams[ng['id']] = ng
+                if ng['id'] not in ngrams:
+                    ngrams[ng['id']] = ng
+                else:
+                    ngrams[ng['id']]['status'] = ng['status']
         return ngrams

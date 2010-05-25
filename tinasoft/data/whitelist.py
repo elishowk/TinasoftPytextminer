@@ -122,13 +122,16 @@ class Exporter(basecsv.Exporter):
 
         for ng in ngrams.itervalues():
             ngramcount += 1
-            occs = newwl['edges']['NGram'][ng['id']]
-            _logger.debug( "total = %d"%occs )
+            if ng['status'] == self.filemodel.refuse:
+                occs = newwl['edges']['StopNGram'][ng['id']]
+            else:
+                occs = newwl['edges']['NGram'][ng['id']]
+            #_logger.debug( "total = %d"%occs )
             if not occs >= minOccs:
                 continue
             totalexported += 1
             occsn = newwl['edges']['Normalized'][ng['id']]
-            _logger.debug( "normalized = %d"%occsn )
+            #_logger.debug( "normalized = %d"%occsn )
             tag = " ".join ( tagger.TreeBankPosTagger.getTag( ng['postag'] ) )
             # prepares the row
             row = [ ng['status'], ng['label'], tag,

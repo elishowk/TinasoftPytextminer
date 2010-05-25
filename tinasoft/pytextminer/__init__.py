@@ -49,7 +49,7 @@ class PyTextMiner():
             setattr(self,attr,value)
 
     @staticmethod
-    def getId(self, content=None):
+    def getId(content):
         if content is None:
             return uuid4().hex
         if type(content).__name__ == 'list':
