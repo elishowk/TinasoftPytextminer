@@ -1,4 +1,18 @@
 # -*- coding: utf-8 -*-
+#  Copyright (C) 2010 elishowk
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 __author__ = "Elias Showk"
 __date__ = "$Oct 20, 2009 6:32:44 PM$"
@@ -40,15 +54,6 @@ class RegexpTokenizer():
     def tokenize(text, separator, emptyString, stopwords=None):
         noPunct = RegexpTokenizer.cleanPunct(text, emptyString)
         tokens = re.split(separator, noPunct)
-        #if stopwords not None
-        #cleanTokens = []
-        #count=0
-        #for tok in tokens:
-        #    if stopwords.contains( [tok] ) is False:
-        #        count += 1
-        #        cleanTokens += [tok]
-        #print "tokens stopped :", count
-        #return cleanTokens
         return tokens
 
     @staticmethod
@@ -72,7 +77,7 @@ class RegexpTokenizer():
                             ngrams[ng['id']]['occs'] += 1
                         else:
                             if stopwords is None or stopwords.contains(ng) is False:
-                                if filtering.apply_filter(ng, filters) is True:
+                                if filtering.apply_filters(ng, filters) is True:
                                     ngrams[ng['id']] = ng
         return ngrams
 
@@ -94,22 +99,22 @@ class TreeBankWordTokenizer(RegexpTokenizer):
     @staticmethod
     def extract(doc, stopwords, ngramMin, ngramMax, filters, tagger):
         sanitizedTarget = TreeBankWordTokenizer.sanitize(
-                                                         doc['content'],
-                                                         doc['forbChars'],
-                                                         doc['ngramEmpty']
-                                                         )
-        sentenceTokens = TreeBankWordTokenizer.tokenize(
-                                                        text=sanitizedTarget,
-                                                        emptyString=doc['ngramEmpty'],
+                                                    doc['content'],
+                                                    doc['forbChars'],
+                                                    doc['ngramEmpty']
                                                         )
+        sentenceTokens = TreeBankWordTokenizer.tokenize(
+                                                    text=sanitizedTarget,
+                                                    emptyString=doc['ngramEmpty'],
+                                                    )
         tokens = []
         for sentence in sentenceTokens:
             tokens.append(tagger.tag(sentence))
         return TreeBankWordTokenizer.ngramize(
-                                              minSize=ngramMin,
-                                              maxSize=ngramMax,
-                                              tokens=tokens,
-                                              emptyString=doc['ngramEmpty'],
-                                              stopwords=stopwords,
-                                              filters=filters,
-                                              )
+                                        minSize=ngramMin,
+                                        maxSize=ngramMax,
+                                        tokens=tokens,
+                                        emptyString=doc['ngramEmpty'],
+                                        stopwords=stopwords,
+                                        filters=filters,
+                                            )

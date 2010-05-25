@@ -1,10 +1,24 @@
 # -*- coding: utf-8 -*-
+#  Copyright (C) 2010 elishowk
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 # used for FS handling
 import os
-# used for sorting
-from operator import itemgetter
 
-from tinasoft import TinaApp, PyTextMiner
+from tinasoft import TinaApp
+from tinasoft.pytextminer import PyTextMiner
 from tinasoft.data import basecsv
 from tinasoft.pytextminer import tokenizer, tagger, ngram, whitelist
 from tinasoft.pytextminer import filtering
@@ -23,7 +37,7 @@ class WhitelistFile():
         ("length", "length"),
         ("occsn", "total occs ^ length"),
         ("doclist", "doc list"),
-        ("corp list", "corp list"),
+        ("corplist", "corp list"),
         ("dbid", "db ID")
     ]
     accept = "w"
@@ -34,36 +48,18 @@ class WhitelistFile():
 class Importer(basecsv.Importer):
     """A class for csv imports of selected ngrams whitelists"""
 
-    # options will be automatically loaded as attributes
-    options = {
-        'filemodel': WhitelistFile(),
-    }
+    filemodel = WhitelistFile()
 
-    def __init__(self,
-            wlinstance,
-            filepath,
-            delimiter=',',
-            quotechar='"',
-            **kwargs
-        ):
-        self.whitelist = wlinstance
-        basecsv.Importer.__init__(self,
-            filepath,
-            delimiter=',',
-            quotechar='"',
-            **kwargs
-        )
-
-    def _add_whitelist(self, row, dbid, occs):
+    def _add_whitelist(self, dbid, occs):
         """adds a whitelisted ngram"""
         self.whitelist.addEdge( 'NGram', dbid, occs )
 
-    def _add_stopword(self, row, dbid):
+    def _add_stopword(self, dbid, occs):
         """adds a user defined stop-ngram"""
-        pass
+        self.whitelist.addEdge( 'StopNGram', dbid, occs )
 
     def parse_file(self):
-        """Reads a whitelist file and return an object"""
+        """Reads a whitelist file and returns the updated object"""
         for row in self.csv:
             try:
                 status = row[self.filemodel.columns[0][1]]
@@ -77,31 +73,13 @@ class Importer(basecsv.Importer):
             if status == self.filemodel.accept:
                 self._add_whitelist(dbid, occs)
             elif status == self.filemodel.refuse:
-                self._add_stopword(dbid)
+                self._add_stopword(dbid, occs)
         return self.whitelist
 
 class Exporter(basecsv.Exporter):
     """A class for csv exports of NGrams Whitelists"""
 
-    # options will be automatically loaded as attributes
-    options = {
-        'filemodel': WhitelistFile(),
-    }
-
-    def __init__(self,
-            wlinstance,
-            filepath,
-            delimiter=',',
-            quotechar='"',
-            **kwargs
-        ):
-        self.whitelist = wlinstance
-        basecsv.Importer.__init__(self,
-            filepath,
-            delimiter=',',
-            quotechar='"',
-            **kwargs
-        )
+    filemodel = WhitelistFile()
 
     def export_synthesis(self, minOccs=2, max=65000):
         """Dump a lightweight and sorted ngram dict to a file"""
@@ -131,95 +109,50 @@ class Exporter(basecsv.Exporter):
     #        index[period][ngid]['postag'], ngid]
     #        self.writeRow( map(str, row) )
 
-    def export_whitelist(self, storage, periods, corporaid, filters=None, whitelist=None, minOccs=1, ngramlimit=65000):
+    def export_whitelist(self, storage, periods, new_whitelist_label, filters=None, compl_whitelist=None, ngramlimit=65000, minOccs=1 ):
         """creates and exports a whitelist within selected periods=corpus"""
         self.writeRow([x[1] for x in self.filemodel.columns])
-
-        # basic counters
-        ngramcount = 0
-        ngramtotal = 0
-
-        corpuscache = []
-        ngramcache = {}
-
-        for corpusid in periods:
-            # gets a corpus from the storage
-            corpusobj = storage.loadCorpus(corpusid)
-            if self._corpus_integrity( corpusid, corpusobj ) is False: continue
-            ngramtotal += len( corpusobj['edges']['NGram'].keys() )
-            corpuscache += [corpusobj]
-
+        _logger.debug( "Creating the new whitelist" )
+        newwl = whitelist.Whitelist( new_whitelist_label, None, new_whitelist_label )
+        ngrams = newwl.create( storage, periods, filters, compl_whitelist )
+        # basic monitoring counters
+        ngramcount = totalexported = 0
+        ngramtotal = len(ngrams.keys())
         _logger.debug( "Exporting %d ngrams to %s" % (ngramtotal, self.filepath) )
 
-        for corpusobj in corpuscache:
-            # sorts ngrams by occs
-            #sortedngrams = reversed(sorted(corpusobj['edges']['NGram'].items(), key=itemgetter(1)))
-            # goes over every ngram in the corpus
-            for ngid, occ in corpusobj['edges']['NGram'].iteritems():
-                # notifies progression and stops if limit exceeded
-                ngramcount += 1
-                #if ngramlimit <= ngramcount: break
-                if ngramcount % 500 == 0:
-                    TinaApp.notify( None,
-                        'tinasoft_runExportCorpora_running_status',
-                        str(float( (ngramcount * 100) / ngramtotal ))
-                    )
-                # loads an checks ngram
-                ng = storage.loadNGram(ngid)
-                #if self._ngram_integrity( ng, ngid ) is False: continue
-                occs = int(occ)
-                n = len( ng['content'] )
-                occsn = occs ** n
-                if ngid not in ngramcache:
-                    # prepares the row
-                    tag = " ".join ( tagger.TreeBankPosTagger.getTag( ng['postag'] ) )
-                        #columns = [
-                        #    ("status", "status"),
-                        #    ("label", "label"),
-                        #    ("postag", "pos tag"),
-                        #    ("occs", "total occs"),
-                        #    ("length", "length"),
-                        #    ("occsn", "total occs ^ length"),
-                        #    ("doclist", "doc list"),
-                        #    ("corp list", "corp list"),
-                        #    ("dbid", "db ID")
-                        #]
-                    # prepares the row
-                    row = [ "", ng['label'], tag, str(occs), str(n), str(occsn), \
-                        " ".join(ng['edges']['Document'].keys()), \
-                        " ".join(ng['edges']['Corpus'].keys()), \
-                        ng['id'] ]
-                    # filtering activated
-                    if filters is not None and filtering.apply_filters(ng, filters) is False:
-                        # status='s'
-                        row[0] = self.refuse
-                    if whitelist is not None and ng['id'] in whitelist['edges']:
-                        # status='w'
-                        row[0] = self.accept
-                    ngramcache[ngid] = row
-                else:
-                    # increments occs and occs^lenght
-                    sum = int(ngramcache[ngid][4]) + int(occs)
-                    ngramcache[ngid][4] = str(sum)
-                    ngramcache[ngid][5] = str( sum ** n )
-        del corpuscache
-        totalexport = 0
-        _logger.debug("Writing export to %s" % self.filepath)
-        for ngid in ngramcache.keys():
-            if int(ngramcache[ngid][4]) >= minOccs:
-                # writes the row to the file
-                self.writeRow(ngramcache[ngid])
-                del ngramcache[ngid]
-                totalexport += 1
-        #self.logIntegrity('Corpus')
-        #self.logIntegrity('Document')
-        #self.logIntegrity('NGram')
-        _logger.debug( "Total ngrams exported = %d" % totalexport )
+        for ng in ngrams.itervalues():
+            ngramcount += 1
+            occs = newwl['edges']['NGram'][ng['id']]
+            _logger.debug( "total = %d"%occs )
+            if not occs >= minOccs:
+                continue
+            totalexported += 1
+            occsn = newwl['edges']['Normalized'][ng['id']]
+            _logger.debug( "normalized = %d"%occsn )
+            tag = " ".join ( tagger.TreeBankPosTagger.getTag( ng['postag'] ) )
+            # prepares the row
+            row = [ ng['status'], ng['label'], tag,
+                    str(occs), str(len(ng['content'])), str(occsn), \
+                    " ".join(ng['edges']['Document'].keys()), \
+                    " ".join(ng['edges']['Corpus'].keys()), \
+                    ng['id']
+                ]
+            self.writeRow(row)
+            # notifies progression
+            if ngramcount % 500 == 0:
+                TinaApp.notify( None,
+                    'tinasoft_runExportCorpora_running_status',
+                    str(float( (ngramcount * 100) / ngramtotal ))
+                )
+            # breaks if limit's exceeded
+            if ngramcount > ngramlimit:
+                break
+        _logger.debug( "Total ngrams exported = %d" % totalexported )
         return self.filepath
 
 
     def export_documents( self, storage, periods, corporaid ):
-        """exports corpus' documents"""
+        """OBSOLETE exports corpus' documents"""
         for corpusid in periods:
             corpusobj = storage.loadCorpus(corpusid)
             if corpusobj is None:
@@ -326,4 +259,3 @@ class Exporter(basecsv.Exporter):
     def _log_integrity( self, type ):
         for id, obj in self.integrity[type].iteritems():
             msg = "\n".join(obj)
-    _logger.error( "%s %s has errors\n%s" % (type, id, msg) )

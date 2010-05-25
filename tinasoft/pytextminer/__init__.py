@@ -1,8 +1,25 @@
-# -*- coding: utf-8 -*-
+#  Copyright (C) 2010 elishowk
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
 __author__="Julian Bilcke, Elias Showk"
 __date__ ="$Oct 20, 2009 5:30:11 PM$"
 
 __all__ = ["filtering","indexer", "corpora", "corpus", "document", "ngram", "tokenizer", "tagger", "cooccurrences", "stopwords","extractor"]
+
+from uuid import uuid4
 
 import logging
 _logger = logging.getLogger('TinaAppLogger')
@@ -32,7 +49,9 @@ class PyTextMiner():
             setattr(self,attr,value)
 
     @staticmethod
-    def getId(self, content):
+    def getId(self, content=None):
+        if content is None:
+            return uuid4().hex
         if type(content).__name__ == 'list':
             # for NGrams
             return str(abs( hash( " ".join(content) ) ))

@@ -60,11 +60,10 @@ def transaction(f, name=None, **kwds):
 class Backend(Handler):
 
     options = {
-        'locale'        : 'en_US.UTF-8',
-        'format'        : 'jsonpickle',
-        'dieOnError'    : False,
-        'debug'         : False,
-        'compression'   : None,
+        #'locale'        : 'en_US.UTF-8',
+        #'format'        : 'jsonpickle',
+        #'debug'         : False,
+        #'compression'   : None,
         'home'          : 'db',
         'prefix'        : {
             'Corpora':'Corpora::',
@@ -103,7 +102,7 @@ class Backend(Handler):
     def __init__(self, path, create=True, **opts):
         self.path = path
         self.loadOptions(opts)
-        self.lang,self.encoding = self.locale.split('.')
+        #self.lang,self.encoding = self.locale.split('.')
         dbname = None
         dbtype = db.DB_BTREE
         # auto-commit ensures that the open-call commits when transactions are enabled

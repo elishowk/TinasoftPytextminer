@@ -1,4 +1,18 @@
-# -*- coding: utf-8 -*-
+#  Copyright (C) 2010 elishowk
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 
 __author__="Elias Showk"
 __date__ ="$Nov 19, 2009$"
@@ -40,15 +54,18 @@ class TreeBankPosTagger():
         (r'^a$', 'PREP'),
     ]
 
+    training_corpus_size = 8000
 
-    def __init__(self):
+    def __init__(self, training_corpus_size=None, trained_pickle=None ):
         # set of training sentences
         #brown_review_sents = nltk.corpus.brown.tagged_sents(categories=['reviews'])
         #brown_lore_sents = nltk.corpus.brown.tagged_sents(categories=['lore'])
         #brown_romance_sents = nltk.corpus.brown.tagged_sents(categories=['romance'])
-
-        brown_train = list(nltk.corpus.brown.tagged_sents()[:8000])
-        conll_train = list(nltk.corpus.conll2000.tagged_sents()[:8000])
+        if training_corpus_size is not None:
+            self.training_corpus_size = training_corpus_size
+        _logger.debug( "Training tagger with training_corpus_size = %d"%self.training_corpus_size )
+        brown_train = list(nltk.corpus.brown.tagged_sents()[:self.training_corpus_size])
+        conll_train = list(nltk.corpus.conll2000.tagged_sents()[:self.training_corpus_size])
         train_sents = list(itertools.chain( brown_train, conll_train ))
         # base tagger classes for initial tagger
         tagger_classes = [nltk.tag.AffixTagger, nltk.tag.UnigramTagger, nltk.tag.BigramTagger, nltk.tag.TrigramTagger]

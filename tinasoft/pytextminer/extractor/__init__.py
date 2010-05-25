@@ -45,7 +45,7 @@ class Extractor():
             self.writer = index.getWriter()
 
         # instanciate the tagger, takes times on learning
-        self.tagger = tagger.TreeBankPosTagger()
+        self.tagger = tagger.TreeBankPosTagger(training_corpus_size=self.config['training_tagger_size'])
 
     def _openFile(self, path, format='tinacsv' ):
         # load Stopwords object
@@ -58,11 +58,6 @@ class Extractor():
         # loads the source file
         dsn = format+"://"+path
         fileReader = Reader( dsn, **self.config[format] )
-        #    delimiter = self.config['delimiter'],
-        #    quotechar = self.config['quotechar'],
-        #    locale = self.config['locale'],
-        #    fields = self.config['fields']
-        #)
         return fileReader
 
     def _indexDocument( self, documentobj, overwrite ):

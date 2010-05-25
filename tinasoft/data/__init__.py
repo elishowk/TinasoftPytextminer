@@ -1,4 +1,18 @@
-# -*- coding: utf-8 -*-
+#  Copyright (C) 2010 elishowk
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 
 __all__ = ['basecsv','whitelist','tinacsv','tinabsddb','gexf','medline']
 
@@ -6,7 +20,7 @@ __all__ = ['basecsv','whitelist','tinacsv','tinabsddb','gexf','medline']
 #jsonpickle.load_backend('django.util.simplejson', 'dumps', 'loads', ValueError))
 #jsonpickle.set_preferred_backend('django.util.simplejson')
 
-# used by the factory
+# used by the _factory()
 import sys
 
 class Handler (object):

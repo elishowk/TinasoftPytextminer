@@ -6,7 +6,7 @@ __all__ = ["pytextminer","data"]
 from os.path import exists
 from os.path import join
 from os import makedirs
-#import yaml
+import yaml
 
 # json encoder for communicate with the outer world
 import jsonpickle
@@ -22,6 +22,7 @@ from tinasoft.data import Writer
 from tinasoft.pytextminer import corpora
 from tinasoft.pytextminer import extractor
 from tinasoft.pytextminer import cooccurrences
+from tinasoft.pytextminer import whitelist
 
 LEVELS = {
     'debug': logging.DEBUG,
@@ -53,11 +54,10 @@ class TinaApp():
     def __init__(
         self,
         configFile='config.yaml',
-        storage=None,
         loc=None,
-        stopw=None,
         index=None,
-        loglevel=logging.DEBUG):
+        loglevel=logging.DEBUG
+        ):
         """
         Initiate config.yaml, logger, locale, storage and index
         """
@@ -116,8 +116,9 @@ class TinaApp():
                 switching to default = "%self.locale)
             locale.setlocale(locale.LC_ALL, self.locale)
 
-
-        #options = {
+        self.last_dataset_id = None
+        self.storage = None
+        #option s = {
         #    'home' : self.config['dbenv']
         #}
         # connection to storage
@@ -145,22 +146,31 @@ class TinaApp():
         """
         return jsonpickle.decode(str)
 
-    def set_storage( self, dataset_id ):
+    def set_storage( self, dataset_id, **options ):
         """
         connection to the dataset's DB
         always check self.storage is not None before using it
         """
+        if self.last_dataset_id is not None and self.last_dataset_id == dataset_id:
+            # connection already opened
+            return
+        else:
+            if self.storage is not None:
+                # safely close the connection
+                del self.storage
+            self.last_dataset_id = dataset_id
         try:
             storagedir = join( self.config['general']['dbenv'], dataset_id )
             if not exists( storagedir ):
                 makedirs( storagedir )
-            options = {
-                'home' : storagedir
-            }
+            # overwrite db home dir
+            options['home']= storagedir
+            self.config['general']['storage']
             self.storage = Engine(self.config['general']['storage'], **options)
         except Exception, exception:
             self.logger.error( exception )
-            self.storage = None
+            self.storage = self.last_dataset_id = None
+
 
     def extract_file(self,
             path,
@@ -224,7 +234,7 @@ class TinaApp():
             return self.STATUS_ERROR
 
 
-    def export_whitelist( self, periods, corporaid, synthesispath=None, whitelist=None, userfilters=None, ngramlimit=65000, minOccs=2, **kwargs):
+    def export_whitelist( self, periods, corporaid, new_whitelist_label, synthesispath=None, compl_whitelist=None, userfilters=None, ngramlimit=65000, minOccs=1, **kwargs):
         """Public access to tinasoft.data.ngram.export_whitelist()"""
         if synthesispath is None:
             synthesispath = join( self.config['general']['user'], "export.csv" )
@@ -232,25 +242,27 @@ class TinaApp():
         if self.storage is None:
             return self.STATUS_ERROR
         exporter = Writer('whitelist://'+synthesispath, **kwargs)
-        if exporter.export_whitelist( self.storage, periods, corporaid, userfilters, whitelist, ngramlimit=65000, minOccs=2 ) is not None:
+        if exporter.export_whitelist( self.storage, periods, new_whitelist_label, userfilters, compl_whitelist, ngramlimit, minOccs ) is not None:
             return self.STATUS_OK
         else:
             return self.STATUS_ERROR
 
-    def get_whitelist( self, filepath, **kwargs ):
+    def import_whitelist( self, filepath, wllabel, **kwargs ):
         """
         import one or a list of whitelits files
         returns a whitelist object to be used as input of other methods
         """
         if isinstance(filepath,str) or isinstance(filepath, unicode):
             filepath=[filepath]
-        whitelist = {}
+        # new whitelist
+        new_wl = whitelist.Whitelist( wllabel, None, wllabel )
         # whitelists aggregation
         for path in filepath:
             wlimport = Reader('whitelist://'+path, **kwargs)
-            wlimport.whitelist = whitelist
-            whitelist = wlimport.parse_file()
-        return whitelist
+            wlimport.whitelist = new_wl
+            new_wl = wlimport.parse_file()
+        # TODO stores the whitelist ?
+        return new_wl
 
     def process_cooc ( self, whitelist, corporaid, periods, userfilters, **kwargs ):
         """

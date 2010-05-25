@@ -35,6 +35,7 @@ datasets:
     ngramMax: 5
     stopwords: 'shared/stopwords/en.txt'
     userstopwords: 'tests/data/user_stopwords.csv'
+    training_tagger_size: 1000
     overwrite: 0
 datamining:
     template: 'shared/gexf/gexf.template'

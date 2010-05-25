@@ -1,4 +1,19 @@
 # -*- coding: utf-8 -*-
+#  Copyright (C) 2010 elishowk
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 from tinasoft.data import Handler
 
 import codecs
@@ -7,11 +22,9 @@ import csv
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
-#class Handler(Handler):
-
-
 class Exporter (Handler):
-    """exporter class for csv file"""
+    """exporter class for a csv file"""
+
     def __init__(self,
             filepath,
             delimiter = ',',
@@ -19,11 +32,12 @@ class Exporter (Handler):
             #dialect = 'excel',
             **kwargs
         ):
+        #Handler.__init__(self)
+        self.loadOptions(kwargs)
         self.filepath = filepath
         self.delimiter = delimiter
         self.quotechar = quotechar
-        self.dialect = dialect
-        self.loadOptions(kwargs)
+        #self.dialect = dialect
         self.file = codecs.open(self.filepath, "w+", encoding=self.encoding, errors='replace' )
 
     def writeRow( self, row ):
@@ -39,13 +53,15 @@ class Exporter (Handler):
 
 
 class Importer (Handler):
-    """importer class for csv file"""
+    """importer class for a csv file"""
+
     def __init__(self,
             filepath,
             delimiter=',',
             quotechar='"',
             **kwargs
         ):
+        #Handler.__init__(self)
         #_logger.debug("start of basecsv.Importer.__init__ " + filepath )
         try:
             self.filepath = filepath
