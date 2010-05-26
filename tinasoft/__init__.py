@@ -1,5 +1,28 @@
 # -*- coding: utf-8 -*-
-__author__="Elias Showk"
+#  Copyright (C) 2010 elishowk
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+__version__="1.0alpha6"
+__url__="http://tinasoft.eu"
+__longdescr__="A text-mining python module producing bottom-up thematic field recontruction"
+__license__="GNU General Public License"
+__keywords__="nlp,textmining,graph"
+__maintainer__="elishowk@nonutc.fr"
+__maintainer_email__="elishowk@nonutc.fr"
+__author__="elishowk@nonutc.fr"
+__author__="elishowk@nonutc.fr"
+__classifiers__=""
 __all__ = ["pytextminer","data"]
 
 # python utility modules
@@ -132,7 +155,7 @@ class TinaApp():
         #    self.index = indexer.TinaIndex(self.config['index'])
         #else:
         #    self.index = indexer.TinaIndex(index)
-        self.logger.debug("TinaApp started components = config, logger, locale")
+        self.logger.debug("TinaApp started components = config, logger loaded")
 
     def serialize(self, obj):
         """
