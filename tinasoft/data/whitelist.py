@@ -109,7 +109,7 @@ class Exporter(basecsv.Exporter):
     #        index[period][ngid]['postag'], ngid]
     #        self.writeRow( map(str, row) )
 
-    def export_whitelist(self, storage, periods, new_whitelist_label, filters=None, compl_whitelist=None, ngramlimit=65000, minOccs=1 ):
+    def export_whitelist(self, storage, periods, new_whitelist_label, filters=None, compl_whitelist=None, ngramlimit=65000, minOccs=1):
         """creates and exports a whitelist within selected periods=corpus"""
         self.writeRow([x[1] for x in self.filemodel.columns])
         _logger.debug( "Creating the new whitelist" )
@@ -133,6 +133,7 @@ class Exporter(basecsv.Exporter):
             occsn = newwl['edges']['Normalized'][ng['id']]
             #_logger.debug( "normalized = %d"%occsn )
             tag = " ".join ( tagger.TreeBankPosTagger.getTag( ng['postag'] ) )
+            corp_list = " ".join([corpid for corpid in ng['edges']['Corpus'].keys() if corpid in periods])
             # prepares the row
             row = [ ng['status'], ng['label'], tag,
                     str(occs), str(len(ng['content'])), str(occsn), \

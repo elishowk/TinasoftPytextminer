@@ -68,17 +68,17 @@ class TinaApp():
             print exc
             return self.STATUS_ERROR
         # creates app directories
-        if not exists(self.config['general']['dbenv']):
-            makedirs(self.config['general']['dbenv'])
-        if not exists(self.config['general']['index']):
-            makedirs(self.config['general']['index'])
-        if not exists(self.config['general']['user']):
-            makedirs(self.config['general']['user'])
-        if not exists(self.config['general']['log']):
-            makedirs(self.config['general']['log'])
+        if not exists(join( self.config['general']['basedirectory'], self.config['general']['dbenv'] )):
+            makedirs(join( self.config['general']['basedirectory'], self.config['general']['dbenv'] ))
+        if not exists(join( self.config['general']['basedirectory'], self.config['general']['index'] )):
+            makedirs(join( self.config['general']['basedirectory'], self.config['general']['index'] ))
+        if not exists(join( self.config['general']['basedirectory'], self.config['general']['user'] )):
+            makedirs(join( self.config['general']['basedirectory'], self.config['general']['user'] ))
+        if not exists(join( self.config['general']['basedirectory'], self.config['general']['log'] )):
+            makedirs(join( self.config['general']['basedirectory'], self.config['general']['log'] ))
 
         # Set up a specific logger with our desired output level
-        self.LOG_FILENAME = join( self.config['general']['log'], 'tinasoft.log' )
+        self.LOG_FILENAME = join( self.config['general']['basedirectory'], self.config['general']['log'], 'tinasoft.log' )
         # set default level to DEBUG
         if 'loglevel' in self.config['general']:
             loglevel = LEVELS[self.config['general']['loglevel']]
@@ -104,17 +104,17 @@ class TinaApp():
         #self.logger.addHandler(handler)
 
         # tries support of the locale by the host system
-        try:
-            if loc is None:
-                self.locale = self.config['general']['locale']
-            else:
-                self.locale = loc
-            locale.setlocale(locale.LC_ALL, self.locale)
-        except:
-            self.locale = ''
-            self.logger.warning( "locale %s was not found,\
-                switching to default = "%self.locale)
-            locale.setlocale(locale.LC_ALL, self.locale)
+        #try:
+        #    if loc is None:
+        #        self.locale = self.config['general']['locale']
+        #    else:
+        #        self.locale = loc
+        #    locale.setlocale(locale.LC_ALL, self.locale)
+        #except:
+        #    self.locale = ''
+        #    self.logger.warning( "locale %s was not found,\
+        #        switching to default = "%self.locale)
+        #    locale.setlocale(locale.LC_ALL, self.locale)
 
         self.last_dataset_id = None
         self.storage = None
@@ -160,12 +160,11 @@ class TinaApp():
                 del self.storage
             self.last_dataset_id = dataset_id
         try:
-            storagedir = join( self.config['general']['dbenv'], dataset_id )
+            storagedir = join( self.config['general']['basedirectory'], self.config['general']['dbenv'], dataset_id )
             if not exists( storagedir ):
                 makedirs( storagedir )
             # overwrite db home dir
-            options['home']= storagedir
-            self.config['general']['storage']
+            options['home'] = storagedir
             self.storage = Engine(self.config['general']['storage'], **options)
         except Exception, exception:
             self.logger.error( exception )

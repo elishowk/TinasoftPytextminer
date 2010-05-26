@@ -60,7 +60,8 @@ class Whitelist(PyTextMiner):
                 continue
             # TODO sorts ngrams by occs
             #sortedngrams = reversed(sorted(corpusobj['edges']['NGram'].items(), key=itemgetter(1)))
-            # goes over every ngram in the corpus
+            # walks through ngrams in the corpus
+            # occ is the number of docs in the corpus where ngid app
             for ngid, occ in corpusobj['edges']['NGram'].iteritems():
                 # if NGram's unknown, then loads an checks ngram
                 ng = storage.loadNGram(ngid)
@@ -87,6 +88,7 @@ class Whitelist(PyTextMiner):
                     self.addEdge( 'NGram', ngid, occ )
                     self.addEdge( 'Normalized', ngid, self['edges']['NGram'][ngid]**len(ng['content']) )
                 self.addEdge( 'Corpus', ngid, 1 )
+                # add ngram to cache or update the status
                 if ng['id'] not in ngrams:
                     ngrams[ng['id']] = ng
                 else:
