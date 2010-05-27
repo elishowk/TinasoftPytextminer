@@ -41,7 +41,7 @@ SOURCE CODE REPOSITORY
 
 AUTHORS
 
-- Research engineers at CREA lab (UMR 7656, CNRS)
+- Research engineers at CREA lab (UMR 7656, CNRS, Ecole Polytechnique)
 
     elias showk <elishowk@nonutc.fr>
     julian bilcke <julian.bilcke@iscpif.fr>
@@ -52,19 +52,30 @@ SUPPORT AND FEEDBACK
 
 INSTALL
 
-    First of all, you'll need Python 2.6 interpreter : http://python.org/
-    Then, install PyTextMiner's dependencies of the following source packages typing:
+    PYTHON : you'll need Python 2.6 interpreter : http://python.org/
+
+    TinasoftPytextminer python package
         $ sudo python setup.py install
         or
         $ sudo python setup.py develop
-    Dependencies will be checked : numpy, nltk, tinasoft.data (for data storage)
+    Dependencies will be checked : numpy, nltk, twisted, etc (see setup.py)
+
+    NLTK DATA
+
+    You'll need to install manually required nltk corpus data
+        $ export NLTK_DATA="/path/to/TinasoftPytextminer/shared/nltk_data"
+        $ python
+        > import nltk.download()
+        Downloader> d punkt
+        Downloader> d brown
+        Downloader> d conll2000
 
 CONFIGURATION
 
-    config.yaml and import.yaml YAML configuration files. The first is used by the global application object (the TinaApp class) , the second is only used by the file importer specifying the file contents and NLP parameters
+    config.yaml is a YAML configuration files. It is searched by the main application object (TinaApp class) at the into the same source directory
 
-    import.yaml :
-
+    DEPRECATED :
+[[[[[[[[[[
     declare each column name of your csv file into the corresponding field name of the configuration file, otherwise they will be ignored by the software
 
         titleField: document title
@@ -77,7 +88,7 @@ CONFIGURATION
         index2Field: document index 2
         dateField: document publication date
         keywordsField: document keywords
-
+]]]]]]]]]]
     check out the format of your csv file (encoding, delimiter, quoting character) and write them into fields "locale", "delimiter", "quotechar"
     "minSize", and "maxSize" means the length of n-grams extracted
     all other fields are the script configuration, or the default values for testing purpose
@@ -86,17 +97,15 @@ CONFIGURATION
 
 USAGE
 
-    you can try multiple features using code from the tests scripts into 'tests/'
+    - you can launch the http server to acces the API
+    $ python tinaserver.py
+    or executing tinaserver.exe under windows
+    - you can try multiple features using code from the tests scripts into 'tests/'
 
-TESTED PLATFORMS
+SUPPORTED OPERATING SYSTEMS
 
     PyTextMiner was tested on the following Linux platforms:
 
-        Linux 64 bits (AMD64) with Python 2.5
-        Linux 64 bits (AMD64) with Python 2.6
-
-        Linux 32 bits (i686) with Python 2.5
-        Linux 32 bits (i686) with Python 2.6
-
-    PyTextMiner was also tested on MS-Windows with Python 2.6
+        Linux 64 bits (AMD64, i686) with Python 2.6
+        Windows XP SP2 and SP3 (32bit)
 

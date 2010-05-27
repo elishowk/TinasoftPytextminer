@@ -2,7 +2,7 @@
 ---
 # application main params
 general:
-    basedirectory: './'
+    basedirectory: '.'
     locale: 'en_US.UTF-8'
     storage: "tinabsddb://tinasoft.bsddb"
     index: 'index'

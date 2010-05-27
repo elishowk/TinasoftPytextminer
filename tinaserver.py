@@ -19,47 +19,37 @@ from tinasoft import TinaApp
 
 from twisted.web import server, resource
 from twisted.internet import reactor
+from twisted.web.static import File
+from twisted.web.resource import NoResource
 
-class TinaServer(TinaApp, resource.Resource):
-    isLeaf = True
-    def __init__(self, *args, **kwargs):
-        TinaApp.__init__(self)
-        self.callback = TinaServerCallback()
+from os.path import join
+
+tinaappsingleton = TinaApp()
+
+class TinaServerResource(resource.Resource):
+    #isLeaf = True
+    def __init__(self, method):
+        self.method = method
+        #TinaApp.__init__(self)
+        #self.callback = TinaServerCallback()
         # overwriting notify()
         # TinaApp.notify = self.logger
-        self.logger.debug("TinaServer started")
-        return resource.Resource.__init__(self, *args, **kwargs)
+        resource.Resource.__init__(self)
 
     def render_GET(self, request):
-		request.write("GET request on tinaserver")
-		#request.write(twisted.web.server.NOT_DONE_YET)
+        return tinaappsingleton.serialize( self.method(request) )
 
     #def render_POST(self):
-	#	request.finish()
+    #   request.finish()
 
-    def walk_graph_path( self, corporaid ):
-        """returns the list of files in the gexf directory tree"""
-        path = join( self.config['user'], corporaid )
-        if not exists( path ):
-            return self.serialize( [] )
-        return self.serialize( [join( path, file ) for file in os.listdir( path )] )
-
-    def _get_graph_path(self, corporaid, periods, threshold=[0.0,1.0]):
-        """returns the relative path for a given graph in the graph dir tree"""
-        path = join( self.config['user'], corporaid )
-        if not exists( path ):
-            makedirs( path )
-        filename = "-".join( periods ) + "_" \
-            + "-".join( map(str,threshold) ) \
-            + ".gexf"
-        #self.logger.debug( join( path, filename ) )
-        return join( path, filename )
-
-    def __del__(self):
-        """resumes the storage transactions when destroying this object"""
-        del self.storage
-		
-
+class TinaServer(resource.Resource):
+    def getChild(self, name, request):
+        try:
+            method = getattr(tinaappsingleton, name)
+        except:
+            return NoResource()
+        else:
+            return TinaServerResource(method)
 
 class TinaServerCallback():
     """
@@ -82,7 +72,8 @@ class TinaServerCallback():
     def exportGraph( self, returnValue ):
         return self.callback( "tinasoft_runExportGraph_finish_status", returnValue)
 
-if __name__ == "__main__":		
-	site = server.Site(TinaServer())
-	reactor.listenTCP(8089, site)
-	reactor.run()
+if __name__ == "__main__":
+    tinaserver = TinaServer()
+    site = server.Site(tinaserver)
+    reactor.listenTCP(8089, site)
+    reactor.run()

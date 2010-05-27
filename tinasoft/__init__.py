@@ -26,6 +26,7 @@ __classifiers__=""
 __all__ = ["pytextminer","data"]
 
 # python utility modules
+import os
 from os.path import exists
 from os.path import join
 from os import makedirs
@@ -56,7 +57,7 @@ LEVELS = {
 }
 
 
-class TinaApp():
+class TinaApp(object):
     """
     Main application class
     should be used in conjunction with ThreadPool()
@@ -84,6 +85,7 @@ class TinaApp():
         """
         Initiate config.yaml, logger, locale, storage and index
         """
+        object.__init__(self)
         # import config yaml to self.config
         try:
             self.config = yaml.safe_load( file( configFile, 'rU' ) )
@@ -156,6 +158,10 @@ class TinaApp():
         #else:
         #    self.index = indexer.TinaIndex(index)
         self.logger.debug("TinaApp started components = config, logger loaded")
+
+    def __del__(self):
+        """resumes the storage transactions when destroying this object"""
+        del self.storage
 
     def serialize(self, obj):
         """
@@ -353,35 +359,54 @@ class TinaApp():
         """
         Part of the Storage API
         """
-        return self.serialize(self.storage.loadCorpora(corporaid))
+        return self.storage.loadCorpora(corporaid)
 
     def getCorpus(self, corpusid):
         """
         Part of the Storage API
         """
-        return self.serialize(self.storage.loadCorpus(corpusid))
+        return self.storage.loadCorpus(corpusid)
 
     def getDocument(self, documentid):
         """
         Part of the Storage API
         """
-        return self.serialize(self.storage.loadDocument(documentid))
+        return self.storage.loadDocument(documentid)
 
     def getNGram(self, ngramid):
         """
         Part of the Storage API
         """
-        return self.serialize(self.storage.loadNGram(ngramid))
+        return self.storage.loadNGram(ngramid)
 
-    def listCorpora(self, default=None):
+    def list_datasets(self, *args, **kwargs):
         """
-        Part of the Storage API
+        Request TinaApp File API
+        returns list of user's data sets
         """
-        if default is None:
-            default=[]
+        dbdir = join( self.config['general']['basedirectory'], self.config['general']['dbenv'] )
         try:
-            select = self.storage.select('Corpora::')
-            while 1:
-                default += [select.next()[1]]
-        except StopIteration:
-            return self.serialize( default )
+            alldirs = os.listdir(dbdir)
+        except:
+            return self.STATUS_ERROR
+        else:
+            valid_dirs = [ds for ds in alldirs if exists( join( dbdir, ds, self.config['general']['storage'].split("://")[1] ))]
+            return valid_dirs
+
+    def walk_graph_path( self, corporaid ):
+        """returns the list of files in the gexf directory tree"""
+        path = join( self.config['user'], corporaid )
+        if not exists( path ):
+            return []
+        return [join( path, file ) for file in os.listdir( path )]
+
+    def _get_graph_path(self, corporaid, periods, threshold=[0.0,1.0]):
+        """returns the relative path for a given graph in the graph dir tree"""
+        path = join( self.config['user'], corporaid )
+        if not exists( path ):
+            makedirs( path )
+        filename = "-".join( periods ) + "_" \
+            + "-".join( map(str,threshold) ) \
+            + ".gexf"
+        #self.logger.debug( join( path, filename ) )
+        return join( path, filename )
