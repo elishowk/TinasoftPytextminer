@@ -18,9 +18,12 @@ __author__="elishowk"
 
 from setuptools import find_packages
 from distutils.core import setup
-import py2exe
+try:
+    import py2exe
+except: pass
 import os
 from glob import glob
+import tinasoft
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 DEPS = glob(os.path.dirname(os.path.abspath(__file__)) + "/deps/*")
@@ -35,17 +38,28 @@ data_files = [("Microsoft.VC90.CRT", glob(r'e:\Microsoft.VC90.CRT\*.*')),
 setup (
     name = 'TinasoftPytextminer',
     packages = find_packages(),
-	data_files=data_files,
-    include_package_data=True,
+    data_files = data_files,
+    include_package_data = True,
     # Declare your packages' dependencies here, for eg:
-    install_requires=['numpy','yaml','bsddb3','nltk','jsonpickle','tenjin','twisted','simplejson'],
-    #dependency_links=DEPS,
-	console = ["tinaserver.py"],
+    install_requires = ['numpy','pyyaml','bsddb3','nltk','jsonpickle','tenjin','twisted','simplejson'],
+    #dependency_links = DEPS,
+    #console = ["tinaserver.py"],
     #package_data = {'tinasoft': ['shared', 'config.yaml', 'README', 'LICENSE']},
-	options = {"py2exe": 
-		{
-		"bundle_files": 1,
-		"includes":['numpy','bsddb3','nltk','jsonpickle','yaml','tenjin','twisted','twisted.web','twisted.internet','twisted.web.resource','simplejson'],
-		}
-	},
+    options = {"py2exe":
+        {
+        "bundle_files": 1,
+        "includes": ['numpy','bsddb3','nltk','jsonpickle','yaml','tenjin','twisted','twisted.web','twisted.internet','twisted.web.resource','simplejson'],
+        }
+    },
+    version = tinasoft.__version__,
+    url = tinasoft.__url__,
+    long_description = tinasoft.__longdescr__,
+    license = tinasoft.__license__,
+    keywords = tinasoft.__keywords__,
+    maintainer = tinasoft.__maintainer__,
+    maintainer_email = tinasoft.__maintainer_email__,
+    author = tinasoft.__author__,
+    author_email = tinasoft.__author_email__,
+    classifiers = tinasoft.__classifiers__,
+
 )
