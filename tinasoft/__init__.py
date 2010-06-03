@@ -20,7 +20,8 @@ __license__="GNU General Public License"
 __keywords__="nlp,textmining,graph"
 __maintainer__="elishowk@nonutc.fr"
 __maintainer_email__="elishowk@nonutc.fr"
-__author__="elishowk@nonutc.fr"
+__author__="elias showk"
+__author_email__="elishowk@nonutc.fr"
 __classifiers__="nlp textmining http"
 __all__ = ["pytextminer","data","tinaserver"]
 
@@ -247,7 +248,7 @@ class TinaApp(object):
             return self.STATUS_ERROR
 
 
-    def export_whitelist( self, periods, corporaid, new_whitelist_label, synthesispath=None, compl_whitelist=None, userfilters=None, ngramlimit=65000, minOccs=1, **kwargs):
+    def export_whitelist( self, periods, corporaid, new_whitelist_label, path=None, compl_whitelist=None, userfilters=None, ngramlimit=65000, minOccs=1, **kwargs):
         """Public access to tinasoft.data.ngram.export_whitelist()"""
         if synthesispath is None:
             synthesispath = join( self.config['general']['user'], "export.csv" )

@@ -33,6 +33,21 @@ class TinaServerResource(resource.Resource):
     """
     Request handler
     """
+    argument_types = {
+        'index' : bool,
+        'overwrite': bool,
+        'path': str,
+        'dataset': str,
+        'label':str,
+        'periods': list,
+        'threshold': list,
+        'whitelist': str,
+        'userfilters': str,
+        'ngramlimit': int,
+        'minoccs' : int,
+        'id': str,
+        'format': str,
+    }
     def __init__(self, method, back):
         self.method = method
         self.back = back
@@ -41,11 +56,15 @@ class TinaServerResource(resource.Resource):
         resource.Resource.__init__(self)
 
     def render(self, request):
-        print request.method, request.args
+        parsed_args = {}
+        for key in request.args.iterkeys():
+            if self.argument_types[key] != list:
+                parsed_args[key] = self.argument_types[key](request.args[key][0])
+        print parsed_args
         try:
-            return self.back.call( self.method(request.args) )
-        except:
-            return ErrorPage(500, "error", "").render(request)
+            return self.back.call( self.method(parsed_args) )
+        except Exception, e:
+            return ErrorPage(500, "error", e.__str__()).render(request)
 
 class TinaServer(resource.Resource):
     """
