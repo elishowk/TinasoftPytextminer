@@ -292,7 +292,7 @@ class TinaApp(object):
         # TODO stores the whitelist ?
         return new_wl
 
-    def process_cooc ( self, whitelist, corporaid, periods, userfilters, **kwargs ):
+    def process_cooc( self, whitelist, corporaid, periods, userfilters, **kwargs ):
         """
         Main function importing a whitelist and generating cooccurrences
         process cooccurrences for each period=corpus
@@ -355,31 +355,31 @@ class TinaApp(object):
         exporter = Writer('whitelist://'+path, **kwargs)
         return exporter.export_cooc( self.storage, periods, whitelist )
 
-    def getCorpora(self, corporaid):
+    def get_dataset(self, corporaid):
         """
         Part of the Storage API
         """
         return self.storage.loadCorpora(corporaid)
 
-    def getCorpus(self, corpusid):
+    def get_corpus(self, corpusid):
         """
         Part of the Storage API
         """
         return self.storage.loadCorpus(corpusid)
 
-    def getDocument(self, documentid):
+    def get_document(self, documentid):
         """
         Part of the Storage API
         """
         return self.storage.loadDocument(documentid)
 
-    def getNGram(self, ngramid):
+    def get_ngram(self, ngramid):
         """
         Part of the Storage API
         """
         return self.storage.loadNGram(ngramid)
 
-    def list_datasets(self, *args, **kwargs):
+    def get_datasets(self, *args, **kwargs):
         """
         Request TinaApp File API
         returns list of user's data sets
