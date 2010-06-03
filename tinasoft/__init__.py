@@ -21,9 +21,8 @@ __keywords__="nlp,textmining,graph"
 __maintainer__="elishowk@nonutc.fr"
 __maintainer_email__="elishowk@nonutc.fr"
 __author__="elishowk@nonutc.fr"
-__author__="elishowk@nonutc.fr"
-__classifiers__=""
-__all__ = ["pytextminer","data"]
+__classifiers__="nlp textmining http"
+__all__ = ["pytextminer","data","tinaserver"]
 
 # python utility modules
 import os
@@ -32,8 +31,6 @@ from os.path import join
 from os import makedirs
 import yaml
 
-# json encoder for communicate with the outer world
-import jsonpickle
 
 import locale
 import logging
@@ -76,11 +73,11 @@ class TinaApp(object):
         pass
 
     def __init__(
-        self,
-        configFile='config.yaml',
-        loc=None,
-        index=None,
-        loglevel=logging.DEBUG
+            self,
+            configFile='config.yaml',
+            loc=None,
+            index=None,
+            loglevel=logging.DEBUG
         ):
         """
         Initiate config.yaml, logger, locale, storage and index
@@ -163,17 +160,6 @@ class TinaApp(object):
         """resumes the storage transactions when destroying this object"""
         del self.storage
 
-    def serialize(self, obj):
-        """
-        Encoder to send messages to the host appllication
-        """
-        return jsonpickle.encode(obj)
-
-    def deserialize(self, str):
-        """
-        Decoder for the host's application messages
-        """
-        return jsonpickle.decode(str)
 
     def set_storage( self, dataset_id, **options ):
         """
@@ -198,7 +184,6 @@ class TinaApp(object):
         except Exception, exception:
             self.logger.error( exception )
             self.storage = self.last_dataset_id = None
-
 
     def extract_file(self,
             path,
@@ -355,35 +340,7 @@ class TinaApp(object):
         exporter = Writer('whitelist://'+path, **kwargs)
         return exporter.export_cooc( self.storage, periods, whitelist )
 
-    def get_dataset(self, corporaid):
-        """
-        Part of the Storage API
-        """
-        return self.storage.loadCorpora(corporaid)
-
-    def get_corpus(self, corpusid):
-        """
-        Part of the Storage API
-        """
-        return self.storage.loadCorpus(corpusid)
-
-    def get_document(self, documentid):
-        """
-        Part of the Storage API
-        """
-        return self.storage.loadDocument(documentid)
-
-    def get_ngram(self, ngramid):
-        """
-        Part of the Storage API
-        """
-        return self.storage.loadNGram(ngramid)
-
-    def get_datasets(self, *args, **kwargs):
-        """
-        Request TinaApp File API
-        returns list of user's data sets
-        """
+    def list_datasets(self):
         dbdir = join( self.config['general']['basedirectory'], self.config['general']['dbenv'] )
         try:
             alldirs = os.listdir(dbdir)
@@ -394,14 +351,20 @@ class TinaApp(object):
             return valid_dirs
 
     def walk_graph_path( self, corporaid ):
-        """returns the list of files in the gexf directory tree"""
+        """
+        Part of the File API
+        returns the list of files in the gexf directory tree
+        """
         path = join( self.config['user'], corporaid )
         if not exists( path ):
             return []
         return [join( path, file ) for file in os.listdir( path )]
 
-    def _get_graph_path(self, corporaid, periods, threshold=[0.0,1.0]):
-        """returns the relative path for a given graph in the graph dir tree"""
+    def get_graph_path(self, corporaid, periods, threshold=[0.0,1.0]):
+        """
+        Part of the Storage API
+        returns the relative path for a given graph in the graph dir tree
+        """
         path = join( self.config['user'], corporaid )
         if not exists( path ):
             makedirs( path )
