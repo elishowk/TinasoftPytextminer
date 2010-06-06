@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 __author__="Elias Showk"
-from tinasoft.pytextminer import tagger, stopwords, tokenizer, filtering
+#from tinasoft import TinaApp
+from tinasoft.pytextminer import tagger, stopwords, tokenizer, filtering, whitelist
 from tinasoft.data import Engine, Reader, Writer
 
 # configuration file parsing
@@ -11,7 +12,8 @@ _logger = logging.getLogger('TinaAppLogger')
 
 
 class Counter():
-    """Utility object counting ngrams for different period"""
+    """OBSOLETE, REPLACED BY Whitelist object
+    Utility object counting ngrams for different period"""
     def __init__(self):
         self.index={}
 
@@ -83,13 +85,16 @@ class Extractor():
             _logger.debug("Finished walking %d documents"%count)
             return
 
-    def extract_file(self, path, format):
-        # instance of the counter
-        corporaCounter = Counter()
+    def extract_file(self, path, format, extract_path, ngramlimit=65000):
+        # TODO : replace Counter by Whitelist object
         # starts the parsing
         fileGenerator = self._walkFile( path, format )
-        count=0
+        newwl = whitelist.Whitelist(self.corpora['id'], None, self.corpora['id'])
+        ngrams = {}
+        doccount=0
         try:
+            # instance of the counter
+            #corporaCounter = Counter()
             while 1:
                 document, corpusNum = fileGenerator.next()
                 #self.logger.debug( "%s is extracting document %s (overwrite=%s)"%(tokenizer.TreeBankWordTokenizer.__name__, document['id'], str(overwrite)) )
@@ -101,20 +106,40 @@ class Extractor():
                     self.config['ngramMax'], \
                     self.filters, \
                     self.tagger
-                    )
-                corporaCounter.add( docngrams, corpusNum )
-                count+=1
-                if count % 10000 == 0:
-                    for period in corporaCounter.index.iterkeys():
-                        path = "%d-%s-extractWhitelist.csv"%(count,period)
-                        csvfile = Writer("ngram://"+path)
-                        csvfile.writeRow( ["status","label","corpus-ngrams w","pos tag","db ID"] )
-                        csvfile.export_ngrams(corporaCounter, period)
-                        del corporaCounter.index[period]
-                    corporaCounter.index={}
+                )
+                for ngid, ng in docngrams.iteritems():
+                    ng['status'] = ""
+                    newwl.addEdge( 'NGram', ngid, 1 )
+                    newwl.addEdge( 'Normalized', ngid, newwl['edges']['NGram'][ngid]**len(ng['content']) )
+                    newwl.addEdge( 'Corpus', corpusNum, 1 )
+                    # add ngram to cache or update the status
+                    if ng['id'] not in ngrams:
+                        ngrams[ng['id']] = ng
+                    else:
+                        ngrams[ng['id']]['status'] = ng['status']
+                doccount += 1
+                #corporaCounter.add( docngrams, corpusNum )
+
+                #if count >= ngramlimit:
+                    #_logger.debug("Writing partial whitelists to %s (postfix %d)"%(extract_path,count))
+                    #csvfile = Writer("whitelist://"+extract_path+"."+str(count))
+                    #csvfile.write_whitelist(ngrams, newwl)
+                    #newwl = whitelist.Whitelist(self.corpora, None, self.corpora)
+                    #ngrams = {}
+                    #count = 0
+                    #for ng in ngrams.itervalues():
+                    #    path = extract_path+".%d-%s"%(count,period)
+                    #    csvfile = Writer("whitelist://"+path)
+                    #    csvfile.writeRow([x[1] for x in csvfile.filemodel.columns])
+                    #    csvfile.export_extract(corporaCounter.index, period)
+                    #    del corporaCounter.index[period]
         except StopIteration:
-            #_logger.debug("Finished parsing %d documents"%count)
-            return True
+            _logger.debug("End of %d documents' extractiom"%doccount)
+            csvfile = Writer("whitelist://"+extract_path)
+            return csvfile.write_whitelist(ngrams, newwl)
+        except Exception, e:
+            _logger.error(e)
+            return False
 
     def import_file(self, path, format, overwrite=False):
         # keep duplicate document objects

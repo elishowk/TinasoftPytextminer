@@ -95,30 +95,37 @@ class Exporter(basecsv.Exporter):
         #    self.writeRow([ng[0], ng[1]['tot'], ng[2]['max']])
         #    lines += 1
 
-    #def export_ngrams(self, index, period ):
+    def export_extract(self, index, period ):
         """Dump to a whitelist-like file
         the contents of a corpora.Counter instance"""
-    #    _logger.debug( "saving partial whitelist to %s for period %s" % \
-    #              (self.filepath, period) )
-        #self.writeRow( ["status","label","corpus-ngrams w","pos tag","db ID"] )
+        #_logger.debug( "export_extract() of a whitelist to %s for period %s" % (self.filepath, period) )
         #occssorted =reversed(sorted(index[period].items(), key=itemgetter(1)))
-    #    for ngid in index[period].iterkeys():
-    #        row = [index[period][ngid]['status'],
-    #        index[period][ngid]['label'], \
-    #        index[period][ngid]['occs'], \
-    #        index[period][ngid]['postag'], ngid]
-    #        self.writeRow( map(str, row) )
+        for ngid in index[period].iterkeys():
+            length = len(index[period][ngid]['label'].split(" "))
+            occsn = index[period][ngid]['occs']**length
+            row = [ "",
+                index[period][ngid]['label'], \
+                index[period][ngid]['occs'], \
+                index[period][ngid]['postag'], \
+                length, \
+                occsn, \
+                "", "", ngid \
+            ]
+            self.writeRow( map(str,row) )
 
     def export_whitelist(self, storage, periods, new_whitelist_label, filters=None, compl_whitelist=None, ngramlimit=65000, minOccs=1):
         """creates and exports a whitelist within selected periods=corpus"""
-        self.writeRow([x[1] for x in self.filemodel.columns])
         _logger.debug( "Creating the new whitelist" )
         newwl = whitelist.Whitelist( new_whitelist_label, None, new_whitelist_label )
         ngrams = newwl.create( storage, periods, filters, compl_whitelist )
+        return self.write_whitelist(ngrams, newwl)
+
+    def write_whitelist(self, ngrams, newwl, ngramlimit=65000, minOccs=1):
+        self.writeRow([x[1] for x in self.filemodel.columns])
         # basic monitoring counters
         ngramcount = totalexported = 0
         ngramtotal = len(ngrams.keys())
-        _logger.debug( "Exporting %d ngrams to %s" % (ngramtotal, self.filepath) )
+        _logger.debug( "Writing %d ngrams to %s" % (ngramtotal, self.filepath) )
 
         for ng in ngrams.itervalues():
             ngramcount += 1
@@ -151,7 +158,7 @@ class Exporter(basecsv.Exporter):
             # breaks if limit's exceeded
             if ngramcount > ngramlimit:
                 break
-        _logger.debug( "Total ngrams exported = %d" % totalexported )
+        _logger.debug( "Total ngrams exported after filtering = %d" % totalexported )
         return self.filepath
 
 

@@ -39,10 +39,11 @@ class TinaServerResource(resource.Resource):
         'path': str,
         'dataset': str,
         'label':str,
-        'periods': list,
+        'period': list,
         'threshold': list,
         'whitelist': str,
-        'userfilters': str,
+        'whitelistlabel': str,
+        'userstopwords': str,
         'ngramlimit': int,
         'minoccs' : int,
         'id': str,
@@ -56,13 +57,24 @@ class TinaServerResource(resource.Resource):
         resource.Resource.__init__(self)
 
     def render(self, request):
+        """
+        Prepares arguments and call the method
+        """
         parsed_args = {}
         for key in request.args.iterkeys():
+            if self.argument_types[key] == '':
+                parsed_args[key] = None
+                continue
             if self.argument_types[key] != list:
                 parsed_args[key] = self.argument_types[key](request.args[key][0])
         print parsed_args
+        if 'whitelist' in parsed_args and parsed_args['whitelist'] is not None:
+            parsed_args['whitelist'] = TinaApp.import_whitelist(parsed_args['whitelist'],'')
+        if 'userstopwords' in parsed_args and parsed_args['userstopwords'] is not None:
+            parsed_args['userstopwords'] = TinaApp.import_userstopwords(parsed_args['userstopwords'])
         try:
-            return self.back.call( self.method(parsed_args) )
+
+            return self.back.call( self.method(**parsed_args) )
         except Exception, e:
             return ErrorPage(500, "error", e.__str__()).render(request)
 
@@ -71,20 +83,18 @@ class TinaServer(resource.Resource):
     Server main class
     dynamically dispatching URL to TinaServerResource() class
     """
-    def __init__(self, tinacallback, tinaappsingletonGET, tinaappsingletonPOST):
+    def __init__(self, tinacallback, posthandler, gethandler):
         self.callback = tinacallback
-        self.tinaappsingletonPOST = tinaappsingletonPOST
-        self.tinaappsingletonGET = tinaappsingletonGET
+        self.posthandler = posthandler
+        self.gethandler = gethandler
         resource.Resource.__init__(self)
 
     def getChild(self, name, request):
         try:
             if request.method == 'POST':
-                #print name
-                method = getattr(self.tinaappsingletonPOST, name)
+                method = getattr(self.posthandler, name)
             elif request.method == 'GET':
-                #print name
-                method = getattr(self.tinaappsingletonGET, name)
+                method = getattr(self.gethandler, name)
             else:
                 raise Exception()
         except:
@@ -93,94 +103,95 @@ class TinaServer(resource.Resource):
             return TinaServerResource(method, self.callback)
 
 
-class TinaAppPOST(TinaApp):
+class TinaAppPOST():
     """
-    TinaApp subclass mapping POST request on TinaApp's methods
+    TinaApp mapping POST requests on an instance of TinaApp's
     """
+    def __init__(self, tinaappinstance):
+        self.tinaappinstance = tinaappinstance
+
     def file(self, *args, **kwargs):
         # import file
-        return self.import_file(*args, **kwargs)
+        return self.tinaappinstance.import_file(*args, **kwargs)
+
     def whitelist(self, *args, **kwargs):
         # import whitelist
-        return self.import_whitelist(*args, **kwargs)
+        return TinaApp.import_whitelist(*args, **kwargs)
 
     def cooccurrences(self, *args, **kwargs):
         # process_cooc
-        return self.process(*args, **kwargs)
+        return self.tinaappinstance.process_cooc(*args, **kwargs)
 
     def graph(self, *args, **kwargs):
         # export_graph
-        return self.export_graph(*args, **kwargs)
+        return self.tinaappinstance.export_graph(*args, **kwargs)
 
     def dataset(self, corporaobj):
         # insert
-        if corporaobj['id'] is not None:
-            self.set_storage( corporaobj['id'] )
-            return self.storage.insertCorpora(corporaobj)
+        self.tinaappinstance.set_storage( corporaobj['id'] )
+        return self.tinaappinstance.storage.insertCorpora(corporaobj)
 
-    def corpus(self, corporaid, corpusobj):
+    def corpus(self, dataset, corpusobj):
         # insert
-        if corporaid is not None:
-            self.set_storage( corporaid )
-            return self.storage.insertCorpus(corpusobj)
+        self.tinaappinstance.set_storage( dataset )
+        return self.tinaappinstance.storage.insertCorpus(corpusobj)
 
-    def document(self, corporaid, documentobj):
-        if corporaid is not None:
-            self.set_storage( corporaid )
-            return self.storage.insertDocument(documentobj)
+    def document(self, dataset, documentobj):
+        self.tinaappinstance.set_storage( dataset )
+        return self.tinaappinstance.storage.insertDocument(documentobj)
 
-    def ngram(self, corporaid, ngramobj):
-        if corporaid is not None:
-            self.set_storage( corporaid )
-            return self.storage.insertNgram(ngramobj)
+    def ngram(self, dataset, ngramobj):
+        self.tinaappinstance.set_storage( dataset )
+        return self.tinaappinstance.storage.insertNgram(ngramobj)
 
 
-class TinaAppGET(TinaApp):
+class TinaAppGET():
     """
-    TinaApp subclass mapping GET request on TinaApp's methods
+    TinaApp mapping GET requests on an instance of TinaApp's
     """
+    def __init__(self, tinaappinstance):
+        self.tinaappinstance = tinaappinstance
+
     def file(self, *args, **kwargs):
         # extract_file
-        return self.extract_file(*args, **kwargs)
+        return self.tinaappinstance.extract_file(*args, **kwargs)
 
     def whitelist(self, *args, **kwargs):
         #export_whitelist
-        return self.export_whitelist(*args, **kwargs)
+        return self.tinaappinstance.export_whitelist(*args, **kwargs)
 
     def cooccurrences(self, *args, **kwargs):
         # export_cooc
-        return self.export_cooc(*args, **kwargs)
+        return self.tinaappinstance.export_cooc(*args, **kwargs)
 
     def graph(self, *args, **kwargs):
         # list of graphs for a given corpora id
-        return self.walk_graph_path(*args, **kwargs)
+        return self.tinaappinstance.walk_graph_path(*args, **kwargs)
 
-    def dataset(self, corporaid):
+    def dataset(self, dataset):
         # load
-        if corporaid is not None:
-            self.set_storage( corporaid )
-            return self.storage.loadCorpora(corporaid)
+        self.tinaappinstance.logger.debug(dataset)
+        self.tinaappinstance.set_storage(dataset)
+        return self.tinaappinstance.storage.loadCorpora(dataset)
 
-    def corpus(self, corporaid, corpusid):
-        if corporaid is not None:
-            self.set_storage( corporaid )
-            return self.storage.loadCorpus(corpusid)
+    def corpus(self, dataset, id):
+        self.tinaappinstance.set_storage( dataset )
+        return self.tinaappinstance.storage.loadCorpus(id)
 
-    def document(self, corporaid, documentid):
-        if corporaid is not None:
-            self.set_storage( corporaid )
-            return self.storage.loadDocument(documentid)
+    def document(self, dataset, id):
+        self.tinaappinstance.set_storage( dataset )
+        return self.tinaappinstance.storage.loadDocument(id)
 
-    def ngram(self, corporaid, ngramid):
-        if corporaid is not None:
-            self.set_storage( corporaid )
-            return self.storage.loadNgram(ngramid)
+    def ngram(self, dataset, id):
+        self.tinaappinstance.set_storage( dataset )
+        return self.tinaappinstance.storage.loadNGram(id)
 
 
 class TinaServerCallback():
     """
     Tinaserver's callback class
     """
+    default = ""
 
     def serialize(self, obj):
         """
@@ -197,16 +208,19 @@ class TinaServerCallback():
     def call(self, returnValue=None):
         #_observerProxy.notifyObservers(None, msg, jsonpickle.encode( returnValue ))
         if returnValue == None:
-            returnValue = ""
+            returnValue = self.default
         return self.serialize( returnValue )
 
 
 if __name__ == "__main__":
-    tinaappsingletonPOST = TinaAppPOST()
-    tinaappsingletonGET = TinaAppGET()
+    tinaappsingleton = TinaApp()
+    posthandler = TinaAppPOST(tinaappsingleton)
+    gethandler = TinaAppGET(tinaappsingleton)
     tinacallback = TinaServerCallback()
-    tinaserver = TinaServer(tinacallback, tinaappsingletonPOST, tinaappsingletonGET)
-    tinaserver.putChild("user", File(join( tinaappsingletonGET.config['general']['basedirectory'], tinaappsingletonGET.config['general']['user'] )))
+    tinaserver = TinaServer(tinacallback, posthandler, gethandler)
+    tinaserver.putChild("user",
+        File(join( tinaappsingleton.config['general']['basedirectory'], tinaappsingleton.config['general']['user'] ))
+    )
     site = server.Site(tinaserver)
     reactor.listenTCP(88888, site)
     reactor.run()

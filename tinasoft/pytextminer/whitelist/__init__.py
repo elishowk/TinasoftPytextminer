@@ -40,6 +40,9 @@ class Whitelist(PyTextMiner):
         PyTextMiner.__init__(self, description, id, label, edges, **metas)
 
     def addEdge(self, type, key, value):
+        if type == 'Normalized':
+            self['edges']['Normalized'][key] = value
+            return
         if type == 'Corpus':
             return self._addUniqueEdge( type, key, value )
         else:
@@ -48,7 +51,7 @@ class Whitelist(PyTextMiner):
     def create(self, storage, periods, filters=None, wlinstance=None):
         """Whitelist creator/updater utility"""
         # initialize ngram cache
-        _logger.debug( wlinstance )
+        #_logger.debug( wlinstance )
         #if wlinstance is not None:
             #self['edges'] = wlinstance['edges']
         ngrams = {}
@@ -87,7 +90,7 @@ class Whitelist(PyTextMiner):
                 else:
                     self.addEdge( 'NGram', ngid, occ )
                     self.addEdge( 'Normalized', ngid, self['edges']['NGram'][ngid]**len(ng['content']) )
-                self.addEdge( 'Corpus', ngid, 1 )
+                self.addEdge( 'Corpus', corpusid, 1 )
                 # add ngram to cache or update the status
                 if ng['id'] not in ngrams:
                     ngrams[ng['id']] = ng
