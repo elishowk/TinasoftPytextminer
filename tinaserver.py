@@ -17,6 +17,7 @@ __author__="elishowk@nonutc.fr"
 
 from tinasoft import TinaApp
 
+
 from twisted.web import server, resource
 from twisted.internet import reactor
 from twisted.web.static import File
@@ -25,6 +26,7 @@ from twisted.web.resource import NoResource, ErrorPage
 
 # json encoder for communicate with the outer world
 import jsonpickle
+import traceback
 # unescaping uri components
 #import cgi
 from os.path import join
@@ -37,9 +39,10 @@ class TinaServerResource(resource.Resource):
         'index' : bool,
         'overwrite': bool,
         'path': str,
+        'outpath': str,
         'dataset': str,
         'label':str,
-        'period': list,
+        'periods': list,
         'threshold': list,
         'whitelist': str,
         'whitelistlabel': str,
@@ -48,6 +51,7 @@ class TinaServerResource(resource.Resource):
         'minoccs' : int,
         'id': str,
         'format': str,
+        'filetype': str,
     }
     def __init__(self, method, back):
         self.method = method
@@ -67,16 +71,17 @@ class TinaServerResource(resource.Resource):
                 continue
             if self.argument_types[key] != list:
                 parsed_args[key] = self.argument_types[key](request.args[key][0])
-        print parsed_args
+            else:
+                parsed_args[key] = self.argument_types[key](request.args[key])
+        print self.method, parsed_args
         if 'whitelist' in parsed_args and parsed_args['whitelist'] is not None:
             parsed_args['whitelist'] = TinaApp.import_whitelist(parsed_args['whitelist'],'')
         if 'userstopwords' in parsed_args and parsed_args['userstopwords'] is not None:
             parsed_args['userstopwords'] = TinaApp.import_userstopwords(parsed_args['userstopwords'])
         try:
-
             return self.back.call( self.method(**parsed_args) )
         except Exception, e:
-            return ErrorPage(500, "error", e.__str__()).render(request)
+            return ErrorPage(500, "tinaserver error, please report the following message to elias.showk@iscpif.fr", traceback.format_exc() ).render(request)
 
 class TinaServer(resource.Resource):
     """
@@ -153,24 +158,26 @@ class TinaAppGET():
         self.tinaappinstance = tinaappinstance
 
     def file(self, *args, **kwargs):
-        # extract_file
+        """
+        runs an extractrion process and exports
+        a whitelist csv file for a given dataset and source file
+        """
         return self.tinaappinstance.extract_file(*args, **kwargs)
 
     def whitelist(self, *args, **kwargs):
-        #export_whitelist
+        """exports a whitelist csv file for a given dataset, periods, and whitelist"""
         return self.tinaappinstance.export_whitelist(*args, **kwargs)
 
     def cooccurrences(self, *args, **kwargs):
-        # export_cooc
+        """exports a cooc matrix for a given datasset, periods, and whitelist"""
         return self.tinaappinstance.export_cooc(*args, **kwargs)
 
     def graph(self, *args, **kwargs):
-        # list of graphs for a given corpora id
-        return self.tinaappinstance.walk_graph_path(*args, **kwargs)
+        """list the existing graphs for a given dataset"""
+        return self.tinaappinstance.walk_user_path(*args, **kwargs)
 
     def dataset(self, dataset):
         # load
-        self.tinaappinstance.logger.debug(dataset)
         self.tinaappinstance.set_storage(dataset)
         return self.tinaappinstance.storage.loadCorpora(dataset)
 
@@ -219,8 +226,8 @@ if __name__ == "__main__":
     tinacallback = TinaServerCallback()
     tinaserver = TinaServer(tinacallback, posthandler, gethandler)
     tinaserver.putChild("user",
-        File(join( tinaappsingleton.config['general']['basedirectory'], tinaappsingleton.config['general']['user'] ))
+        File(join( tinaappsingleton.user ))
     )
     site = server.Site(tinaserver)
-    reactor.listenTCP(88888, site)
+    reactor.listenTCP(8888, site)
     reactor.run()

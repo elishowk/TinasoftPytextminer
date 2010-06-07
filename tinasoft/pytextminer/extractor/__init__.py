@@ -34,11 +34,14 @@ class Extractor():
     def __init__( self, storage, config, corpora, index=None ):
 
         self.config=config
-
-        # init by methods
-        self.filters=None
-        self.stopwords=None
-
+        # load Stopwords object
+        self.stopwords = stopwords.StopWords( "file://%s"%self.config['stopwords'] )
+        #filtertag = filtering.PosTagFilter()
+        filterContent = filtering.Content()
+        validTag = filtering.PosTagValid()
+        self.filters = [filterContent,validTag]
+        # keep duplicate document objects
+        self.duplicate = []
         # params from the controler
         self.corpora = corpora
         self.storage = storage
@@ -50,19 +53,13 @@ class Extractor():
         self.tagger = tagger.TreeBankPosTagger(training_corpus_size=self.config['training_tagger_size'])
 
     def _openFile(self, path, format='tinacsv' ):
-        # load Stopwords object
-        self.stopwords = stopwords.StopWords( "file://%s"%self.config['stopwords'] )
-        #filtertag = filtering.PosTagFilter()
-        filterContent = filtering.Content()
-        validTag = filtering.PosTagValid()
-        self.filters = [filterContent,validTag]
-
-        # loads the source file
+        """loads the source file"""
         dsn = format+"://"+path
         fileReader = Reader( dsn, **self.config[format] )
         return fileReader
 
     def _indexDocument( self, documentobj, overwrite ):
+        """eventually index the document's text"""
         if self.index is not None:
             if self.index.write(document, self.writer, overwrite) is None:
                 _logger.debug("document content indexation skipped :" \
@@ -85,7 +82,7 @@ class Extractor():
             _logger.debug("Finished walking %d documents"%count)
             return
 
-    def extract_file(self, path, format, extract_path, ngramlimit=65000):
+    def extract_file(self, path, format, extract_path, ngramlimit=65000, minoccs=1):
         # TODO : replace Counter by Whitelist object
         # starts the parsing
         fileGenerator = self._walkFile( path, format )
@@ -93,12 +90,9 @@ class Extractor():
         ngrams = {}
         doccount=0
         try:
-            # instance of the counter
-            #corporaCounter = Counter()
             while 1:
                 document, corpusNum = fileGenerator.next()
-                #self.logger.debug( "%s is extracting document %s (overwrite=%s)"%(tokenizer.TreeBankWordTokenizer.__name__, document['id'], str(overwrite)) )
-                # extract filtered ngrams
+                # extract and filter ngrams
                 docngrams = tokenizer.TreeBankWordTokenizer.extract( \
                     document,\
                     self.stopwords, \
@@ -118,7 +112,6 @@ class Extractor():
                     else:
                         ngrams[ng['id']]['status'] = ng['status']
                 doccount += 1
-                #corporaCounter.add( docngrams, corpusNum )
 
                 #if count >= ngramlimit:
                     #_logger.debug("Writing partial whitelists to %s (postfix %d)"%(extract_path,count))
@@ -136,14 +129,13 @@ class Extractor():
         except StopIteration:
             _logger.debug("End of %d documents' extractiom"%doccount)
             csvfile = Writer("whitelist://"+extract_path)
-            return csvfile.write_whitelist(ngrams, newwl)
+            return csvfile.write_whitelist(ngrams, newwl, ngramlimit, minoccs)
         except Exception, e:
             _logger.error(e)
             return False
 
     def import_file(self, path, format, overwrite=False):
-        # keep duplicate document objects
-        self.duplicate = []
+
         # opens and starts walking a file
         fileGenerator = self._walkFile( path, format )
         # 1st part = ngram extraction

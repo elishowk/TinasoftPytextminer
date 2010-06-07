@@ -66,7 +66,7 @@ class Importer(basecsv.Importer):
                 occs = row[self.filemodel.columns[3][1]]
                 label = row[self.filemodel.columns[1][1]]
             except KeyError, keyexc:
-                _logger.error( keyexc )
+                _logger.error( "%s columns was not found, whitelist import failed"%keyexc )
                 continue
             # calculates db ID from the label, does not trust the file's db id
             dbid = PyTextMiner.getId(label)
@@ -81,44 +81,13 @@ class Exporter(basecsv.Exporter):
 
     filemodel = WhitelistFile()
 
-    def export_synthesis(self, minOccs=2, max=65000):
-        """Dump a lightweight and sorted ngram dict to a file"""
-        pass
-        #_logger.debug( "saving synthesis whitelist to %s" % self.filepath )
-        #TODO
-        #self.writeRow( ["label", "total", "max"] )
-        #maxsorted = reversed(sorted(ngrams.items(), key=itemgetter(1)))
-        #maxsorted = ngrams[:max]
-        #del ngrams
-        #lines = 0
-        #for ng in maxsorted:
-        #    self.writeRow([ng[0], ng[1]['tot'], ng[2]['max']])
-        #    lines += 1
-
-    def export_extract(self, index, period ):
-        """Dump to a whitelist-like file
-        the contents of a corpora.Counter instance"""
-        #_logger.debug( "export_extract() of a whitelist to %s for period %s" % (self.filepath, period) )
-        #occssorted =reversed(sorted(index[period].items(), key=itemgetter(1)))
-        for ngid in index[period].iterkeys():
-            length = len(index[period][ngid]['label'].split(" "))
-            occsn = index[period][ngid]['occs']**length
-            row = [ "",
-                index[period][ngid]['label'], \
-                index[period][ngid]['occs'], \
-                index[period][ngid]['postag'], \
-                length, \
-                occsn, \
-                "", "", ngid \
-            ]
-            self.writeRow( map(str,row) )
 
     def export_whitelist(self, storage, periods, new_whitelist_label, filters=None, compl_whitelist=None, ngramlimit=65000, minOccs=1):
         """creates and exports a whitelist within selected periods=corpus"""
-        _logger.debug( "Creating the new whitelist" )
+        _logger.debug( "Exporting a whitelist" )
         newwl = whitelist.Whitelist( new_whitelist_label, None, new_whitelist_label )
         ngrams = newwl.create( storage, periods, filters, compl_whitelist )
-        return self.write_whitelist(ngrams, newwl)
+        return self.write_whitelist(ngrams, newwl, ngramlimit, minOccs)
 
     def write_whitelist(self, ngrams, newwl, ngramlimit=65000, minOccs=1):
         self.writeRow([x[1] for x in self.filemodel.columns])

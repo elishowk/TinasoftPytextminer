@@ -23,7 +23,7 @@ __maintainer_email__="elishowk@nonutc.fr"
 __author__="elias showk"
 __author_email__="elishowk@nonutc.fr"
 __classifiers__="nlp textmining http"
-__all__ = ["pytextminer","data","tinaserver"]
+__all__ = ["pytextminer","data"]
 
 # python utility modules
 import os
@@ -31,6 +31,7 @@ from os.path import exists
 from os.path import join
 from os import makedirs
 import yaml
+from datetime import datetime
 
 
 import locale
@@ -46,6 +47,7 @@ from tinasoft.pytextminer import extractor
 from tinasoft.pytextminer import cooccurrences
 from tinasoft.pytextminer import whitelist
 from tinasoft.pytextminer import indexer
+from tinasoft.pytextminer import stopwords
 
 LEVELS = {
     'debug': logging.DEBUG,
@@ -92,12 +94,13 @@ class TinaApp(object):
             print exc
             return self.STATUS_ERROR
         # creates app directories
+        self.user = join( self.config['general']['basedirectory'], self.config['general']['user'] )
+        if not exists(self.user):
+            makedirs(self.user)
         if not exists(join( self.config['general']['basedirectory'], self.config['general']['dbenv'] )):
             makedirs(join( self.config['general']['basedirectory'], self.config['general']['dbenv'] ))
         if not exists(join( self.config['general']['basedirectory'], self.config['general']['index'] )):
             makedirs(join( self.config['general']['basedirectory'], self.config['general']['index'] ))
-        if not exists(join( self.config['general']['basedirectory'], self.config['general']['user'] )):
-            makedirs(join( self.config['general']['basedirectory'], self.config['general']['user'] ))
         if not exists(join( self.config['general']['basedirectory'], self.config['general']['log'] )):
             makedirs(join( self.config['general']['basedirectory'], self.config['general']['log'] ))
 
@@ -120,8 +123,8 @@ class TinaApp(object):
             backupCount = 3
         )
         # formatting
-        formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
-        rotatingFileHandler.setFormatter(formatter)
+        #formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+        #rotatingFileHandler.setFormatter(formatter)
         self.logger = logging.getLogger('TinaAppLogger')
 
         # tries support of the locale by the host system
@@ -150,7 +153,6 @@ class TinaApp(object):
         """resumes the storage transactions when destroying this object"""
         del self.storage
 
-
     def set_storage( self, dataset_id, **options ):
         """
         connection to the dataset's DB
@@ -178,20 +180,21 @@ class TinaApp(object):
     def extract_file(self,
             path,
             dataset,
+            outpath=None,
             index=False,
             format='tinacsv',
-            overwrite=False
+            overwrite=False,
+            ngramlimit=65000,
+            minoccs=1
         ):
         """
         tinasoft source extraction controler
         send a corpora and a storage handler to an Extractor() instance
         """
-        # prepares extraction expott path
-        if not exists(join( self.config['general']['user'], dataset )):
-            makedirs(join( self.config['general']['user'], dataset ))
-        extract_path = join( self.config['general']['basedirectory'],
-            self.config['general']['user'],
-            dataset, "extract_file.csv" )
+        # prepares extraction export path
+        if outpath is None:
+            outpath = self.get_user_path(dataset, 'whitelist', 'extract_file.csv')
+        self.logger.debug( "extract_file to %s"%outpath )
         # sends indexer to the file parser
         if index is True:
             index = self.index
@@ -203,13 +206,13 @@ class TinaApp(object):
             return self.STATUS_ERROR
         # instanciate extractor class
         extract = extractor.Extractor( self.storage, self.config['datasets'], corporaObj, index )
-        return extract.extract_file( path, format, extract_path )
+        return extract.extract_file( path, format, outpath )
 
     def import_file(self,
             path,
             dataset,
             index=False,
-            format= 'tinacsv',
+            format='tinacsv',
             overwrite=False,
         ):
         """
@@ -242,7 +245,7 @@ class TinaApp(object):
             periods,
             dataset,
             whitelistlabel,
-            path=None,
+            outpath=None,
             whitelist=None,
             userstopwords=None,
             ngramlimit=65000,
@@ -250,26 +253,21 @@ class TinaApp(object):
             **kwargs
         ):
         """Public access to tinasoft.data.ngram.export_whitelist()"""
-        # creating default path
-        if path is None:
-            if not exists(join( self.config['general']['user'], dataset )):
-                makedirs(join( self.config['general']['user'], dataset ))
-            path = join( self.config['general']['user'], dataset, "export_whitelist.csv" )
+        # creating default outpath
+        if outpath is None:
+            outpath = self.get_user_path(dataset, 'whitelist', "%s_export_whitelist.csv"%"-".join(periods))
         self.set_storage( dataset )
         if self.storage is None:
             return self.STATUS_ERROR
-        exporter = Writer('whitelist://'+path, **kwargs)
-        if exporter.export_whitelist(
+        exporter = Writer('whitelist://'+outpath, **kwargs)
+        return exporter.export_whitelist(
                 self.storage,
                 periods,
                 whitelistlabel,
                 userstopwords,
                 whitelist,
                 ngramlimit,
-                minoccs ) is not None:
-            return self.STATUS_OK
-        else:
-            return self.STATUS_ERROR
+                minoccs )
 
     @staticmethod
     def import_whitelist(
@@ -302,11 +300,10 @@ class TinaApp(object):
         return [stopwords.StopWordFilter( "file://%s" % path )]
 
     def process_cooc(self,
-            whitelist,
             dataset,
             periods,
-            userstopwords,
-            **kwargs
+            whitelist,
+            userstopwords=None
         ):
         """
         Main function importing a whitelist and generating cooccurrences
@@ -324,87 +321,85 @@ class TinaApp(object):
                 self.logger.warning( warner )
                 continue
             if cooc.walkCorpus() is False:
-                tinasoft.TinaApp.notify( None,
-                    'tinasoft_runProcessCoocGraph_running_status',
-                    self.serialize( self.STATUS_ERROR )
-                )
+                return self.STATUS_ERROR
             if cooc.writeMatrix(True) is False:
-                tinasoft.TinaApp.notify( None,
-                    'tinasoft_runProcessCoocGraph_running_status',
-                    self.serialize( self.STATUS_ERROR )
-                )
+                return self.STATUS_ERROR
             del cooc
         return self.STATUS_OK
 
+
+    def export_cooc(self, periods, whitelist, outpath=None):
+        """
+        returns a text file outpath containing the db cooc
+        for a list of periods ans an ngrams whitelist
+        """
+        if outpath is None:
+            outpath = self.get_user_path("", 'cooccurrences', 'export_cooc.txt')
+        self.logger.debug("export_cooc to %s"%outpath)
+        exporter = Writer('coocmatrix://'+outpath)
+        return exporter.export_cooc( self.storage, periods, whitelist )
+
     def export_graph( self,
-            path,
             dataset,
             periods,
+            outpath=None,
             whitelist=None
         ):
         """
-        Produce and write Tinasoft's default GEXF graph
+        Produces the default GEXF graph file
         for given list of periods (to aggregate)
         and a given ngram whitelist
         """
-        #opts['template'] = self.config['template']
+        if outpath is None:
+            outpath = self.get_user_path(dataset, 'gexf', 'export_graph.gexf')
+        self.logger.debug("export_graph to %s"%outpath)
+
         GEXFWriter = Writer('gexf://', **self.config['datamining'])
+
         self.set_storage( dataset )
         if self.storage is None:
             return self.STATUS_ERROR
-        GEXFString = GEXFWriter.ngramDocGraph(
+
+        return GEXFWriter.ngramDocGraph(
+            outpath,
             db = self.storage,
             periods = periods,
             whitelist = whitelist,
         )
-        if GEXFString == self.STATUS_ERROR:
-            return self.STATUS_ERROR
 
-        TinaApp.notify( None,
-            'tinasoft_runProcessCoocGraph_running_status',
-            'writing gexf to %s'%path
-        )
-        open(path, 'w+b').write(GEXFString)
-        return path
+    def get_user_path(self, dataset, filetype, filename):
+        """returns a filename from the user directory"""
+        path = join( self.user, dataset, filetype )
+        now = "_".join(str(datetime.utcnow()).split(" "))
+        filename = now + "_" + filename
+        if not exists(path):
+            makedirs(path)
+            return join( path, filename )
+        if exists(path,filename):
+            return join(path,filename)
 
-    def export_cooc(self, path, periods, whitelist, **kwargs):
-        """
-        returns a text file path containing the db cooc
-        for a list of periods ans an ngrams whitelist
-        """
-        exporter = Writer('whitelist://'+path, **kwargs)
-        return exporter.export_cooc( self.storage, periods, whitelist )
 
-    def list_datasets(self):
-        dbdir = join( self.config['general']['basedirectory'], self.config['general']['dbenv'] )
-        try:
-            alldirs = os.listdir(dbdir)
-        except:
-            return self.STATUS_ERROR
-        else:
-            valid_dirs = [ds for ds in alldirs if exists( join( dbdir, ds, self.config['general']['storage'].split("://")[1] ))]
-            return valid_dirs
-
-    def walk_graph_path( self, dataset ):
+    def walk_user_path(self, dataset, filetype):
         """
         Part of the File API
         returns the list of files in the gexf directory tree
         """
-        path = join( self.config['user'], dataset )
+        path = join( self.user, dataset, filetype )
         if not exists( path ):
             return []
         return [join( path, file ) for file in os.listdir( path )]
 
-    def get_graph_path(self, dataset, periods, threshold=[0.0,1.0]):
+
+    #def get_graph_path(self, dataset, periods, threshold=[0.0,1.0]):
         """
+        OBSOLETE
         Part of the Storage API
         returns the relative path for a given graph in the graph dir tree
         """
-        path = join( self.config['user'], dataset )
-        if not exists( path ):
-            makedirs( path )
-        filename = "-".join( periods ) + "_" \
-            + "-".join( map(str,threshold) ) \
-            + ".gexf"
-        #self.logger.debug( join( path, filename ) )
-        return join( path, filename )
+    #    path = join( self.config['user'], dataset )
+    #    if not exists( path ):
+    #        makedirs( path )
+    #    filename = "-".join( periods ) + "_" \
+    #        + "-".join( map(str,threshold) ) \
+    #        + ".gexf"
+    #    return join( path, filename )

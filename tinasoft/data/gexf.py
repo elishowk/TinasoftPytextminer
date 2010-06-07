@@ -328,7 +328,7 @@ class Exporter (GEXFHandler):
             )
             _logger.debug( "%d graph nodes processed"%self.count )
 
-    def ngramDocGraph(self, db, periods, meta={}, whitelist=None):
+    def ngramDocGraph(self, path, db, periods, meta={}, whitelist=None):
         """
         uses Cooc from database to write a cooc-proximity based
         graph for a given list of periods
@@ -401,4 +401,5 @@ class Exporter (GEXFHandler):
         ngramGraph.cache = {}
         docGraph.cache = {}
         #_logger.debug( graph.gexf )
-        return self.render( graph.gexf )
+        open(path, 'w+b').write(self.render( graph.gexf ))
+        return path
