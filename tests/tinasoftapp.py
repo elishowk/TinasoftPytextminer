@@ -44,24 +44,32 @@ class TinaAppTestCase(unittest.TestCase):
 
     def testA_ExtractFile(self):
         """testA_ExtractFile : testing extract_file"""
-        #return
-        self.failIfEqual( self.tinasoft.extract_file(
-            "/home/elishowk/TINA/Datas/MedlineCancer/pubmed_cancer_tina_toydb.txt",
-            "MedlineCancer",
-            index=False,
-            format="medline",
-            overwrite=False
-        ), TinaApp.STATUS_ERROR )
+        return
+        #self.failIfEqual( self.tinasoft.extract_file(
+        #    "/home/elishowk/TINA/Datas/MedlineCancer/pubmed_cancer_tina_toydb.txt",
+        #    "MedlineCancer",
+        #    format="medline"
+        #), TinaApp.STATUS_ERROR )
+        print self.tinasoft.extract_file(
+            path="/home/elishowk/TINA/Datas/MedlineCancer/pubmed_cancer_tina_toydb.txt",
+            dataset="MedlineCancer",
+            format="medline"
+        )
 
     def testB_ImportFile(self):
         """testB_ImportFile : testing import_file"""
-        return
-        self.tinasoft.import_file(
-            "tests/data/pubmed_tina_test.csv",
-            self.datasetId,
-            index=False,
-            format="tinacsv",
-            overwrite=False
+        #return
+        #self.tinasoft.import_file(
+        #    "tests/data/pubmed_tina_test.csv",
+        #    self.datasetId,
+        #    index=False,
+        #    format="tinacsv",
+        #    overwrite=False
+        #)
+        print self.tinasoft.import_file(
+            path="/home/elishowk/TINA/Datas/MedlineCancer/pubmed_cancer_tina_toydb.txt",
+            dataset="MedlineCancer",
+            format="medline"
         )
 
     def testC_export_whitelist(self):

@@ -68,7 +68,7 @@ def _factory(arg):
         obj = sys.modules[name]
         return obj, path
     except ImportError, exc:
-        raise Exception("couldn't  module %s: %s"%(protocol,exc))
+        raise Exception("couldn't load module %s: %s"%(protocol,exc))
 
 def Engine(arg, **options):
     module, path = _factory(arg)

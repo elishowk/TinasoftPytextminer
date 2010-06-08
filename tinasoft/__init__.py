@@ -57,6 +57,7 @@ LEVELS = {
     'critical': logging.CRITICAL
 }
 
+CLASS_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 class TinaApp(object):
     """
@@ -78,7 +79,7 @@ class TinaApp(object):
 
     def __init__(
             self,
-            homedir='.',
+            homedir=CLASS_ROOT,
             configFile='config.yaml',
             loc=None,
             index=None,
@@ -156,7 +157,8 @@ class TinaApp(object):
 
     def set_storage( self, dataset_id, **options ):
         """
-        connection to the dataset's DB
+        unique DB connection handler
+        one separate database per dataset=corpora
         always check self.storage is not None before using it
         """
         if self.last_dataset_id is not None and self.last_dataset_id == dataset_id:
@@ -208,7 +210,7 @@ class TinaApp(object):
         extract = extractor.Extractor( self.storage, self.config['datasets'], corporaObj, index )
         outpath = extract.extract_file( path, format, outpath, minoccs )
         if outpath is not False:
-            return outpah
+            return outpath
         else: return self.STATUS_ERROR
 
     def import_file(self,

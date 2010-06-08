@@ -34,11 +34,13 @@ class Extractor():
         # instanciate the tagger, takes times on learning
         self.tagger = tagger.TreeBankPosTagger(training_corpus_size=self.config['training_tagger_size'])
 
-    def _openFile(self, path, format='tinacsv' ):
+    def _openFile(self, path, format ):
         """loads the source file"""
         dsn = format+"://"+path
-        fileReader = Reader( dsn, **self.config[format] )
-        return fileReader
+        if format in self.config:
+            return Reader( dsn, **self.config[format] )
+        else:
+            return Reader( dsn )
 
     def _indexDocument( self, documentobj, overwrite ):
         """eventually index the document's text"""
@@ -49,19 +51,16 @@ class Extractor():
 
 
     def _walkFile( self, path, format ):
-        """Main parsing source file method"""
-        # starts parsing
+        """Main parsing method"""
         self.reader = self._openFile( path, format )
         fileGenerator = self.reader.parseFile()
         count=0
         try:
             while 1:
-                document, corpus = fileGenerator.next()
-                _logger.debug( "Extracting document %s"%document['id'] )
+                yield fileGenerator.next()
                 count += 1
-                yield document, corpus
         except StopIteration:
-            _logger.debug("Finished walking %d documents"%count)
+            _logger.debug("Finished reading %d documents"%count)
             return
 
     def extract_file(self, path, format, extract_path, minoccs=1):
@@ -96,13 +95,15 @@ class Extractor():
                     newwl.addEdge( 'NGram', ngid, 1 )
                     # increments per corpus total occs
                     ng.addEdge( 'Corpus', corpusNum, 1 )
-
                     #newwl.addEdge( 'Normalized', ngid, newwl['edges']['NGram'][ngid]**len(ng['content']) )
-                    if ng['id'] not in ngrams:
-                        ngrams[ng['id']] = ng
-                    else:
-                        ngrams[ng['id']]['status'] = ng['status']
+                    #if ng['id'] not in ngrams:
+                    #    ngrams[ng['id']] = ng
+                    #else:
+                    #    ngrams[ng['id']]['status'] = ng['status']
+                    self.storage.insertNGram(ng)
                 doccount += 1
+                if doccount % 10000 == 0:
+                    _logger.debug("%d documents parsed"%doccount)
         except StopIteration:
             _logger.debug("Total documents extracted = %d"%doccount)
             csvfile = Writer("whitelist://"+extract_path)
@@ -118,6 +119,7 @@ class Extractor():
         # opens and starts walking a file
         fileGenerator = self._walkFile( path, format )
         # 1st part = ngram extraction
+        doccount = 0
         try:
             while 1:
                 # document parsing, doc-corpus edge is written
@@ -149,19 +151,25 @@ class Extractor():
                     self.config['ngramMax'], \
                     overwrite \
                 )
-
+                doccount += 1
+                if doccount % 10000 == 0:
+                    _logger.debug("%d documents parsed"%doccount)
+                # inserts/updates corpus and corpora
+                self.storage.updateCorpora( self.corpora, overwrite )
+                for corpusObj in self.reader.corpusDict.values():
+                    self.storage.updateCorpus( corpusObj, overwrite )
         # Second part of file parsing = document graph updating
         except StopIteration:
             # commit changes to indexer
             if self.index is not None:
                 self.writer.commit()
-            # bottle-neck here on big big corpus
+            # WARNING bottle-neck here on big big corpus
             # inserts/updates corpus and corpora
-            self.storage.updateCorpora( self.corpora, overwrite )
-            for corpusObj in self.reader.corpusDict.values():
-                self.storage.updateCorpus( corpusObj, overwrite )
-            self.storage.flushNGramQueue()
-            self.storage.ngramindex = []
+            #self.storage.updateCorpora( self.corpora, overwrite )
+            #for corpusObj in self.reader.corpusDict.values():
+             #   self.storage.updateCorpus( corpusObj, overwrite )
+            #self.storage.flushNGramQueue()
+            #self.storage.ngramindex = []
             self.storage.commitAll()
             return True
         except Exception:
