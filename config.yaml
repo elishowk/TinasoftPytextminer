@@ -33,7 +33,7 @@ datasets:
         locale: 'en_US.UTF-8'
     # extraction params
     ngramMin: 1
-    ngramMax: 5
+    ngramMax: 4
     stopwords: 'shared/stopwords/en.txt'
     userstopwords: 'tests/data/user_stopwords.csv'
     training_tagger_size: 1000

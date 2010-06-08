@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
-from tinasoft.data import Exporter, Importer
-from datetime import datetime
+from tinasoft.data import Handler
+from tinasoft.pytextminer import document, corpus
 import codecs
 
-from tinasoft.pytextminer import *
+import logging
+_logger = logging.getLogger('TinaAppLogger')
+
 
 class Record(dict):
     """A dictionary holding information from a Medline record.
@@ -152,7 +154,7 @@ class Importer(Handler):
     def parsePeriod(self, record):
         if 'DP' not in record:
             return None
-        return str(record['DP'][0:8])
+        return str(record['DP'][0:3])
 
 
     def parseFile(self):
@@ -220,6 +222,7 @@ class Importer(Handler):
             del model['TI']
             del model['AB']
         except KeyError, ke:
+            _logger.error( ke.str() )
             return None
         # document instance
         newdoc = document.Document(

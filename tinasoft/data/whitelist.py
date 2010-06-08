@@ -36,6 +36,10 @@ class WhitelistFile():
         ("occs", "total occs"),
         ("length", "length"),
         ("occsn", "total occs ^ length"),
+        ("maxperiodoccs", "max occs per period"),
+        ("maxperiod", "max occs period id"),
+        ("maxperiodoccsn", "max occs  ^ length per period"),
+        ("maxperiodn", "max occs ^ length period id"),
         ("doclist", "doc list"),
         ("corplist", "corp list"),
         ("dbid", "db ID")
@@ -82,14 +86,14 @@ class Exporter(basecsv.Exporter):
     filemodel = WhitelistFile()
 
 
-    def export_whitelist(self, storage, periods, new_whitelist_label, filters=None, compl_whitelist=None, ngramlimit=65000, minOccs=1):
+    def export_whitelist(self, storage, periods, new_whitelist_label, filters=None, compl_whitelist=None, minOccs=1):
         """creates and exports a whitelist within selected periods=corpus"""
         _logger.debug( "Exporting a whitelist" )
         newwl = whitelist.Whitelist( new_whitelist_label, None, new_whitelist_label )
-        ngrams = newwl.create( storage, periods, filters, compl_whitelist )
-        return self.write_whitelist(ngrams, newwl, ngramlimit, minOccs)
+        ngrams, periods = newwl.create( storage, periods, filters, compl_whitelist )
+        return self.write_whitelist(ngrams, newwl, periods, minOccs)
 
-    def write_whitelist(self, ngrams, newwl, ngramlimit=65000, minOccs=1):
+    def write_whitelist(self, ngrams, newwl, periods, minOccs=1):
         self.writeRow([x[1] for x in self.filemodel.columns])
         # basic monitoring counters
         ngramcount = totalexported = 0
@@ -106,27 +110,50 @@ class Exporter(basecsv.Exporter):
             if not occs >= minOccs:
                 continue
             totalexported += 1
-            occsn = newwl['edges']['Normalized'][ng['id']]
+            occsn = occs**len(ng['content'])
+
+            #newwl.addEdge( 'Normalized', ng['id'], occsn )
+
+            maxperiod = maxnormalizedperiod = 0
+            maxperiodid = maxnormalizedperiodid = None
+            for periodid in ng['edges']['Corpus'].iterkeys():
+                totalperiod = periods[periodid]['edges']['NGram'][ng['id']]
+                # updates both per period max occs
+                lastmax = totalperiod / len(periods[periodid]['edges']['Document'].keys())
+                if lastmax > maxperiod:
+                    maxperiod = lastmax
+                    maxperiodid = periodid
+
+                lastmax = (totalperiod**len(ng['content'])) / len(periods[periodid]['edges']['Document'].keys())
+                if lastmax > maxnormalizedperiod:
+                    maxnormalizedperiod = lastmax
+                    maxnormalizedperiodid = periodid
+            # writes edge's values
+            #newwl.addEdge( 'MaxCorpusNormalized', maxperiodid, maxnormalizedperiod )
+            #newwl.addEdge( 'MaxCorpus', maxnormalizedperiodid, maxperiod )
+
+
             #_logger.debug( "normalized = %d"%occsn )
             tag = " ".join ( tagger.TreeBankPosTagger.getTag( ng['postag'] ) )
             corp_list = " ".join([corpid for corpid in ng['edges']['Corpus'].keys() if corpid in periods])
             # prepares the row
             row = [ ng['status'], ng['label'], tag,
                     str(occs), str(len(ng['content'])), str(occsn), \
+                    str(maxperiod),str(periodid),str(maxnormalizedperiod),str(maxnormalizedperiodid),
                     " ".join(ng['edges']['Document'].keys()), \
                     " ".join(ng['edges']['Corpus'].keys()), \
                     ng['id']
                 ]
             self.writeRow(row)
             # notifies progression
-            if ngramcount % 500 == 0:
-                TinaApp.notify( None,
-                    'tinasoft_runExportCorpora_running_status',
-                    str(float( (ngramcount * 100) / ngramtotal ))
-                )
+            #if ngramcount % 500 == 0:
+            #    TinaApp.notify( None,
+            #        'tinasoft_runExportCorpora_running_status',
+            #        str(float( (ngramcount * 100) / ngramtotal ))
+            #    )
             # breaks if limit's exceeded
-            if ngramcount > ngramlimit:
-                break
+            #if ngramcount > ngramlimit:
+            #    break
         _logger.debug( "Total ngrams exported after filtering = %d" % totalexported )
         return self.filepath
 

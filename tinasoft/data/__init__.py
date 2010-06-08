@@ -14,7 +14,7 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-__all__ = ['basecsv','whitelist','tinacsv','tinabsddb','gexf','medline']
+__all__ = ['basecsv','whitelist','tinacsv','tinabsddb','gexf','medline','coocmatrix']
 
 # changing jsonpickle serializer
 #jsonpickle.load_backend('django.util.simplejson', 'dumps', 'loads', ValueError))

@@ -1,38 +1,20 @@
 # -*- coding: utf-8 -*-
 __author__="Elias Showk"
-#from tinasoft import TinaApp
-from tinasoft.pytextminer import tagger, stopwords, tokenizer, filtering, whitelist
+from tinasoft.pytextminer import corpus, tagger, stopwords, tokenizer, filtering, whitelist
 from tinasoft.data import Engine, Reader, Writer
 
-# configuration file parsing
-#import yaml
+import traceback
+
 
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
 
-class Counter():
-    """OBSOLETE, REPLACED BY Whitelist object
-    Utility object counting ngrams for different period"""
-    def __init__(self):
-        self.index={}
-
-    def add(self, docngrams, corpus):
-        if corpus not in self.index:
-            self.index[corpus]={}
-        for ngid, ng in docngrams.iteritems():
-            if ngid in self.index[corpus]:
-                self.index[corpus][ngid]['occs'] += 1
-            else:
-                self.index[corpus][ngid] = {}
-                self.index[corpus][ngid]['label'] = ng['label']
-                self.index[corpus][ngid]['postag'] = tag = " ".join ( tagger.TreeBankPosTagger.getTag( ng['postag'] ) )
-                self.index[corpus][ngid]['occs'] = 1
 
 class Extractor():
     """A source file importer = data set = corpora"""
     def __init__( self, storage, config, corpora, index=None ):
-
+        self.reader = None
         self.config=config
         # load Stopwords object
         self.stopwords = stopwords.StopWords( "file://%s"%self.config['stopwords'] )
@@ -61,9 +43,9 @@ class Extractor():
     def _indexDocument( self, documentobj, overwrite ):
         """eventually index the document's text"""
         if self.index is not None:
-            if self.index.write(document, self.writer, overwrite) is None:
-                _logger.debug("document content indexation skipped :" \
-                    + str(document['id']))
+            if self.index.write(documentobj, self.writer, overwrite) is None:
+                _logger.error("document content indexation failed :" \
+                    + str(documentobj['id']))
 
 
     def _walkFile( self, path, format ):
@@ -82,13 +64,14 @@ class Extractor():
             _logger.debug("Finished walking %d documents"%count)
             return
 
-    def extract_file(self, path, format, extract_path, ngramlimit=65000, minoccs=1):
+    def extract_file(self, path, format, extract_path, minoccs=1):
         # TODO : replace Counter by Whitelist object
         # starts the parsing
         fileGenerator = self._walkFile( path, format )
         newwl = whitelist.Whitelist(self.corpora['id'], None, self.corpora['id'])
         ngrams = {}
-        doccount=0
+        periods = {}
+        doccount = 0
         try:
             while 1:
                 document, corpusNum = fileGenerator.next()
@@ -99,39 +82,35 @@ class Extractor():
                     self.config['ngramMin'], \
                     self.config['ngramMax'], \
                     self.filters, \
-                    self.tagger
+                    self.tagger \
                 )
+                # increments number of docs per period
+                if  corpusNum not in periods:
+                    periods[corpusNum] = corpus.Corpus(corpusNum)
+                periods[corpusNum].addEdge('Document',document['id'], 1)
+                # increments per period total occurrences
+                # newwl.addEdge( 'Corpus', corpusNum, 1 )
                 for ngid, ng in docngrams.iteritems():
                     ng['status'] = ""
+                    # increments total occurences within the dataset
                     newwl.addEdge( 'NGram', ngid, 1 )
-                    newwl.addEdge( 'Normalized', ngid, newwl['edges']['NGram'][ngid]**len(ng['content']) )
-                    newwl.addEdge( 'Corpus', corpusNum, 1 )
-                    # add ngram to cache or update the status
+                    # increments per corpus total occs
+                    ng.addEdge( 'Corpus', corpusNum, 1 )
+
+                    #newwl.addEdge( 'Normalized', ngid, newwl['edges']['NGram'][ngid]**len(ng['content']) )
                     if ng['id'] not in ngrams:
                         ngrams[ng['id']] = ng
                     else:
                         ngrams[ng['id']]['status'] = ng['status']
                 doccount += 1
-
-                #if count >= ngramlimit:
-                    #_logger.debug("Writing partial whitelists to %s (postfix %d)"%(extract_path,count))
-                    #csvfile = Writer("whitelist://"+extract_path+"."+str(count))
-                    #csvfile.write_whitelist(ngrams, newwl)
-                    #newwl = whitelist.Whitelist(self.corpora, None, self.corpora)
-                    #ngrams = {}
-                    #count = 0
-                    #for ng in ngrams.itervalues():
-                    #    path = extract_path+".%d-%s"%(count,period)
-                    #    csvfile = Writer("whitelist://"+path)
-                    #    csvfile.writeRow([x[1] for x in csvfile.filemodel.columns])
-                    #    csvfile.export_extract(corporaCounter.index, period)
-                    #    del corporaCounter.index[period]
         except StopIteration:
-            _logger.debug("End of %d documents' extractiom"%doccount)
+            _logger.debug("Total documents extracted = %d"%doccount)
             csvfile = Writer("whitelist://"+extract_path)
-            return csvfile.write_whitelist(ngrams, newwl, ngramlimit, minoccs)
-        except Exception, e:
-            _logger.error(e)
+            for corpobj in periods.itervalues():
+                _logger.debug( "period %s has got %d documents"%(corpobj['id'], len(corpobj['edges']['Document'].keys())) )
+            return csvfile.write_whitelist(ngrams, newwl, periods, minoccs)
+        except Exception:
+            _logger.error(traceback.format_exc())
             return False
 
     def import_file(self, path, format, overwrite=False):
@@ -185,6 +164,9 @@ class Extractor():
             self.storage.ngramindex = []
             self.storage.commitAll()
             return True
+        except Exception:
+            _logger.error( traceback.format_exc() )
+            return False
 
     def insertNGrams( self, document, corpusNum, ngramMin, ngramMax, overwrite ):
         """

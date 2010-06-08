@@ -36,17 +36,14 @@ class Whitelist(PyTextMiner):
 
     def __init__(self, description, id, label, edges=None, **metas):
         if edges is None:
-            edges = { 'NGram' : {}, 'StopNGram': {}, 'Normalized': {}, 'Corpus': {} }
+            edges = { 'NGram' : {}, 'StopNGram': {}, 'Normalized': {}, 'Corpus': {}, 'MaxCorpus': {}, 'MaxCorpusNormalized': {} }
         PyTextMiner.__init__(self, description, id, label, edges, **metas)
 
     def addEdge(self, type, key, value):
-        if type == 'Normalized':
-            self['edges']['Normalized'][key] = value
+        if type in ['Normalized','MaxCorpus','MaxCorpusNormalized']:
+            self['edges'][type][key] = value
             return
-        if type == 'Corpus':
-            return self._addUniqueEdge( type, key, value )
-        else:
-            return self._addEdge( type, key, value )
+        return self._addEdge( type, key, value )
 
     def create(self, storage, periods, filters=None, wlinstance=None):
         """Whitelist creator/updater utility"""
@@ -55,7 +52,13 @@ class Whitelist(PyTextMiner):
         #if wlinstance is not None:
             #self['edges'] = wlinstance['edges']
         ngrams = {}
+        periods = {}
         for corpusid in periods:
+            # increments number of docs per period
+            if corpusid in periods:
+                periods[corpusid] += 1
+            else:
+                periods[corpusid] = 1
             # gets a corpus from the storage or continue
             corpusobj = storage.loadCorpus(corpusid)
             if corpusobj is None:
@@ -86,14 +89,14 @@ class Whitelist(PyTextMiner):
                 # updates whitelist edges
                 if ng['status'] == self.refuse:
                     self.addEdge('StopNGram', ngid, occ)
-                    self.addEdge( 'Normalized', ngid, self['edges']['StopNGram'][ngid]**len(ng['content']) )
+                    #self.addEdge( 'Normalized', ngid, self['edges']['StopNGram'][ngid]**len(ng['content']) )
                 else:
                     self.addEdge( 'NGram', ngid, occ )
-                    self.addEdge( 'Normalized', ngid, self['edges']['NGram'][ngid]**len(ng['content']) )
+                    #self.addEdge( 'Normalized', ngid, self['edges']['NGram'][ngid]**len(ng['content']) )
                 self.addEdge( 'Corpus', corpusid, 1 )
                 # add ngram to cache or update the status
                 if ng['id'] not in ngrams:
                     ngrams[ng['id']] = ng
                 else:
                     ngrams[ng['id']]['status'] = ng['status']
-        return ngrams
+        return ngrams, periods

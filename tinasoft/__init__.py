@@ -78,6 +78,7 @@ class TinaApp(object):
 
     def __init__(
             self,
+            homedir='.',
             configFile='config.yaml',
             loc=None,
             index=None,
@@ -89,7 +90,7 @@ class TinaApp(object):
         object.__init__(self)
         # import config yaml to self.config
         try:
-            self.config = yaml.safe_load( file( configFile, 'rU' ) )
+            self.config = yaml.safe_load( file( join(homedir,configFile), 'rU' ) )
         except yaml.YAMLError, exc:
             print exc
             return self.STATUS_ERROR
@@ -184,7 +185,6 @@ class TinaApp(object):
             index=False,
             format='tinacsv',
             overwrite=False,
-            ngramlimit=65000,
             minoccs=1
         ):
         """
@@ -206,7 +206,10 @@ class TinaApp(object):
             return self.STATUS_ERROR
         # instanciate extractor class
         extract = extractor.Extractor( self.storage, self.config['datasets'], corporaObj, index )
-        return extract.extract_file( path, format, outpath )
+        outpath = extract.extract_file( path, format, outpath, minoccs )
+        if outpath is not False:
+            return outpah
+        else: return self.STATUS_ERROR
 
     def import_file(self,
             path,
@@ -248,7 +251,6 @@ class TinaApp(object):
             outpath=None,
             whitelist=None,
             userstopwords=None,
-            ngramlimit=65000,
             minoccs=1,
             **kwargs
         ):
@@ -266,7 +268,6 @@ class TinaApp(object):
                 whitelistlabel,
                 userstopwords,
                 whitelist,
-                ngramlimit,
                 minoccs )
 
     @staticmethod
@@ -372,11 +373,13 @@ class TinaApp(object):
         path = join( self.user, dataset, filetype )
         now = "_".join(str(datetime.utcnow()).split(" "))
         filename = now + "_" + filename
+        #print path
+        #print filename
+        finalpath = join( path, filename )
         if not exists(path):
             makedirs(path)
-            return join( path, filename )
-        if exists(path,filename):
-            return join(path,filename)
+            return finalpath
+        return finalpath
 
 
     def walk_user_path(self, dataset, filetype):

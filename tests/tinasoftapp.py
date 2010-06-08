@@ -29,33 +29,33 @@ from tinasoft.data import Writer
 tinasoftSingleton = TinaApp()
 whitelistSingleton = tinasoftSingleton.import_whitelist(
     #'/home/elishowk/TINA/Datas/100226-pubmed_whitelist.csv'
-    'tests/data/pubmed_whitelist_export.csv', 'test whitelist'
+    'tests/data/pubmed_whitelist.csv', 'test whitelist'
 )
+stopwordsSingleton = [stopwords.StopWordFilter( "file://%s" % tinasoftSingleton.config['datasets']['userstopwords'] )]
 
 class TinaAppTestCase(unittest.TestCase):
     def setUp(self):
         self.tinasoft = tinasoftSingleton
         self.datasetId = "test data set"
         self.periods = ['1','2']
-        #self.config = { 'datasets': {} }
-        #self.config['datasets']['userstopwords'] = 'user/100224-fetopen-user-stopwords.csv'
+        self.path = "tests/data/pubmed_tina_test.csv"
         self.whitelist = whitelistSingleton
-        self.userstopwordfilter=[stopwords.StopWordFilter( "file://%s" % self.tinasoft.config['datasets']['userstopwords'] )]
+        self.userstopwordfilter = stopwordsSingleton
 
     def testA_ExtractFile(self):
         """testA_ExtractFile : testing extract_file"""
-        return
-        self.tinasoft.extract_file(
-            "tests/data/pubmed_tina_test.csv",
-            self.datasetId,
+        #return
+        self.failIfEqual( self.tinasoft.extract_file(
+            "/home/elishowk/TINA/Datas/MedlineCancer/pubmed_cancer_tina_toydb.txt",
+            "MedlineCancer",
             index=False,
-            format="tinacsv",
+            format="medline",
             overwrite=False
-        )
+        ), TinaApp.STATUS_ERROR )
 
     def testB_ImportFile(self):
         """testB_ImportFile : testing import_file"""
-        #return
+        return
         self.tinasoft.import_file(
             "tests/data/pubmed_tina_test.csv",
             self.datasetId,
@@ -66,7 +66,7 @@ class TinaAppTestCase(unittest.TestCase):
 
     def testC_export_whitelist(self):
         """testC_export_whitelist : Exports a whitelist file"""
-        #return
+        return
         print self.tinasoft.export_whitelist( \
             self.periods, \
             self.datasetId, \

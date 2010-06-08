@@ -24,6 +24,7 @@ except: pass
 import os
 from glob import glob
 import tinasoft
+import unittests
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 DEPS = glob(os.path.dirname(os.path.abspath(__file__)) + "/deps/*")
@@ -61,5 +62,5 @@ setup (
     author = tinasoft.__author__,
     author_email = tinasoft.__author_email__,
     classifiers = tinasoft.__classifiers__,
-
+    #test_suite = "unittests.TinasoftUnitTests",
 )

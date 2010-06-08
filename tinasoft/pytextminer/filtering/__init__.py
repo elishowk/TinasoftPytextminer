@@ -156,7 +156,7 @@ class PosTagValid(PosTagFilter):
     """
     # TODO move rules into app config, and add language support
     rules = {
-        'standard': re.compile(r"^((VB.?,|JJ.?,|,){0,2}?(NN.?,|,))+?((IN.?,|CC.?,|,)((VB.?,|JJ.?,|,){0,2}?(NN.?,|,))+?)*?$")
+        'standard': re.compile(r"^((VB.?,|JJ.?,|\?,){0,2}?(NN.?,|\?,))+?((IN.?,|CC.?,|\?,)((VB.?,|JJ.?,|\?,){0,2}?(NN.?,|\?,))+?)*?$")
     }
 
     def standard(self, nggenerator):

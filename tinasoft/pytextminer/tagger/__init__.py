@@ -112,7 +112,7 @@ class TreeBankPosTagger():
         """returns an empty string when no tag was found"""
         tagtok = list(tagtok)
         if tagtok[1] is None:
-            tagtok[1] = ''
+            tagtok[1] = '?'
             #_logger.debug(tagtok)
         return tagtok
 
