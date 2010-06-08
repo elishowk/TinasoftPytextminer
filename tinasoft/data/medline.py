@@ -4,6 +4,7 @@ from tinasoft.pytextminer import document, corpus
 import codecs
 
 import logging
+
 _logger = logging.getLogger('TinaAppLogger')
 
 
@@ -170,7 +171,7 @@ class Importer(Handler):
                     "STAT", "DCOM", "PUBM", "DEP", "PL", "JID", "SB", "PMC",
                     "EDAT", "MHDA", "PST", "AB", "AD", "EA", "TI", "JT")
         handle = iter(self.file)
-        # First skip blank lines
+         # First skip blank lines
         for line in handle:
             line = line.rstrip()
             if line:
@@ -222,7 +223,7 @@ class Importer(Handler):
             del model['TI']
             del model['AB']
         except KeyError, ke:
-            _logger.error( ke.str() )
+            _logger.error( "%s key was not found, skipping document"%ke )
             return None
         # document instance
         newdoc = document.Document(
