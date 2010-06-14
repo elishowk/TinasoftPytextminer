@@ -202,7 +202,8 @@ class TinaApp(object):
         outpath = extract.extract_file( path, format, outpath, minoccs )
         if outpath is not False:
             return outpath
-        else: return self.STATUS_ERROR
+        else:
+            return self.STATUS_ERROR
 
     def import_file(self,
             path,
@@ -277,7 +278,7 @@ class TinaApp(object):
         if isinstance(path,str) or isinstance(path, unicode):
             path=[path]
         # new whitelist
-        new_wl = whitelist.Whitelist( whitelistlabel, None, whitelistlabel )
+        new_wl = whitelist.Whitelist( whitelistlabel, whitelistlabel )
         # whitelists aggregation
         for file in path:
             wlimport = Reader('whitelist://'+file, **kwargs)

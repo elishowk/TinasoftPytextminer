@@ -40,7 +40,8 @@ class PyTextMiner():
         else:
             self.id = id
         self.label = label
-        if not edges: edges = {}
+        if not edges:
+            edges = {}
         self.edges = edges
         self.loadOptions( metas )
 

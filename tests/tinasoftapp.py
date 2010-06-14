@@ -36,20 +36,21 @@ stopwordsSingleton = [stopwords.StopWordFilter( "file://%s" % tinasoftSingleton.
 class TinaAppTestCase(unittest.TestCase):
     def setUp(self):
         self.tinasoft = tinasoftSingleton
-        self.datasetId = "test data set"
+        self.datasetId = "test_data_set"
         self.periods = ['1','2']
-        #self.path = "tests/data/pubmed_tina_test.csv"
-        self.path = "/home/elishowk/TINA/Datas/MedlineCancer/pubmed_cancer_tina_toydb.txt"
-        self.format = "medline"
+        self.path = "tests/data/pubmed_tina_test.csv"
+        self.format = "tinacsv"
+        #self.path = "/home/elishowk/TINA/Datas/MedlineCancer/pubmed_cancer_tina_toydb.txt"
+        #self.format = "medline"
         self.whitelist = whitelistSingleton
         self.userstopwordfilter = stopwordsSingleton
 
     def testA_ExtractFile(self):
         """testA_ExtractFile : testing extract_file"""
-        return
+        #return
         self.failIfEqual( self.tinasoft.extract_file(
                 self.path,
-                "MedlineCancer",
+                self.datasetId,
                 format=self.format
             ), TinaApp.STATUS_ERROR
         )
@@ -60,7 +61,7 @@ class TinaAppTestCase(unittest.TestCase):
         #return
         self.failIfEqual( self.tinasoft.import_file(
                 path=self.path,
-                dataset="MedlineCancer",
+                dataset=self.datasetId,
                 format=self.format
             ), TinaApp.STATUS_ERROR
         )

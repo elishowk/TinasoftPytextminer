@@ -88,41 +88,36 @@ class Exporter(basecsv.Exporter):
 
     def export_whitelist(self, storage, periods, new_whitelist_label, filters=None, compl_whitelist=None, minOccs=1):
         """creates and exports a whitelist within selected periods=corpus"""
-        _logger.debug( "Exporting a whitelist" )
-        newwl = whitelist.Whitelist( new_whitelist_label, None, new_whitelist_label )
-        periods = newwl.create( storage, periods, filters, compl_whitelist )
-        return self.write_whitelist(storage, newwl, periods, minOccs)
+        newwl = whitelist.Whitelist( new_whitelist_label, new_whitelist_label )
+        ngrams, periods = newwl.load( storage, periods, filters, compl_whitelist )
+        return self.write_whitelist(ngrams, newwl, periods, minOccs)
 
-    def write_whitelist(self, storage, newwl, periods, minOccs=1):
+    def write_whitelist(self, ngrams, newwl, periods, minOccs=1):
         self.writeRow([x[1] for x in self.filemodel.columns])
         # basic monitoring counters
         ngramcount = totalexported = 0
         ngramtotal = len(newwl['edges']['NGram'].keys())
         _logger.debug( "Writing %d ngrams to whitelist at %s" % (ngramtotal, self.filepath) )
 
-        for ngid, occs in newwl['edges']['NGram'].iteritems():
+        for ngid, ng in ngrams.iteritems():
+            ngramcount += 1
+            if ng['status'] == self.filemodel.refuse:
+                occs = newwl['edges']['StopNGram'][ngid]
+            else:
+                occs = newwl['edges']['NGram'][ngid]
             if not occs >= minOccs:
                 continue
-            ng = storage.loadNGram(ngid)
-            if ng is None:
-                continue
-            ngramcount += 1
-            #if ng['status'] == self.filemodel.refuse:
-            #    occs = newwl['edges']['StopNGram'][ng['id']]
-            #else:
-            #    occs = newwl['edges']['NGram'][ng['id']]
             #_logger.debug( "total = %d"%occs )
-            ng['status'] = self.filemodel.accept
+
             totalexported += 1
             occsn = occs**len(ng['content'])
 
-            # TODO check scores from db object or process it and update NGram in db
-            # process and stores the to scores
+            # TODO update NGram in db after adding new scores
             #if 'MaxCorpus' not in ng['edges'] or 'MaxNormalizedCorpus' not in ng['edges']:
             maxperiod = maxnormalizedperiod = 0
             maxperiodid = maxnormalizedperiodid = None
             for periodid in ng['edges']['Corpus'].iterkeys():
-                totalperiod = periods[periodid]['edges']['NGram'][ng['id']]
+                totalperiod = periods[periodid]['edges']['NGram'][ngid]
                 # updates both per period max occs
                 lastmax = totalperiod / len(periods[periodid]['edges']['Document'].keys())
                 if lastmax > maxperiod:
@@ -151,7 +146,7 @@ class Exporter(basecsv.Exporter):
                     str(maxnormalizedperiodid),
                     " ".join(ng['edges']['Document'].keys()),
                     " ".join(ng['edges']['Corpus'].keys()),
-                    ng['id']
+                    ngid
             ]
             self.writeRow(row)
             # notifies progression

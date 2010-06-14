@@ -82,7 +82,7 @@ class Extractor():
         fileGenerator = self._walkFile( path, format )
         newwl = whitelist.Whitelist(self.corpora['id'], self.corpora['id'])
         doccount = 0
-        ngrams = period = {}
+        ngrams = periods = {}
         try:
             while 1:
                 document, corpusNum = fileGenerator.next()
@@ -97,8 +97,9 @@ class Extractor():
                 )
                 # increments number of docs per period
                 if  corpusNum not in periods:
+                    _logger.debug( "adding a period to dict" + corpusNum )
                     periods[corpusNum] = corpus.Corpus(corpusNum)
-                periods[corpusNum].addEdge('Document',document['id'], 1)
+                periods[corpusNum].addEdge('Document',str(document['id']), 1)
                 # increments per period total occurrences
                 # newwl.addEdge( 'Corpus', corpusNum, 1 )
                 for ngid, ng in docngrams.iteritems():
@@ -106,21 +107,22 @@ class Extractor():
                     # increments total occurences within the dataset
                     newwl.addEdge( 'NGram', ngid, 1 )
                     # increments per corpus total occs
+                    periods[corpusNum].addEdge( 'NGram', ngid, 1 )
                     ng.addEdge( 'Corpus', corpusNum, 1 )
-                    if ng['id'] not in ngrams:
-                        ngrams[ng['id']] = ng
+                    if ngid not in ngrams:
+                        ngrams[ngid] = ng
                     else:
-                        ngrams[ng['id']]['status'] = ng['status']
+                        ngrams[ngid]['status'] = ng['status']
                     #self.storage.insertNGram(ng)
                 doccount += 1
-                if doccount % 10000 == 0:
+                if doccount % 10 == 0:
                     _logger.debug("%d documents parsed"%doccount)
 
         except StopIteration:
             _logger.debug("Total documents extracted = %d"%doccount)
             csvfile = Writer("whitelist://"+extract_path)
-            for corpobj in periods.itervalues():
-                _logger.debug( "period %s has got %d documents"%(corpobj['id'], len(corpobj['edges']['Document'].keys())) )
+            #for corpobj in periods.itervalues():
+                #_logger.debug( "period %s has got %d documents"%(corpobj['id'], len(corpobj['edges']['Document'].keys())) )
             return csvfile.write_whitelist(ngrams, newwl, periods, minoccs)
         except Exception:
             _logger.error(traceback.format_exc())
@@ -131,8 +133,7 @@ class Extractor():
         # opens and starts walking a file
         fileGenerator = self._walkFile( path, format )
         # 1st part = ngram extraction
-        self.doccount = 0
-        self.totaltime = 0
+        self.doccount = self.totaltime = 0
         try:
             while 1:
                 # document parsing, doc-corpus edge is written

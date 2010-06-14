@@ -63,34 +63,34 @@ class Importer (Handler):
         ):
         #Handler.__init__(self)
         #_logger.debug("start of basecsv.Importer.__init__ " + filepath )
-        try:
-            self.filepath = filepath
-            self.loadOptions( kwargs )
-            # CSV format
-            self.delimiter = delimiter
-            self.quotechar = quotechar
-            # gets columns names
-            f1 = self.open( filepath )
-            tmp = csv.reader(
-                f1,
+        #try:
+        self.filepath = filepath
+        self.loadOptions( kwargs )
+        # CSV format
+        self.delimiter = delimiter
+        self.quotechar = quotechar
+        # gets columns names
+        f1 = self.open( filepath )
+        tmp = csv.reader(
+            f1,
+            delimiter=self.delimiter,
+            quotechar=self.quotechar
+        )
+        self.fieldNames = tmp.next()
+        del f1
+        # open the file in a Dict mode
+        f2 = self.open( filepath )
+        self.csv = csv.DictReader(
+                f2,
+                self.fieldNames,
                 delimiter=self.delimiter,
-                quotechar=self.quotechar
-            )
-            self.fieldNames = tmp.next()
-            del f1
-            # open the file in a Dict mode
-            f2 = self.open( filepath )
-            self.csv = csv.DictReader(
-                    f2,
-                    self.fieldNames,
-                    delimiter=self.delimiter,
-                    quotechar=self.quotechar)
-            self.csv.next()
-            del f2
-            self.docDict = {}
-            self.corpusDict = {}
-        except Exception, e:
-            _logger.error(e)
+                quotechar=self.quotechar)
+        self.csv.next()
+        del f2
+        self.docDict = {}
+        self.corpusDict = {}
+        #except Exception, e:
+        #    _logger.error(e)
 
     def open( self, filepath ):
         return codecs.open( filepath,'rU', errors='replace' )

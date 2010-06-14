@@ -19,6 +19,11 @@ __date__ ="$19 mai 2010$"
 import re
 
 def apply_filters(ngram, filters=None):
+    """
+    use it like this :
+    if filtering.apply_filters(ngram_class_instance, filterslist) is False:
+        block the ngram
+    """
     passFilter = True
     if filters is not None:
         for filt in filters:

@@ -42,24 +42,26 @@ class Whitelist(PyTextMiner):
 
     def addEdge(self, type, key, value):
         if type in ['Normalized','MaxCorpus','MaxCorpusNormalized']:
+            if type not in self['edges']:
+                self['edges'][type] = {}
             self['edges'][type][key] = value
-            return
+            return True
         return self._addEdge( type, key, value )
 
-    def create(self, storage, periods, filters=None, wlinstance=None):
+
+    def load(self, storage, periods, filters=None, wlinstance=None):
         """Whitelist creator/updater utility"""
-        periods = {}
+        period_objs = ngrams = {}
         for corpusid in periods:
-            # increments number of docs per period
-            if corpusid in periods:
-                periods[corpusid] += 1
-            else:
-                periods[corpusid] = 1
             # gets a corpus from the storage or continue
             corpusobj = storage.loadCorpus(corpusid)
             if corpusobj is None:
                 _logger.error( "corpus %s not found"%corpusid )
                 continue
+            # increments number of docs per period
+            if  corpusNum not in periods:
+                period_objs[corpusNum] = corpus.Corpus(corpusNum, edges=corpusobj['edges'])
+
             # TODO sorts ngrams by occs
             #sortedngrams = reversed(sorted(corpusobj['edges']['NGram'].items(), key=itemgetter(1)))
             # walks through ngrams in the corpus
@@ -67,8 +69,8 @@ class Whitelist(PyTextMiner):
             for ngid, occ in corpusobj['edges']['NGram'].iteritems():
                 # if NGram's unknown, then loads an checks ngram
                 ng = storage.loadNGram(ngid)
-                if ngid is None:
-                    _logger.error( "ngram not found %s in corpus %s"%(ngid,corpusid) )
+                if ng is None:
+                    _logger.error( "ngram not found %s in database %s"%(ngid,corpusid) )
                     continue
                 # default status
                 ng['status'] = ''
@@ -91,8 +93,8 @@ class Whitelist(PyTextMiner):
                     #self.addEdge( 'Normalized', ngid, self['edges']['NGram'][ngid]**len(ng['content']) )
                 self.addEdge( 'Corpus', corpusid, 1 )
                 # add ngram to cache or update the status
-                #if ng['id'] not in ngrams:
-                #    ngrams[ng['id']] = ng
-                #else:
-                #    ngrams[ng['id']]['status'] = ng['status']
-        return periods
+                if ng['id'] not in ngrams:
+                    ngrams[ng['id']] = ng
+                else:
+                    ngrams[ng['id']]['status'] = ng['status']
+        return ngrams, period_objs
