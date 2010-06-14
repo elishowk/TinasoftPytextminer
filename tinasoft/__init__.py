@@ -13,16 +13,7 @@
 #
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-__version__="1.0alpha6"
-__url__="http://tinasoft.eu"
-__longdescr__="A text-mining python module producing bottom-up thematic field recontruction"
-__license__="GNU General Public License"
-__keywords__="nlp,textmining,graph"
-__maintainer__="elishowk@nonutc.fr"
-__maintainer_email__="elishowk@nonutc.fr"
-__author__="elias showk"
-__author_email__="elishowk@nonutc.fr"
-__classifiers__="nlp textmining http"
+
 __all__ = ["pytextminer","data"]
 
 # python utility modules
@@ -270,7 +261,8 @@ class TinaApp(object):
                 whitelistlabel,
                 userstopwords,
                 whitelist,
-                minoccs )
+                minoccs
+        )
 
     @staticmethod
     def import_whitelist(

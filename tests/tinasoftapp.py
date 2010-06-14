@@ -38,38 +38,31 @@ class TinaAppTestCase(unittest.TestCase):
         self.tinasoft = tinasoftSingleton
         self.datasetId = "test data set"
         self.periods = ['1','2']
-        self.path = "tests/data/pubmed_tina_test.csv"
+        #self.path = "tests/data/pubmed_tina_test.csv"
+        self.path = "/home/elishowk/TINA/Datas/MedlineCancer/pubmed_cancer_tina_toydb.txt"
+        self.format = "medline"
         self.whitelist = whitelistSingleton
         self.userstopwordfilter = stopwordsSingleton
 
     def testA_ExtractFile(self):
         """testA_ExtractFile : testing extract_file"""
         return
-        #self.failIfEqual( self.tinasoft.extract_file(
-        #    "/home/elishowk/TINA/Datas/MedlineCancer/pubmed_cancer_tina_toydb.txt",
-        #    "MedlineCancer",
-        #    format="medline"
-        #), TinaApp.STATUS_ERROR )
-        print self.tinasoft.extract_file(
-            path="/home/elishowk/TINA/Datas/MedlineCancer/pubmed_cancer_tina_toydb.txt",
-            dataset="MedlineCancer",
-            format="medline"
+        self.failIfEqual( self.tinasoft.extract_file(
+                self.path,
+                "MedlineCancer",
+                format=self.format
+            ), TinaApp.STATUS_ERROR
         )
+
 
     def testB_ImportFile(self):
         """testB_ImportFile : testing import_file"""
         #return
-        #self.tinasoft.import_file(
-        #    "tests/data/pubmed_tina_test.csv",
-        #    self.datasetId,
-        #    index=False,
-        #    format="tinacsv",
-        #    overwrite=False
-        #)
-        print self.tinasoft.import_file(
-            path="/home/elishowk/TINA/Datas/MedlineCancer/pubmed_cancer_tina_toydb.txt",
-            dataset="MedlineCancer",
-            format="medline"
+        self.failIfEqual( self.tinasoft.import_file(
+                path=self.path,
+                dataset="MedlineCancer",
+                format=self.format
+            ), TinaApp.STATUS_ERROR
         )
 
     def testC_export_whitelist(self):
