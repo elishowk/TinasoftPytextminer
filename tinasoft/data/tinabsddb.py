@@ -1,4 +1,21 @@
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
+#  Copyright (C) 2010 elishowk
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+__author__="Elias Showk"
 from tinasoft.data import Handler
 
 from bsddb3 import db
@@ -7,6 +24,7 @@ import thread
 from threading import Thread
 
 import pickle
+from time import sleep, time
 
 import logging
 _logger = logging.getLogger('TinaAppLogger')
@@ -70,7 +88,9 @@ class Backend(Handler):
             'Corpus':'Corpus::',
             'Document':'Document::',
             'NGram':'NGram::',
-            'Cooc':'Cooc::'
+            'Cooc':'Cooc::',
+            'Whitelist':'Whitelist::',
+            'Cluster':'Cluster::',
         },
     }
 
@@ -80,9 +100,9 @@ class Backend(Handler):
     def _init_db_environment(self, home, create=True):
         """modified from http://www.rdflib.net/"""
         envsetflags  = db.DB_CDB_ALLDB
-        envflags = db.DB_INIT_MPOOL | db.DB_INIT_LOCK | db.DB_THREAD | db.DB_INIT_TXN | db.DB_RECOVER
+        envflags = db.DB_TXN_NOSYNC | db.DB_INIT_MPOOL | db.DB_INIT_LOCK | db.DB_THREAD | db.DB_INIT_TXN | db.DB_RECOVER
         db_env = db.DBEnv()
-        db_env.set_cachesize(0, 1024*1024*100)  # 100 Mbytes
+        db_env.set_cachesize(0, 1024*1024*10)  # 100 Mbytes
 
         # enable deadlock-detection
         db_env.set_lk_detect(db.DB_LOCK_MAXLOCKS)
@@ -109,7 +129,7 @@ class Backend(Handler):
         dbopenflags = db.DB_THREAD
         dbopenflags |= db.DB_AUTO_COMMIT
         dbmode = 0660
-        dbsetflags   = 0
+        dbsetflags = 0
         # number of locks, lockers and objects
         self.__locks = 3000
         # when closing is True, no new transactions are allowed
@@ -126,7 +146,9 @@ class Backend(Handler):
         self.db_env = db_env = self._init_db_environment(dir, create)
         self._db = db.DB(db_env)
         self._db.set_flags(dbsetflags)
+        #self._db.set_pagesize(65536)
         self._db.open(path, dbname, dbtype, dbopenflags|db.DB_CREATE, dbmode)
+
         self.__needs_sync = False
         # sync thread
         t = Thread(target=self.__sync_run)
@@ -145,7 +167,6 @@ class Backend(Handler):
         daemon thread responsible for periodically syncing to disk
         modified from http://www.rdflib.net/
         """
-        from time import sleep, time
         try:
             min_seconds, max_seconds = 10, 300
             while self.__open:
@@ -178,7 +199,7 @@ class Backend(Handler):
         # wait for transactions to finish
         self.closeAllTxn(commit_pending_transaction=True, commit_root=False)
         self.closeAllTxn(commit_pending_transaction=True, commit_root=True)
-        self.__needs_sync = True
+        #self.__needs_sync = True
 
     def closeAllTxn(self, commit_pending_transaction=True, commit_root=False):
         # this should close all existing transactions, not only by this thread,
@@ -187,7 +208,7 @@ class Backend(Handler):
             # this will block for a while, depending on how long it takes
             # before the active transactions are committed/aborted
             # nactive = Number of transactions currently active.
-            _logger.debug( self.db_env.txn_stat() )
+            #_logger.debug( self.db_env.txn_stat() )
             while self.db_env.txn_stat()['nactive'] > 0:
                 active_threads = self.__dbTxn.keys()
                 for t in active_threads:
@@ -387,6 +408,9 @@ class Backend(Handler):
                 self._overwrite( key, obj, txn=txn )
                 return
             _logger.warning( "NOT overwriting key " + key )
+        except db.DBLockDeadlockError, dead:
+            _logger.error( dead )
+            return
 
 
     def safewritemany( self, iter, target, overwrite, txn=None ):
