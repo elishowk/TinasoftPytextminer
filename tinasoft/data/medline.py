@@ -157,14 +157,7 @@ class Importer(Handler):
             return None
         return str(record['DP'][0:3])
 
-
-    def parseFile(self):
-        """Read Medline records one by one from the handle.
-
-        The handle is either is a Medline file, a file-like object, or a list
-        of lines describing one or more Medline records.
-
-        """
+    def get_record(self):
         # These keys point to string values
         textkeys = ("ID", "PMID", "SO", "RF", "NI", "JC", "TA", "IS", "CY", "TT",
                     "CA", "IP", "VI", "DP", "YR", "PG", "LID", "DA", "LR", "OWN",
@@ -200,16 +193,30 @@ class Importer(Handler):
             for key in textkeys:
                 if key in record:
                     record[key] = " ".join(record[key])
-            corpusid = self.parsePeriod(record)
-            if corpusid is not None:
-                if corpusid not in self.corpusDict:
-                    # creates a new corpus and adds it to the global dict
-                    self.corpusDict[ corpusid ] = corpus.Corpus( corpusid )
-                newdoc = self.parseDocument( record, corpusid )
-                if newdoc is not None:
-                    yield newdoc, corpusid
+            yield record
             record = Record()
 
+    def parseFile(self):
+        """Read Medline records one by one from the handle.
+
+        The handle is either is a Medline file, a file-like object, or a list
+        of lines describing one or more Medline records.
+
+        """
+        recordGenerator = self.get_record()
+        try:
+            while 1:
+                record = recordGenerator.next()
+                corpusid = self.parsePeriod(record)
+                if corpusid is not None:
+                    if corpusid not in self.corpusDict:
+                        # creates a new corpus and adds it to the global dict
+                        self.corpusDict[ corpusid ] = corpus.Corpus( corpusid )
+                    newdoc = self.parseDocument( record, corpusid )
+                    if newdoc is not None:
+                        yield newdoc, corpusid
+        except StopIteration:
+            return
 
 
     def parseDocument(self, model, corpusid):
