@@ -90,30 +90,35 @@ class Exporter(basecsv.Exporter):
         """creates and exports a whitelist within selected periods=corpus"""
         _logger.debug( "Exporting a whitelist" )
         newwl = whitelist.Whitelist( new_whitelist_label, None, new_whitelist_label )
-        ngrams, periods = newwl.create( storage, periods, filters, compl_whitelist )
-        return self.write_whitelist(ngrams, newwl, periods, minOccs)
+        periods = newwl.create( storage, periods, filters, compl_whitelist )
+        return self.write_whitelist(storage, newwl, periods, minOccs)
 
-    def write_whitelist(self, ngrams, newwl, periods, minOccs=1):
+    def write_whitelist(self, storage, newwl, periods, minOccs=1):
         self.writeRow([x[1] for x in self.filemodel.columns])
         # basic monitoring counters
         ngramcount = totalexported = 0
-        ngramtotal = len(ngrams.keys())
-        _logger.debug( "Writing %d ngrams to %s" % (ngramtotal, self.filepath) )
+        ngramtotal = len(newwl['edges']['NGram'].keys())
+        _logger.debug( "Writing %d ngrams to whitelist at %s" % (ngramtotal, self.filepath) )
 
-        for ng in ngrams.itervalues():
-            ngramcount += 1
-            if ng['status'] == self.filemodel.refuse:
-                occs = newwl['edges']['StopNGram'][ng['id']]
-            else:
-                occs = newwl['edges']['NGram'][ng['id']]
-            #_logger.debug( "total = %d"%occs )
+        for ngid, occs in newwl['edges']['NGram'].iteritems():
             if not occs >= minOccs:
                 continue
+            ng = storage.loadNGram(ngid)
+            if ng is None:
+                continue
+            ngramcount += 1
+            #if ng['status'] == self.filemodel.refuse:
+            #    occs = newwl['edges']['StopNGram'][ng['id']]
+            #else:
+            #    occs = newwl['edges']['NGram'][ng['id']]
+            #_logger.debug( "total = %d"%occs )
+            ng['status'] = self.filemodel.accept
             totalexported += 1
             occsn = occs**len(ng['content'])
 
-            #newwl.addEdge( 'Normalized', ng['id'], occsn )
-
+            # TODO check scores from db object or process it and update NGram in db
+            # process and stores the to scores
+            #if 'MaxCorpus' not in ng['edges'] or 'MaxNormalizedCorpus' not in ng['edges']:
             maxperiod = maxnormalizedperiod = 0
             maxperiodid = maxnormalizedperiodid = None
             for periodid in ng['edges']['Corpus'].iterkeys():
@@ -128,22 +133,26 @@ class Exporter(basecsv.Exporter):
                 if lastmax > maxnormalizedperiod:
                     maxnormalizedperiod = lastmax
                     maxnormalizedperiodid = periodid
-            # writes edge's values
-            #newwl.addEdge( 'MaxCorpusNormalized', maxperiodid, maxnormalizedperiod )
-            #newwl.addEdge( 'MaxCorpus', maxnormalizedperiodid, maxperiod )
+            ng.addEdge('MaxCorpus',maxperiodid,maxperiod)
+            ng.addEdge('MaxNormalizedCorpus',maxnormalizedperiodid,maxnormalizedperiod)
 
-
-            #_logger.debug( "normalized = %d"%occsn )
             tag = " ".join ( tagger.TreeBankPosTagger.getTag( ng['postag'] ) )
             corp_list = " ".join([corpid for corpid in ng['edges']['Corpus'].keys() if corpid in periods])
             # prepares the row
-            row = [ ng['status'], ng['label'], tag,
-                    str(occs), str(len(ng['content'])), str(occsn), \
-                    str(maxperiod),str(periodid),str(maxnormalizedperiod),str(maxnormalizedperiodid),
-                    " ".join(ng['edges']['Document'].keys()), \
-                    " ".join(ng['edges']['Corpus'].keys()), \
+            row = [ ng['status'],
+                    ng['label'],
+                    tag,
+                    str(occs),
+                    str(len(ng['content'])),
+                    str(occsn),
+                    str(maxperiod),
+                    str(periodid),
+                    str(maxnormalizedperiod),
+                    str(maxnormalizedperiodid),
+                    " ".join(ng['edges']['Document'].keys()),
+                    " ".join(ng['edges']['Corpus'].keys()),
                     ng['id']
-                ]
+            ]
             self.writeRow(row)
             # notifies progression
             #if ngramcount % 500 == 0:
@@ -151,9 +160,6 @@ class Exporter(basecsv.Exporter):
             #        'tinasoft_runExportCorpora_running_status',
             #        str(float( (ngramcount * 100) / ngramtotal ))
             #    )
-            # breaks if limit's exceeded
-            #if ngramcount > ngramlimit:
-            #    break
         _logger.debug( "Total ngrams exported after filtering = %d" % totalexported )
         return self.filepath
 
