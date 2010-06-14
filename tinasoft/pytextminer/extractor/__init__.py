@@ -1,15 +1,31 @@
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
+#  Copyright (C) 2010 elishowk
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 __author__="Elias Showk"
+
 from tinasoft.pytextminer import corpus, tagger, stopwords, tokenizer, filtering, whitelist
 from tinasoft.data import Engine, Reader, Writer
 
 import traceback
-
+import time
+#from mapreduce import ExtractionJob
 
 import logging
 _logger = logging.getLogger('TinaAppLogger')
-
-
 
 class Extractor():
     """A source file importer = data set = corpora"""
@@ -30,9 +46,16 @@ class Extractor():
         self.index = index
         if self.index is not None:
             self.writer = index.getWriter()
-
         # instanciate the tagger, takes times on learning
         self.tagger = tagger.TreeBankPosTagger(training_corpus_size=self.config['training_tagger_size'])
+        #self.__insert_threads = []
+
+    def _indexDocument( self, documentobj, overwrite ):
+        """eventually index the document's text"""
+        if self.index is not None:
+            if self.index.write(documentobj, self.writer, overwrite) is None:
+                _logger.error("document content indexation failed :" \
+                    + str(documentobj['id']))
 
     def _openFile(self, path, format ):
         """loads the source file"""
@@ -42,35 +65,24 @@ class Extractor():
         else:
             return Reader( dsn )
 
-    def _indexDocument( self, documentobj, overwrite ):
-        """eventually index the document's text"""
-        if self.index is not None:
-            if self.index.write(documentobj, self.writer, overwrite) is None:
-                _logger.error("document content indexation failed :" \
-                    + str(documentobj['id']))
-
 
     def _walkFile( self, path, format ):
         """Main parsing method"""
         self.reader = self._openFile( path, format )
         fileGenerator = self.reader.parseFile()
-        count=0
         try:
             while 1:
                 yield fileGenerator.next()
-                count += 1
         except StopIteration:
-            _logger.debug("Finished reading %d documents"%count)
             return
 
     def extract_file(self, path, format, extract_path, minoccs=1):
         # TODO : replace Counter by Whitelist object
         # starts the parsing
         fileGenerator = self._walkFile( path, format )
-        newwl = whitelist.Whitelist(self.corpora['id'], None, self.corpora['id'])
-        ngrams = {}
-        periods = {}
+        newwl = whitelist.Whitelist(self.corpora['id'], self.corpora['id'])
         doccount = 0
+        ngrams = period = {}
         try:
             while 1:
                 document, corpusNum = fileGenerator.next()
@@ -95,15 +107,15 @@ class Extractor():
                     newwl.addEdge( 'NGram', ngid, 1 )
                     # increments per corpus total occs
                     ng.addEdge( 'Corpus', corpusNum, 1 )
-                    #newwl.addEdge( 'Normalized', ngid, newwl['edges']['NGram'][ngid]**len(ng['content']) )
-                    #if ng['id'] not in ngrams:
-                    #    ngrams[ng['id']] = ng
-                    #else:
-                    #    ngrams[ng['id']]['status'] = ng['status']
-                    self.storage.insertNGram(ng)
+                    if ng['id'] not in ngrams:
+                        ngrams[ng['id']] = ng
+                    else:
+                        ngrams[ng['id']]['status'] = ng['status']
+                    #self.storage.insertNGram(ng)
                 doccount += 1
                 if doccount % 10000 == 0:
                     _logger.debug("%d documents parsed"%doccount)
+
         except StopIteration:
             _logger.debug("Total documents extracted = %d"%doccount)
             csvfile = Writer("whitelist://"+extract_path)
@@ -119,7 +131,8 @@ class Extractor():
         # opens and starts walking a file
         fileGenerator = self._walkFile( path, format )
         # 1st part = ngram extraction
-        doccount = 0
+        self.doccount = 0
+        self.totaltime = 0
         try:
             while 1:
                 # document parsing, doc-corpus edge is written
@@ -143,6 +156,19 @@ class Extractor():
                         # skip document
                         self.duplicate += [document]
                         continue
+                self.doccount += 1
+
+                #insertargs = (
+                #    document,
+                #    corpusNum,
+                #    self.config['ngramMin'],
+                #    self.config['ngramMax'],
+                #    overwrite
+                #)
+                #t = Thread(target=self.insertNGrams, args=insertargs)
+                #t.start()
+                #self.__insert_threads += [t]
+
                 # document's ngrams extraction
                 self.insertNGrams( \
                     document, \
@@ -151,10 +177,9 @@ class Extractor():
                     self.config['ngramMax'], \
                     overwrite \
                 )
-                doccount += 1
-                if doccount % 10000 == 0:
-                    _logger.debug("%d documents parsed"%doccount)
+                _logger.debug("%d documents parsed"%self.doccount)
                 # inserts/updates corpus and corpora
+                # TODO remove corpusDict from memory, use the DB !!
                 self.storage.updateCorpora( self.corpora, overwrite )
                 for corpusObj in self.reader.corpusDict.values():
                     self.storage.updateCorpus( corpusObj, overwrite )
@@ -163,14 +188,6 @@ class Extractor():
             # commit changes to indexer
             if self.index is not None:
                 self.writer.commit()
-            # WARNING bottle-neck here on big big corpus
-            # inserts/updates corpus and corpora
-            #self.storage.updateCorpora( self.corpora, overwrite )
-            #for corpusObj in self.reader.corpusDict.values():
-             #   self.storage.updateCorpus( corpusObj, overwrite )
-            #self.storage.flushNGramQueue()
-            #self.storage.ngramindex = []
-            self.storage.commitAll()
             return True
         except Exception:
             _logger.error( traceback.format_exc() )
@@ -192,6 +209,7 @@ class Extractor():
             self.tagger \
         )
         # insert into database
+        before=time.time()
         for ngid, ng in docngrams.iteritems():
             # increments document-ngram edge
             docOccs = ng['occs']
@@ -208,5 +226,9 @@ class Extractor():
         self.storage.insertDocument( document, overwrite=True )
         self.storage.flushNGramQueue()
         self.storage.commitAll()
+        inserttime = time.time() - before
+        self.totaltime += inserttime
+        meantime = self.totaltime / self.doccount
+        _logger.debug( "insert and commit ngrams and document = %s sec, mean = %s sec"%(str(inserttime),str(meantime)) )
 
 
