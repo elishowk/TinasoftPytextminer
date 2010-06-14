@@ -34,10 +34,11 @@ class Whitelist(PyTextMiner):
     refuse = 's'
     accept = 'w'
 
-    def __init__(self, description, id, label, edges=None, **metas):
+    def __init__(self, id, label, edges=None, **metas):
+        emptycontent = {}
         if edges is None:
             edges = { 'NGram' : {}, 'StopNGram': {}, 'Normalized': {}, 'Corpus': {}, 'MaxCorpus': {}, 'MaxCorpusNormalized': {} }
-        PyTextMiner.__init__(self, description, id, label, edges, **metas)
+        PyTextMiner.__init__(self, emptycontent, id, label, edges, **metas)
 
     def addEdge(self, type, key, value):
         if type in ['Normalized','MaxCorpus','MaxCorpusNormalized']:
@@ -47,11 +48,6 @@ class Whitelist(PyTextMiner):
 
     def create(self, storage, periods, filters=None, wlinstance=None):
         """Whitelist creator/updater utility"""
-        # initialize ngram cache
-        #_logger.debug( wlinstance )
-        #if wlinstance is not None:
-            #self['edges'] = wlinstance['edges']
-        ngrams = {}
         periods = {}
         for corpusid in periods:
             # increments number of docs per period
@@ -95,8 +91,8 @@ class Whitelist(PyTextMiner):
                     #self.addEdge( 'Normalized', ngid, self['edges']['NGram'][ngid]**len(ng['content']) )
                 self.addEdge( 'Corpus', corpusid, 1 )
                 # add ngram to cache or update the status
-                if ng['id'] not in ngrams:
-                    ngrams[ng['id']] = ng
-                else:
-                    ngrams[ng['id']]['status'] = ng['status']
-        return ngrams, periods
+                #if ng['id'] not in ngrams:
+                #    ngrams[ng['id']] = ng
+                #else:
+                #    ngrams[ng['id']]['status'] = ng['status']
+        return periods
