@@ -87,6 +87,7 @@ class Extractor():
             while 1:
                 # gets the next document
                 document, corpusNum = fileGenerator.next()
+                corpusNum = str(corpusNum)
                 # extract and filter ngrams
                 docngrams = tokenizer.TreeBankWordTokenizer.extract(\
                     document,\
@@ -102,7 +103,6 @@ class Extractor():
                     newwl['corpus'][corpusNum] = corpus.Corpus(corpusNum)
                 newwl['corpus'][corpusNum].addEdge('Document', str(document['id']), 1)
                 for ngid, ng in docngrams.iteritems():
-                    #ngid = str(ngid)
                     if ngid not in newwl['content']:
                         newwl['content'][ngid] = ng
                         newwl['content'][ngid]['status'] = ""

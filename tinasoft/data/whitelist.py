@@ -23,6 +23,7 @@ from tinasoft.data import basecsv
 from tinasoft.pytextminer import tokenizer, tagger, ngram, whitelist
 from tinasoft.pytextminer import filtering
 
+from decimal import *
 
 # get tinasoft's logger
 import logging
@@ -112,19 +113,19 @@ class Exporter(basecsv.Exporter):
             occsn = occs**len(ng['content'])
             # TODO update NGram in db after adding new scores
             #if 'MaxCorpus' not in ng['edges'] or 'MaxNormalizedCorpus' not in ng['edges']:
-            maxperiod = maxnormalizedperiod = lastmax = lastnormmax = 0
+            maxperiod = maxnormalizedperiod = lastmax = lastnormmax = Decimal(0)
             maxperiodid = maxnormalizedperiodid = None
             for periodid, totalperiod in ng['edges']['Corpus'].iteritems():
                 totaldocs =  len(newwl['corpus'][periodid]['edges']['Document'].keys())
                 if totaldocs == 0: continue
                 # updates both per period max occs
-                lastmax = totalperiod / totaldocs
+                lastmax = Decimal(totalperiod) / Decimal(totaldocs)
 
                 if lastmax >= maxperiod:
                     maxperiod = lastmax
                     maxperiodid = periodid
 
-                lastnormmax = (totalperiod**len(ng['content'])) / totaldocs
+                lastnormmax = Decimal(totalperiod**len(ng['content'])) / Decimal(totaldocs)
 
                 if lastnormmax >= maxnormalizedperiod:
                     maxnormalizedperiod = lastnormmax
