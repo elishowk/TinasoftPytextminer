@@ -82,7 +82,6 @@ class Extractor():
         fileGenerator = self._walkFile( path, format )
         newwl = whitelist.Whitelist(self.corpora['id'], self.corpora['id'], corpus={})
         doccount = 0
-        ngrams = periods = {}
         try:
             while 1:
                 # gets the next document

@@ -90,8 +90,8 @@ class Exporter(basecsv.Exporter):
     def export_whitelist(self, storage, periods, new_whitelist_label, filters=None, compl_whitelist=None, minOccs=1):
         """creates and exports a whitelist within selected periods=corpus"""
         newwl = whitelist.Whitelist( new_whitelist_label, new_whitelist_label )
-        ngrams, periods = newwl.load( storage, periods, filters, compl_whitelist )
-        return self.write_whitelist(ngrams, newwl, periods, minOccs)
+        newwl.load( storage, periods, filters, compl_whitelist )
+        return self.write_whitelist(newwl, minOccs)
 
     def write_whitelist(self, newwl, minOccs=1):
         self.writeRow([x[1] for x in self.filemodel.columns])
@@ -116,6 +116,7 @@ class Exporter(basecsv.Exporter):
             maxperiod = maxnormalizedperiod = lastmax = lastnormmax = Decimal(0)
             maxperiodid = maxnormalizedperiodid = None
             for periodid, totalperiod in ng['edges']['Corpus'].iteritems():
+                if periodid not in newwl['corpus']: continue
                 totaldocs =  len(newwl['corpus'][periodid]['edges']['Document'].keys())
                 if totaldocs == 0: continue
                 # updates both per period max occs

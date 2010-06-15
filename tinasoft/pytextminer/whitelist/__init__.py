@@ -39,6 +39,7 @@ class Whitelist(PyTextMiner):
             content = {}
         if edges is None:
             edges = { 'NGram' : {}, 'StopNGram': {}, 'MaxPeriod': {}, 'MaxNormalizedPeriod' : {} }
+        self.corpus = {}
         PyTextMiner.__init__(self, content, id, label, edges, **metas)
 
     def addEdge(self, type, key, value):
@@ -52,7 +53,6 @@ class Whitelist(PyTextMiner):
 
     def load(self, storage, periods, filters=None, wlinstance=None):
         """Whitelist creator/updater utility"""
-        period_objs = ngrams = {}
         for corpusid in periods:
             # gets a corpus from the storage or continue
             corpusobj = storage.loadCorpus(corpusid)
@@ -60,8 +60,8 @@ class Whitelist(PyTextMiner):
                 _logger.error( "corpus %s not found"%corpusid )
                 continue
             # increments number of docs per period
-            if  corpusNum not in periods:
-                period_objs[corpusNum] = corpus.Corpus(corpusNum, edges=corpusobj['edges'])
+            if  corpusid not in periods:
+                self['corpus'][corpusid] = corpus.Corpus(corpusid, edges=corpusobj['edges'])
 
             # TODO sorts ngrams by occs
             #sortedngrams = reversed(sorted(corpusobj['edges']['NGram'].items(), key=itemgetter(1)))
@@ -85,7 +85,7 @@ class Whitelist(PyTextMiner):
                 # if filtering is active
                 if filters is not None and filtering.apply_filters(ng, filters) is False:
                     ng['status'] = self.refuse
-                # updates whitelist edges
+                # updates whitelist's edges
                 if ng['status'] == self.refuse:
                     self.addEdge('StopNGram', ngid, occ)
                     #self.addEdge( 'Normalized', ngid, self['edges']['StopNGram'][ngid]**len(ng['content']) )
@@ -94,8 +94,8 @@ class Whitelist(PyTextMiner):
                     #self.addEdge( 'Normalized', ngid, self['edges']['NGram'][ngid]**len(ng['content']) )
                 self.addEdge( 'Corpus', corpusid, 1 )
                 # add ngram to cache or update the status
-                if ng['id'] not in ngrams:
-                    ngrams[ng['id']] = ng
+                if ngid not in  self['content']:
+                    self['content'][ngid] = ng
                 else:
-                    ngrams[ng['id']]['status'] = ng['status']
-        return ngrams, period_objs
+                    self['content'][ngid] = ng['status']
+        #return ngrams, period_objs
