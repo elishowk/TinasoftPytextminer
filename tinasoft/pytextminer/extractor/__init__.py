@@ -80,40 +80,36 @@ class Extractor():
         # TODO : replace Counter by Whitelist object
         # starts the parsing
         fileGenerator = self._walkFile( path, format )
-        newwl = whitelist.Whitelist(self.corpora['id'], self.corpora['id'])
+        newwl = whitelist.Whitelist(self.corpora['id'], self.corpora['id'], corpus={})
         doccount = 0
         ngrams = periods = {}
         try:
             while 1:
+                # gets the next document
                 document, corpusNum = fileGenerator.next()
                 # extract and filter ngrams
-                docngrams = tokenizer.TreeBankWordTokenizer.extract( \
+                docngrams = tokenizer.TreeBankWordTokenizer.extract(\
                     document,\
-                    self.stopwords, \
-                    self.config['ngramMin'], \
-                    self.config['ngramMax'], \
+                    self.stopwords,\
+                    self.config['ngramMin'],\
+                    self.config['ngramMax'],\
                     self.filters, \
-                    self.tagger \
+                    self.tagger\
                 )
                 # increments number of docs per period
-                if  corpusNum not in periods:
-                    _logger.debug( "adding a period to dict" + corpusNum )
-                    periods[corpusNum] = corpus.Corpus(corpusNum)
-                periods[corpusNum].addEdge('Document',str(document['id']), 1)
-                # increments per period total occurrences
-                # newwl.addEdge( 'Corpus', corpusNum, 1 )
+                if  corpusNum not in newwl['corpus']:
+                    _logger.debug( "adding a period to the whitelist : " + corpusNum )
+                    newwl['corpus'][corpusNum] = corpus.Corpus(corpusNum)
+                newwl['corpus'][corpusNum].addEdge('Document', str(document['id']), 1)
                 for ngid, ng in docngrams.iteritems():
-                    ng['status'] = ""
+                    #ngid = str(ngid)
+                    if ngid not in newwl['content']:
+                        newwl['content'][ngid] = ng
+                        newwl['content'][ngid]['status'] = ""
+                    # increments per period occs
+                    newwl['content'][ngid].addEdge( 'Corpus', corpusNum, 1 )
                     # increments total occurences within the dataset
                     newwl.addEdge( 'NGram', ngid, 1 )
-                    # increments per corpus total occs
-                    periods[corpusNum].addEdge( 'NGram', ngid, 1 )
-                    ng.addEdge( 'Corpus', corpusNum, 1 )
-                    if ngid not in ngrams:
-                        ngrams[ngid] = ng
-                    else:
-                        ngrams[ngid]['status'] = ng['status']
-                    #self.storage.insertNGram(ng)
                 doccount += 1
                 if doccount % 10 == 0:
                     _logger.debug("%d documents parsed"%doccount)
@@ -123,7 +119,7 @@ class Extractor():
             csvfile = Writer("whitelist://"+extract_path)
             #for corpobj in periods.itervalues():
                 #_logger.debug( "period %s has got %d documents"%(corpobj['id'], len(corpobj['edges']['Document'].keys())) )
-            return csvfile.write_whitelist(ngrams, newwl, periods, minoccs)
+            return csvfile.write_whitelist(newwl, minoccs)
         except Exception:
             _logger.error(traceback.format_exc())
             return False

@@ -257,12 +257,12 @@ class TinaApp(object):
             return self.STATUS_ERROR
         exporter = Writer('whitelist://'+outpath, **kwargs)
         return exporter.export_whitelist(
-                self.storage,
-                periods,
-                whitelistlabel,
-                userstopwords,
-                whitelist,
-                minoccs
+            self.storage,
+            periods,
+            whitelistlabel,
+            userstopwords,
+            whitelist,
+            minoccs
         )
 
     @staticmethod

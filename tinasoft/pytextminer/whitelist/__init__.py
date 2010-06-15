@@ -34,18 +34,19 @@ class Whitelist(PyTextMiner):
     refuse = 's'
     accept = 'w'
 
-    def __init__(self, id, label, edges=None, **metas):
-        emptycontent = {}
+    def __init__(self, id, label, content=None, edges=None, **metas):
+        if content is None:
+            content = {}
         if edges is None:
-            edges = { 'NGram' : {}, 'StopNGram': {}, 'Normalized': {}, 'Corpus': {}, 'MaxCorpus': {}, 'MaxCorpusNormalized': {} }
-        PyTextMiner.__init__(self, emptycontent, id, label, edges, **metas)
+            edges = { 'NGram' : {}, 'StopNGram': {}, 'MaxPeriod': {}, 'MaxNormalizedPeriod' : {} }
+        PyTextMiner.__init__(self, content, id, label, edges, **metas)
 
     def addEdge(self, type, key, value):
-        if type in ['Normalized','MaxCorpus','MaxCorpusNormalized']:
-            if type not in self['edges']:
-                self['edges'][type] = {}
-            self['edges'][type][key] = value
-            return True
+        #if type in ['Normalized','MaxCorpus','MaxCorpusNormalized']:
+        #    if type not in self['edges']:
+        #        self['edges'][type] = {}
+        #    self['edges'][type][key] = value
+        #    return True
         return self._addEdge( type, key, value )
 
 

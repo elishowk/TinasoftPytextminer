@@ -16,9 +16,8 @@ class Corpus(PyTextMiner):
             edges={ 'Document' : {}, 'NGram' : {} }
         if 'Document' not in edges:
             edges['Document'] = {}
-        #self.period_start = period_start
-        #self.period_end = period_end
-        # edges['Document'].keys() list could be used as an ID generator
+        if 'NGram' not in edges:
+            edges['NGram'] = {}
         PyTextMiner.__init__(self, edges['Document'].keys(), id, id, edges, **metas)
 
     def addEdge(self, type, key, value):

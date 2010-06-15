@@ -61,16 +61,16 @@ class Importer (Handler):
             quotechar='"',
             **kwargs
         ):
-        #Handler.__init__(self)
-        #_logger.debug("start of basecsv.Importer.__init__ " + filepath )
-        #try:
+
         self.filepath = filepath
         self.loadOptions( kwargs )
         # CSV format
         self.delimiter = delimiter
         self.quotechar = quotechar
         # gets columns names
-        f1 = self.open( filepath )
+        f1 = self.open(filepath)
+        if f1 is None:
+            return
         tmp = csv.reader(
             f1,
             delimiter=self.delimiter,
@@ -89,8 +89,12 @@ class Importer (Handler):
         del f2
         self.docDict = {}
         self.corpusDict = {}
-        #except Exception, e:
-        #    _logger.error(e)
+
 
     def open( self, filepath ):
-        return codecs.open( filepath,'rU', errors='replace' )
+        try:
+            return codecs.open( filepath,'rU', errors='replace' )
+        except IOError, ioerror:
+            _logger.error(ioerror)
+            return None
+

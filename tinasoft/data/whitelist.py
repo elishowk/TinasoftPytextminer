@@ -92,61 +92,63 @@ class Exporter(basecsv.Exporter):
         ngrams, periods = newwl.load( storage, periods, filters, compl_whitelist )
         return self.write_whitelist(ngrams, newwl, periods, minOccs)
 
-    def write_whitelist(self, ngrams, newwl, periods, minOccs=1):
+    def write_whitelist(self, newwl, minOccs=1):
         self.writeRow([x[1] for x in self.filemodel.columns])
         # basic monitoring counters
-        ngramcount = totalexported = 0
-        ngramtotal = len(newwl['edges']['NGram'].keys())
+        totalexported = 0
+        ngramtotal = len(newwl['content'].keys())
         _logger.debug( "Writing %d ngrams to whitelist at %s" % (ngramtotal, self.filepath) )
 
-        for ngid, ng in ngrams.iteritems():
-            ngramcount += 1
-            if ng['status'] == self.filemodel.refuse:
+        for ngid, ng in newwl['content'].iteritems():
+            ngid = str(ngid)
+            if ngid in newwl['edges']['StopNGram']:
                 occs = newwl['edges']['StopNGram'][ngid]
-            else:
+                ng['status'] = self.filemodel.refuse
+            elif ngid in newwl['edges']['NGram']:
                 occs = newwl['edges']['NGram'][ngid]
             if not occs >= minOccs:
                 continue
-            #_logger.debug( "total = %d"%occs )
-
             totalexported += 1
             occsn = occs**len(ng['content'])
-
             # TODO update NGram in db after adding new scores
             #if 'MaxCorpus' not in ng['edges'] or 'MaxNormalizedCorpus' not in ng['edges']:
-            maxperiod = maxnormalizedperiod = 0
+            maxperiod = maxnormalizedperiod = lastmax = lastnormmax = 0
             maxperiodid = maxnormalizedperiodid = None
-            for periodid in ng['edges']['Corpus'].iterkeys():
-                totalperiod = periods[periodid]['edges']['NGram'][ngid]
+            for periodid, totalperiod in ng['edges']['Corpus'].iteritems():
+                totaldocs =  len(newwl['corpus'][periodid]['edges']['Document'].keys())
+                if totaldocs == 0: continue
                 # updates both per period max occs
-                lastmax = totalperiod / len(periods[periodid]['edges']['Document'].keys())
-                if lastmax > maxperiod:
+                lastmax = totalperiod / totaldocs
+
+                if lastmax >= maxperiod:
                     maxperiod = lastmax
                     maxperiodid = periodid
 
-                lastmax = (totalperiod**len(ng['content'])) / len(periods[periodid]['edges']['Document'].keys())
-                if lastmax > maxnormalizedperiod:
-                    maxnormalizedperiod = lastmax
+                lastnormmax = (totalperiod**len(ng['content'])) / totaldocs
+
+                if lastnormmax >= maxnormalizedperiod:
+                    maxnormalizedperiod = lastnormmax
                     maxnormalizedperiodid = periodid
             ng.addEdge('MaxCorpus',maxperiodid,maxperiod)
             ng.addEdge('MaxNormalizedCorpus',maxnormalizedperiodid,maxnormalizedperiod)
 
-            tag = " ".join ( tagger.TreeBankPosTagger.getTag( ng['postag'] ) )
-            corp_list = " ".join([corpid for corpid in ng['edges']['Corpus'].keys() if corpid in periods])
+            tag = " ".join( tagger.TreeBankPosTagger.getTag( ng['postag'] ) )
+            corp_list = " ".join([corpid for corpid in ng['edges']['Corpus'].keys() if corpid in newwl['corpus']])
             # prepares the row
-            row = [ ng['status'],
-                    ng['label'],
-                    tag,
-                    str(occs),
-                    str(len(ng['content'])),
-                    str(occsn),
-                    str(maxperiod),
-                    str(periodid),
-                    str(maxnormalizedperiod),
-                    str(maxnormalizedperiodid),
-                    " ".join(ng['edges']['Document'].keys()),
-                    " ".join(ng['edges']['Corpus'].keys()),
-                    ngid
+            row = [
+                ng['status'],
+                ng['label'],
+                tag,
+                str(occs),
+                str(len(ng['content'])),
+                str(occsn),
+                str(maxperiod),
+                str(maxperiodid),
+                str(maxnormalizedperiod),
+                str(maxnormalizedperiodid),
+                " ".join(ng['edges']['Document'].keys()),
+                " ".join(ng['edges']['Corpus'].keys()),
+                ngid
             ]
             self.writeRow(row)
             # notifies progression
@@ -155,7 +157,7 @@ class Exporter(basecsv.Exporter):
             #        'tinasoft_runExportCorpora_running_status',
             #        str(float( (ngramcount * 100) / ngramtotal ))
             #    )
-        _logger.debug( "Total ngrams exported after filtering = %d" % totalexported )
+        _logger.debug( "%d ngrams exported after filtering" %totalexported )
         return self.filepath
 
 
