@@ -147,7 +147,7 @@ class TinaApp(object):
         """resumes the storage transactions when destroying this object"""
         del self.storage
 
-    def set_storage( self, dataset_id, **options ):
+    def set_storage( self, dataset_id, create=True, **options ):
         """
         unique DB connection handler
         one separate database per dataset=corpora
@@ -155,7 +155,7 @@ class TinaApp(object):
         """
         if self.last_dataset_id is not None and self.last_dataset_id == dataset_id:
             # connection already opened
-            return
+            return None
         if self.storage is not None:
             self.logger.debug("safely closing last storage connection")
             del self.storage
@@ -163,14 +163,18 @@ class TinaApp(object):
         try:
             storagedir = join( self.config['general']['basedirectory'], self.config['general']['dbenv'], dataset_id )
             if not exists( storagedir ):
+                if create == False:
+                    raise Exception("dataset %s does not exists, won't create it"%dataset_id)
                 makedirs( storagedir )
             # overwrite db home dir
             options['home'] = storagedir
             self.logger.debug("new connection to a storage for data set %s"%dataset_id)
             self.storage = Engine(STORAGE_DSN, **options)
+            return TinaApp.STATUS_OK
         except Exception, exception:
             self.logger.error( exception )
             self.storage = self.last_dataset_id = None
+            return None
 
     def extract_file(self,
             path,

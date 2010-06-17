@@ -179,23 +179,42 @@ class TinaAppGET():
         return self.tinaappinstance.walk_user_path(*args, **kwargs)
 
     def dataset(self, dataset):
+        """
+        return a dataset json object from the database
+        """
         if dataset is None:
             return self.tinaappinstance.walk_datasets()
-        self.tinaappinstance.set_storage(dataset)
-        return self.tinaappinstance.storage.loadCorpora(dataset)
+        if self.tinaappinstance.set_storage(dataset, create=False) is not None:
+            return self.tinaappinstance.storage.loadCorpora(dataset)
+        else:
+            return
 
     def corpus(self, dataset, id):
-        self.tinaappinstance.set_storage( dataset )
-        return self.tinaappinstance.storage.loadCorpus(id)
+        """
+        return a corpus json object from the database
+        """
+        if self.tinaappinstance.set_storage(dataset, create=False) is not None:
+            return self.tinaappinstance.storage.loadCorpus(id)
+        else:
+            return
 
     def document(self, dataset, id):
-        self.tinaappinstance.set_storage( dataset )
-        return self.tinaappinstance.storage.loadDocument(id)
+        """
+        return a document json object from the database
+        """
+        if self.tinaappinstance.set_storage(dataset, create=False) is not None:
+            return self.tinaappinstance.storage.loadDocument(id)
+        else:
+            return
 
     def ngram(self, dataset, id):
-        self.tinaappinstance.set_storage( dataset )
-        return self.tinaappinstance.storage.loadNGram(id)
-
+        """
+        return a ngram json object from the database
+        """
+        if self.tinaappinstance.set_storage(dataset, create=False) is not None:
+            return self.tinaappinstance.storage.loadNGram(id)
+        else:
+            return
 
 class TinaServerCallback():
     """
