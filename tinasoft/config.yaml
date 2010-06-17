@@ -4,7 +4,6 @@
 general:
     basedirectory: '.'
     locale: 'en_US.UTF-8'
-    storage: "tinabsddb://tinasoft.bsddb"
     index: 'index'
     dbenv: 'db'
     log: 'log'

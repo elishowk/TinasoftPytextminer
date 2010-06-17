@@ -68,7 +68,7 @@ class TinaServerResource(resource.Resource):
         for key in request.args.iterkeys():
             if key not in self.argument_types:
                 continue
-            if self.argument_types[key] == '':
+            if self.argument_types[key](request.args[key][0]) == '':
                 parsed_args[key] = None
                 continue
             if self.argument_types[key] != list:
@@ -179,7 +179,8 @@ class TinaAppGET():
         return self.tinaappinstance.walk_user_path(*args, **kwargs)
 
     def dataset(self, dataset):
-        # load
+        if dataset is None:
+            return self.tinaappinstance.walk_datasets()
         self.tinaappinstance.set_storage(dataset)
         return self.tinaappinstance.storage.loadCorpora(dataset)
 

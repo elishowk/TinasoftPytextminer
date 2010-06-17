@@ -49,6 +49,7 @@ LEVELS = {
 }
 
 CLASS_ROOT = os.path.dirname(os.path.abspath(__file__))
+STORAGE_DSN = "tinabsddb://tinasoft.bsddb"
 
 class TinaApp(object):
     """
@@ -166,7 +167,7 @@ class TinaApp(object):
             # overwrite db home dir
             options['home'] = storagedir
             self.logger.debug("new connection to a storage for data set %s"%dataset_id)
-            self.storage = Engine(self.config['general']['storage'], **options)
+            self.storage = Engine(STORAGE_DSN, **options)
         except Exception, exception:
             self.logger.error( exception )
             self.storage = self.last_dataset_id = None
@@ -186,7 +187,7 @@ class TinaApp(object):
         """
         # prepares extraction export path
         if outpath is None:
-            outpath = self.get_user_path(dataset, 'whitelist', 'extract_file.csv')
+            outpath = self.get_new_user_filepath(dataset, 'whitelist', 'extract_file.csv')
         self.logger.debug( "extract_file to %s"%outpath )
         # sends indexer to the file parser
         if index is True:
@@ -251,7 +252,7 @@ class TinaApp(object):
         """Public access to tinasoft.data.ngram.export_whitelist()"""
         # creating default outpath
         if outpath is None:
-            outpath = self.get_user_path(dataset, 'whitelist', "%s_export_whitelist.csv"%"-".join(periods))
+            outpath = self.get_new_user_filepath(dataset, 'whitelist', "%s_export_whitelist.csv"%"-".join(periods))
         self.set_storage( dataset )
         if self.storage is None:
             return self.STATUS_ERROR
@@ -330,7 +331,7 @@ class TinaApp(object):
         for a list of periods ans an ngrams whitelist
         """
         if outpath is None:
-            outpath = self.get_user_path("", 'cooccurrences', 'export_cooc.txt')
+            outpath = self.get_new_user_filepath("", 'cooccurrences', 'export_cooc.txt')
         self.logger.debug("export_cooc to %s"%outpath)
         exporter = Writer('coocmatrix://'+outpath)
         return exporter.export_cooc( self.storage, periods, whitelist )
@@ -347,7 +348,7 @@ class TinaApp(object):
         and a given ngram whitelist
         """
         if outpath is None:
-            outpath = self.get_user_path(dataset, 'gexf', 'export_graph.gexf')
+            outpath = self.get_new_user_filepath(dataset, 'gexf', 'export_graph.gexf')
         self.logger.debug("export_graph to %s"%outpath)
 
         GEXFWriter = Writer('gexf://', **self.config['datamining'])
@@ -363,7 +364,7 @@ class TinaApp(object):
             whitelist = whitelist,
         )
 
-    def get_user_path(self, dataset, filetype, filename):
+    def get_new_user_filepath(self, dataset, filetype, filename):
         """returns a filename from the user directory"""
         path = join( self.user, dataset, filetype )
         now = "_".join(str(datetime.utcnow()).split(" "))
@@ -387,17 +388,13 @@ class TinaApp(object):
             return []
         return [join( path, file ) for file in os.listdir( path )]
 
-
-    #def get_graph_path(self, dataset, periods, threshold=[0.0,1.0]):
+    def walk_datasets(self):
         """
-        OBSOLETE
-        Part of the Storage API
-        returns the relative path for a given graph in the graph dir tree
+        Part of the File API
+        returns the list of existing databases
         """
-    #    path = join( self.config['user'], dataset )
-    #    if not exists( path ):
-    #        makedirs( path )
-    #    filename = "-".join( periods ) + "_" \
-    #        + "-".join( map(str,threshold) ) \
-    #        + ".gexf"
-    #    return join( path, filename )
+        path = join( self.config['general']['basedirectory'], self.config['general']['dbenv'] )
+        validation_filename = STORAGE_DSN.split("://")[1]
+        if not exists( path ):
+            return []
+        return [file for file in os.listdir( path ) if exists(join(path, file, validation_filename))]
