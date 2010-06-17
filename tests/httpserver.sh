@@ -49,13 +49,13 @@ echo "GET requests"
 url="http://localhost:8888/dataset?$dataset"
 echo $url
 GET $url
-url="http://localhost:8888/corpus?$id$dataset"
+url="http://localhost:8888/corpus?$dataset&id=1"
 echo $url
 GET $url
-url="http://localhost:8888/document?$id$dataset"
+url="http://localhost:8888/document?$dataset&id=16202466"
 echo $url
 GET $url
-url="http://localhost:8888/ngram?$id$dataset"
+url="http://localhost:8888/ngram?$dataset&id=12672038114"
 echo $url
 GET $url
 url="http://localhost:8888/file?$path$dataset$index$format$overwrite"
