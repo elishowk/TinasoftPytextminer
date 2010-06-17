@@ -119,9 +119,9 @@ class TinaAppPOST():
         # import file
         return self.tinaappinstance.import_file(*args, **kwargs)
 
-    def whitelist(self, *args, **kwargs):
+    #def whitelist(self, *args, **kwargs):
         # import whitelist
-        return TinaApp.import_whitelist(*args, **kwargs)
+    #    return TinaApp.import_whitelist(*args, **kwargs)
 
     def cooccurrences(self, *args, **kwargs):
         # process_cooc
@@ -159,7 +159,7 @@ class TinaAppGET():
 
     def file(self, *args, **kwargs):
         """
-        runs an extractrion process and exports
+        runs an extraction process and exports
         a whitelist csv file for a given dataset and source file
         """
         return self.tinaappinstance.extract_file(*args, **kwargs)

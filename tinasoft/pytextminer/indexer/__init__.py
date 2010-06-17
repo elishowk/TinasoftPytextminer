@@ -7,6 +7,9 @@ from whoosh.fields import *
 from whoosh.filedb.filestore import FileStorage
 from whoosh.query import *
 
+import logging
+_logger = logging.getLogger('TinaAppLogger')
+
 
 class TinaSchema(Schema):
     def __init__(self):
@@ -33,13 +36,13 @@ class TinaIndex():
         try:
             self.index = self.storage.open_index()
         except EmptyIndexError, e:
-            print "No existing index at %s : "%self.indexdir, e
+            _logger.warning( "No existing index at %s : "%self.indexdir)
             self.schema = TinaSchema()
             if not os.path.exists(self.indexdir):
                 os.mkdir(self.indexdir)
             self.index = self.storage.create_index(self.schema)
         except LockError, le:
-            print "index LockError %s : "%self.indexdir, le
+            _logger.error("index LockError %s : "%self.indexdir)
             raise LockError(le)
 
     def getSearcher( self ):

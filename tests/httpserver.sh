@@ -62,12 +62,11 @@ echo $url
 curl http://localhost:8888/file -d dataset="test_data_set" -d path="tests/data/pubmed_tina_test.csv"
 url="http://localhost:8888/whitelist"
 echo $url
-curl http://localhost:8888/whitelist -d dataset="test_data_set" -d periods="1" -d whitelistlabel="testwhitelist"
+curl http://localhost:8888/whitelist -d path="tests/data/pubmed_whitelist.csv" -d whitelistlabel="testwhitelist"
 url="http://localhost:8888/cooccurrences"
 echo $url
-#POST $url
-url="http://localhost:8888/graph?$dataset&filetype=gexf"
+curl http://localhost:8888/cooccurrences -d dataset="test_data_set" -d whitelist="tests/data/pubmed_whitelist.csv" -d periods="1"
+url="http://localhost:8888/graph"
 echo $url
-#POST $url
-
+curl http://localhost:8888/graph -d dataset="test_data_set" -d periods="1"
 echo "end of tests"

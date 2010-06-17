@@ -68,7 +68,7 @@ class MapReduce():
         if self.corpus is None:
             raise Warning('Corpus not found')
         self.whitelist = whitelist
-        self.matrix = CoocMatrix( len( self.whitelist.keys() ) )
+        self.matrix = CoocMatrix( len( self.whitelist['edges']['NGram'].keys() ) )
         self.watcher = None
 
     def walkCorpus(self):
@@ -102,7 +102,7 @@ class MapReduce():
             obj = self.storage.loadNGram(ng)
             if obj is None:
                 continue
-            if obj['id'] not in self.whitelist:
+            if obj['id'] not in self.whitelist['edges']['NGram']:
                 continue
             if filtering.apply_filters( obj, self.filter ) is False:
                 continue
@@ -174,7 +174,7 @@ class MapReduce():
             generator = self.storage.selectCorpusCooc( self.corpusid )
             while 1:
                 id,row = generator.next()
-                if id not in self.whitelist:
+                if id not in self.whitelist['edges']['NGram']:
                     continue
                 self.reducer( [id, row] )
         except StopIteration, si:
