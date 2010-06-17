@@ -66,6 +66,8 @@ class TinaServerResource(resource.Resource):
         """
         parsed_args = {}
         for key in request.args.iterkeys():
+            if key not in self.argument_types:
+                continue
             if self.argument_types[key] == '':
                 parsed_args[key] = None
                 continue

@@ -16,32 +16,6 @@ whitelistlabel="&whitelistlabel=testwhitelist"
 userstopwords="&userstopwords=tests/data/user_stopwords.csv"
 id="&id=testdata"
 
-echo "GET requests"
-
-url="http://localhost:8888/dataset?$dataset"
-echo $url
-#GET $url
-url="http://localhost:8888/corpus?$id$dataset"
-echo $url
-#GET $url
-url="http://localhost:8888/document?$id$dataset"
-echo $url
-#GET $url
-url="http://localhost:8888/ngram?$id$dataset"
-echo $url
-#GET $url
-url="http://localhost:8888/file?$path$dataset$index$format$overwrite"
-echo $url
-#GET $url
-url="http://localhost:8888/whitelist?$periods$dataset$whitelistlabel"
-echo $url
-#GET $url
-url="http://localhost:8888/cooccurrences?$periods$whitelist"
-echo $url
-#GET $url
-url="http://localhost:8888/graph?$dataset&filetype=gexf"
-echo $url
-#GET $url
 
 echo "POST requests"
 
@@ -69,4 +43,32 @@ curl http://localhost:8888/cooccurrences -d dataset="test_data_set" -d whitelist
 url="http://localhost:8888/graph"
 echo $url
 curl http://localhost:8888/graph -d dataset="test_data_set" -d periods="1"
+
+echo "GET requests"
+
+url="http://localhost:8888/dataset?$dataset"
+echo $url
+GET $url
+url="http://localhost:8888/corpus?$id$dataset"
+echo $url
+GET $url
+url="http://localhost:8888/document?$id$dataset"
+echo $url
+GET $url
+url="http://localhost:8888/ngram?$id$dataset"
+echo $url
+GET $url
+url="http://localhost:8888/file?$path$dataset$index$format$overwrite"
+echo $url
+GET $url
+url="http://localhost:8888/whitelist?$periods$dataset$whitelistlabel"
+echo $url
+GET $url
+url="http://localhost:8888/cooccurrences?$periods$whitelist"
+echo $url
+GET $url
+url="http://localhost:8888/graph?$dataset&filetype=gexf"
+echo $url
+GET $url
+
 echo "end of tests"
