@@ -65,21 +65,32 @@ class TinaServerResource(resource.Resource):
         Prepares arguments and call the method
         """
         parsed_args = {}
+
+        # parameters parsing
         for key in request.args.iterkeys():
             if key not in self.argument_types:
                 continue
             if self.argument_types[key](request.args[key][0]) == '':
                 parsed_args[key] = None
                 continue
-            if self.argument_types[key] != list:
-                parsed_args[key] = self.argument_types[key](request.args[key][0])
-            else:
+            if self.argument_types[key] == bool:
+                if request.args[key][0] == 'True': parsed_args[key] = True
+                if request.args[key][0] == 'False': parsed_args[key] = False
+            elif self.argument_types[key] == list:
                 parsed_args[key] = self.argument_types[key](request.args[key])
+            else:
+                parsed_args[key] = self.argument_types[key](request.args[key][0])
+
         print self.method, parsed_args
+
+        # creates special variable objects
         if 'whitelist' in parsed_args and parsed_args['whitelist'] is not None:
             parsed_args['whitelist'] = TinaApp.import_whitelist(parsed_args['whitelist'],'')
         if 'userstopwords' in parsed_args and parsed_args['userstopwords'] is not None:
             parsed_args['userstopwords'] = TinaApp.import_userstopwords(parsed_args['userstopwords'])
+
+        request.setHeader("content-type", "application/json")
+        # sends the request through the callback
         try:
             return self.back.call( self.method(**parsed_args) )
         except Exception, e:
