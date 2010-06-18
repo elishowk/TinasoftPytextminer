@@ -37,7 +37,6 @@ from tinasoft.pytextminer import corpora
 from tinasoft.pytextminer import extractor
 from tinasoft.pytextminer import cooccurrences
 from tinasoft.pytextminer import whitelist
-from tinasoft.pytextminer import indexer
 from tinasoft.pytextminer import stopwords
 
 LEVELS = {
@@ -137,10 +136,11 @@ class TinaApp(object):
         self.storage = None
 
         # connect to text-indexer
-        if index is None:
-            self.index = indexer.TinaIndex(join( self.config['general']['basedirectory'], self.config['general']['index'] ))
-        else:
-            self.index = indexer.TinaIndex(index)
+        #if index is None:
+        #    self.index = indexer.TinaIndex(join( self.config['general']['basedirectory'], self.config['general']['index'] ))
+        #else:
+        #    self.index = indexer.TinaIndex(index)
+        self.index = None
         self.logger.debug("TinaApp started components = config, logger, locale loaded")
 
     def __del__(self):
@@ -203,7 +203,8 @@ class TinaApp(object):
         if self.storage is None:
             return self.STATUS_ERROR
         # instanciate extractor class
-        extract = extractor.Extractor( self.storage, self.config['datasets'], corporaObj, index )
+        stopwds = stopwords.StopWords( "file://%s"%join(self.config['general']['basedirectory'],self.config['datasets']['stopwords']) )
+        extract = extractor.Extractor( self.storage, self.config['datasets'], corporaObj, stopwds, index )
         outpath = extract.extract_file( path, format, outpath, minoccs )
         if outpath is not False:
             return outpath
@@ -232,8 +233,9 @@ class TinaApp(object):
         self.set_storage( dataset )
         if self.storage is None:
             return self.STATUS_ERROR
-        # instanciate extractor class
-        extract = extractor.Extractor( self.storage, self.config['datasets'], corporaObj, index )
+        # instanciate stopwords and extractor class
+        stopwds = stopwords.StopWords( "file://%s"%join(self.config['general']['basedirectory'],self.config['datasets']['stopwords']) )
+        extract = extractor.Extractor( self.storage, self.config['datasets'], corporaObj, stopwds, index )
         if extract.import_file( path,
             format,
             overwrite

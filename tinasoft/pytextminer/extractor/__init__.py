@@ -29,11 +29,11 @@ _logger = logging.getLogger('TinaAppLogger')
 
 class Extractor():
     """A source file importer = data set = corpora"""
-    def __init__( self, storage, config, corpora, index=None ):
+    def __init__( self, storage, config, corpora, stopwds, index=None ):
         self.reader = None
         self.config=config
         # load Stopwords object
-        self.stopwords = stopwords.StopWords( "file://%s"%self.config['stopwords'] )
+        self.stopwords = stopwds
         #filtertag = filtering.PosTagFilter()
         filterContent = filtering.Content()
         validTag = filtering.PosTagValid()
@@ -43,9 +43,9 @@ class Extractor():
         # params from the controler
         self.corpora = corpora
         self.storage = storage
-        self.index = index
-        if self.index is not None:
-            self.writer = index.getWriter()
+        self.index = None
+        #if self.index is not None:
+        #    self.writer = index.getWriter()
         # instanciate the tagger, takes times on learning
         self.tagger = tagger.TreeBankPosTagger(training_corpus_size=self.config['training_tagger_size'])
         #self.__insert_threads = []
