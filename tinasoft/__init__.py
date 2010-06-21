@@ -199,12 +199,13 @@ class TinaApp(object):
         else:
             index = None
         corporaObj = corpora.Corpora(dataset)
-        self.set_storage( dataset )
-        if self.storage is None:
-            return self.STATUS_ERROR
+        #self.set_storage( dataset )
+        #if self.storage is None:
+        #    return self.STATUS_ERROR
+        storage = None
         # instanciate extractor class
         stopwds = stopwords.StopWords( "file://%s"%join(self.config['general']['basedirectory'],self.config['datasets']['stopwords']) )
-        extract = extractor.Extractor( self.storage, self.config['datasets'], corporaObj, stopwds, index )
+        extract = extractor.Extractor( storage, self.config['datasets'], corporaObj, stopwds, index )
         outpath = extract.extract_file( path, format, outpath, minoccs )
         if outpath is not False:
             return outpath
@@ -372,12 +373,13 @@ class TinaApp(object):
 
     def get_new_user_filepath(self, dataset, filetype, filename):
         """returns a filename from the user directory"""
+        #print "args = ", dataset, filetype, filename
         path = join( self.user, dataset, filetype )
         now = "_".join(str(datetime.utcnow()).split(" "))
         filename = now + "_" + filename
         #print path
-        #print filename
         finalpath = join( path, filename )
+        #print finalpath
         if not exists(path):
             makedirs(path)
             return finalpath
@@ -399,8 +401,14 @@ class TinaApp(object):
         Part of the File API
         returns the list of existing databases
         """
+        dataset_list = []
         path = join( self.config['general']['basedirectory'], self.config['general']['dbenv'] )
         validation_filename = STORAGE_DSN.split("://")[1]
         if not exists( path ):
-            return []
-        return [file for file in os.listdir( path ) if exists(join(path, file, validation_filename))]
+            return dataset_list
+        for file in os.listdir( path ):
+            if exists(join(path, file, validation_filename)):
+                print file
+                dataset_list += [file]
+        return dataset_list
+        #return [file for file in os.listdir( path ) if exists(join(path, file, validation_filename))]

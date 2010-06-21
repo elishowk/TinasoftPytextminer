@@ -185,9 +185,9 @@ class TinaAppGET():
         """exports a cooc matrix for a given datasset, periods, and whitelist"""
         return self.tinaappinstance.export_cooc(*args, **kwargs)
 
-    def graph(self, *args, **kwargs):
+    def graph(self, dataset):
         """list the existing graphs for a given dataset"""
-        return self.tinaappinstance.walk_user_path(*args, **kwargs)
+        return self.tinaappinstance.walk_user_path(dataset, 'gexf')
 
     def dataset(self, dataset):
         """
