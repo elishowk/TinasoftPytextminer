@@ -110,6 +110,7 @@ class Exporter(basecsv.Exporter):
             if not occs >= minOccs:
                 continue
             totalexported += 1
+            #print occs, len(ng['content'])
             occsn = occs**len(ng['content'])
             # TODO update NGram in db after adding new scores
             #if 'MaxCorpus' not in ng['edges'] or 'MaxNormalizedCorpus' not in ng['edges']:

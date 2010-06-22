@@ -716,7 +716,7 @@ class Engine(Backend):
         self.flushCoocQueue()
         self.flushNGramQueue()
         self.ngramindex= []
-        _logger.debug("flushing ngram and cooc queues and indices")
+        _logger.debug("flushed ngram and cooc queues and indices")
 
     def _ngramQueue( self, id, ng ):
         """
@@ -732,7 +732,7 @@ class Engine(Backend):
     def updateNGram( self, ngObj, overwrite, docId, corpId ):
         """updates or overwrite a ngram and associations"""
         # overwrites while ngrams is not in self.ngramindex
-        # if ngram is already into queue, flushes it to permit incremental updates
+        # if ngram is already into queue, will flush it first to permit incremental updates
         if ngObj['id'] in self.ngramqueueindex:
             self.flushNGramQueue()
         # else updates NGram

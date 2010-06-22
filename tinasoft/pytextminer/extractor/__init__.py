@@ -98,7 +98,7 @@ class Extractor():
                 )
                 # increments number of docs per period
                 if  corpusNum not in newwl['corpus']:
-                    _logger.debug( "adding a period to the whitelist : " + corpusNum )
+                    #_logger.debug( "adding a period to the whitelist : " + corpusNum )
                     newwl['corpus'][corpusNum] = corpus.Corpus(corpusNum)
                 newwl['corpus'][corpusNum].addEdge('Document', str(document['id']), 1)
                 for ngid, ng in docngrams.iteritems():
@@ -173,7 +173,8 @@ class Extractor():
                     self.config['ngramMax'], \
                     overwrite \
                 )
-                _logger.debug("%d documents parsed"%self.doccount)
+                if self.doccount % 10 == 0:
+                    _logger.debug("%d documents parsed"%self.doccount)
                 # inserts/updates corpus and corpora
                 # TODO remove corpusDict from memory, use the DB !!
                 self.storage.updateCorpora( self.corpora, overwrite )
@@ -205,7 +206,7 @@ class Extractor():
             self.tagger \
         )
         # insert into database
-        before=time.time()
+        #before=time.time()
         for ngid, ng in docngrams.iteritems():
             # increments document-ngram edge
             docOccs = ng['occs']
@@ -222,9 +223,9 @@ class Extractor():
         self.storage.insertDocument( document, overwrite=True )
         self.storage.flushNGramQueue()
         self.storage.commitAll()
-        inserttime = time.time() - before
-        self.totaltime += inserttime
-        meantime = self.totaltime / self.doccount
-        _logger.debug( "insert and commit ngrams and document = %s sec, mean = %s sec"%(str(inserttime),str(meantime)) )
+        #inserttime = time.time() - before
+        #self.totaltime += inserttime
+        #meantime = self.totaltime / self.doccount
+        #_logger.debug( "insert and commit ngrams and document = %s sec, mean = %s sec"%(str(inserttime),str(meantime)) )
 
 

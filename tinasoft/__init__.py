@@ -259,7 +259,7 @@ class TinaApp(object):
         """Public access to tinasoft.data.ngram.export_whitelist()"""
         # creating default outpath
         if outpath is None:
-            outpath = self.get_new_user_filepath(dataset, 'whitelist', "%s_export_whitelist.csv"%"-".join(periods))
+            outpath = self.get_new_user_filepath(dataset, 'whitelist', "%s-export_whitelist.csv"%whitelistlabel)
         self.set_storage( dataset )
         if self.storage is None:
             return self.STATUS_ERROR
