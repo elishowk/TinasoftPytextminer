@@ -192,7 +192,7 @@ class TinaApp(object):
         """
         # prepares extraction export path
         if outpath is None:
-            outpath = self.get_new_user_filepath(dataset, 'whitelist', 'extract_file.csv')
+            outpath = self._user_filepath(dataset, 'whitelist', "%s-extract_dataset.csv"%dataset)
         self.logger.debug( "extract_file to %s"%outpath )
         # sends indexer to the file parser
         if index is True:
@@ -251,7 +251,7 @@ class TinaApp(object):
             dataset,
             whitelistlabel,
             outpath=None,
-            whitelist=None,
+            whitelistpath=None,
             userstopwords=None,
             minoccs=1,
             **kwargs
@@ -259,9 +259,11 @@ class TinaApp(object):
         """Public access to tinasoft.data.ngram.export_whitelist()"""
         # creating default outpath
         if outpath is None:
-            outpath = self.get_new_user_filepath(dataset, 'whitelist', "%s-export_whitelist.csv"%whitelistlabel)
+            outpath = self._user_filepath(dataset, 'whitelist', "%s-export_whitelist.csv"%whitelistlabel)
         if self.set_storage( dataset ) == self.STATUS_ERROR:
             return self.STATUS_ERROR
+        userstopwords = self.import_userstopwords(userstopwords)
+        whitelist = self.import_whitelist(whitelistpath, userstopwords)
         exporter = Writer('whitelist://'+outpath, **kwargs)
         return exporter.export_whitelist(
             self.storage,
@@ -272,53 +274,66 @@ class TinaApp(object):
             minoccs
         )
 
-    @staticmethod
+    #@staticmethod
     def import_whitelist(
-            path,
-            whitelistlabel,
+            self,
+            whitelistpath,
+            userstopwords=None,
             **kwargs
         ):
         """
         import one or a list of whitelits files
         returns a whitelist object to be used as input of other methods
         """
-        if isinstance(path,str) or isinstance(path, unicode):
-            path=[path]
+        if whitelistpath is None:
+            return None
+        #if isinstance(whitelistpath,str) or isinstance(whitelistpath, unicode):
+        #    whitelistpath=[whitelistpath]
         # new whitelist
-        new_wl = whitelist.Whitelist( whitelistlabel, whitelistlabel )
+        #new_wl = whitelist.Whitelist( whitelistlabel, whitelistlabel )
         # whitelists aggregation
-        for file in path:
-            wlimport = Reader('whitelist://'+file, **kwargs)
-            wlimport.whitelist = new_wl
+        whitelist_id = self._get_filepath_id(whitelistpath)
+        if whitelist_id is not None:
+            # whitelist_id is a file path
+            self.logger.debug("loading whitelist from %s (%s)"%(whitelistpath, whitelist_id))
+            wlimport = Reader('whitelist://'+whitelistpath, **kwargs)
+            wlimport.whitelist = whitelist.Whitelist( whitelist_id, whitelist_id )
             new_wl = wlimport.parse_file()
+        else:
+            # whitelist_id is a whitelist label
+            self.logger.debug("loading whitelist %s from storage"%whitelist_id)
+            newwl = whitelist.Whitelist( whitelist_id, whitelist_id )
+            newwl.load_from_storage(dataset, periods, userstopwords)
         # TODO stores the whitelist ?
         return new_wl
 
-    @staticmethod
+    #@staticmethod
     def import_userstopwords(
+            self,
             path=None
         ):
         if path is None:
-            path = self.tinasoft.config['datasets']['userstopwords']
+            path = self.config['datasets']['userstopwords']
         return [stopwords.StopWordFilter( "file://%s" % path )]
 
     def process_cooc(self,
             dataset,
             periods,
-            whitelist,
+            whitelistpath,
             userstopwords=None
         ):
         """
         Main function importing a whitelist and generating cooccurrences
         process cooccurrences for each period=corpus
         """
-        #self.logger.debug( "entering process_cooc with %d ngrams"%len(whitelist.keys()) )
         if self.set_storage( dataset ) == self.STATUS_ERROR:
             return self.STATUS_ERROR
+        userstopwords = self.import_userstopwords(userstopwords)
+        whitelist = self.import_whitelist(whitelistpath, userstopwords)
+        # for each period, processes cocc and stores them
         for id in periods:
             try:
-                cooc = cooccurrences.MapReduce(self.storage, whitelist, \
-                corpusid=id, filter=userstopwords )
+                cooc = cooccurrences.MapReduce(self.storage, whitelist, corpusid=id, filter=userstopwords )
             except Warning, warner:
                 self.logger.warning( warner )
                 continue
@@ -330,14 +345,15 @@ class TinaApp(object):
         return self.STATUS_OK
 
 
-    def export_cooc(self, periods, whitelist, outpath=None):
+    def export_cooc(self, periods, whitelistpath, outpath=None):
         """
         returns a text file outpath containing the db cooc
         for a list of periods ans an ngrams whitelist
         """
         if outpath is None:
-            outpath = self.get_new_user_filepath("", 'cooccurrences', 'export_cooc.txt')
+            outpath = self._user_filepath("", 'cooccurrences', "%s-export_cooc.txt"%whitelist['id'])
         self.logger.debug("export_cooc to %s"%outpath)
+        whitelist = self.import_whitelist(whitelistpath)
         exporter = Writer('coocmatrix://'+outpath)
         return exporter.export_cooc( self.storage, periods, whitelist )
 
@@ -345,7 +361,7 @@ class TinaApp(object):
             dataset,
             periods,
             outpath=None,
-            whitelist=None
+            whitelistpath=None
         ):
         """
         Produces the default GEXF graph file
@@ -353,9 +369,10 @@ class TinaApp(object):
         and a given ngram whitelist
         """
         if outpath is None:
-            outpath = self.get_new_user_filepath(dataset, 'gexf', 'export_graph.gexf')
+            outpath = self._user_filepath(dataset, 'gexf', "%s-graph.gexf"%"_".join(periods))
         self.logger.debug("export_graph to %s"%outpath)
 
+        whitelist = self.import_whitelist(whitelistpath)
         GEXFWriter = Writer('gexf://', **self.config['datamining'])
 
         if self.set_storage( dataset ) == self.STATUS_ERROR:
@@ -368,12 +385,13 @@ class TinaApp(object):
             whitelist = whitelist,
         )
 
-    def get_new_user_filepath(self, dataset, filetype, filename):
+    def _user_filepath(self, dataset, filetype, filename):
         """returns a filename from the user directory"""
         #print "args = ", dataset, filetype, filename
         path = join( self.user, dataset, filetype )
-        now = "_".join(str(datetime.utcnow()).split(" "))
-        filename = now + "_" + filename
+        now = "_".join(str(datetime.now()).split(" "))
+        # standar separator in filenames
+        filename = now + "-" + filename
         #print path
         finalpath = join( path, filename )
         #print finalpath
@@ -382,6 +400,18 @@ class TinaApp(object):
             return finalpath
         return finalpath
 
+    def _get_filepath_id(self, path):
+        if path is None:
+            return None
+        if not os.path.isfile( path ):
+            return None
+        (head, tail) = os.path.split(path)
+        if tail == "":
+            return None
+        filename_components = tail.split("-")
+        if not filename_components[1]:
+            return None
+        return filename_components[1]
 
     def walk_user_path(self, dataset, filetype):
         """

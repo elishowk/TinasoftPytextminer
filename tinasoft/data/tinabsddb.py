@@ -580,19 +580,19 @@ class Engine(Backend):
         self.insertMany( iter, 'NGram', overwrite )
 
     def insertCooc(self, obj, id, overwrite=False ):
-        self.insertCooc( obj, 'Cooc', id, overwrite )
+        self.insert( obj, 'Cooc', id, overwrite )
 
     def insertManyCooc( self, iter, overwrite=False ):
         self.insertMany( iter, 'Cooc', overwrite )
 
     def insertWhitelist(self, obj, id, overwrite=False ):
-        self.insertCooc( obj, 'Whitelist', id, overwrite )
+        self.insert( obj, 'Whitelist', id, overwrite )
 
     def insertManyWhitelist( self, iter, overwrite=False ):
         self.insertMany( iter, 'Whitelist', overwrite )
 
     def insertCluster(self, obj, id, overwrite=False ):
-        self.insertCooc( obj, 'Cluster', id, overwrite )
+        self.insert( obj, 'Cluster', id, overwrite )
 
     def insertManyCluster( self, iter, overwrite=False ):
         self.insertMany( iter, 'Cluster', overwrite )

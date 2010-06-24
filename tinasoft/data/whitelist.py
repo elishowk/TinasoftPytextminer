@@ -52,8 +52,9 @@ class WhitelistFile():
 
 class Importer(basecsv.Importer):
     """A class for csv imports of selected ngrams whitelists"""
-
+    storage = None
     filemodel = WhitelistFile()
+    whitelist = None
 
     def _add_whitelist(self, dbid, occs):
         """adds a whitelisted ngram"""
@@ -63,8 +64,19 @@ class Importer(basecsv.Importer):
         """adds a user defined stop-ngram"""
         self.whitelist.addEdge( 'StopNGram', dbid, occs )
 
+    def _add_ngram(self, dbid, label):
+        self.whitelist['content'][dbid] = ngram.NGram(label.split(" "), dbid, label)
+        try:
+            for corpid in row[self.filemodel.columns[11][1]].split(" "):
+                self.addEdge( 'Corpus', corpusid, 1 )
+                if corpid not in self.whitelist['corpus']:
+                    self.whitelist['corpus'][corpid] = corpus.Corpus(corpid)
+        except KeyError, keyexc:
+            _logger.error( "%s columns was not found, whitelist import failed"%keyexc )
+
     def parse_file(self):
         """Reads a whitelist file and returns the updated object"""
+        if self.whitelist is None: return TinaApp.STATUS_ERROR
         for row in self.csv:
             try:
                 status = row[self.filemodel.columns[0][1]]
@@ -77,6 +89,7 @@ class Importer(basecsv.Importer):
             dbid = PyTextMiner.getId(label)
             if status == self.filemodel.accept:
                 self._add_whitelist(dbid, occs)
+                self._add_ngram(dbid, label)
             elif status == self.filemodel.refuse:
                 self._add_stopword(dbid, occs)
         return self.whitelist
@@ -90,8 +103,11 @@ class Exporter(basecsv.Exporter):
     def export_whitelist(self, storage, periods, new_whitelist_label, filters=None, compl_whitelist=None, minOccs=1):
         """creates and exports a whitelist within selected periods=corpus"""
         newwl = whitelist.Whitelist( new_whitelist_label, new_whitelist_label )
-        newwl.load( storage, periods, filters, compl_whitelist )
-        return self.write_whitelist(newwl, minOccs)
+        newwl.load_from_storage( storage, periods, filters, compl_whitelist )
+        (export_path, newwl) = self.write_whitelist(newwl, minOccs)
+        newwl['content'] = newwl['corpus'] = {}
+        storage.insertWhitelist( newwl, newwl['id'], overwrite=True )
+        return export_path
 
     def write_whitelist(self, newwl, minOccs=1):
         self.writeRow([x[1] for x in self.filemodel.columns])
@@ -102,13 +118,21 @@ class Exporter(basecsv.Exporter):
 
         for ngid, ng in newwl['content'].iteritems():
             ngid = str(ngid)
+
+            # filters ngram from the whitelist based on min occs
             if ngid in newwl['edges']['StopNGram']:
                 occs = newwl['edges']['StopNGram'][ngid]
                 ng['status'] = self.filemodel.refuse
+                if not occs >= minOccs:
+                    del newwl['edges']['StopNGram'][ngid]
+                    del newwl['content'][ngid]
+                    continue
             elif ngid in newwl['edges']['NGram']:
                 occs = newwl['edges']['NGram'][ngid]
-            if not occs >= minOccs:
-                continue
+                if not occs >= minOccs:
+                    del newwl['edges']['NGram'][ngid]
+                    del newwl['content'][ngid]
+                    continue
             totalexported += 1
             #print occs, len(ng['content'])
             occsn = occs**len(ng['content'])
@@ -132,6 +156,7 @@ class Exporter(basecsv.Exporter):
                 if lastnormmax >= maxnormalizedperiod:
                     maxnormalizedperiod = lastnormmax
                     maxnormalizedperiodid = periodid
+            # stores meta informations
             ng.addEdge('MaxCorpus',maxperiodid,maxperiod)
             ng.addEdge('MaxNormalizedCorpus',maxnormalizedperiodid,maxnormalizedperiod)
 
@@ -154,6 +179,8 @@ class Exporter(basecsv.Exporter):
                 ngid
             ]
             self.writeRow(row)
+            # updates ng in whitelist object
+            newwl['content'][ngid] = ng
             # notifies progression
             #if ngramcount % 500 == 0:
             #    TinaApp.notify( None,
@@ -161,7 +188,7 @@ class Exporter(basecsv.Exporter):
             #        str(float( (ngramcount * 100) / ngramtotal ))
             #    )
         _logger.debug( "%d ngrams exported after filtering" %totalexported )
-        return self.filepath
+        return (self.filepath, newwl)
 
 
     def export_documents( self, storage, periods, corporaid ):

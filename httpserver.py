@@ -44,7 +44,7 @@ class TinaServerResource(resource.Resource):
         'label':str,
         'periods': list,
         'threshold': list,
-        'whitelist': str,
+        'whitelistpath': str,
         'whitelistlabel': str,
         'userstopwords': str,
         'ngramlimit': int,
@@ -82,13 +82,11 @@ class TinaServerResource(resource.Resource):
                 parsed_args[key] = self.argument_types[key](request.args[key][0])
 
         print self.method, parsed_args
-
         # creates special variable objects
-        if 'whitelist' in parsed_args and parsed_args['whitelist'] is not None:
-            parsed_args['whitelist'] = TinaApp.import_whitelist(parsed_args['whitelist'],'')
-        if 'userstopwords' in parsed_args and parsed_args['userstopwords'] is not None:
-            parsed_args['userstopwords'] = TinaApp.import_userstopwords(parsed_args['userstopwords'])
-
+        #if 'whitelist' in parsed_args and parsed_args['whitelist'] is not None:
+        #    parsed_args['whitelist'] = TinaApp.import_whitelist(parsed_args['whitelist'],'')
+        #if 'userstopwords' in parsed_args and parsed_args['userstopwords'] is not None:
+        #    parsed_args['userstopwords'] = TinaApp.import_userstopwords(parsed_args['userstopwords'])
         request.setHeader("content-type", "application/json")
         # sends the request through the callback
         try:
@@ -136,9 +134,9 @@ class TinaAppPOST():
         # import file
         return self.tinaappinstance.import_file(*args, **kwargs)
 
-    #def whitelist(self, *args, **kwargs):
+    def whitelist(self, *args, **kwargs):
         # import whitelist
-    #    return TinaApp.import_whitelist(*args, **kwargs)
+        return TinaApp.import_whitelist(*args, **kwargs)
 
     def cooccurrences(self, *args, **kwargs):
         # process_cooc
@@ -230,6 +228,10 @@ class TinaAppGET():
             return self.tinaappinstance.storage.loadNGram(id)
         else:
             return  self.tinaappinstance.STATUS_ERROR
+
+    def walk_user_path(self, dataset, filetype):
+        """list any existing fily for a given dataset and filetype"""
+        return self.tinaappinstance.walk_user_path(dataset, filetype)
 
 class TinaServerCallback():
     """

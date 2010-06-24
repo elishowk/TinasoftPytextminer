@@ -106,12 +106,6 @@ class MapReduce():
                 continue
             if filtering.apply_filters( obj, self.filter ) is False:
                 continue
-            #if self.filter is not None:
-            #    passFilter = True
-            #    for filt in self.filter:
-            #        passFilter &= filt.test(obj)
-            #    if passFilter is False:
-            #        continue
             map[ng] = 1
         return map
 
@@ -128,7 +122,6 @@ class MapReduce():
 
     def reducer(self, term_map):
         """updates the cooc matrix"""
-
         ng1 = term_map[0]
         map = term_map[1]
         for ngi in map.iterkeys():
@@ -140,15 +133,12 @@ class MapReduce():
         writes in the db rows of the matrix
         'Cooc::corpus::ngramid' => '{ 'ngx' : y, 'ngy': z }'
         """
-        tinasoft.TinaApp.notify( None,
-            'tinasoft_runProcessCoocGraph_running_status',
-            'writing cooccurrences in database'
-        )
+
         if self.corpusid is not None:
             key = self.corpusid+'::'
         else:
             return
-        countng = 0
+
         totalrows = len(self.matrix.reverse.keys())
         countcooc = 0
         for ngi in self.matrix.reverse.iterkeys():
@@ -160,13 +150,9 @@ class MapReduce():
                     row[ngj] = cooc
             if len( row.keys() ) > 0:
                 self.storage.updateCooc( key+ngi, row, overwrite )
-            countng += 1
+
         self.storage.flushCoocQueue()
         self.storage.commitAll()
-        tinasoft.TinaApp.notify( None,
-            'tinasoft_runProcessCoocGraph_running_status',
-            'stored %d non-zero cooccurrences values'%(countcooc)
-        )
         _logger.debug( 'stored %d non-zero cooccurrences values'%countcooc )
 
     def readMatrix( self ):

@@ -38,20 +38,15 @@ class Whitelist(PyTextMiner):
         if content is None:
             content = {}
         if edges is None:
-            edges = { 'NGram' : {}, 'StopNGram': {}, 'MaxPeriod': {}, 'MaxNormalizedPeriod' : {} }
+            edges = { 'NGram' : {}, 'StopNGram': {} }
         self.corpus = {}
         PyTextMiner.__init__(self, content, id, label, edges, **metas)
 
     def addEdge(self, type, key, value):
-        #if type in ['Normalized','MaxCorpus','MaxCorpusNormalized']:
-        #    if type not in self['edges']:
-        #        self['edges'][type] = {}
-        #    self['edges'][type][key] = value
-        #    return True
         return self._addEdge( type, key, value )
 
 
-    def load(self, storage, periods, filters=None, wlinstance=None):
+    def load_from_storage(self, storage, periods, filters=None, wlinstance=None):
         """Whitelist creator/updater utility"""
         for corpusid in periods:
             # gets a corpus from the storage or continue
@@ -88,14 +83,11 @@ class Whitelist(PyTextMiner):
                 # updates whitelist's edges
                 if ng['status'] == self.refuse:
                     self.addEdge('StopNGram', ngid, occ)
-                    #self.addEdge( 'Normalized', ngid, self['edges']['StopNGram'][ngid]**len(ng['content']) )
                 else:
                     self.addEdge( 'NGram', ngid, occ )
-                    #self.addEdge( 'Normalized', ngid, self['edges']['NGram'][ngid]**len(ng['content']) )
                 self.addEdge( 'Corpus', corpusid, 1 )
                 # add ngram to cache or update the status
                 if ngid not in  self['content']:
                     self['content'][ngid] = ng
                 else:
                     self['content'][ngid] = ng['status']
-        #return ngrams, period_objs
