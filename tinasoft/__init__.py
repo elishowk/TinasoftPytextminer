@@ -155,26 +155,27 @@ class TinaApp(object):
         """
         if self.last_dataset_id is not None and self.last_dataset_id == dataset_id:
             # connection already opened
-            return None
+            return TinaApp.STATUS_OK
         if self.storage is not None:
             self.logger.debug("safely closing last storage connection")
             del self.storage
-        self.last_dataset_id = dataset_id
         try:
             storagedir = join( self.config['general']['basedirectory'], self.config['general']['dbenv'], dataset_id )
             if not exists( storagedir ):
                 if create == False:
                     raise Exception("dataset %s does not exists, won't create it"%dataset_id)
-                makedirs( storagedir )
+                else:
+                    makedirs( storagedir )
             # overwrite db home dir
             options['home'] = storagedir
             self.logger.debug("new connection to a storage for data set %s"%dataset_id)
             self.storage = Engine(STORAGE_DSN, **options)
+            self.last_dataset_id = dataset_id
             return TinaApp.STATUS_OK
         except Exception, exception:
             self.logger.error( exception )
             self.storage = self.last_dataset_id = None
-            return None
+            return TinaApp.STATUS_ERROR
 
     def extract_file(self,
             path,
@@ -231,8 +232,7 @@ class TinaApp(object):
             index = None
 
         corporaObj = corpora.Corpora(dataset)
-        self.set_storage( dataset )
-        if self.storage is None:
+        if self.set_storage( dataset ) == self.STATUS_ERROR:
             return self.STATUS_ERROR
         # instanciate stopwords and extractor class
         stopwds = stopwords.StopWords( "file://%s"%join(self.config['general']['basedirectory'],self.config['datasets']['stopwords']) )
@@ -260,8 +260,7 @@ class TinaApp(object):
         # creating default outpath
         if outpath is None:
             outpath = self.get_new_user_filepath(dataset, 'whitelist', "%s-export_whitelist.csv"%whitelistlabel)
-        self.set_storage( dataset )
-        if self.storage is None:
+        if self.set_storage( dataset ) == self.STATUS_ERROR:
             return self.STATUS_ERROR
         exporter = Writer('whitelist://'+outpath, **kwargs)
         return exporter.export_whitelist(
@@ -314,8 +313,7 @@ class TinaApp(object):
         process cooccurrences for each period=corpus
         """
         #self.logger.debug( "entering process_cooc with %d ngrams"%len(whitelist.keys()) )
-        self.set_storage( dataset )
-        if self.storage is None:
+        if self.set_storage( dataset ) == self.STATUS_ERROR:
             return self.STATUS_ERROR
         for id in periods:
             try:
@@ -360,8 +358,7 @@ class TinaApp(object):
 
         GEXFWriter = Writer('gexf://', **self.config['datamining'])
 
-        self.set_storage( dataset )
-        if self.storage is None:
+        if self.set_storage( dataset ) == self.STATUS_ERROR:
             return self.STATUS_ERROR
 
         return GEXFWriter.ngramDocGraph(
@@ -408,7 +405,6 @@ class TinaApp(object):
             return dataset_list
         for file in os.listdir( path ):
             if exists(join(path, file, validation_filename)):
-                print file
                 dataset_list += [file]
         return dataset_list
         #return [file for file in os.listdir( path ) if exists(join(path, file, validation_filename))]

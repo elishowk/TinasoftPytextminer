@@ -92,9 +92,13 @@ class TinaServerResource(resource.Resource):
         request.setHeader("content-type", "application/json")
         # sends the request through the callback
         try:
-            return self.back.call( self.method(**parsed_args) )
+            returnValue = self.method(**parsed_args)
+            if returnValue == TinaApp.STATUS_ERROR:
+                return ErrorPage(500, "tinaserver error, please report it", traceback.format_exc() ).render(request)
+            else:
+                return self.back.call( returnValue )
         except Exception, e:
-            return ErrorPage(500, "tinaserver error, please report the following message to elias.showk@iscpif.fr", traceback.format_exc() ).render(request)
+            return ErrorPage(500, "tinaserver error, please report it", traceback.format_exc() ).render(request)
 
 class TinaServer(resource.Resource):
     """
@@ -195,37 +199,37 @@ class TinaAppGET():
         """
         if dataset is None:
             return self.tinaappinstance.walk_datasets()
-        if self.tinaappinstance.set_storage(dataset, create=False) is not None:
+        elif self.tinaappinstance.set_storage(dataset, create=False) == self.tinaappinstance.STATUS_OK:
             return self.tinaappinstance.storage.loadCorpora(dataset)
         else:
-            return
+            return self.tinaappinstance.STATUS_ERROR
 
     def corpus(self, dataset, id):
         """
         return a corpus json object from the database
         """
-        if self.tinaappinstance.set_storage(dataset, create=False) is not None:
+        if self.tinaappinstance.set_storage(dataset, create=False) == self.tinaappinstance.STATUS_OK:
             return self.tinaappinstance.storage.loadCorpus(id)
         else:
-            return
+            return  self.tinaappinstance.STATUS_ERROR
 
     def document(self, dataset, id):
         """
         return a document json object from the database
         """
-        if self.tinaappinstance.set_storage(dataset, create=False) is not None:
+        if self.tinaappinstance.set_storage(dataset, create=False) == self.tinaappinstance.STATUS_OK:
             return self.tinaappinstance.storage.loadDocument(id)
         else:
-            return
+            return  self.tinaappinstance.STATUS_ERROR
 
     def ngram(self, dataset, id):
         """
         return a ngram json object from the database
         """
-        if self.tinaappinstance.set_storage(dataset, create=False) is not None:
+        if self.tinaappinstance.set_storage(dataset, create=False) == self.tinaappinstance.STATUS_OK:
             return self.tinaappinstance.storage.loadNGram(id)
         else:
-            return
+            return  self.tinaappinstance.STATUS_ERROR
 
 class TinaServerCallback():
     """

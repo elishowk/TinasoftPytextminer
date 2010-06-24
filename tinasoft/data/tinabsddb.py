@@ -367,10 +367,10 @@ class Backend(Handler):
         try:
             return self._db.get(key, txn=txn)
         except db.DBNotFoundError, e1:
-            _logger.error( "DBError exception during saferead() : " + e[1] )
+            _logger.error( "DBNotFoundError exception : " + e1 )
             return None
         except db.DBKeyEmptyError, e2:
-            _logger.error( "DBError exception during saferead() : " + e[1] )
+            _logger.error( "DBKeyEmptyError exception : " + e2 )
             raise Exception(e2)
 
     def safereadrange( self, smallestkey=None, txn=None ):
@@ -386,13 +386,6 @@ class Backend(Handler):
             _logger.error( "DBError exception during safereadrange() : " + e[1] )
             raise Exception(e)
 
-
-    def _overwrite( self, key, obj, txn=None ):
-        self._db.delete( key, txn=txn )
-        self._db.put(key, obj, txn=txn)
-        #_logger.debug( "Overwriting an existing key = "+ key )
-
-
     def safewrite( self, key, obj, overwrite, txn=None ):
         """
         wrapped in add()/transaction(), safely write an entry
@@ -405,7 +398,8 @@ class Backend(Handler):
             self._db.put(key, obj, txn=txn)
         except db.DBKeyExistError, kee:
             if overwrite is True:
-                self._overwrite( key, obj, txn=txn )
+                self._db.delete( key, txn=txn )
+                self._db.put(key, obj, txn=txn)
                 return
             _logger.warning( "NOT overwriting key " + key )
         except db.DBLockDeadlockError, dead:

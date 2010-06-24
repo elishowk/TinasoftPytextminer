@@ -177,8 +177,10 @@ class Extractor():
                     _logger.debug("%d documents parsed"%self.doccount)
                 # inserts/updates corpus and corpora
                 # TODO remove corpusDict from memory, use the DB !!
+                _logger.debug(self.corpora['edges'])
                 self.storage.updateCorpora( self.corpora, overwrite )
                 for corpusObj in self.reader.corpusDict.values():
+                    #_logger.debug(corpusObj['edges'])
                     self.storage.updateCorpus( corpusObj, overwrite )
         # Second part of file parsing = document graph updating
         except StopIteration:
