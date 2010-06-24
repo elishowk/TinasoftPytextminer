@@ -20,7 +20,7 @@ import os
 from tinasoft import TinaApp
 from tinasoft.pytextminer import PyTextMiner
 from tinasoft.data import basecsv
-from tinasoft.pytextminer import tokenizer, tagger, ngram, whitelist
+from tinasoft.pytextminer import tokenizer, tagger, ngram, whitelist, corpus
 from tinasoft.pytextminer import filtering
 
 from decimal import *
@@ -64,11 +64,11 @@ class Importer(basecsv.Importer):
         """adds a user defined stop-ngram"""
         self.whitelist.addEdge( 'StopNGram', dbid, occs )
 
-    def _add_ngram(self, dbid, label):
+    def _add_ngram(self, dbid, label, row):
         self.whitelist['content'][dbid] = ngram.NGram(label.split(" "), dbid, label)
         try:
             for corpid in row[self.filemodel.columns[11][1]].split(" "):
-                self.addEdge( 'Corpus', corpusid, 1 )
+                self.whitelist.addEdge( 'Corpus', corpid, 1 )
                 if corpid not in self.whitelist['corpus']:
                     self.whitelist['corpus'][corpid] = corpus.Corpus(corpid)
         except KeyError, keyexc:
@@ -89,7 +89,7 @@ class Importer(basecsv.Importer):
             dbid = PyTextMiner.getId(label)
             if status == self.filemodel.accept:
                 self._add_whitelist(dbid, occs)
-                self._add_ngram(dbid, label)
+                self._add_ngram(dbid, label, row)
             elif status == self.filemodel.refuse:
                 self._add_stopword(dbid, occs)
         return self.whitelist
