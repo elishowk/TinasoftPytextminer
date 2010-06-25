@@ -192,7 +192,7 @@ class TinaApp(object):
         """
         # prepares extraction export path
         if outpath is None:
-            outpath = self._user_filepath(dataset, 'whitelist', "%s-extract_dataset.csv"%dataset)
+            outpath = self._user_filepath(dataset, 'extraction', "%s-extract_dataset.csv"%dataset)
         self.logger.debug( "extract_file to %s"%outpath )
         # sends indexer to the file parser
         if index is True:
@@ -207,7 +207,7 @@ class TinaApp(object):
         # instanciate extractor class
         stopwds = stopwords.StopWords( "file://%s"%join(self.config['general']['basedirectory'],self.config['datasets']['stopwords']) )
         extract = extractor.Extractor( storage, self.config['datasets'], corporaObj, stopwds, index )
-        outpath = extract.extract_file( path, format, outpath, minoccs )
+        outpath= extract.extract_file( path, format, outpath, minoccs )
         if outpath is not False:
             return outpath
         else:

@@ -116,9 +116,8 @@ class Extractor():
         except StopIteration:
             _logger.debug("Total documents extracted = %d"%doccount)
             csvfile = Writer("whitelist://"+extract_path)
-            #for corpobj in periods.itervalues():
-                #_logger.debug( "period %s has got %d documents"%(corpobj['id'], len(corpobj['edges']['Document'].keys())) )
-            return csvfile.write_whitelist(newwl, minoccs)
+            (outpath,newwl) = csvfile.write_whitelist(newwl, minoccs)
+            return outpath
         except Exception:
             _logger.error(traceback.format_exc())
             return False

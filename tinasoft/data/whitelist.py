@@ -116,9 +116,9 @@ class Exporter(basecsv.Exporter):
         ngramtotal = len(newwl['content'].keys())
         _logger.debug( "Writing %d ngrams to whitelist at %s" % (ngramtotal, self.filepath) )
 
-        for ngid, ng in newwl['content'].iteritems():
+        for ngid in newwl['content'].keys():
+            ng =  newwl['content'][ngid]
             ngid = str(ngid)
-
             # filters ngram from the whitelist based on min occs
             if ngid in newwl['edges']['StopNGram']:
                 occs = newwl['edges']['StopNGram'][ngid]

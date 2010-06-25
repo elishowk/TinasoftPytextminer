@@ -56,8 +56,6 @@ class TinaServerResource(resource.Resource):
     def __init__(self, method, back):
         self.method = method
         self.back = back
-        # overwriting notify()
-        # TinaApp.notify = self.logger
         resource.Resource.__init__(self)
 
     def render(self, request):
@@ -82,11 +80,7 @@ class TinaServerResource(resource.Resource):
                 parsed_args[key] = self.argument_types[key](request.args[key][0])
 
         print self.method, parsed_args
-        # creates special variable objects
-        #if 'whitelist' in parsed_args and parsed_args['whitelist'] is not None:
-        #    parsed_args['whitelist'] = TinaApp.import_whitelist(parsed_args['whitelist'],'')
-        #if 'userstopwords' in parsed_args and parsed_args['userstopwords'] is not None:
-        #    parsed_args['userstopwords'] = TinaApp.import_userstopwords(parsed_args['userstopwords'])
+
         request.setHeader("content-type", "application/json")
         # sends the request through the callback
         try:
