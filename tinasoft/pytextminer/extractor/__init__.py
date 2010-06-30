@@ -43,9 +43,10 @@ class Extractor():
         # params from the controler
         self.corpora = corpora
         self.storage = storage
+        # indexer is NOT YET in USE
         self.index = None
-        #if self.index is not None:
-        #    self.writer = index.getWriter()
+        if self.index is not None:
+            self.writer = index.getWriter()
         # instanciate the tagger, takes times on learning
         self.tagger = tagger.TreeBankPosTagger(training_corpus_size=self.config['training_tagger_size'])
         #self.__insert_threads = []
@@ -77,7 +78,6 @@ class Extractor():
             return
 
     def extract_file(self, path, format, extract_path, minoccs=1):
-        # TODO : replace Counter by Whitelist object
         # starts the parsing
         fileGenerator = self._walkFile( path, format )
         newwl = whitelist.Whitelist(self.corpora['id'], self.corpora['id'], corpus={})
@@ -122,37 +122,115 @@ class Extractor():
             _logger.error(traceback.format_exc())
             return False
 
+    def extract_file_improved(self, path, format, extract_path, minoccs=1, overwrite=False):
+        """intented to extract a dataset to a whitelist file, only storing corpora, corpus, document object into storage"""
+        # starts the parsing
+        fileGenerator = self._walkFile( path, format )
+        newwl = whitelist.Whitelist(self.corpora['id'], self.corpora['id'], corpus={})
+        doccount = 0
+        try:
+            while 1:
+                ### gets the next document
+                document, corpusNum = fileGenerator.next()
+                ### updates Corpora and Corpus objects edges
+                self.corpora.addEdge( 'Corpus', corpusNum, 1 )
+                self.reader.corpusDict[ corpusNum ].addEdge( 'Corpora', self.corpora['id'], 1)
+                # adds Corpus-Doc edge if possible
+                self.reader.corpusDict[ corpusNum ].addEdge( 'Document', document['id'], 1)
+                ### extract and filter ngrams
+                docngrams = tokenizer.TreeBankWordTokenizer.extract(\
+                    document,\
+                    self.stopwords,\
+                    self.config['ngramMin'],\
+                    self.config['ngramMax'],\
+                    self.filters, \
+                    self.tagger\
+                )
+                ### updates newwl object : increments number of docs per period
+                if  corpusNum not in newwl['corpus']:
+                    newwl['corpus'][corpusNum] = corpus.Corpus(corpusNum)
+                newwl['corpus'][corpusNum].addEdge('Document', str(document['id']), 1)
+                for ngid, ng in docngrams.iteritems():
+                    if ngid not in newwl['content']:
+                        newwl['content'][ngid] = ng
+                        newwl['content'][ngid]['status'] = ""
+                    # increments per period occs
+                    newwl['content'][ngid].addEdge( 'Corpus', corpusNum, 1 )
+                    # increments total occurences within the dataset
+                    newwl.addEdge( 'NGram', ngid, 1 )
+                #### inserts/updates document, corpus and corpora
+                # TODO test removing self.reader.corpusDict from memory, use the DB !!
+                self.storage.updateCorpora( self.corpora, overwrite )
+                for corpusObj in self.reader.corpusDict.values():
+                    self.storage.updateCorpus( corpusObj, overwrite )
+                self.reader.corpusDict = {}
+                self._update_Document(overwrite, corpusNum, document)
+                doccount += 1
+                if doccount % 10 == 0:
+                    _logger.debug("%d documents parsed"%doccount)
+                # doc's indexation
+                self._indexDocument( document, overwrite )
+        except StopIteration:
+            _logger.debug("Total documents extracted = %d"%doccount)
+            csvfile = Writer("whitelist://"+extract_path)
+            (outpath,newwl) = csvfile.write_whitelist(newwl, minoccs)
+            _logger.debug(self.duplicate)
+            return outpath
+        except Exception:
+            _logger.error(traceback.format_exc())
+            return False
+
+    def _update_Document(self, overwrite, corpusNum, document):
+        """ doc's storage : checks if exists, then updates the necessary"""
+        if overwrite is False:
+            storedDoc = self.storage.loadDocument( document['id'] )
+            if storedDoc is not None:
+                # force add the doc-corpus edge : aims at at attaching a doc to multiple corpus
+                storedDoc.addEdge( 'Corpus', corpusNum, 1 )
+                # force update
+                self.storage.updateDocument( storedDoc, True )
+                _logger.warning( "Doc %s is already stored : only updating edges"%document['id'] )
+                # skip document
+                self.duplicate += [document]
+                return False
+        # anyway, insert document to storage
+        self.storage.updateDocument( document, True )
+        return True
+
     def import_file(self, path, format, overwrite=False):
 
         # opens and starts walking a file
         fileGenerator = self._walkFile( path, format )
         # 1st part = ngram extraction
-        self.doccount = self.totaltime = 0
+        doccount = 0
         try:
             while 1:
                 # document parsing, doc-corpus edge is written
                 document, corpusNum = fileGenerator.next()
+
                 # add Corpora-Corpus edges if possible
                 self.corpora.addEdge( 'Corpus', corpusNum, 1 )
                 self.reader.corpusDict[ corpusNum ].addEdge( 'Corpora', self.corpora['id'], 1)
+
                 # doc's indexation
                 self._indexDocument( document, overwrite )
+
                 # adds Corpus-Doc edge if possible
                 self.reader.corpusDict[ corpusNum ].addEdge( 'Document', document['id'], 1)
-                # checks document in storage
-                if overwrite is False:
-                    storedDoc = self.storage.loadDocument( document['id'] )
-                    if storedDoc is not None:
-                        # add the doc-corpus edge if possible
-                        storedDoc.addEdge( 'Corpus', corpusNum, 1 )
-                        # force update
-                        self.storage.updateDocument( storedDoc, True )
-                        _logger.warning( "Doc %s is already stored : only updating edges"%document['id'] )
-                        # skip document
-                        self.duplicate += [document]
-                        continue
-                self.doccount += 1
 
+                doccount += 1
+                if doccount % 10 == 0:
+                    _logger.debug("%d documents parsed"%doccount)
+
+                # inserts/updates corpus and corpora
+                # TODO test removing self.reader.corpusDict from memory, use the DB !!
+                self.storage.updateCorpora( self.corpora, overwrite )
+                for corpusObj in self.reader.corpusDict.values():
+                    self.storage.updateCorpus( corpusObj, overwrite )
+                self.reader.corpusDict = {}
+                if self._update_Document(overwrite, corpusNum, document) is False:
+                    continue
+                # HUM, VERY UNSAFE
                 #insertargs = (
                 #    document,
                 #    corpusNum,
@@ -160,27 +238,18 @@ class Extractor():
                 #    self.config['ngramMax'],
                 #    overwrite
                 #)
-                #t = Thread(target=self.insertNGrams, args=insertargs)
+                #t = Thread(target=self._insert_NGrams, args=insertargs)
                 #t.start()
                 #self.__insert_threads += [t]
 
                 # document's ngrams extraction
-                self.insertNGrams( \
+                self._insert_NGrams( \
                     document, \
                     corpusNum,\
                     self.config['ngramMin'], \
                     self.config['ngramMax'], \
                     overwrite \
                 )
-                if self.doccount % 10 == 0:
-                    _logger.debug("%d documents parsed"%self.doccount)
-                # inserts/updates corpus and corpora
-                # TODO remove corpusDict from memory, use the DB !!
-                _logger.debug(self.corpora['edges'])
-                self.storage.updateCorpora( self.corpora, overwrite )
-                for corpusObj in self.reader.corpusDict.values():
-                    #_logger.debug(corpusObj['edges'])
-                    self.storage.updateCorpus( corpusObj, overwrite )
         # Second part of file parsing = document graph updating
         except StopIteration:
             # commit changes to indexer
@@ -191,7 +260,7 @@ class Extractor():
             _logger.error( traceback.format_exc() )
             return False
 
-    def insertNGrams( self, document, corpusNum, ngramMin, ngramMax, overwrite ):
+    def _insert_NGrams( self, document, corpusNum, ngramMin, ngramMax, overwrite ):
         """
         MUST NOT BE USED FOR AN EXISTING DOCUMENT IN THE DB
         Main NLP operations and extractions on a document

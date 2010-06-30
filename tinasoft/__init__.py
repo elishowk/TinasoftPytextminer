@@ -117,9 +117,6 @@ class TinaApp(object):
             maxBytes = 1024,
             backupCount = 3
         )
-        # formatting
-        #formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
-        #rotatingFileHandler.setFormatter(formatter)
         self.logger = logging.getLogger('TinaAppLogger')
 
         # tries support of the locale by the host system
@@ -215,6 +212,38 @@ class TinaApp(object):
         else:
             return self.STATUS_ERROR
 
+    def extract_file_improved(self,
+            path,
+            dataset,
+            outpath=None,
+            index=False,
+            format='tinacsv',
+            overwrite=False,
+            minoccs=1
+        ):
+        """
+        tinasoft source improved extraction controler
+        """
+        # prepares extraction export path
+        if outpath is None:
+            outpath = self._user_filepath(dataset, 'extraction', "%s-extract_dataset.csv"%dataset)
+        self.logger.debug( "extract_file to %s"%outpath )
+        # sends indexer to the file parser
+        if index is True:
+            index = self.index
+        else:
+            index = None
+        corporaObj = corpora.Corpora(dataset)
+        if self.set_storage( dataset ) == self.STATUS_ERROR:
+            return self.STATUS_ERROR
+        # instanciate extractor class
+        stopwds = stopwords.StopWords( "file://%s"%join(self.config['general']['basedirectory'],self.config['datasets']['stopwords']) )
+        extract = extractor.Extractor( self.storage, self.config['datasets'], corporaObj, stopwds, index )
+        outpath = extract.extract_file_improved( path, format, outpath, minoccs, overwrite )
+        if outpath is not False:
+            return outpath
+        else:
+            return self.STATUS_ERROR
     def import_file(self,
             path,
             dataset,
@@ -389,14 +418,11 @@ class TinaApp(object):
 
     def _user_filepath(self, dataset, filetype, filename):
         """returns a filename from the user directory"""
-        #print "args = ", dataset, filetype, filename
         path = join( self.user, dataset, filetype )
-        now = "_".join(str(datetime.now()).split(" "))
+        now = "".join(str(datetime.now())[:10].split("-"))
         # standar separator in filenames
         filename = now + "-" + filename
-        #print path
         finalpath = join( path, filename )
-        #print finalpath
         if not exists(path):
             makedirs(path)
             return finalpath
@@ -411,7 +437,7 @@ class TinaApp(object):
         if tail == "":
             return None
         filename_components = tail.split("-")
-        if not filename_components[1]:
+        if len(filename_components) == 1:
             return None
         return filename_components[1]
 

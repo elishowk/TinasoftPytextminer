@@ -29,7 +29,7 @@ from tinasoft.data import Writer
 tinasoftSingleton = TinaApp()
 whitelistSingleton = tinasoftSingleton.import_whitelist(
     #'/home/elishowk/TINA/Datas/100226-pubmed_whitelist.csv'
-    'tests/data/pubmed_whitelist.csv', 'test whitelist'
+    'tests/data/20100630-pubmed_whitelist-extract_dataset.csv', 'test_whitelist'
 )
 stopwordsSingleton = [stopwords.StopWordFilter( "file://%s" % tinasoftSingleton.config['datasets']['userstopwords'] )]
 
@@ -45,20 +45,32 @@ class TinaAppTestCase(unittest.TestCase):
         self.whitelist = whitelistSingleton
         self.userstopwordfilter = stopwordsSingleton
 
-    def testA_ExtractFile(self):
+    def testH_ExtractFileImproved(self):
         """testA_ExtractFile : testing extract_file"""
         #return
+        self.failIfEqual( self.tinasoft.extract_file_improved(
+                self.path,
+                self.datasetId,
+                format=self.format,
+                minoccs=1,
+                overwrite=False
+            ), TinaApp.STATUS_ERROR
+        )
+    def testA_ExtractFile(self):
+        """testA_ExtractFile : testing extract_file"""
+        return
         self.failIfEqual( self.tinasoft.extract_file(
                 self.path,
                 self.datasetId,
-                format=self.format
+                format=self.format,
+                minoccs=1,
             ), TinaApp.STATUS_ERROR
         )
 
 
     def testB_ImportFile(self):
         """testB_ImportFile : testing import_file"""
-        #return
+        return
         self.failIfEqual( self.tinasoft.import_file(
                 path=self.path,
                 dataset=self.datasetId,
