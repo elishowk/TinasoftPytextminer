@@ -30,6 +30,7 @@ import traceback
 # unescaping uri components
 import cgi
 from os.path import join
+import sys
 
 class TinaServerResource(resource.Resource):
     """
@@ -252,8 +253,11 @@ class TinaServerCallback():
         return self.serialize( returnValue )
 
 
-if __name__ == "__main__":
-    tinaappsingleton = TinaApp()
+def run(customdir=None):
+    if customdir is not None:
+        tinaappsingleton = TinaApp(homedir=customdir)
+    else:
+        tinaappsingleton = TinaApp()
     posthandler = TinaAppPOST(tinaappsingleton)
     gethandler = TinaAppGET(tinaappsingleton)
     tinacallback = TinaServerCallback()
@@ -264,3 +268,12 @@ if __name__ == "__main__":
     site = server.Site(tinaserver)
     reactor.listenTCP(8888, site)
     reactor.run()
+
+if __name__ == "__main__":
+    import getopt
+    opts, args = getopt.gnu_getopt(sys.argv[1:],'d')
+    dir=None
+    for o, a in opts:
+        if o == "-d":
+            dir=a
+    run(customdir=dir)
