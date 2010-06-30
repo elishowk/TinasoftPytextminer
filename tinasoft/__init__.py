@@ -80,6 +80,8 @@ class TinaApp(object):
         Initiate config.yaml, logger, locale, storage and index
         """
         object.__init__(self)
+        if homedir is None:
+            homedir=CLASS_ROOT
         # import config yaml to self.config
         try:
             self.config = yaml.safe_load( file( join(homedir,configFile), 'rU' ) )
@@ -313,7 +315,7 @@ class TinaApp(object):
             path=None
         ):
         if path is None:
-            path = self.config['datasets']['userstopwords']
+            path = join(self.config['general']['basedirectory'], self.config['datasets']['userstopwords'])
         return [stopwords.StopWordFilter( "file://%s" % path )]
 
     def process_cooc(self,
