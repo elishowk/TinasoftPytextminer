@@ -187,7 +187,7 @@ class Backend(Handler):
                 else:
                     sleep(1)
         except Exception, e:
-            _logger.exception(e)
+            _logger.error(e)
 
     def sync(self):
         """modified from http://www.rdflib.net/"""
@@ -234,6 +234,7 @@ class Backend(Handler):
 
         # there may still be open transactions
         self.__open = False
+        # wait for all threads to finish
         self.__sync_thread.join()
         self._db.close()
         self.db_env.close()
