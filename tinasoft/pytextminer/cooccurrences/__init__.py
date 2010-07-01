@@ -60,7 +60,7 @@ class MapReduce():
     get a corpus number as input and returns a matrix's slice :
     { 'ngram_id' : {  dictionnary of all 'ngid2' : integer } }
     """
-    def __init__(self, storage, whitelist, corpusid=None, filter=None):
+    def __init__(self, storage, whitelist=None, corpusid=None, filter=None):
         self.storage = storage
         self.filter = filter
         self.corpusid = corpusid
@@ -68,8 +68,10 @@ class MapReduce():
         if self.corpus is None:
             raise Warning('Corpus not found')
         self.whitelist = whitelist
-        self.matrix = CoocMatrix( len( self.whitelist['edges']['NGram'].keys() ) )
-        self.watcher = None
+        if self.whitelist is not None:
+            self.matrix = CoocMatrix( len( self.whitelist['edges']['NGram'].keys() ) )
+        else:
+            self.matrix = CoocMatrix( len( self.corpus['edges']['NGram'].keys() ) )
 
     def walkCorpus(self):
         """processes a list of documents into a corpus"""
@@ -101,7 +103,7 @@ class MapReduce():
             obj = self.storage.loadNGram(ng)
             if obj is None:
                 continue
-            if obj['id'] not in self.whitelist['edges']['NGram']:
+            if self.whitelist.test(obj) is False:
                 continue
             if filtering.apply_filters( obj, self.filter ) is False:
                 continue

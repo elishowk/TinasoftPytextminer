@@ -70,7 +70,7 @@ class TinaApp(object):
 
     def __init__(
             self,
-            homedir=CLASS_ROOT,
+            homedir=None,
             configFile='config.yaml',
             loc=None,
             loglevel=logging.DEBUG
@@ -175,19 +175,23 @@ class TinaApp(object):
             outpath=None,
             format='tinacsv',
             overwrite=False,
-            minoccs=1
+            minoccs=1,
+            userstopwords=None
         ):
         """
         tinasoft source extraction controler
         send a corpora and a storage handler to an Extractor() instance
         """
+        if self.set_storage( dataset ) == self.STATUS_ERROR:
+            return self.STATUS_ERROR
         # prepares extraction export path
         if outpath is None:
-            outpath = self._user_filepath(dataset, 'extraction', "%s-extract_dataset.csv"%dataset)
+            outpath = self._user_filepath(dataset, 'whitelist', "%s-extract_dataset.csv"%dataset)
         corporaObj = corpora.Corpora(dataset)
         # instanciate extractor class
-        stopwds = stopwords.StopWords( "file://%s"%join(self.config['general']['basedirectory'],self.config['datasets']['stopwords']) )
-        extract = extractor.Extractor( None, self.config['datasets'], corporaObj, stopwds )
+        stopwds = stopwords.StopWords( "file://%s"%join(self.config['general']['shared'],self.config['general']['stopwords']) )
+        userstopwords = self.import_userstopwords(userstopwords)
+        extract = extractor.Extractor( None, self.config['datasets'], corporaObj, stopwds, userstopwords)
         outpath= extract.extract_file( path, format, outpath, minoccs )
         if outpath is not False:
             return outpath
@@ -209,7 +213,7 @@ class TinaApp(object):
         if self.set_storage( dataset ) == self.STATUS_ERROR:
             return self.STATUS_ERROR
         # instanciate stopwords and extractor class
-        stopwds = stopwords.StopWords( "file://%s"%join(self.config['general']['basedirectory'],self.config['datasets']['stopwords']) )
+        stopwds = stopwords.StopWords( "file://%s"%join(self.config['general']['shared'],self.config['general']['stopwords']) )
         extract = extractor.Extractor( self.storage, self.config['datasets'], corporaObj, stopwds )
         if extract.index_file(
             path,
@@ -234,7 +238,7 @@ class TinaApp(object):
         if self.set_storage( dataset ) == self.STATUS_ERROR:
             return self.STATUS_ERROR
         # instanciate stopwords and extractor class
-        stopwds = stopwords.StopWords( "file://%s"%join(self.config['general']['basedirectory'],self.config['datasets']['stopwords']) )
+        stopwds = stopwords.StopWords( "file://%s"%join(self.config['general']['shared'],self.config['general']['stopwords']) )
         extract = extractor.Extractor( self.storage, self.config['datasets'], corporaObj, stopwds )
         if extract.import_file(
             path,
@@ -274,7 +278,6 @@ class TinaApp(object):
             minoccs
         )
 
-    #@staticmethod
     def import_whitelist(
             self,
             whitelistpath,
@@ -307,19 +310,18 @@ class TinaApp(object):
         # TODO stores the whitelist ?
         return new_wl
 
-    #@staticmethod
     def import_userstopwords(
             self,
             path=None
         ):
         if path is None:
-            path = join(self.config['general']['basedirectory'], self.config['datasets']['userstopwords'])
+            path = join(self.config['general']['basedirectory'], self.config['general']['userstopwords'])
         return [stopwords.StopWordFilter( "file://%s" % path )]
 
     def process_cooc(self,
             dataset,
             periods,
-            whitelistpath,
+            whitelistpath=None,
             userstopwords=None
         ):
         """
@@ -329,7 +331,10 @@ class TinaApp(object):
         if self.set_storage( dataset ) == self.STATUS_ERROR:
             return self.STATUS_ERROR
         userstopwords = self.import_userstopwords(userstopwords)
-        whitelist = self.import_whitelist(whitelistpath, userstopwords)
+        if whitelistpath is not None:
+            whitelist = self.import_whitelist(whitelistpath, userstopwords)
+        else:
+            whitelist = None
         # for each period, processes cocc and stores them
         for id in periods:
             try:
@@ -370,8 +375,7 @@ class TinaApp(object):
         """
         if outpath is None:
             outpath = self._user_filepath(dataset, 'gexf', "%s-graph.gexf"%"_".join(periods))
-        self.logger.debug("export_graph to %s"%outpath)
-
+        
         whitelist = self.import_whitelist(whitelistpath)
         GEXFWriter = Writer('gexf://', **self.config['datamining'])
 
@@ -434,4 +438,3 @@ class TinaApp(object):
             if exists(join(path, file, validation_filename)):
                 dataset_list += [file]
         return dataset_list
-        #return [file for file in os.listdir( path ) if exists(join(path, file, validation_filename))]

@@ -29,7 +29,7 @@ _logger = logging.getLogger('TinaAppLogger')
 
 class Extractor():
     """A source file importer = data set = corpora"""
-    def __init__( self, storage, config, corpora, stopwds ):
+    def __init__( self, storage, config, corpora, stopwds, filters=None ):
         self.reader = None
         self.config=config
         # load Stopwords object
@@ -38,6 +38,8 @@ class Extractor():
         filterContent = filtering.Content()
         validTag = filtering.PosTagValid()
         self.filters = [filterContent,validTag]
+        if filters is not None:
+            self.filters += filters
         # keep duplicate document objects
         self.duplicate = []
         # params from the controler
@@ -143,7 +145,6 @@ class Extractor():
                 self.storage.updateCorpora( self.corpora, overwrite )
                 for corpusObj in self.reader.corpusDict.values():
                     self.storage.updateCorpus( corpusObj, overwrite )
-                self.reader.corpusDict = {}
                 self._insert_NGrams(docngrams, document, corpusNum, overwrite) 
                 self._update_Document(overwrite, corpusNum, document)
                 doccount += 1
@@ -201,7 +202,6 @@ class Extractor():
                 self.storage.updateCorpora( self.corpora, overwrite )
                 for corpusObj in self.reader.corpusDict.values():
                     self.storage.updateCorpus( corpusObj, overwrite )
-                self.reader.corpusDict = {}
                 if self._update_Document(overwrite, corpusNum, document) is False:
                     continue
                 # HUM, VERY UNSAFE
@@ -245,7 +245,7 @@ class Extractor():
         """
         Inserts NGrams and its graphs to storage
         MUST NOT BE USED FOR AN EXISTING DOCUMENT IN THE DB
-        BECAUSE THIS METHOD WILL OVERWRITE IT, instead uset _update_Document
+        BECAUSE THIS METHOD WILL OVERWRITE IT, instead use _update_Document
         """
         # insert into database
         #before=time.time()

@@ -38,7 +38,7 @@ class TinaAppTestCase(unittest.TestCase):
         self.tinasoft = tinasoftSingleton
         self.datasetId = "test_data_set"
         self.periods = ['1','2']
-        self.path = "tests/data/pubmed_tina_test.csv"
+        self.path = "tests/data/tinacsv_test_200.csv"
         self.format = "tinacsv"
         #self.path = "/home/elishowk/TINA/Datas/MedlineCancer/pubmed_cancer_tina_toydb.txt"
         #self.format = "medline"
@@ -49,7 +49,6 @@ class TinaAppTestCase(unittest.TestCase):
     def testH_IndexFile(self):
         """testH_IndexFile : testing index_file"""
         #return
-        print self.extracted_whitelist
         self.failIfEqual( self.tinasoft.index_file(
                 self.path,
                 self.datasetId,
@@ -60,7 +59,7 @@ class TinaAppTestCase(unittest.TestCase):
         )
     def testA_ExtractFile(self):
         """testA_ExtractFile : testing extract_file"""
-        #return
+        return
         print self.tinasoft.extract_file(
                 self.path,
                 self.datasetId,

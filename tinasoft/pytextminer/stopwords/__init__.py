@@ -132,7 +132,6 @@ class StopWords( object ):
 
 class StopWordFilter(StopWords):
     """
-    OBSOLETE
     used for filtering ngrams
     given a file or a list
     """

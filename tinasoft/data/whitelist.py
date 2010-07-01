@@ -68,7 +68,7 @@ class Importer(basecsv.Importer):
         self.whitelist['content'][dbid] = ngram.NGram(label.split(" "), dbid, label)
         try:
             for corpid in row[self.filemodel.columns[11][1]].split(" "):
-                self.whitelist.addEdge( 'Corpus', corpid, 1 )
+                self.whitelist.addEdge( 'Corpus', str(corpid), 1 )
                 if corpid not in self.whitelist['corpus']:
                     self.whitelist['corpus'][corpid] = corpus.Corpus(corpid)
         except KeyError, keyexc:

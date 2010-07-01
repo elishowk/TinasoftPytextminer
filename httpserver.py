@@ -126,8 +126,8 @@ class TinaAppPOST():
         self.tinaappinstance = tinaappinstance
 
     def file(self, *args, **kwargs):
-        # import file
-        return self.tinaappinstance.import_file(*args, **kwargs)
+        # index file
+        return self.tinaappinstance.index_file(*args, **kwargs)
 
     def whitelist(self, *args, **kwargs):
         # import whitelist
@@ -190,12 +190,14 @@ class TinaAppGET():
         """
         return a dataset json object from the database
         """
+        ### if argument is empty, return the list of all datasets
         if dataset is None:
             return self.tinaappinstance.walk_datasets()
+
         elif self.tinaappinstance.set_storage(dataset, create=False) == self.tinaappinstance.STATUS_OK:
             return self.tinaappinstance.storage.loadCorpora(dataset)
         else:
-            return self.tinaappinstance.STATUS_ERROR
+            return None
 
     def corpus(self, dataset, id):
         """
@@ -204,7 +206,7 @@ class TinaAppGET():
         if self.tinaappinstance.set_storage(dataset, create=False) == self.tinaappinstance.STATUS_OK:
             return self.tinaappinstance.storage.loadCorpus(id)
         else:
-            return  self.tinaappinstance.STATUS_ERROR
+            return None
 
     def document(self, dataset, id):
         """
@@ -213,7 +215,7 @@ class TinaAppGET():
         if self.tinaappinstance.set_storage(dataset, create=False) == self.tinaappinstance.STATUS_OK:
             return self.tinaappinstance.storage.loadDocument(id)
         else:
-            return  self.tinaappinstance.STATUS_ERROR
+            return None
 
     def ngram(self, dataset, id):
         """
@@ -222,7 +224,7 @@ class TinaAppGET():
         if self.tinaappinstance.set_storage(dataset, create=False) == self.tinaappinstance.STATUS_OK:
             return self.tinaappinstance.storage.loadNGram(id)
         else:
-            return  self.tinaappinstance.STATUS_ERROR
+            return None
 
     def walk_user_path(self, dataset, filetype):
         """list any existing fily for a given dataset and filetype"""
