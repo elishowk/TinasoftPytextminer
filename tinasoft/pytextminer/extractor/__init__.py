@@ -29,7 +29,7 @@ _logger = logging.getLogger('TinaAppLogger')
 
 class Extractor():
     """A source file importer = data set = corpora"""
-    def __init__( self, storage, config, corpora, stopwds, index=None ):
+    def __init__( self, storage, config, corpora, stopwds ):
         self.reader = None
         self.config=config
         # load Stopwords object
@@ -43,20 +43,9 @@ class Extractor():
         # params from the controler
         self.corpora = corpora
         self.storage = storage
-        # indexer is NOT YET in USE
-        self.index = None
-        if self.index is not None:
-            self.writer = index.getWriter()
         # instanciate the tagger, takes times on learning
         self.tagger = tagger.TreeBankPosTagger(training_corpus_size=self.config['training_tagger_size'])
         #self.__insert_threads = []
-
-    def _indexDocument( self, documentobj, overwrite ):
-        """eventually index the document's text"""
-        if self.index is not None:
-            if self.index.write(documentobj, self.writer, overwrite) is None:
-                _logger.error("document content indexation failed :" \
-                    + str(documentobj['id']))
 
     def _openFile(self, path, format ):
         """loads the source file"""
@@ -122,11 +111,12 @@ class Extractor():
             _logger.error(traceback.format_exc())
             return False
 
-    def extract_file_improved(self, path, format, extract_path, minoccs=1, overwrite=False):
-        """intented to extract a dataset to a whitelist file, only storing corpora, corpus, document object into storage"""
-        # starts the parsing
+    def index_file(self, path, format, whitelist, overwrite=False):
+        """intented to store whitelisted NGram-Document-Corpus objects into storage"""
+        ### adds whitelist as an additional filter 
+        self.filters += [whitelist]
+        ### starts the parsing
         fileGenerator = self._walkFile( path, format )
-        newwl = whitelist.Whitelist(self.corpora['id'], self.corpora['id'], corpus={})
         doccount = 0
         try:
             while 1:
@@ -135,8 +125,9 @@ class Extractor():
                 ### updates Corpora and Corpus objects edges
                 self.corpora.addEdge( 'Corpus', corpusNum, 1 )
                 self.reader.corpusDict[ corpusNum ].addEdge( 'Corpora', self.corpora['id'], 1)
-                # adds Corpus-Doc edge if possible
+                ### adds Corpus-Doc edge if possible
                 self.reader.corpusDict[ corpusNum ].addEdge( 'Document', document['id'], 1)
+                document.addEdge('Corpus', corpusNum, 1)
                 ### extract and filter ngrams
                 docngrams = tokenizer.TreeBankWordTokenizer.extract(\
                     document,\
@@ -146,36 +137,22 @@ class Extractor():
                     self.filters, \
                     self.tagger\
                 )
-                ### updates newwl object : increments number of docs per period
-                if  corpusNum not in newwl['corpus']:
-                    newwl['corpus'][corpusNum] = corpus.Corpus(corpusNum)
-                newwl['corpus'][corpusNum].addEdge('Document', str(document['id']), 1)
-                for ngid, ng in docngrams.iteritems():
-                    if ngid not in newwl['content']:
-                        newwl['content'][ngid] = ng
-                        newwl['content'][ngid]['status'] = ""
-                    # increments per period occs
-                    newwl['content'][ngid].addEdge( 'Corpus', corpusNum, 1 )
-                    # increments total occurences within the dataset
-                    newwl.addEdge( 'NGram', ngid, 1 )
+                _logger.debug( "got %d ngrams in document %s"%(len(docngrams.keys()), document['id']) )
                 #### inserts/updates document, corpus and corpora
                 # TODO test removing self.reader.corpusDict from memory, use the DB !!
                 self.storage.updateCorpora( self.corpora, overwrite )
                 for corpusObj in self.reader.corpusDict.values():
                     self.storage.updateCorpus( corpusObj, overwrite )
                 self.reader.corpusDict = {}
+                self._insert_NGrams(docngrams, document, corpusNum, overwrite) 
                 self._update_Document(overwrite, corpusNum, document)
                 doccount += 1
                 if doccount % 10 == 0:
-                    _logger.debug("%d documents parsed"%doccount)
-                # doc's indexation
-                self._indexDocument( document, overwrite )
+                    _logger.debug("%d documents indexed"%doccount)
+
         except StopIteration:
-            _logger.debug("Total documents extracted = %d"%doccount)
-            csvfile = Writer("whitelist://"+extract_path)
-            (outpath,newwl) = csvfile.write_whitelist(newwl, minoccs)
             _logger.debug(self.duplicate)
-            return outpath
+            return True
         except Exception:
             _logger.error(traceback.format_exc())
             return False
@@ -212,9 +189,6 @@ class Extractor():
                 self.corpora.addEdge( 'Corpus', corpusNum, 1 )
                 self.reader.corpusDict[ corpusNum ].addEdge( 'Corpora', self.corpora['id'], 1)
 
-                # doc's indexation
-                self._indexDocument( document, overwrite )
-
                 # adds Corpus-Doc edge if possible
                 self.reader.corpusDict[ corpusNum ].addEdge( 'Document', document['id'], 1)
 
@@ -243,12 +217,19 @@ class Extractor():
                 #self.__insert_threads += [t]
 
                 # document's ngrams extraction
-                self._insert_NGrams( \
-                    document, \
-                    corpusNum,\
-                    self.config['ngramMin'], \
-                    self.config['ngramMax'], \
-                    overwrite \
+                docngrams = tokenizer.TreeBankWordTokenizer.extract( \
+                    document,\
+                    self.stopwords, \
+                    ngramMin, \
+                    ngramMax, \
+                    self.filters, \
+                    self.tagger \
+                ) 
+                self._insert_NGrams(
+                    docngrams,
+                    document, 
+                    corpusNum,
+                    overwrite
                 )
         # Second part of file parsing = document graph updating
         except StopIteration:
@@ -260,28 +241,19 @@ class Extractor():
             _logger.error( traceback.format_exc() )
             return False
 
-    def _insert_NGrams( self, document, corpusNum, ngramMin, ngramMax, overwrite ):
+    def _insert_NGrams( self, docngrams, document, corpusNum, overwrite ):
         """
+        Inserts NGrams and its graphs to storage
         MUST NOT BE USED FOR AN EXISTING DOCUMENT IN THE DB
-        Main NLP operations and extractions on a document
-        FOR DOCUMENT THAT IS NOT ALREADY IN THE DATABASE
+        BECAUSE THIS METHOD WILL OVERWRITE IT, instead uset _update_Document
         """
-        # extract filtered ngrams
-        docngrams = tokenizer.TreeBankWordTokenizer.extract( \
-            document,\
-            self.stopwords, \
-            ngramMin, \
-            ngramMax, \
-            self.filters, \
-            self.tagger \
-        )
         # insert into database
         #before=time.time()
         for ngid, ng in docngrams.iteritems():
             # increments document-ngram edge
             docOccs = ng['occs']
             del ng['occs']
-            # init ngram's edges
+            # NGram's edges
             ng.addEdge( 'Corpus', corpusNum, 1 )
             ng.addEdge( 'Document', document['id'], docOccs )
             # updates doc-ngram and corpus-ngram edges
@@ -290,7 +262,7 @@ class Extractor():
             # queue the update of the ngram
             self.storage.updateNGram( ng, overwrite, document['id'], corpusNum )
         # creates or OVERWRITES document into storage
-        self.storage.insertDocument( document, overwrite=True )
+        #self.storage.insertDocument( document, overwrite=True )
         self.storage.flushNGramQueue()
         self.storage.commitAll()
         #inserttime = time.time() - before

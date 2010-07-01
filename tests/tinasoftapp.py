@@ -44,28 +44,31 @@ class TinaAppTestCase(unittest.TestCase):
         #self.format = "medline"
         self.whitelist = whitelistSingleton
         self.userstopwordfilter = stopwordsSingleton
+        self.extracted_whitelist = 'tests/data/sometestday-'+self.datasetId+'-extract_dataset.csv'
 
-    def testH_ExtractFileImproved(self):
-        """testA_ExtractFile : testing extract_file"""
+    def testH_IndexFile(self):
+        """testH_IndexFile : testing index_file"""
         #return
-        self.failIfEqual( self.tinasoft.extract_file_improved(
+        print self.extracted_whitelist
+        self.failIfEqual( self.tinasoft.index_file(
                 self.path,
                 self.datasetId,
+                self.extracted_whitelist,
                 format=self.format,
-                minoccs=1,
                 overwrite=False
             ), TinaApp.STATUS_ERROR
         )
     def testA_ExtractFile(self):
         """testA_ExtractFile : testing extract_file"""
-        return
-        self.failIfEqual( self.tinasoft.extract_file(
+        #return
+        print self.tinasoft.extract_file(
                 self.path,
                 self.datasetId,
+                outpath=self.extracted_whitelist,
                 format=self.format,
                 minoccs=1,
-            ), TinaApp.STATUS_ERROR
         )
+        self.failIfEqual(self.extracted_whitelist, TinaApp.STATUS_ERROR)
 
 
     def testB_ImportFile(self):

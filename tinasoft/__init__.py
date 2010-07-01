@@ -73,11 +73,10 @@ class TinaApp(object):
             homedir=CLASS_ROOT,
             configFile='config.yaml',
             loc=None,
-            index=None,
             loglevel=logging.DEBUG
         ):
         """
-        Initiate config.yaml, logger, locale, storage and index
+        Initiate config.yaml, logger, locale, storage
         """
         object.__init__(self)
         if homedir is None:
@@ -94,8 +93,8 @@ class TinaApp(object):
             makedirs(self.user)
         if not exists(join( self.config['general']['basedirectory'], self.config['general']['dbenv'] )):
             makedirs(join( self.config['general']['basedirectory'], self.config['general']['dbenv'] ))
-        if not exists(join( self.config['general']['basedirectory'], self.config['general']['index'] )):
-            makedirs(join( self.config['general']['basedirectory'], self.config['general']['index'] ))
+        #if not exists(join( self.config['general']['basedirectory'], self.config['general']['index'] )):
+            #makedirs(join( self.config['general']['basedirectory'], self.config['general']['index'] ))
         if not exists(join( self.config['general']['basedirectory'], self.config['general']['log'] )):
             makedirs(join( self.config['general']['basedirectory'], self.config['general']['log'] ))
 
@@ -134,12 +133,6 @@ class TinaApp(object):
         self.last_dataset_id = None
         self.storage = None
 
-        # connect to text-indexer
-        #if index is None:
-        #    self.index = indexer.TinaIndex(join( self.config['general']['basedirectory'], self.config['general']['index'] ))
-        #else:
-        #    self.index = indexer.TinaIndex(index)
-        self.index = None
         self.logger.debug("TinaApp started components = config, logger, locale loaded")
 
     def __del__(self):
@@ -180,7 +173,6 @@ class TinaApp(object):
             path,
             dataset,
             outpath=None,
-            index=False,
             format='tinacsv',
             overwrite=False,
             minoccs=1
@@ -192,83 +184,60 @@ class TinaApp(object):
         # prepares extraction export path
         if outpath is None:
             outpath = self._user_filepath(dataset, 'extraction', "%s-extract_dataset.csv"%dataset)
-        self.logger.debug( "extract_file to %s"%outpath )
-        # sends indexer to the file parser
-        if index is True:
-            index = self.index
-        else:
-            index = None
         corporaObj = corpora.Corpora(dataset)
-        #self.set_storage( dataset )
-        #if self.storage is None:
-        #    return self.STATUS_ERROR
-        storage = None
         # instanciate extractor class
         stopwds = stopwords.StopWords( "file://%s"%join(self.config['general']['basedirectory'],self.config['datasets']['stopwords']) )
-        extract = extractor.Extractor( storage, self.config['datasets'], corporaObj, stopwds, index )
+        extract = extractor.Extractor( None, self.config['datasets'], corporaObj, stopwds )
         outpath= extract.extract_file( path, format, outpath, minoccs )
         if outpath is not False:
             return outpath
         else:
             return self.STATUS_ERROR
 
-    def extract_file_improved(self,
+    def index_file(self,
             path,
             dataset,
-            outpath=None,
-            index=False,
+            whitelistpath,
             format='tinacsv',
             overwrite=False,
-            minoccs=1
         ):
         """
-        tinasoft source improved extraction controler
+        Like import_file but limited to a given whitelist
         """
-        # prepares extraction export path
-        if outpath is None:
-            outpath = self._user_filepath(dataset, 'extraction', "%s-extract_dataset.csv"%dataset)
-        self.logger.debug( "extract_file to %s"%outpath )
-        # sends indexer to the file parser
-        if index is True:
-            index = self.index
-        else:
-            index = None
         corporaObj = corpora.Corpora(dataset)
+        whitelist = self.import_whitelist(whitelistpath)
         if self.set_storage( dataset ) == self.STATUS_ERROR:
             return self.STATUS_ERROR
-        # instanciate extractor class
+        # instanciate stopwords and extractor class
         stopwds = stopwords.StopWords( "file://%s"%join(self.config['general']['basedirectory'],self.config['datasets']['stopwords']) )
-        extract = extractor.Extractor( self.storage, self.config['datasets'], corporaObj, stopwds, index )
-        outpath = extract.extract_file_improved( path, format, outpath, minoccs, overwrite )
-        if outpath is not False:
-            return outpath
+        extract = extractor.Extractor( self.storage, self.config['datasets'], corporaObj, stopwds )
+        if extract.index_file(
+            path,
+            format,
+            whitelist,
+            overwrite
+        ) is True:
+            return self.STATUS_OK
         else:
             return self.STATUS_ERROR
+    
     def import_file(self,
             path,
             dataset,
-            index=False,
             format='tinacsv',
             overwrite=False,
         ):
         """
         tinasoft common csv file import controler
-        initiate the import.yaml config file, default ngram's filters,
-        a file Reader() to be sent to the Extractor()
         """
-        # sends indexer to the file parser
-        if index is True:
-            index=self.index
-        else:
-            index = None
-
         corporaObj = corpora.Corpora(dataset)
         if self.set_storage( dataset ) == self.STATUS_ERROR:
             return self.STATUS_ERROR
         # instanciate stopwords and extractor class
         stopwds = stopwords.StopWords( "file://%s"%join(self.config['general']['basedirectory'],self.config['datasets']['stopwords']) )
-        extract = extractor.Extractor( self.storage, self.config['datasets'], corporaObj, stopwds, index )
-        if extract.import_file( path,
+        extract = extractor.Extractor( self.storage, self.config['datasets'], corporaObj, stopwds )
+        if extract.import_file(
+            path,
             format,
             overwrite
         ) is True:

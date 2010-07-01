@@ -99,7 +99,7 @@ class TreeBankWordTokenizer(RegexpTokenizer):
     @staticmethod
     def extract(doc, stopwords, ngramMin, ngramMax, filters, tagger):
         sanitizedTarget = TreeBankWordTokenizer.sanitize(
-                                                    doc['content'],
+                                                    doc['content'] +" "+ doc['label'],
                                                     doc['forbChars'],
                                                     doc['ngramEmpty']
                                                     )

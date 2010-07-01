@@ -45,6 +45,9 @@ class Whitelist(PyTextMiner):
     def addEdge(self, type, key, value):
         return self._addEdge( type, key, value )
 
+    def test(self, ngram_id):
+        if ngram_id in self['edges']['NGram']: return True
+        else: return False
 
     def load_from_storage(self, storage, periods, filters=None, wlinstance=None):
         """Whitelist creator/updater utility"""
