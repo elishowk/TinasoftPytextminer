@@ -221,10 +221,10 @@ class TinaApp(object):
             whitelist,
             overwrite
         ) is True:
-            return self.STATUS_OK
+            return extract.duplicate
         else:
             return self.STATUS_ERROR
-    
+
     def import_file(self,
             path,
             dataset,
@@ -375,7 +375,7 @@ class TinaApp(object):
         """
         if outpath is None:
             outpath = self._user_filepath(dataset, 'gexf', "%s-graph.gexf"%"_".join(periods))
-        
+
         whitelist = self.import_whitelist(whitelistpath)
         GEXFWriter = Writer('gexf://', **self.config['datamining'])
 

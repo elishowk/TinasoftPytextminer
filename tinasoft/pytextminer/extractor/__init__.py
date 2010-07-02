@@ -115,7 +115,7 @@ class Extractor():
 
     def index_file(self, path, format, whitelist, overwrite=False):
         """intented to store whitelisted NGram-Document-Corpus objects into storage"""
-        ### adds whitelist as an additional filter 
+        ### adds whitelist as an additional filter
         self.filters += [whitelist]
         ### starts the parsing
         fileGenerator = self._walkFile( path, format )
@@ -145,14 +145,14 @@ class Extractor():
                 self.storage.updateCorpora( self.corpora, overwrite )
                 for corpusObj in self.reader.corpusDict.values():
                     self.storage.updateCorpus( corpusObj, overwrite )
-                self._insert_NGrams(docngrams, document, corpusNum, overwrite) 
+                self._insert_NGrams(docngrams, document, corpusNum, overwrite)
                 self._update_Document(overwrite, corpusNum, document)
                 doccount += 1
                 if doccount % 10 == 0:
                     _logger.debug("%d documents indexed"%doccount)
 
         except StopIteration:
-            _logger.debug(self.duplicate)
+            #_logger.debug(self.duplicate)
             return True
         except Exception:
             _logger.error(traceback.format_exc())
@@ -164,9 +164,9 @@ class Extractor():
             storedDoc = self.storage.loadDocument( document['id'] )
             if storedDoc is not None:
                 # force add the doc-corpus edge : aims at at attaching a doc to multiple corpus
-                storedDoc.addEdge( 'Corpus', corpusNum, 1 )
-                # force update
-                self.storage.updateDocument( storedDoc, True )
+                #storedDoc.addEdge( 'Corpus', corpusNum, 1 )
+                # force update, will merge edges following the class constraints
+                #self.storage.updateDocument( storedDoc, True )
                 _logger.warning( "Doc %s is already stored : only updating edges"%document['id'] )
                 # skip document
                 self.duplicate += [document]
@@ -224,10 +224,10 @@ class Extractor():
                     ngramMax, \
                     self.filters, \
                     self.tagger \
-                ) 
+                )
                 self._insert_NGrams(
                     docngrams,
-                    document, 
+                    document,
                     corpusNum,
                     overwrite
                 )
