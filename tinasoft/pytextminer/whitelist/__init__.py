@@ -18,6 +18,8 @@ __author__="Elias Showk"
 
 from tinasoft.pytextminer import PyTextMiner
 from tinasoft.pytextminer import filtering
+from tinasoft.pytextminer import ngram
+
 # used for sorting
 from operator import itemgetter
 
@@ -45,9 +47,14 @@ class Whitelist(PyTextMiner):
     def addEdge(self, type, key, value):
         return self._addEdge( type, key, value )
 
-    def test(self, ngram):
-        if ngram['id'] in self['edges']['NGram']: return True
-        else: return False
+    def test(self, ng):
+        if isinstance(ng, ngram.NGram) is True:
+            if ng['id'] in self['edges']['NGram']: return True
+            else: return False
+        elif isinstance(ng, str) is True:
+            if ng in self['edges']['NGram']: return True
+            return False
+        return False
 
     def load_from_storage(self, storage, periods, filters=None, wlinstance=None):
         """Whitelist creator/updater utility"""

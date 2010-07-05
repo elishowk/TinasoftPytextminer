@@ -697,6 +697,11 @@ class Engine(Backend):
         if storedDocument is not None:
             documentObj = self.updateEdges( documentObj, storedDocument, ['Corpus','NGram'] )
         self.insertDocument( documentObj, overwrite=True )
+        # returns a duplicate information
+        if storedDocument is not None:
+            return [storedDocument]
+        else:
+            return []
 
     def flushNGramQueue(self):
         self.insertManyNGram( self.ngramqueue, overwrite=True )

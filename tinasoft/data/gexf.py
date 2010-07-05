@@ -5,6 +5,8 @@ from tinasoft.data import Handler
 import datetime
 import itertools
 import math
+from decimal import *
+
 
 # Tenjin, the fastest template engine in the world !
 import tenjin
@@ -148,18 +150,16 @@ class NGramGraph(SubGraph):
 
     @staticmethod
     def genSpecProx( occ1, occ2, cooc, alpha ):
-        if 0 in [ occ1, occ2 ]:
-            _logger.error( "Zero occ found" )
+        try:
+            prox = (( cooc / occ1 )**alpha) * (cooc / occ2)
+            return prox
+        except Exception, e:
+            _logger.error(e)
+            _logger.error( "Parameters occ1=%d, occ2=%d, cooc=%d, alpha=%d"%(occ1, occ2, cooc, alpha) )
             return 0
-        prox = (( float(cooc) / float(occ1) )**alpha) * (float(cooc) / float(occ2))
-        return prox
 
     def notify( self, count ):
-        if count % 100 == 0:
-            tinasoft.TinaApp.notify( None,
-                'tinasoft_runProcessCoocGraph_running_status',
-                "%d ngram's edges processed"%count
-            )
+        if count % 50000 == 0:
             _logger.debug( "%d ngram's edges processed"%count )
 
     def mapEdges( self, graph ):
@@ -197,6 +197,8 @@ class NGramGraph(SubGraph):
                     or graph.gexf['nodes'][source]['weight'] < self.edgethreshold[0]:
                         del graph.gexf['nodes'][source]
                         del self.cache[source.split('::')[1]]
+                else:
+                    _logger.debug("found goo occ = %d"%graph.gexf['nodes'][source]['weight'])
 
     def addEdge( self, graph,  source, target, weight, type, **kwargs ):
         #kwargs['cooccurrences'] = weight
@@ -270,11 +272,7 @@ class DocumentGraph(SubGraph):
         )
 
     def notify( self, count ):
-        if count % 5000 == 0:
-            tinasoft.TinaApp.notify( None,
-                'tinasoft_runProcessCoocGraph_running_status',
-                "%d document's edges processed"%count
-            )
+        if count % 50000 == 0:
             _logger.debug( "%d document's edges processed"%count )
 
     def mapEdges( self, graph ):
@@ -362,9 +360,11 @@ class Exporter (GEXFHandler):
                 while 1:
                     ngid1,row = coocmatrix.next()
                     # whitelist check
-                    if whitelist is not None and ngid1 not in whitelist:
+                    if whitelist is not None and whitelist.test(ngid1) is False:
+                        _logger.error("skipping not white listed ngram")
                         continue
                     if ngid1 not in corp['edges']['NGram']:
+                        _logger.error("skipping not in a corpus ngram")
                         continue
                     occ1 = corp['edges']['NGram'][ngid1]
                     # source NGram node
@@ -376,7 +376,7 @@ class Exporter (GEXFHandler):
                     # target NGram nodes
                     for ngid2, cooc in row.iteritems():
                         # whitelist check
-                        if whitelist is not None and ngid2 not in whitelist:
+                        if whitelist is not None and whitelist.test(ngid2) is False:
                             continue
                         # weight must be 0 here because the coocmatrix is symmetric
                         ngramGraph.addNode( graph, ngid2, 0)

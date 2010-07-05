@@ -20,8 +20,6 @@ from tinasoft.pytextminer import corpus, tagger, stopwords, tokenizer, filtering
 from tinasoft.data import Engine, Reader, Writer
 
 import traceback
-import time
-#from mapreduce import ExtractionJob
 
 import logging
 _logger = logging.getLogger('TinaAppLogger')
@@ -95,9 +93,9 @@ class Extractor():
                     self.filters,
                     self.tagger
                 )
+                ### updates newwl to prepare export
                 # increments number of docs per period
                 if  corpusNum not in newwl['corpus']:
-                    #_logger.debug( "adding a period to the whitelist : " + corpusNum )
                     newwl['corpus'][corpusNum] = corpus.Corpus(corpusNum)
                 newwl['corpus'][corpusNum].addEdge('Document', str(document['id']), 1)
                 for ngid, ng in docngrams.iteritems():
@@ -115,8 +113,8 @@ class Extractor():
         except StopIteration:
             _logger.debug("Total documents extracted = %d"%doccount)
             self.storage.updateCorpora( self.corpora, False )
-            for corpusObj in newwl['corpus'].values():
-                self.storage.updateCorpus( corpusObj, False )
+            #for corpusObj in newwl['corpus'].values():
+            #    self.storage.updateCorpus( corpusObj, False )
             csvfile = Writer("whitelist://"+extract_path)
             (outpath,newwl) = csvfile.write_whitelist(newwl, minoccs)
             return outpath
@@ -136,7 +134,7 @@ class Extractor():
                 ### gets the next document
                 document, corpusNum = fileGenerator.next()
                 ### updates Corpora and Corpus objects edges
-                self.corpora.addEdge( 'Corpus', corpusNum, 1 )
+                #self.corpora.addEdge( 'Corpus', corpusNum, 1 )
                 self.reader.corpusDict[ corpusNum ].addEdge( 'Corpora', self.corpora['id'], 1)
                 ### adds Corpus-Doc edge if possible
                 self.reader.corpusDict[ corpusNum ].addEdge( 'Document', document['id'], 1)
@@ -150,39 +148,51 @@ class Extractor():
                     self.filters,
                     self.tagger
                 )
-                #_logger.debug( "got %d ngrams in document %s"%(len(docngrams.keys()), document['id']) )
                 #### inserts/updates document, corpus and corpora
-                # TODO test removing self.reader.corpusDict from memory, use the DB !!
-                self.storage.updateCorpora( self.corpora, overwrite )
-                for corpusObj in self.reader.corpusDict.values():
-                    self.storage.updateCorpus( corpusObj, overwrite )
                 self._insert_NGrams(docngrams, document, corpusNum, overwrite)
-                self._update_Document(overwrite, corpusNum, document)
+                # creates or OVERWRITES document into storage
+                self.duplicate += self.storage.updateDocument( document, overwrite )
                 doccount += 1
                 if doccount % 10 == 0:
                     _logger.debug("%d documents indexed"%doccount)
 
         except StopIteration:
-            #_logger.debug(self.duplicate)
+            #self.storage.updateCorpora( self.corpora, overwrite )
+            for corpusObj in self.reader.corpusDict.values():
+                self.storage.updateCorpus( corpusObj, overwrite )
             return True
         except Exception:
             _logger.error(traceback.format_exc())
             return False
 
-    def _update_Document(self, overwrite, corpusNum, document):
-        """doc's storage : checks if exists, then updates the necessary"""
-        if self.storage.loadDocument( document['id'] ) is not None:
-            # force add the doc-corpus edge : aims at at attaching a doc to multiple corpus
-            #storedDoc.addEdge( 'Corpus', corpusNum, 1 )
-            # force update, will merge edges following the class constraints
-            #self.storage.updateDocument( storedDoc, True )
-            _logger.warning( "Doc %s is already stored"%document['id'] )
-            # skip document
-            self.duplicate += [document]
-            return False
-        # anyway, insert document to storage
-        self.storage.updateDocument( document, overwrite )
-        return True
+    def _insert_NGrams( self, docngrams, document, corpusNum, overwrite ):
+        """
+        Inserts NGrams and its graphs to storage
+        MUST NOT BE USED FOR AN EXISTING DOCUMENT IN THE DB
+        OTHERWISE THIS METHOD WILL BREAK EXISTING DATA
+        """
+        for ngid, ng in docngrams.iteritems():
+            # increments document-ngram edge
+            docOccs = ng['occs']
+            del ng['occs']
+            # updates NGram-Corpus edges
+            storedDoc = self.storage.loadDocument( document['id'] )
+            if storedDoc is None:
+                ng.addEdge( 'Corpus', corpusNum, 1 )
+                self.reader.corpusDict[ corpusNum ].addEdge( 'NGram', ngid, 1 )
+            elif corpusNum not in storedDoc['edges']['Corpus']:
+                ng.addEdge( 'Corpus', corpusNum, 1 )
+                self.reader.corpusDict[ corpusNum ].addEdge( 'NGram', ngid, 1 )
+            elif ngid not in storedDoc['edges']['NGram']:
+                ng.addEdge( 'Corpus', corpusNum, 1 )
+                self.reader.corpusDict[ corpusNum ].addEdge( 'NGram', ngid, 1 )
+            ng.addEdge( 'Document', document['id'], docOccs )
+            # updates Doc-NGram edges
+            document.addEdge( 'NGram', ng['id'], docOccs )
+            # queue the update of the ngram
+            self.storage.updateNGram( ng, overwrite, document['id'], corpusNum )
+        self.storage.flushNGramQueue()
+        self.storage.commitAll()
 
     def import_file(self, path, format, overwrite=False):
 
@@ -250,33 +260,17 @@ class Extractor():
             _logger.error( traceback.format_exc() )
             return False
 
-    def _insert_NGrams( self, docngrams, document, corpusNum, overwrite ):
-        """
-        Inserts NGrams and its graphs to storage
-        MUST NOT BE USED FOR AN EXISTING DOCUMENT IN THE DB
-        BECAUSE THIS METHOD WILL OVERWRITE IT, instead use _update_Document
-        """
-        # insert into database
-        #before=time.time()
-        for ngid, ng in docngrams.iteritems():
-            # increments document-ngram edge
-            docOccs = ng['occs']
-            del ng['occs']
-            # NGram's edges
-            ng.addEdge( 'Corpus', corpusNum, 1 )
-            ng.addEdge( 'Document', document['id'], docOccs )
-            # updates doc-ngram and corpus-ngram edges
-            document.addEdge( 'NGram', ng['id'], docOccs )
-            self.reader.corpusDict[ corpusNum ].addEdge( 'NGram', ngid, 1 )
-            # queue the update of the ngram
-            self.storage.updateNGram( ng, overwrite, document['id'], corpusNum )
-        # creates or OVERWRITES document into storage
-        #self.storage.insertDocument( document, overwrite=True )
-        self.storage.flushNGramQueue()
-        self.storage.commitAll()
-        #inserttime = time.time() - before
-        #self.totaltime += inserttime
-        #meantime = self.totaltime / self.doccount
-        #_logger.debug( "insert and commit ngrams and document = %s sec, mean = %s sec"%(str(inserttime),str(meantime)) )
-
-
+    def _update_Document(self, overwrite, corpusNum, document):
+        """doc's storage : checks if exists, then updates the necessary"""
+        #if self.storage.loadDocument( document['id'] ) is not None:
+            # force add the doc-corpus edge : aims at at attaching a doc to multiple corpus
+            #storedDoc.addEdge( 'Corpus', corpusNum, 1 )
+            # force update, will merge edges following the class constraints
+            #self.storage.updateDocument( storedDoc, True )
+            #_logger.warning( "Doc %s is already stored"%document['id'] )
+            # skip document
+            #self.duplicate += [document]
+            #return False
+        # anyway, insert document to storage
+        self.duplicate += self.storage.updateDocument( document, overwrite )
+        return True

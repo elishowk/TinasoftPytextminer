@@ -17,7 +17,7 @@
 __author__="Julian Bilcke, Elias Showk"
 __date__ ="$Oct 20, 2009 5:30:11 PM$"
 
-__all__ = ["filtering","corpora", "corpus", "document", "ngram", "tokenizer", "tagger", "cooccurrences", "stopwords","extractor"]
+__all__ = ["filtering","corpora", "corpus", "document", "ngram", "tokenizer", "tagger", "cooccurrences", "stopwords","extractor","whitelist"]
 
 from uuid import uuid4
 

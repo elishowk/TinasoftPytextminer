@@ -187,7 +187,9 @@ class TinaApp(object):
             return self.STATUS_ERROR
         # prepares extraction export path
         if outpath is None:
-            outpath = self._user_filepath(dataset, 'whitelist', "%s-extract_dataset.csv"%dataset)
+            if whitelistlabel is None:
+                whitelistlabel=dataset
+            outpath = self._user_filepath(whitelistlabel, 'whitelist', "%s-extract_dataset.csv"%dataset)
         corporaObj = corpora.Corpora(dataset)
         # instanciate extractor class
         stopwds = stopwords.StopWords( "file://%s"%join(self.config['general']['shared'],self.config['general']['stopwords']) )

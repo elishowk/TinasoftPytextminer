@@ -52,6 +52,95 @@ class CoocMatrix():
         index2 = self._getindex(key2)
         self.array[ index1, index2 ] += value
 
+class Simple():
+    """
+    A simple cooccurrences matrix processor
+    Uses directly the data from storage
+    """
+    def __init__(self, storage, corpusid):
+        self.storage = storage
+        self.corpusid = corpusid
+        self.corpus = self.storage.loadCorpus( self.corpusid )
+        if self.corpus is None:
+            raise Warning('Corpus not found')
+        self.matrix = CoocMatrix( len( self.corpus['edges']['NGram'].keys() ) )
+
+    def walkCorpus(self):
+        """processes a list of documents into a corpus"""
+        totaldocs = len(self.corpus['edges']['Document'].keys())
+        doccount = 0
+        for doc_id in self.corpus['edges']['Document']:
+            obj = self.storage.loadDocument( doc_id )
+            if obj is not None:
+                mapgenerator = self.mapper(obj)
+                try:
+                    # documents loop
+                    while mapgenerator:
+                        term_map = mapgenerator.next()
+                        self.reducer( term_map )
+                except StopIteration, si: pass
+            doccount += 1
+            if doccount % 50 == 0:
+                _logger.debug(
+                    'processed coocs for %d of %d documents in period %s'%(doccount,totaldocs,self.corpusid)
+                )
+
+    def mapper(self, doc):
+        """
+        generates a row for each ngram in the doc,
+        cooccurrences to 1 to every other ngram in the doc
+        """
+        map = fromkeys(doc['edges']['NGram'].keys(), 1)
+        # map is a unity slice of the matrix
+        for ng in doc['edges']['NGram'].keys():
+            yield [ng,map]
+
+    def reducer(self, term_map):
+        """updates the cooc matrix"""
+        ng1 = term_map[0]
+        map = term_map[1]
+        for ngi in map.iterkeys():
+            self.matrix.set( ng1, ngi )
+
+
+    def writeMatrix(self, overwrite=True):
+        """
+        writes in the db rows of the matrix
+        'Cooc::corpus::ngramid' => '{ 'ngx' : y, 'ngy': z }'
+        """
+
+        if self.corpusid is not None:
+            key = self.corpusid+'::'
+        else:
+            return
+
+        totalrows = len(self.matrix.reverse.keys())
+        countcooc = 0
+        for ngi in self.matrix.reverse.iterkeys():
+            row = {}
+            for ngj in self.matrix.reverse.iterkeys():
+                cooc = self.matrix.get( ngi, ngj )
+                if cooc > 0:
+                    countcooc += 1
+                    row[ngj] = cooc
+            if len( row.keys() ) > 0:
+                self.storage.updateCooc( key+ngi, row, overwrite )
+
+        self.storage.flushCoocQueue()
+        self.storage.commitAll()
+        _logger.debug( 'stored %d non-zero cooccurrences values'%countcooc )
+
+    def readMatrix( self ):
+        try:
+            generator = self.storage.selectCorpusCooc( self.corpusid )
+            while 1:
+                id,row = generator.next()
+                if id not in self.whitelist['edges']['NGram']:
+                    continue
+                self.reducer( [id, row] )
+        except StopIteration, si:
+            return
+
 
 
 class MapReduce():
