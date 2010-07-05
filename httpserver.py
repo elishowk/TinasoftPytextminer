@@ -28,7 +28,7 @@ from twisted.web.resource import NoResource, ErrorPage
 import jsonpickle
 import traceback
 # unescaping uri components
-import cgi
+#import cgi
 from os.path import join
 import sys
 

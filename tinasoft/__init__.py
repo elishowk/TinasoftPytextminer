@@ -172,6 +172,7 @@ class TinaApp(object):
     def extract_file(self,
             path,
             dataset,
+            whitelistlabel=None,
             outpath=None,
             format='tinacsv',
             overwrite=False,
@@ -191,8 +192,8 @@ class TinaApp(object):
         # instanciate extractor class
         stopwds = stopwords.StopWords( "file://%s"%join(self.config['general']['shared'],self.config['general']['stopwords']) )
         userstopwords = self.import_userstopwords(userstopwords)
-        extract = extractor.Extractor( None, self.config['datasets'], corporaObj, stopwds, userstopwords)
-        outpath= extract.extract_file( path, format, outpath, minoccs )
+        extract = extractor.Extractor( self.storage, self.config['datasets'], corporaObj, stopwds, userstopwords)
+        outpath= extract.extract_file( path, format, outpath, whitelistlabel, minoccs )
         if outpath is not False:
             return outpath
         else:

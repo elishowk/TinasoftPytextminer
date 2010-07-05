@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
 #  Copyright (C) 2010 elishowk
 #
@@ -68,24 +67,33 @@ class Extractor():
         except StopIteration:
             return
 
-    def extract_file(self, path, format, extract_path, minoccs=1):
-        # starts the parsing
+    def extract_file(self, path, format, extract_path, whitelistlabel=None, minoccs=1):
+        """
+        parses a source file,
+        tokenizes and filters,
+        stores Corpora and Corpus object
+        then produces a whitelist,
+        and finally export to a file
+        """
         fileGenerator = self._walkFile( path, format )
-        newwl = whitelist.Whitelist(self.corpora['id'], self.corpora['id'], corpus={})
+        if whitelistlabel is None:
+            whitelistlabel = self.corpora['id']
+        newwl = whitelist.Whitelist(whitelistlabel, whitelistlabel)
         doccount = 0
         try:
             while 1:
                 # gets the next document
                 document, corpusNum = fileGenerator.next()
-                corpusNum = str(corpusNum)
+                ### updates Corpora and Corpus objects edges
+                self.corpora.addEdge( 'Corpus', corpusNum, 1 )
                 # extract and filter ngrams
-                docngrams = tokenizer.TreeBankWordTokenizer.extract(\
-                    document,\
-                    self.stopwords,\
-                    self.config['ngramMin'],\
-                    self.config['ngramMax'],\
-                    self.filters, \
-                    self.tagger\
+                docngrams = tokenizer.TreeBankWordTokenizer.extract(
+                    document,
+                    self.stopwords,
+                    self.config['ngramMin'],
+                    self.config['ngramMax'],
+                    self.filters,
+                    self.tagger
                 )
                 # increments number of docs per period
                 if  corpusNum not in newwl['corpus']:
@@ -101,11 +109,14 @@ class Extractor():
                     # increments total occurences within the dataset
                     newwl.addEdge( 'NGram', ngid, 1 )
                 doccount += 1
-                if doccount % 10 == 0:
+                if doccount % 100 == 0:
                     _logger.debug("%d documents parsed"%doccount)
 
         except StopIteration:
             _logger.debug("Total documents extracted = %d"%doccount)
+            self.storage.updateCorpora( self.corpora, False )
+            for corpusObj in newwl['corpus'].values():
+                self.storage.updateCorpus( corpusObj, False )
             csvfile = Writer("whitelist://"+extract_path)
             (outpath,newwl) = csvfile.write_whitelist(newwl, minoccs)
             return outpath
@@ -114,7 +125,7 @@ class Extractor():
             return False
 
     def index_file(self, path, format, whitelist, overwrite=False):
-        """intented to store whitelisted NGram-Document-Corpus objects into storage"""
+        """given a white list, indexes a source file to storage"""
         ### adds whitelist as an additional filter
         self.filters += [whitelist]
         ### starts the parsing
@@ -129,17 +140,17 @@ class Extractor():
                 self.reader.corpusDict[ corpusNum ].addEdge( 'Corpora', self.corpora['id'], 1)
                 ### adds Corpus-Doc edge if possible
                 self.reader.corpusDict[ corpusNum ].addEdge( 'Document', document['id'], 1)
-                document.addEdge('Corpus', corpusNum, 1)
+                #document.addEdge('Corpus', corpusNum, 1)
                 ### extract and filter ngrams
-                docngrams = tokenizer.TreeBankWordTokenizer.extract(\
-                    document,\
-                    self.stopwords,\
-                    self.config['ngramMin'],\
-                    self.config['ngramMax'],\
-                    self.filters, \
-                    self.tagger\
+                docngrams = tokenizer.TreeBankWordTokenizer.extract(
+                    document,
+                    self.stopwords,
+                    self.config['ngramMin'],
+                    self.config['ngramMax'],
+                    self.filters,
+                    self.tagger
                 )
-                _logger.debug( "got %d ngrams in document %s"%(len(docngrams.keys()), document['id']) )
+                #_logger.debug( "got %d ngrams in document %s"%(len(docngrams.keys()), document['id']) )
                 #### inserts/updates document, corpus and corpora
                 # TODO test removing self.reader.corpusDict from memory, use the DB !!
                 self.storage.updateCorpora( self.corpora, overwrite )
@@ -159,20 +170,18 @@ class Extractor():
             return False
 
     def _update_Document(self, overwrite, corpusNum, document):
-        """ doc's storage : checks if exists, then updates the necessary"""
-        if overwrite is False:
-            storedDoc = self.storage.loadDocument( document['id'] )
-            if storedDoc is not None:
-                # force add the doc-corpus edge : aims at at attaching a doc to multiple corpus
-                #storedDoc.addEdge( 'Corpus', corpusNum, 1 )
-                # force update, will merge edges following the class constraints
-                #self.storage.updateDocument( storedDoc, True )
-                _logger.warning( "Doc %s is already stored : only updating edges"%document['id'] )
-                # skip document
-                self.duplicate += [document]
-                return False
+        """doc's storage : checks if exists, then updates the necessary"""
+        if self.storage.loadDocument( document['id'] ) is not None:
+            # force add the doc-corpus edge : aims at at attaching a doc to multiple corpus
+            #storedDoc.addEdge( 'Corpus', corpusNum, 1 )
+            # force update, will merge edges following the class constraints
+            #self.storage.updateDocument( storedDoc, True )
+            _logger.warning( "Doc %s is already stored"%document['id'] )
+            # skip document
+            self.duplicate += [document]
+            return False
         # anyway, insert document to storage
-        self.storage.updateDocument( document, True )
+        self.storage.updateDocument( document, overwrite )
         return True
 
     def import_file(self, path, format, overwrite=False):
