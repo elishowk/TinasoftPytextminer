@@ -265,7 +265,10 @@ def run(customdir=None):
     tinacallback = TinaServerCallback()
     tinaserver = TinaServer(tinacallback, posthandler, gethandler)
     tinaserver.putChild("user",
-        File(join( tinaappsingleton.user ))
+        File(tinaappsingleton.user)
+    )
+    tinaserver.putChild("",
+        File('static')
     )
     site = server.Site(tinaserver)
     reactor.listenTCP(8888, site)
