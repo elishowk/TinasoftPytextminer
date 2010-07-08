@@ -1,0 +1,7 @@
+include LICENSE
+include README
+recursive-include shared *
+recursive-include shared\gexf *
+recursive-include shared\stopwords *
+recursive-include shared\nltk_data\corpora\brown *
+recursive-include shared\nltk_data\corpora\conll2000 *

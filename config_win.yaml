@@ -1,0 +1,56 @@
+---
+# application main params
+general:
+    basedirectory: '.'
+    locale: ''
+    index: 'index'
+    dbenv: 'db'
+    log: 'log'
+    loglevel: 'debug'
+    user: 'user'
+    shared: 'shared'
+    stopwords: 'stopwords\en.txt'
+    userstopwords: 'shared\user_stopwords.csv'
+# extraction settings
+datasets:
+    # tina csv columns declaration
+    # will ignore undeclared fields
+    # and warn not found optional fields
+    tinacsv:
+        fields:
+            titleField: 'doc_titl'
+            contentField: 'doc_abst'
+            authorField: 'doc_acrnm'
+            corpusNumberField: 'corp_id'
+            docNumberField: 'doc_id'
+            # next fields are optional
+            index1Field: 'doc_index_1'
+            index2Field: 'doc_index_2'
+            dateField: 'doc_date'
+            keywordsField: 'doc_keywords'
+        # csv reader params
+        delimiter: ','
+        quotechar: '"'
+        locale: 'en_US.UTF-8'
+    # extraction params
+    ngramMin: 1
+    ngramMax: 4
+    training_tagger_size: 1000
+    overwrite: 0
+datamining:
+    template: 'shared\gexf\gexf.template'
+    DocumentGraph:
+        edgethreshold:
+            - 0.0
+            - 2.0
+        nodethreshold:
+            - 1
+            - 'inf'
+    NGramGraph:
+        edgethreshold:
+            - 0.0
+            - 1.0
+        nodethreshold:
+            - 1
+            - 'inf'
+        alpha: 0.01
