@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 #  Copyright (C) 2009-2011 CREA Lab, CNRS/Ecole Polytechnique UMR 7656 (Fr)
 #
 #  This program is free software: you can redistribute it and/or modify
@@ -17,20 +17,25 @@ __author__="elishowk@nonutc.fr"
 
 from tinasoft import TinaApp
 
-
 from twisted.web import server, resource
 from twisted.internet import reactor
 from twisted.web.static import File
 # error handling
 from twisted.web.resource import NoResource, ErrorPage
 
-# json encoder for communicate with the outer world
+# json encoder to communicate with the outer world
 import jsonpickle
+# traceback to print error traces
 import traceback
+
 # unescaping uri components
 #import cgi
+
 from os.path import join
+
 import sys
+sys.stdout = open('httpserver_stdout.log', 'a+b')
+sys.stderr = open('httpserver_stderr.log', 'a+b')
 
 class TinaServerResource(resource.Resource):
     """
@@ -255,11 +260,8 @@ class TinaServerCallback():
         return self.serialize( returnValue )
 
 
-def run(customdir=None):
-    if customdir is not None:
-        tinaappsingleton = TinaApp(homedir=customdir)
-    else:
-        tinaappsingleton = TinaApp()
+def run(customDir, confFile):
+    tinaappsingleton = TinaApp(homedir=customDir, configFile=confFile)
     posthandler = TinaAppPOST(tinaappsingleton)
     gethandler = TinaAppGET(tinaappsingleton)
     tinacallback = TinaServerCallback()
@@ -271,11 +273,16 @@ def run(customdir=None):
     reactor.listenTCP(8888, site)
     reactor.run()
 
+def usage():
+    print >> sys.stdout, "USAGE : python httpserver.py exec_directory_path configuration_file_name"
+
 if __name__ == "__main__":
     import getopt
-    opts, args = getopt.gnu_getopt(sys.argv[1:],'d')
-    dir=None
-    for o, a in opts:
-        if o == "-d":
-            dir=a
-    run(customdir=dir)
+    opts, args = getopt.getopt(sys.argv[1:],'')
+    try:
+        customDir=args[0]
+        confFile=args[1]
+    except:
+        usage()
+        exit()
+    run(customDir, confFile)

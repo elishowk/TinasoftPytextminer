@@ -15,7 +15,9 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 __all__ = ["pytextminer","data"]
-
+import sys
+#sys.stdout = open('tinaapp_stdout.log', 'a+b')
+#sys.stderr = open('tinaapp_stderr.log', 'a+b')
 # python utility modules
 import os
 from os.path import exists
@@ -47,7 +49,7 @@ LEVELS = {
     'critical': logging.CRITICAL
 }
 
-CLASS_ROOT = os.path.dirname(os.path.abspath(__file__))
+CWD = '.'
 STORAGE_DSN = "tinabsddb://tinasoft.bsddb"
 
 class TinaApp(object):
@@ -71,21 +73,28 @@ class TinaApp(object):
     def __init__(
             self,
             homedir=None,
-            configFile='config.yaml',
+            configFile=None,
             loc=None,
             loglevel=logging.DEBUG
         ):
         """
-        Initiate config.yaml, logger, locale, storage
+        Init config, logger, locale, storage
         """
         object.__init__(self)
+        self.last_dataset_id = None
+        self.storage = None
+        # if no argument given, will search configuration at ./config.yaml
         if homedir is None:
-            homedir=CLASS_ROOT
+            homedir = CWD
+        if configFile is None:
+            configFile = 'config.yaml'
         # import config yaml to self.config
         try:
             self.config = yaml.safe_load( file( join(homedir,configFile), 'rU' ) )
         except yaml.YAMLError, exc:
             print exc
+            print "params"
+            print homedir, configFile
             return self.STATUS_ERROR
         # creates app directories
         self.user = join( self.config['general']['basedirectory'], self.config['general']['user'] )
@@ -130,14 +139,12 @@ class TinaApp(object):
             self.logger.warning( "locale %s was not found, switching to default = "%self.locale)
             locale.setlocale(locale.LC_ALL, self.locale)
 
-        self.last_dataset_id = None
-        self.storage = None
-
         self.logger.debug("TinaApp started components = config, logger, locale loaded")
 
     def __del__(self):
         """resumes the storage transactions when destroying this object"""
-        del self.storage
+        if self.storage is not None:
+            del self.storage
 
     def set_storage( self, dataset_id, create=True, **options ):
         """
