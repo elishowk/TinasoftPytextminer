@@ -1,6 +1,6 @@
 Thanks for using Tinasoft-Pytextminer
 
-Pytextminer is a part of a larger software : Tinasoft Desktop you can find @ http://github.com/jbilcke/tinasoft.desktop/
+Pytextminer is a part of a larger software : Tinasoft Desktop you can find it at http://github.com/jbilcke/tinasoft.desktop/
 
 A text-mining python module producing bottom-up ngram detection and mapping. Using NLTK the natural language processing toolkit (http://www.nltk.org/), bsddb the Berkeley embeddable DB connector for storage (http://www.jcea.es/programacion/pybsddb_doc/), and whoosh the indexation engine (http://whoosh.ca), it provides :
 - document/corpus/ngram graphs database
@@ -12,8 +12,7 @@ A text-mining python module producing bottom-up ngram detection and mapping. Usi
 - customizable graph generator (GEXF format)
 - and soon a stemmer and a lemmatizer
 
-This work is part of TINA, an European Union FP7 project - FP7-ICT-2009-C : http://tina.csregistry.org/
-
+This work is part of TINA, an European Union FP7 project - FP7-ICT-2009-C : http://tinasoft.eu/
 The software implements scientific worksby David Chavalarias (CREA lab; CNRS/Ecole Polytechnique UMR 7656, http://chavalarias.com) and Jean-Philippe Cointet (INRA, http://jph.cointet.free.fr). You can read their publications here:
 
 http://arxiv.org/abs/0904.3154v1
@@ -41,26 +40,30 @@ SOURCE CODE REPOSITORY
 
 AUTHORS
 
-- Research engineers at CREA lab (UMR 7656, CNRS, Ecole Polytechnique)
+- Researchers and engineers at CREA lab (UMR 7656, CNRS, Ecole Polytechnique, France)
 
+    david chavalarias <david.chavalarias@polytechnique.edu>
     elias showk <elishowk@nonutc.fr>
     julian bilcke <julian.bilcke@iscpif.fr>
 
 SUPPORT AND FEEDBACK
 
+    http://tinasoft.eu/
     http://github.com/elishowk/TinasoftPytextminer/issues
 
-INSTALL
+INSTALL AS A LIBRARY
+
+    BERKELEY DB : install it on your system from http://www.oracle.com/technology/software/products/berkeley-db/index.html
 
     PYTHON : you'll need Python 2.6 interpreter : http://python.org/
 
-    TinasoftPytextminer python package
         $ sudo python setup.py install
         or
         $ sudo python setup.py develop
-    Dependencies will be checked : numpy, nltk, twisted, etc (see setup.py)
 
-    NLTK DATA
+    Dependencies should be checked : numpy, nltk, twisted, etc (see setup.py)
+
+    DOWNLOAD NLTK DATA
 
     You'll need to install manually required nltk corpus data
         $ export NLTK_DATA="/path/to/TinasoftPytextminer/shared/nltk_data"
@@ -70,12 +73,33 @@ INSTALL
         Downloader> d brown
         Downloader> d conll2000
 
+INSTALL AS A STANDALONE SOFTWARE
+
+    DOWNLOAD available standalone packages from http::/tinasoft.eu
+
+    MANUAL INSTALL on MS WINDOWS:
+        - find a dependencies installer at http://tina.iscpif.fr/htdocs/repository/tinasoftpytextminer_win32_deps_installer.zip
+        - then, in a command line :
+
+            $ set NLTK_DATA="TinasoftPytextminer\shared\nltk_data"
+            $ PATH C:\Python26;%PATH%
+            $ python httpserver.exe config_win.yaml
+
+        - finally open your web browser at http://localhost:8888 (no internet connection needed)
+
+    GNU/LINUX (and probable UNIX-like systems)
+        - use the standalone freezed httpserver software
+
+            $ export NLTK_DATA=shared/nltk_data
+            $ python httpserver config_unix.yaml
+
+        - open your browser at http://localhost:8888
+
 CONFIGURATION
 
     config.yaml is a YAML configuration files. It is searched by the main application object (TinaApp class) at the into the same source directory
 
-    DEPRECATED :
-[[[[[[[[[[
+
     declare each column name of your csv file into the corresponding field name of the configuration file, otherwise they will be ignored by the software
 
         titleField: document title
@@ -88,24 +112,18 @@ CONFIGURATION
         index2Field: document index 2
         dateField: document publication date
         keywordsField: document keywords
-]]]]]]]]]]
+
     check out the format of your csv file (encoding, delimiter, quoting character) and write them into fields "locale", "delimiter", "quotechar"
     "minSize", and "maxSize" means the length of n-grams extracted
     all other fields are the script configuration, or the default values for testing purpose
 
     WARNING : in YAML all tabulations are spaces, all string values must be quoted (eg : 'prop_title'). Further information at http://en.wikipedia.org/wiki/YAML
 
-USAGE
-
-    - you can launch the http server to acces the API
-    $ python tinaserver.py
-    or executing tinaserver.exe under windows
-    - you can try multiple features using code from the tests scripts into 'tests/'
 
 SUPPORTED OPERATING SYSTEMS
 
-    PyTextMiner was tested on the following Linux platforms:
+    PyTextMiner was tested on the following platforms:
 
-        Linux 64 bits (AMD64, i686) with Python 2.6
+        Linux 64 bits (AMD64, i386) with Python 2.6
         Windows XP SP2 and SP3 (32bit)
 
