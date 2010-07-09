@@ -1,14 +1,16 @@
-# tinasoft configuration (YAML format)
 ---
 # application main params
 general:
     basedirectory: '.'
-    locale: 'en_US.UTF-8'
+    locale: ''
     index: 'index'
     dbenv: 'db'
     log: 'log'
     loglevel: 'debug'
     user: 'user'
+    shared: 'shared'
+    stopwords: 'stopwords/en.txt'
+    userstopwords: 'user_stopwords.csv'
 # extraction settings
 datasets:
     # tina csv columns declaration
@@ -33,8 +35,6 @@ datasets:
     # extraction params
     ngramMin: 1
     ngramMax: 4
-    stopwords: 'shared/stopwords/en.txt'
-    userstopwords: 'tests/data/user_stopwords.csv'
     training_tagger_size: 1000
     overwrite: 0
 datamining:
@@ -53,3 +53,4 @@ datamining:
         nodethreshold:
             - 1
             - 'inf'
+        alpha: 0.01

@@ -10,7 +10,7 @@ general:
     user: 'user'
     shared: 'shared'
     stopwords: 'stopwords\en.txt'
-    userstopwords: 'shared\user_stopwords.csv'
+    userstopwords: 'user_stopwords.csv'
 # extraction settings
 datasets:
     # tina csv columns declaration
@@ -31,7 +31,7 @@ datasets:
         # csv reader params
         delimiter: ','
         quotechar: '"'
-        locale: 'en_US.UTF-8'
+        locale: ''
     # extraction params
     ngramMin: 1
     ngramMax: 4
