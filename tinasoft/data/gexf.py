@@ -151,7 +151,7 @@ class NGramGraph(SubGraph):
     @staticmethod
     def genSpecProx( occ1, occ2, cooc, alpha ):
         try:
-            prox = (( cooc / occ1 )**alpha) * (cooc / occ2)
+            prox = (( float(cooc) / float(occ1) )**alpha) * float(cooc) / float(occ2)
             return prox
         except Exception, e:
             _logger.error(e)
