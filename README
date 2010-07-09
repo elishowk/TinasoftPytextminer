@@ -51,28 +51,6 @@ SUPPORT AND FEEDBACK
     http://tinasoft.eu/
     http://github.com/elishowk/TinasoftPytextminer/issues
 
-INSTALL AS A LIBRARY
-
-    BERKELEY DB : install it on your system from http://www.oracle.com/technology/software/products/berkeley-db/index.html
-
-    PYTHON : you'll need Python 2.6 interpreter : http://python.org/
-
-        $ sudo python setup.py install
-        or
-        $ sudo python setup.py develop
-
-    Dependencies should be checked : numpy, nltk, twisted, etc (see setup.py)
-
-    DOWNLOAD NLTK DATA
-
-    You'll need to install manually required nltk corpus data
-        $ export NLTK_DATA="/path/to/TinasoftPytextminer/shared/nltk_data"
-        $ python
-        > import nltk.download()
-        Downloader> d punkt
-        Downloader> d brown
-        Downloader> d conll2000
-
 INSTALL AS A STANDALONE SOFTWARE
 
     DOWNLOAD available standalone packages from http::/tinasoft.eu
@@ -94,6 +72,32 @@ INSTALL AS A STANDALONE SOFTWARE
             $ python httpserver config_unix.yaml
 
         - open your browser at http://localhost:8888
+
+INSTALL AS A LIBRARY
+
+    * we provide an http nearly RESTfull server providing a stable API
+
+    DEPENDENCIES
+
+    BERKELEY DB : install it on your system from http://www.oracle.com/technology/software/products/berkeley-db/index.html
+
+    PYTHON : you'll need Python 2.6 interpreter : http://python.org/
+
+        $ sudo python setup.py install
+        or
+        $ sudo python setup.py develop
+
+    Dependencies should be checked : numpy, nltk, twisted, etc (see setup.py)
+
+    DOWNLOAD NLTK DATA
+
+    You'll need to install manually required nltk corpus data
+        $ export NLTK_DATA="/path/to/TinasoftPytextminer/shared/nltk_data"
+        $ python
+        > import nltk.download()
+        Downloader> d punkt
+        Downloader> d brown
+        Downloader> d conll2000
 
 CONFIGURATION
 
