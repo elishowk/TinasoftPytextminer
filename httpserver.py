@@ -1,4 +1,5 @@
-﻿# -*- coding: utf-8 -*-
+﻿#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 #  Copyright (C) 2009-2011 CREA Lab, CNRS/Ecole Polytechnique UMR 7656 (Fr)
 #
 #  This program is free software: you can redistribute it and/or modify
@@ -260,8 +261,8 @@ class TinaServerCallback():
         return self.serialize( returnValue )
 
 
-def run(customDir, confFile):
-    tinaappsingleton = TinaApp(homedir=customDir, configFile=confFile)
+def run(confFile):
+    tinaappsingleton = TinaApp(confFile)
     posthandler = TinaAppPOST(tinaappsingleton)
     gethandler = TinaAppGET(tinaappsingleton)
     tinacallback = TinaServerCallback()
@@ -277,15 +278,14 @@ def run(customDir, confFile):
     reactor.run()
 
 def usage():
-    print >> sys.stdout, "USAGE : python httpserver.py exec_directory_path configuration_file_name"
+    print "USAGE : python httpserver.py configuration_file_path"
 
 if __name__ == "__main__":
     import getopt
     opts, args = getopt.getopt(sys.argv[1:],'')
     try:
-        customDir=args[0]
-        confFile=args[1]
+        confFile=args[0]
     except:
         usage()
         exit()
-    run(customDir, confFile)
+    run(confFile)

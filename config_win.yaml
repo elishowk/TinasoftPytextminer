@@ -1,6 +1,7 @@
 ---
 # application main params
 general:
+    # where all path and following file are located
     basedirectory: '.'
     locale: ''
     index: 'index'
@@ -9,6 +10,7 @@ general:
     loglevel: 'debug'
     user: 'user'
     shared: 'shared'
+    # stopwords are under share
     stopwords: 'stopwords\en.txt'
     userstopwords: 'user_stopwords.csv'
 # extraction settings

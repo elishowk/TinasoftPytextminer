@@ -72,8 +72,7 @@ class TinaApp(object):
 
     def __init__(
             self,
-            homedir=None,
-            configFile=None,
+            configFilePath,
             loc=None,
             loglevel=logging.DEBUG
         ):
@@ -84,17 +83,17 @@ class TinaApp(object):
         self.last_dataset_id = None
         self.storage = None
         # if no argument given, will search configuration at ./config.yaml
-        if homedir is None:
-            homedir = CWD
-        if configFile is None:
-            configFile = 'config.yaml'
+        #if homedir is None:
+        #    homedir = CWD
+        #if configFile is None:
+        #    configFile = 'config.yaml'
         # import config yaml to self.config
         try:
-            self.config = yaml.safe_load( file( join(homedir,configFile), 'rU' ) )
+            self.config = yaml.safe_load( file( configFilePath, 'rU' ) )
         except yaml.YAMLError, exc:
             print exc
-            print "params"
-            print homedir, configFile
+            print "bad config yaml path passed to TinaApp"
+            print configFilePath
             return self.STATUS_ERROR
         # creates app directories
         self.user = join( self.config['general']['basedirectory'], self.config['general']['user'] )
@@ -136,7 +135,7 @@ class TinaApp(object):
             locale.setlocale(locale.LC_ALL, self.locale)
         except:
             self.locale = ''
-            self.logger.warning( "locale %s was not found, switching to default = "%self.locale)
+            self.logger.warning( "configured locale was not found, switching to default ='%s'"%self.locale)
             locale.setlocale(locale.LC_ALL, self.locale)
 
         self.logger.debug("TinaApp started components = config, logger, locale loaded")
@@ -199,7 +198,7 @@ class TinaApp(object):
             outpath = self._user_filepath(whitelistlabel, 'whitelist', "%s-extract_dataset.csv"%dataset)
         corporaObj = corpora.Corpora(dataset)
         # instanciate extractor class
-        stopwds = stopwords.StopWords( "file://%s"%join(self.config['general']['shared'],self.config['general']['stopwords']) )
+        stopwds = stopwords.StopWords( "file://%s"%join(self.config['general']['basedirectory'],self.config['general']['shared'],self.config['general']['stopwords']) )
         userstopwords = self.import_userstopwords(userstopwords)
         extract = extractor.Extractor( self.storage, self.config['datasets'], corporaObj, stopwds, userstopwords)
         outpath= extract.extract_file( path, format, outpath, whitelistlabel, minoccs )
@@ -223,7 +222,7 @@ class TinaApp(object):
         if self.set_storage( dataset ) == self.STATUS_ERROR:
             return self.STATUS_ERROR
         # instanciate stopwords and extractor class
-        stopwds = stopwords.StopWords( "file://%s"%join(self.config['general']['shared'],self.config['general']['stopwords']) )
+        stopwds = stopwords.StopWords( "file://%s"%join(self.config['general']['basedirectory'],self.config['general']['shared'],self.config['general']['stopwords']) )
         extract = extractor.Extractor( self.storage, self.config['datasets'], corporaObj, stopwds )
         if extract.index_file(
             path,
@@ -248,7 +247,7 @@ class TinaApp(object):
         if self.set_storage( dataset ) == self.STATUS_ERROR:
             return self.STATUS_ERROR
         # instanciate stopwords and extractor class
-        stopwds = stopwords.StopWords( "file://%s"%join(self.config['general']['shared'],self.config['general']['stopwords']) )
+        stopwds = stopwords.StopWords( "file://%s"%join(self.config['general']['basedirectory'],self.config['general']['shared'],self.config['general']['stopwords']) )
         extract = extractor.Extractor( self.storage, self.config['datasets'], corporaObj, stopwds )
         if extract.import_file(
             path,
