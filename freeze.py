@@ -32,9 +32,8 @@ includes = ['bsddb3']
 excludes = ['_gtkagg', '_tkagg', 'curses', 'email', 'pywin.debugger',
             'pywin.debugger.dbgcon', 'pywin.dialogs', 'tcl',
             'Tkconstants', 'Tkinter']
-packages = ['encodings']
+packages = ['encodings','zope.interface']
 path = []
-
 setup(
         name = "tinasoft",
         version = __version__,
