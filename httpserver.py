@@ -244,16 +244,25 @@ class TinaAppGET():
 class TinaserverFiles(resource.Resource):
     """
     Server child resource
-    Storing uploaded files
+    Storing uploaded files into memory
     """
     def __init__(self):
-        self.data = {}
+        self.data = None
         resource.Resource.__init__(self)
 
     def render_POST(self, request):
-        print request
-        self.data = request.content
-        return ""
+        """stores a StringIO object with the file contents"""
+        self.data=request.content
+        request.setHeader("Content-Type", 'text/plain')
+        f=open('dump.log','w+b')
+        f.writelines(self.data)
+        print "content stored and closed"
+        request.setResponseCode(200)
+        return "file received"
+
+    def closeFile(self):
+        if self.data is not None:
+            self.data.close()
 
 class TinaServerCallback():
     """
@@ -294,7 +303,7 @@ def run(confFile):
     tinaserver.putChild("uploadpath", TinaserverFiles() )
     # static website serving, if static directory exists
     if exists('static'):
-        tinaserver.putChild("", File('static') )
+        tinaserver.putChild("", File('static'))
     site = server.Site(tinaserver)
     reactor.listenTCP(8888, site)
     reactor.run()

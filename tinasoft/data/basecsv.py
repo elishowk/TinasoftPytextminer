@@ -81,20 +81,18 @@ class Importer (Handler):
         # open the file in a Dict mode
         f2 = self.open( filepath )
         self.csv = csv.DictReader(
-                f2,
-                self.fieldNames,
-                delimiter=self.delimiter,
-                quotechar=self.quotechar)
+            f2,
+            self.fieldNames,
+            delimiter=self.delimiter,
+            quotechar=self.quotechar
+        )
         self.csv.next()
         del f2
+        # obsolete, should remove it
         self.docDict = {}
         self.corpusDict = {}
 
 
     def open( self, filepath ):
-        try:
-            return codecs.open( filepath,'rU', errors='replace' )
-        except IOError, ioerror:
-            _logger.error(ioerror)
-            return None
+        return codecs.open( filepath,'rU', errors='replace' )
 
