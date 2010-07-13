@@ -118,13 +118,14 @@ class TinaApp(object):
             datefmt = '%Y-%m-%d %H:%M:%S',
             format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
         )
+        self.logger = logging.getLogger('TinaAppLogger')
         # Add the log message handler to the logger
         rotatingFileHandler = logging.handlers.RotatingFileHandler(
             filename = self.LOG_FILENAME,
-            maxBytes = 1024,
+            maxBytes = 10240,
             backupCount = 3
         )
-        self.logger = logging.getLogger('TinaAppLogger')
+        self.logger.addHandler(rotatingFileHandler)
 
         # tries support of the locale by the host system
         try:
@@ -189,6 +190,7 @@ class TinaApp(object):
         tinasoft source extraction controler
         send a corpora and a storage handler to an Extractor() instance
         """
+        print path
         if self.set_storage( dataset ) == self.STATUS_ERROR:
             return self.STATUS_ERROR
         # prepares extraction export path
