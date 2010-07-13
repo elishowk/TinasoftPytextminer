@@ -24,15 +24,28 @@ __author__="elias showk"
 __author_email__="elishowk@nonutc.fr"
 #__classifiers__="nlp textmining http"
 
+import bsddb3
+
 from cx_Freeze import setup, Executable
 
 # for win32, see: http://wiki.wxpython.org/cx_freeze
 
-includes = ['bsddb3']
+
+includes = [
+  'tinasoft.data.basecsv', 
+  'tinasoft.data.coocmatrix',
+  'tinasoft.data.gexf',
+  'tinasoft.data.medline',
+  'tinasoft.data.tinabsddb',
+  'tinasoft.data.tinacsv',
+  'tinasoft.data.whitelist',
+  'bsddb3','jsonpickle','tenjin','simplejson'
+
+]
 excludes = ['_gtkagg', '_tkagg', 'curses', 'email', 'pywin.debugger',
             'pywin.debugger.dbgcon', 'pywin.dialogs', 'tcl',
             'Tkconstants', 'Tkinter']
-packages = ['encodings','zope.interface']
+packages = ['bsddb3', 'nltk', 'numpy', 'twisted', 'twisted.web','twisted.internet','encodings','zope.interface']
 path = []
 setup(
         name = "tinasoft",
