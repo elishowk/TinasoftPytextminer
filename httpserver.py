@@ -30,13 +30,16 @@ import jsonpickle
 import traceback
 
 # unescaping uri components
-#import cgi
+import cgi
 
-from os.path import join
+from os.path import join, exists
 
+# MS windows trick to print to a file server's output to a file
 import sys
-sys.stdout = open('httpserver_stdout.log', 'a+b')
-sys.stderr = open('httpserver_stderr.log', 'a+b')
+import platform
+if platform.system() == 'Windows':
+    sys.stdout = open('tmp_httpserver_stdout.log', 'a+b')
+    sys.stderr = open('tmp_httpserver_stderr.log', 'a+b')
 
 class TinaServerResource(resource.Resource):
     """
@@ -93,11 +96,11 @@ class TinaServerResource(resource.Resource):
         try:
             returnValue = self.method(**parsed_args)
             if returnValue == TinaApp.STATUS_ERROR:
-                return ErrorPage(500, "tinaserver error, please report it", traceback.format_exc() ).render(request)
+                return ErrorPage(500, "tinasoft server error, please report it", traceback.format_exc() ).render(request)
             else:
                 return self.back.call( returnValue )
         except Exception, e:
-            return ErrorPage(500, "tinaserver error, please report it", traceback.format_exc() ).render(request)
+            return ErrorPage(500, "tinasoft server error, please report it", traceback.format_exc() ).render(request)
 
 class TinaServer(resource.Resource):
     """
@@ -132,36 +135,38 @@ class TinaAppPOST():
         self.tinaappinstance = tinaappinstance
 
     def file(self, *args, **kwargs):
-        # index file
+        """ index file """
         return self.tinaappinstance.index_file(*args, **kwargs)
 
     def whitelist(self, *args, **kwargs):
-        # import whitelist
+        """ import whitelist """
         return TinaApp.import_whitelist(*args, **kwargs)
 
     def cooccurrences(self, *args, **kwargs):
-        # process_cooc
+        """ process_cooc """
         return self.tinaappinstance.process_cooc(*args, **kwargs)
 
     def graph(self, *args, **kwargs):
-        # export_graph
+        """ export_graph """
         return self.tinaappinstance.export_graph(*args, **kwargs)
 
     def dataset(self, corporaobj):
-        # insert
+        """ insert """
         self.tinaappinstance.set_storage( corporaobj['id'] )
         return self.tinaappinstance.storage.insertCorpora(corporaobj)
 
     def corpus(self, dataset, corpusobj):
-        # insert
+        """ insert """
         self.tinaappinstance.set_storage( dataset )
         return self.tinaappinstance.storage.insertCorpus(corpusobj)
 
     def document(self, dataset, documentobj):
+        """ insert """
         self.tinaappinstance.set_storage( dataset )
         return self.tinaappinstance.storage.insertDocument(documentobj)
 
     def ngram(self, dataset, ngramobj):
+        """ insert """
         self.tinaappinstance.set_storage( dataset )
         return self.tinaappinstance.storage.insertNgram(ngramobj)
 
@@ -236,6 +241,29 @@ class TinaAppGET():
         """list any existing fily for a given dataset and filetype"""
         return self.tinaappinstance.walk_user_path(dataset, filetype)
 
+class TinaserverFiles(resource.Resource):
+    """
+    Server child resource
+    Storing uploaded files into memory
+    """
+    def __init__(self):
+        self.data = None
+        resource.Resource.__init__(self)
+
+    def render_POST(self, request):
+        """stores a StringIO object with the file contents"""
+        self.data=request.content
+        request.setHeader("Content-Type", 'text/plain')
+        f=open('dump.log','w+b')
+        f.writelines(self.data)
+        print "content stored and closed"
+        request.setResponseCode(200)
+        return "file received"
+
+    def closeFile(self):
+        if self.data is not None:
+            self.data.close()
+
 class TinaServerCallback():
     """
     Tinaserver's callback class
@@ -263,16 +291,19 @@ class TinaServerCallback():
 
 def run(confFile):
     tinaappsingleton = TinaApp(confFile)
+    # specialized GET and POST handlers
     posthandler = TinaAppPOST(tinaappsingleton)
     gethandler = TinaAppGET(tinaappsingleton)
+    # Callback class
     tinacallback = TinaServerCallback()
+    # Main server instance
     tinaserver = TinaServer(tinacallback, posthandler, gethandler)
-    tinaserver.putChild("user",
-        File(tinaappsingleton.user)
-    )
-    tinaserver.putChild("",
-        File('static')
-    )
+    # generated file directory
+    tinaserver.putChild("user", File(tinaappsingleton.user) )
+    tinaserver.putChild("uploadpath", TinaserverFiles() )
+    # static website serving, if static directory exists
+    if exists('static'):
+        tinaserver.putChild("", File('static'))
     site = server.Site(tinaserver)
     reactor.listenTCP(8888, site)
     reactor.run()
