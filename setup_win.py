@@ -36,8 +36,8 @@ from numpy.core import numeric
 
 data_files = [
     ('Microsoft.VC90.CRT', glob(r'e:\\Microsoft.VC90.CRT\\*.*')),
-    ('',glob(r'config.yaml')),
-    ('',glob(r'LICENSE')),	
+    ('',glob(r'config_win.yaml')),
+    ('',glob(r'LICENSE')),
     (join('shared','gexf'), glob(join('shared','gexf','gexf.template'))),
     (join('shared','stopwords'), glob(join('shared','stopwords','*.txt'))),
     (join('shared','nltk_data','corpora','brown'), glob(join('shared','nltk_data','corpora','brown','*.*'))),

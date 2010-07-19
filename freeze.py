@@ -30,6 +30,16 @@ from cx_Freeze import setup, Executable
 
 # for win32, see: http://wiki.wxpython.org/cx_freeze
 
+data_files = [
+    ('Microsoft.VC90.CRT', glob(r'e:\\Microsoft.VC90.CRT\\*.*')),
+    ('',glob(r'config_win.yaml')),
+    ('',glob(r'LICENSE')),
+    (join('shared','gexf'), glob(join('shared','gexf','gexf.template'))),
+    (join('shared','stopwords'), glob(join('shared','stopwords','*.txt'))),
+    (join('shared','nltk_data','corpora','brown'), glob(join('shared','nltk_data','corpora','brown','*.*'))),
+    (join('shared','nltk_data','corpora','conll2000'), glob(join('shared','nltk_data','corpora','conll2000','*.*'))),
+    (join('shared','nltk_data','tokenizers','punkt'), glob(join('shared','nltk_data','tokenizers','punkt','*.*')))
+]
 
 includes = [
   'tinasoft.data.basecsv', 
@@ -57,6 +67,7 @@ setup(
                                   "packages": packages,
                                   "path": path
                                   }
-                  }
+                  },
+        data_files = data_files
 )
 
