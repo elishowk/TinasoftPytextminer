@@ -241,29 +241,6 @@ class TinaAppGET():
         """list any existing fily for a given dataset and filetype"""
         return self.tinaappinstance.walk_user_path(dataset, filetype)
 
-class TinaserverFiles(resource.Resource):
-    """
-    Server child resource
-    Storing uploaded files into memory
-    """
-    def __init__(self):
-        self.data = None
-        resource.Resource.__init__(self)
-
-    def render_POST(self, request):
-        """stores a StringIO object with the file contents"""
-        self.data=request.content
-        request.setHeader("Content-Type", 'text/plain')
-        f=open('dump.log','w+b')
-        f.writelines(self.data)
-        print "content stored and closed"
-        request.setResponseCode(200)
-        return "file received"
-
-    def closeFile(self):
-        if self.data is not None:
-            self.data.close()
-
 class TinaServerCallback():
     """
     Tinaserver's callback class
@@ -295,12 +272,11 @@ def run(confFile):
     posthandler = TinaAppPOST(tinaappsingleton)
     gethandler = TinaAppGET(tinaappsingleton)
     # Callback class
-    tinacallback = TinaServerCallback()
+    callbacks = TinaServerCallback()
     # Main server instance
-    tinaserver = TinaServer(tinacallback, posthandler, gethandler)
+    tinaserver = TinaServer(callbacks, posthandler, gethandler)
     # generated file directory
     tinaserver.putChild("user", File(tinaappsingleton.user) )
-    tinaserver.putChild("uploadpath", TinaserverFiles() )
     # static website serving, if static directory exists
     if exists('static'):
         tinaserver.putChild("", File('static'))
