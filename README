@@ -1,4 +1,4 @@
-Thanks for using Tinasoft-Pytextminer
+Thanks for using Tinasoft Pytextminer
 
 Pytextminer is a part of a larger software : Tinasoft Desktop you can find it at http://github.com/jbilcke/tinasoft.desktop/
 
@@ -46,17 +46,18 @@ AUTHORS
     elias showk <elishowk@nonutc.fr>
     julian bilcke <julian.bilcke@iscpif.fr>
 
-SUPPORT AND FEEDBACK
+DOCUMENTATION, SUPPORT AND FEEDBACK
 
     http://tinasoft.eu/
-    http://github.com/elishowk/TinasoftPytextminer/issues
+    https://forge.iscpif.fr/projects/tinasoft-pytextminer
+    http://github.com/moma/TinasoftPytextminer/
 
-INSTALL AS A STANDALONE SOFTWARE
+INSTALL TINASOFT PYTEXTMINER AS A STANDALONE SOFTWARE
 
-    DOWNLOAD available standalone packages from http::/tinasoft.eu
+    DOWNLOAD available standalone packages from http://tinasoft.eu
 
     MANUAL INSTALL on MS WINDOWS:
-        - find a dependencies installer at http://tina.iscpif.fr/htdocs/repository/tinasoftpytextminer_win32_deps_installer.zip
+        - download the dependencies' installer at http://tina.iscpif.fr/htdocs/repository/tinasoftpytextminer_win32_deps_installer.zip
         - then, in a command line :
 
             $ set NLTK_DATA="TinasoftPytextminer\shared\nltk_data"
@@ -73,9 +74,9 @@ INSTALL AS A STANDALONE SOFTWARE
 
         - open your browser at http://localhost:8888
 
-INSTALL AS A LIBRARY
+INSTALL TINASOFT PYTEXTMINER AS A LIBRARY
 
-    * we provide an http nearly RESTfull server providing a stable API
+    * we provide an http trying-to-be-RESTfull server providing a stable API
 
     DEPENDENCIES
 
@@ -101,33 +102,43 @@ INSTALL AS A LIBRARY
 
 CONFIGURATION
 
-    config.yaml is a YAML configuration files. It is searched by the main application object (TinaApp class) at the into the same source directory
+    config_*.yaml are a YAML configuration files.
+    The main application (TinaApp class) searches it during init, its path is a required paramater
 
+    GUIDELINES
 
-    declare each column name of your csv file into the corresponding field name of the configuration file, otherwise they will be ignored by the software
+    - declare each column name of your csv file into the corresponding field name of the configuration file
+    - not declared columns will be ignored by the software
+    - here are possible required and optional entries :
 
+        #### REQUIRED
         titleField: document title
         contentField: document content
         authorField: document acronyme
         corpusNumberField: corpus number
         docNumberField: document number
-        # the next columns are optional
+        ##### optional
         index1Field: document index 1
         index2Field: document index 2
         dateField: document publication date
         keywordsField: document keywords
 
-    check out the format of your csv file (encoding, delimiter, quoting character) and write them into fields "locale", "delimiter", "quotechar"
-    "minSize", and "maxSize" means the length of n-grams extracted
-    all other fields are the script configuration, or the default values for testing purpose
+    - check out the format of your csv file (encoding, delimiter, quoting character) and write them into fields "locale", "delimiter" and "quotechar"
+    - "minSize", and "maxSize" means the length of n-grams extracted
+    - all other fields are the script configuration, or the default values for testing purpose
 
     WARNING : in YAML all tabulations are spaces, all string values must be quoted (eg : 'prop_title'). Further information at http://en.wikipedia.org/wiki/YAML
 
+SOURCE FILES DIRECTORY
+
+    - "source_files" is dedicated to the storage of your source files
+    - these files are used during indexation and extraction steps of the workflow
+    - given an existing file name in this directory, the software will be able to read it
 
 SUPPORTED OPERATING SYSTEMS
 
-    PyTextMiner was tested on the following platforms:
+    Tinasoft Pytextminer was tested on the following platforms:
 
-        Linux 64 bits (AMD64, i386) with Python 2.6
-        Windows XP SP2 and SP3 (32bit)
+        GNU/Linux (amd4, i386) with Python 2.6
+        Windows XP (32bit) with Python 2.6
 
