@@ -1,6 +1,0 @@
-Test data
-
-- uncompress tinasoft-example-db.zip to $appdir/db/ and you'll get an example database
-- test importing source file with pubmed_tinasoft-test_200abstracts.csv
-- see how you create a whitelist and user-stopngrams from an export with pubmed_whitelist.csv
-- find some user-defined stopword in user_stopwords.csv

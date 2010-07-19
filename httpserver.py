@@ -1,4 +1,5 @@
-﻿#!/usr/bin/env python
+﻿#!/usr/bin/python
+
 # -*- coding: utf-8 -*-
 #  Copyright (C) 2009-2011 CREA Lab, CNRS/Ecole Polytechnique UMR 7656 (Fr)
 #
@@ -240,6 +241,10 @@ class TinaAppGET():
     def walk_user_path(self, dataset, filetype):
         """list any existing fily for a given dataset and filetype"""
         return self.tinaappinstance.walk_user_path(dataset, filetype)
+
+    def walk_source_files(self):
+        """list any existing fily for a given dataset and filetype"""
+        return self.tinaappinstance.walk_source_files()
 
 class TinaServerCallback():
     """

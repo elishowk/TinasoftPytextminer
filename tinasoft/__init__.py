@@ -195,7 +195,7 @@ class TinaApp(object):
         tinasoft source extraction controler
         send a corpora and a storage handler to an Extractor() instance
         """
-        print path
+        path = self._get_sourcefile_path(path)
         if self.set_storage( dataset ) == self.STATUS_ERROR:
             return self.STATUS_ERROR
         # prepares extraction export path
@@ -224,6 +224,7 @@ class TinaApp(object):
         """
         Like import_file but limited to a given whitelist
         """
+        path = self._get_sourcefile_path(path)
         corporaObj = corpora.Corpora(dataset)
         whitelist = self.import_whitelist(whitelistpath)
         if self.set_storage( dataset ) == self.STATUS_ERROR:
@@ -250,6 +251,7 @@ class TinaApp(object):
         """
         tinasoft common csv file import controler
         """
+        path = self._get_sourcefile_path(path)
         corporaObj = corpora.Corpora(dataset)
         if self.set_storage( dataset ) == self.STATUS_ERROR:
             return self.STATUS_ERROR
@@ -418,6 +420,7 @@ class TinaApp(object):
         return finalpath
 
     def _get_filepath_id(self, path):
+        """returns the file identifier from a path"""
         if path is None:
             return None
         if not os.path.isfile( path ):
@@ -464,3 +467,11 @@ class TinaApp(object):
         if not exists( path ):
             return []
         return os.listdir( path )
+
+    def _get_sourcefile_path(self, filename):
+        path = join( self.config['general']['basedirectory'], self.config['general']['source_file_directory'], filename )
+        if not exists( path ):
+            raise exception.IOError("file named %s was not found in %s"%(filename, join( self.config['general']['basedirectory'], self.config['general']['source_file_directory'])))
+            return None
+        return path
+
