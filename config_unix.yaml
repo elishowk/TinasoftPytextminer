@@ -10,6 +10,7 @@ general:
     loglevel: 'debug'
     user: 'user'
     shared: 'shared'
+    source_file_directory: 'source_files'
     # stopwords are under share
     stopwords: 'stopwords/en.txt'
     userstopwords: 'user_stopwords.csv'

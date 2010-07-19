@@ -95,10 +95,15 @@ class TinaApp(object):
             print "bad config yaml path passed to TinaApp"
             print configFilePath
             return self.STATUS_ERROR
-        # creates app directories
+        # creates applications directories
         self.user = join( self.config['general']['basedirectory'], self.config['general']['user'] )
         if not exists(self.user):
             makedirs(self.user)
+
+        self.source_file_directory = join( self.config['general']['basedirectory'], self.config['general']['source_file_directory'] )
+        if not exists(self.source_file_directory):
+            makedirs(self.source_file_directory)
+
         if not exists(join( self.config['general']['basedirectory'], self.config['general']['dbenv'] )):
             makedirs(join( self.config['general']['basedirectory'], self.config['general']['dbenv'] ))
         #if not exists(join( self.config['general']['basedirectory'], self.config['general']['index'] )):
@@ -449,3 +454,13 @@ class TinaApp(object):
             if exists(join(path, file, validation_filename)):
                 dataset_list += [file]
         return dataset_list
+
+    def walk_source_files(self):
+        """
+        Part of the File API
+        returns the list of files in "sources" directory
+        """
+        path = join( self.config['general']['basedirectory'], self.config['general']['source_file_directory'] )
+        if not exists( path ):
+            return []
+        return os.listdir( path )
