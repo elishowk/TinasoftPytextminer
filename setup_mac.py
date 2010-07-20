@@ -12,9 +12,10 @@ from setuptools import setup
 
 APP = ['httpserver.py']
 DATA_FILES = [
-    ('',glob(r'config.yaml')),
+    ('',glob(r'config_unix.yaml')),
     ('',glob(r'LICENSE')), 
-    ('',glob(r'config_unix.yaml')),     
+    ('source_files',glob(join('source_files','*.csv'))),
+    ('',glob(join('static'))), 
     (join('shared','gexf'), glob(join('shared','gexf','gexf.template'))),
     (join('shared','stopwords'), glob(join('shared','stopwords','*.txt'))),
     (join('shared','nltk_data','corpora','brown'), glob(join('shared','nltk_data','corpora','brown','*.*'))),
@@ -25,7 +26,7 @@ DATA_FILES = [
 OPTIONS = {
 'argv_emulation': True,
 'argv_inject': "config_unix.yaml",
-'includes': ['zope.interface','twisted','nltk','numpy','jsonpickle','yaml','bsddb3','tenjin','simplejson'],
+'includes': ['zope.interface','twisted','nltk','numpy','jsonpickle','yaml','tenjin','simplejson'],
 'resources': DATA_FILES
 }
 setup(
