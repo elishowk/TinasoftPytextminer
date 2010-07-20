@@ -13,7 +13,8 @@ from setuptools import setup
 APP = ['httpserver.py']
 DATA_FILES = [
     ('',glob(r'config.yaml')),
-    ('',glob(r'LICENSE')),      
+    ('',glob(r'LICENSE')), 
+    ('',glob(r'config_unix.yaml')),     
     (join('shared','gexf'), glob(join('shared','gexf','gexf.template'))),
     (join('shared','stopwords'), glob(join('shared','stopwords','*.txt'))),
     (join('shared','nltk_data','corpora','brown'), glob(join('shared','nltk_data','corpora','brown','*.*'))),
@@ -23,7 +24,9 @@ DATA_FILES = [
 
 OPTIONS = {
 'argv_emulation': True,
-'includes': ['zope.interface','twisted','nltk','numpy','jsonpickle','yaml','bsddb3','tenjin','simplejson']
+'argv_inject': "config_unix.yaml",
+'includes': ['zope.interface','twisted','nltk','numpy','jsonpickle','yaml','bsddb3','tenjin','simplejson'],
+'resources': DATA_FILES
 }
 setup(
     app=APP,
@@ -31,4 +34,3 @@ setup(
     options={'py2app': OPTIONS},
     setup_requires=['py2app'],
 )
-
