@@ -70,6 +70,7 @@ class Backend(Handler):
             self._db = sqlite3.connect(join(self.home,self.path))
             self._db.row_factory = sqlite3.Row
             cur = self._db.cursor()
+            cur.execute("PRAGMA SYNCHRONOUS = OFF")
             for tabname in self.tables:
                 sql = "CREATE TABLE IF NOT EXISTS %s (id VARCHAR(256) PRIMARY KEY, pickle BLOB)"%tabname
                 cur.execute(sql)
@@ -143,7 +144,7 @@ class Backend(Handler):
             _logger.error( "saferead exception : %s"%read_exc )
             return None
 
-    def safereadrange( self, tabname ):
+    def safereadrange( self, tabname):
         """returns a cursor of a whole table"""
         if isinstance(key, str) is False:
             key = str(key)
@@ -215,11 +216,28 @@ class Engine(Backend):
         else:
             return None
 
+    def loadMany(self, target, raw=False):
+        """
+        returns a generator of tuples (id, pickled_obj)
+        """
+        return self.safereadrange(target)
+
     def loadCorpora(self, id, raw=False ):
         return self.load(id, 'Corpora', raw)
 
     def loadCorpus(self, id, raw=False ):
         return self.load(id, 'Corpus', raw)
+
+    def loadManyDocument(self):
+        """
+        gets a generator of the whole table
+        yields filtered rows based on a list of id
+        """
+        readmany = self.load('Document')
+        try:
+            record = readmany.next()
+        except StopIteration, si:
+            return
 
     def loadDocument(self, id, raw=False ):
         return self.load(id, 'Document', raw)
@@ -309,7 +327,7 @@ class Engine(Backend):
             return
 
 
-    def select( self, tabname, corpus_id=None, raw=False ):
+    def select( self, tabname, key=None, raw=False ):
         """Yields raw or unpickled tuples from a range of key"""
         cursor = self.safereadrange( tabname )
         try:
@@ -318,7 +336,7 @@ class Engine(Backend):
                 # if cursor is empty
                 if record is None: return
                 # if the record does not belong to the corpus_id
-                if minkey is not None and record["id"].startswith(corpus_id) is False:
+                if minkey is not None and record["id"].startswith(key) is False:
                     continue
                 # otherwise yields the next value
                 if raw is True:
@@ -447,11 +465,11 @@ class Engine(Backend):
         overwrite should always be True because updateNGram
         keep the object updated
         """
-        self.coocqueue += [[id, obj]]
+        self.coocqueue += [(id, obj)]
         queue = len( self.coocqueue )
         if queue > self.MAX_INSERT_QUEUE:
-            self.insertManyCooc( self.coocqueue, overwrite=overwrite )
-            self.coocqueue = []
+            _logger.debug("will flushCoocQueue")
+            self.flushCoocQueue()
             return 0
         else:
             return queue

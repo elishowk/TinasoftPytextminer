@@ -352,7 +352,7 @@ class TinaApp(object):
         # for each period, processes cocc and stores them
         for id in periods:
             try:
-                cooc = cooccurrences.MapReduce(self.storage, whitelist, corpusid=id, filter=userstopwords )
+                cooc = cooccurrences.Simple(self.storage, corpusid=id)
             except Warning, warner:
                 self.logger.warning( warner )
                 continue

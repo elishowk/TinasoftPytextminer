@@ -31,7 +31,7 @@ tinasoftSingleton = TinaApp("config_unix.yaml")
 #    #'/home/elishowk/TINA/Datas/100226-pubmed_whitelist.csv'
 #    'tests/data/20100630-pubmed_whitelist-extract_dataset.csv', 'test_whitelist'
 #)
-stopwordsSingleton = [stopwords.StopWordFilter( "file://%s" % tinasoftSingleton.config['general']['userstopwords'] )]
+#stopwordsSingleton = [stopwords.StopWordFilter( "file://%s" % tinasoftSingleton.config['general']['userstopwords'] )]
 
 class TinaAppTestCase(unittest.TestCase):
     def setUp(self):
@@ -43,7 +43,7 @@ class TinaAppTestCase(unittest.TestCase):
         #self.path = "/home/elishowk/TINA/Datas/MedlineCancer/pubmed_cancer_tina_toydb.txt"
         #self.format = "medline"
         #self.whitelist = whitelistSingleton
-        self.userstopwordfilter = stopwordsSingleton
+        #self.userstopwordfilter = stopwordsSingleton
         self.extracted_whitelist = 'tests/date-pubmed_test_whitelist-extract_file.csv'
 
     def testH_IndexFile(self):
@@ -95,21 +95,21 @@ class TinaAppTestCase(unittest.TestCase):
 
     def testD_ProcessCooc(self):
         """testD_ProcessCooc : processes and stores the cooccurrence matrix"""
-        return
+        #return
         #self.tinasoft.logger.debug ( self.tinasoft.storage.loadCorpora( 'pubmed test 200', raw=1 ) )
-        print self.tinasoft.process_cooc( \
-            self.whitelist, \
-            self.datasetId, \
-            self.periods, \
-            self.userstopwordfilter
+        print self.tinasoft.process_cooc(
+            self.datasetId,
+            self.periods
         )
         self.tinasoft.logger.debug( "processCooc test finished " )
 
     def testE_ExportGraph(self):
         """testE_ExportGraph : exports a gexf graph, after cooccurrences processing"""
         return
-        path = 'tinaapptests-exportGraph.gexf'
-        print self.tinasoft.export_graph(path, self.datasetId, self.periods, self.whitelist)
+        print self.tinasoft.export_graph(
+            self.datasetId,
+            self.periods
+        )
 
 
     def testF_ExportCoocMatrix(self):

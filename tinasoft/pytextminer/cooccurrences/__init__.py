@@ -20,7 +20,7 @@ __author__="Elias Showk"
 import tinasoft
 from tinasoft.pytextminer import corpus, filtering
 from datetime import date
-#from threading import Thread
+
 from numpy import *
 
 import logging
@@ -90,7 +90,7 @@ class Simple():
         generates a row for each ngram in the doc,
         cooccurrences to 1 to every other ngram in the doc
         """
-        map = fromkeys(doc['edges']['NGram'].keys(), 1)
+        map = dict.fromkeys(doc['edges']['NGram'].keys(), 1)
         # map is a unity slice of the matrix
         for ng in doc['edges']['NGram'].keys():
             yield [ng,map]
@@ -125,10 +125,9 @@ class Simple():
                     row[ngj] = cooc
             if len( row.keys() ) > 0:
                 self.storage.updateCooc( key+ngi, row, overwrite )
-
+        _logger.debug( 'will store %d non-zero cooc values'%countcooc )
         self.storage.flushCoocQueue()
-        self.storage.commitAll()
-        _logger.debug( 'stored %d non-zero cooccurrences values'%countcooc )
+        _logger.debug( 'finished storing %d non-zero cooc values'%countcooc )
 
     def readMatrix( self ):
         try:
@@ -240,10 +239,9 @@ class MapReduce():
                     row[ngj] = cooc
             if len( row.keys() ) > 0:
                 self.storage.updateCooc( key+ngi, row, overwrite )
-
+        _logger.debug( 'will store %d non-zero cooc values'%countcooc )
         self.storage.flushCoocQueue()
-        self.storage.commitAll()
-        _logger.debug( 'stored %d non-zero cooccurrences values'%countcooc )
+        _logger.debug( 'finished storing %d non-zero cooc values'%countcooc )
 
     def readMatrix( self ):
         try:
