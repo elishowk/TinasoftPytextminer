@@ -467,7 +467,7 @@ class TinaApp(object):
     def _get_sourcefile_path(self, filename):
         path = join( self.config['general']['basedirectory'], self.config['general']['source_file_directory'], filename )
         if not exists( path ):
-            raise exception.IOError("file named %s was not found in %s"%(filename, join( self.config['general']['basedirectory'], self.config['general']['source_file_directory'])))
+            raise IOError("file named %s was not found in %s"%(filename, join( self.config['general']['basedirectory'], self.config['general']['source_file_directory'])))
             return None
         return path
 
