@@ -50,7 +50,7 @@ LEVELS = {
 }
 
 CWD = '.'
-STORAGE_DSN = "tinabsddb://tinasoft.bsddb"
+STORAGE_DSN = "tinasqlite://tinasoft.sqlite"
 
 class TinaApp(object):
     """
@@ -122,7 +122,7 @@ class TinaApp(object):
         # Add the log message handler to the logger
         rotatingFileHandler = logging.handlers.RotatingFileHandler(
             filename = self.LOG_FILENAME,
-            maxBytes = 10240,
+            maxBytes = 1024000,
             backupCount = 3
         )
         self.logger.addHandler(rotatingFileHandler)
@@ -160,17 +160,18 @@ class TinaApp(object):
             del self.storage
         try:
             storagedir = join( self.config['general']['basedirectory'], self.config['general']['dbenv'], dataset_id )
-            if not exists( storagedir ):
-                if create == False:
-                    raise Exception("dataset %s does not exists, won't create it"%dataset_id)
-                else:
-                    makedirs( storagedir )
-            # overwrite db home dir
-            options['home'] = storagedir
-            self.logger.debug("new connection to a storage for data set %s"%dataset_id)
-            self.storage = Engine(STORAGE_DSN, **options)
-            self.last_dataset_id = dataset_id
-            return TinaApp.STATUS_OK
+            if not exists( storagedir ) and create is False:
+                raise Exception("dataset %s does not exists, won't create it"%dataset_id)
+                return TinaApp.STATUS_OK
+                #else:
+                #    makedirs( storagedir )
+            else:
+                # overwrite db home dir
+                options['home'] = storagedir
+                self.logger.debug("new connection to a storage for data set %s at %s"%(dataset_id, storagedir))
+                self.storage = Engine(STORAGE_DSN, **options)
+                self.last_dataset_id = dataset_id
+                return TinaApp.STATUS_OK
         except Exception, exception:
             self.logger.error( exception )
             self.storage = self.last_dataset_id = None

@@ -26,25 +26,25 @@ from tinasoft.pytextminer import stopwords
 from tinasoft.data import Writer
 
 
-tinasoftSingleton = TinaApp()
-whitelistSingleton = tinasoftSingleton.import_whitelist(
-    #'/home/elishowk/TINA/Datas/100226-pubmed_whitelist.csv'
-    'tests/data/20100630-pubmed_whitelist-extract_dataset.csv', 'test_whitelist'
-)
-stopwordsSingleton = [stopwords.StopWordFilter( "file://%s" % tinasoftSingleton.config['datasets']['userstopwords'] )]
+tinasoftSingleton = TinaApp("config_unix.yaml")
+#whitelistSingleton = tinasoftSingleton.import_whitelist(
+#    #'/home/elishowk/TINA/Datas/100226-pubmed_whitelist.csv'
+#    'tests/data/20100630-pubmed_whitelist-extract_dataset.csv', 'test_whitelist'
+#)
+stopwordsSingleton = [stopwords.StopWordFilter( "file://%s" % tinasoftSingleton.config['general']['userstopwords'] )]
 
 class TinaAppTestCase(unittest.TestCase):
     def setUp(self):
         self.tinasoft = tinasoftSingleton
         self.datasetId = "test_data_set"
         self.periods = ['1','2']
-        self.path = "tests/data/tinacsv_test_200.csv"
+        self.path = "tinacsv_test_200.csv"
         self.format = "tinacsv"
         #self.path = "/home/elishowk/TINA/Datas/MedlineCancer/pubmed_cancer_tina_toydb.txt"
         #self.format = "medline"
-        self.whitelist = whitelistSingleton
+        #self.whitelist = whitelistSingleton
         self.userstopwordfilter = stopwordsSingleton
-        self.extracted_whitelist = 'tests/data/sometestday-'+self.datasetId+'-extract_dataset.csv'
+        self.extracted_whitelist = 'tests/date-pubmed_test_whitelist-extract_file.csv'
 
     def testH_IndexFile(self):
         """testH_IndexFile : testing index_file"""
@@ -57,6 +57,7 @@ class TinaAppTestCase(unittest.TestCase):
                 overwrite=False
             ), TinaApp.STATUS_ERROR
         )
+
     def testA_ExtractFile(self):
         """testA_ExtractFile : testing extract_file"""
         return

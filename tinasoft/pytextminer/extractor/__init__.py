@@ -151,6 +151,7 @@ class Extractor():
                 #### inserts/updates document, corpus and corpora
                 self._insert_NGrams(docngrams, document, corpusNum, overwrite)
                 # creates or OVERWRITES document into storage
+                del document['content']
                 self.duplicate += self.storage.updateDocument( document, overwrite )
                 doccount += 1
                 if doccount % 10 == 0:
@@ -192,7 +193,6 @@ class Extractor():
             # queue the update of the ngram
             self.storage.updateNGram( ng, overwrite, document['id'], corpusNum )
         self.storage.flushNGramQueue()
-        self.storage.commitAll()
 
     def import_file(self, path, format, overwrite=False):
 
