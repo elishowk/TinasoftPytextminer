@@ -23,26 +23,39 @@ __keywords__="nlp,textmining,graph"
 __author__="elias showk"
 __author_email__="elishowk@nonutc.fr"
 #__classifiers__="nlp textmining http"
-
-import bsddb3
+from os.path import join
+from glob import glob
+import platform
 
 from cx_Freeze import setup, Executable
 
 # for win32, see: http://wiki.wxpython.org/cx_freeze
 
+# TODO
 data_files = [
-    ('Microsoft.VC90.CRT', glob(r'e:\\Microsoft.VC90.CRT\\*.*')),
-    ('',glob(r'config_win.yaml')),
-    ('',glob(r'LICENSE')),
-    (join('shared','gexf'), glob(join('shared','gexf','gexf.template'))),
-    (join('shared','stopwords'), glob(join('shared','stopwords','*.txt'))),
-    (join('shared','nltk_data','corpora','brown'), glob(join('shared','nltk_data','corpora','brown','*.*'))),
-    (join('shared','nltk_data','corpora','conll2000'), glob(join('shared','nltk_data','corpora','conll2000','*.*'))),
-    (join('shared','nltk_data','tokenizers','punkt'), glob(join('shared','nltk_data','tokenizers','punkt','*.*')))
+    ('README',''),
+    ('LICENSE',''),
+    (join('shared','gexf','gexf.template'),'')
 ]
+data_files += [(join('shared','stopwords'),'')]
+data_files += [(join('shared','nltk_data','corpora','brown'),'')]
+data_files += [(join('shared','nltk_data','corpora','conll2000'),'')]
+data_files += [(join('shared','nltk_data','tokenizers','punkt'),'')]
+
+
+import platform
+if platform.system() == 'Windows':
+    data_files += [('Microsoft.VC90.CRT','')]
+    data_files += [('config_win.yaml','')]
+else:
+    data_files += [
+        ('config_unix.yaml','')
+    ]
+
+print data_files
 
 includes = [
-  'tinasoft.data.basecsv', 
+  'tinasoft.data.basecsv',
   'tinasoft.data.coocmatrix',
   'tinasoft.data.gexf',
   'tinasoft.data.medline',
@@ -62,12 +75,14 @@ setup(
         version = __version__,
         description = __longdescr__,
         executables = [Executable("httpserver.py")],
-        options = {"build_exe": {"includes": includes,
-                                  "excludes": excludes,
-                                  "packages": packages,
-                                  "path": path
-                                  }
-                  },
-        data_files = data_files
+        options = {
+            "build_exe": {
+                "includes": includes,
+                "excludes": excludes,
+                "packages": packages,
+                "path": path,
+                #"include_files": data_files,
+            }
+        }
 )
 

@@ -82,11 +82,6 @@ class TinaApp(object):
         object.__init__(self)
         self.last_dataset_id = None
         self.storage = None
-        # if no argument given, will search configuration at ./config.yaml
-        #if homedir is None:
-        #    homedir = CWD
-        #if configFile is None:
-        #    configFile = 'config.yaml'
         # import config yaml to self.config
         try:
             self.config = yaml.safe_load( file( configFilePath, 'rU' ) )
