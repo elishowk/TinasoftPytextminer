@@ -38,6 +38,7 @@ includes = [
   'tinasoft.data.medline',
   'tinasoft.data.tinabsddb',
   'tinasoft.data.tinacsv',
+  'tinasoft.data.tinasqlite',
   'tinasoft.data.whitelist',
   'jsonpickle','tenjin','simplejson'
 ]
