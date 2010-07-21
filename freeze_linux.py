@@ -62,13 +62,13 @@ includes = [
   'tinasoft.data.tinabsddb',
   'tinasoft.data.tinacsv',
   'tinasoft.data.whitelist',
-  'bsddb3','jsonpickle','tenjin','simplejson'
+  'jsonpickle','tenjin','simplejson'
 
 ]
 excludes = ['_gtkagg', '_tkagg', 'curses', 'email', 'pywin.debugger',
             'pywin.debugger.dbgcon', 'pywin.dialogs', 'tcl',
             'Tkconstants', 'Tkinter']
-packages = ['bsddb3', 'nltk', 'numpy', 'twisted', 'twisted.web','twisted.internet','encodings','zope.interface']
+packages = ['nltk', 'numpy', 'twisted', 'twisted.web','twisted.internet','encodings','zope.interface']
 path = []
 setup(
         name = "tinasoft",
@@ -80,7 +80,7 @@ setup(
                 "includes": includes,
                 "excludes": excludes,
                 "packages": packages,
-                "path": path,
+                #"path": path,
                 #"include_files": data_files,
             }
         }

@@ -46,9 +46,9 @@ class TinaAppTestCase(unittest.TestCase):
         #self.userstopwordfilter = stopwordsSingleton
         self.extracted_whitelist = 'tests/date-pubmed_test_whitelist-extract_file.csv'
 
-    def testH_IndexFile(self):
+    def testB_IndexFile(self):
         """testH_IndexFile : testing index_file"""
-        #return
+        return
         self.failIfEqual( self.tinasoft.index_file(
                 self.path,
                 self.datasetId,
@@ -71,7 +71,7 @@ class TinaAppTestCase(unittest.TestCase):
         self.failIfEqual(self.extracted_whitelist, TinaApp.STATUS_ERROR)
 
 
-    def testB_ImportFile(self):
+    def testZ_ImportFile(self):
         """testB_ImportFile : testing import_file"""
         return
         self.failIfEqual( self.tinasoft.import_file(
@@ -95,8 +95,7 @@ class TinaAppTestCase(unittest.TestCase):
 
     def testD_ProcessCooc(self):
         """testD_ProcessCooc : processes and stores the cooccurrence matrix"""
-        #return
-        #self.tinasoft.logger.debug ( self.tinasoft.storage.loadCorpora( 'pubmed test 200', raw=1 ) )
+        return
         print self.tinasoft.process_cooc(
             self.datasetId,
             self.periods
@@ -105,7 +104,7 @@ class TinaAppTestCase(unittest.TestCase):
 
     def testE_ExportGraph(self):
         """testE_ExportGraph : exports a gexf graph, after cooccurrences processing"""
-        return
+        #return
         print self.tinasoft.export_graph(
             self.datasetId,
             self.periods

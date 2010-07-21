@@ -123,11 +123,13 @@ class Backend(Handler):
         return pickle.dumps(obj)
 
     def unpickle( self, data ):
+        if type(data) != str:
+            data = str(data)
         return pickle.loads(data)
 
     def saferead(self, tabname, key):
         """returns ONE db value or return None"""
-        if isinstance(key, str) is False:
+        if type(key) != str:
             key = str(key)
         try:
             cur = self._db.cursor()
@@ -144,21 +146,19 @@ class Backend(Handler):
             _logger.error( "saferead exception : %s"%read_exc )
             return None
 
-    def safereadrange( self, tabname):
+    def safereadrange(self, tabname):
         """returns a cursor of a whole table"""
-        if isinstance(key, str) is False:
-            key = str(key)
         try:
             cur = self._db.cursor()
             cur.execute("select id, pickle from %s"%tabname)
-            if cur.row_count == 0:
-                return
-            else:
-                next_val = 1
-                while next_val is not None:
-                    next_val = cur.fetchone()
-                    yield next_val
-                return
+            #if cur.row_count == 0:
+            #    return
+            #else:
+            next_val = cur.fetchone()
+            while next_val is not None:
+                yield next_val
+                next_val = cur.fetchone()
+            return
         except Exception, readrange_exc:
             _logger.error( "saferead exception : %s"%readrange_exc )
             return
@@ -312,23 +312,30 @@ class Engine(Backend):
         return self.insertMany( iter, 'Cluster', overwrite )
 
     def selectCorpusCooc(self, corpusId):
-        """Yields a view on Cooc values given a period=corpus"""
+        """
+        Yields tuples (ngramkey, cooc_matrix_line) from table Cooc
+        for a given a corpus
+        """
         if isinstance(corpusId, str) is False:
             corpusId = str(corpusId)
         coocGen = self.select( 'Cooc', corpusId )
         try:
             record = coocGen.next()
             while record:
+                # separate CORPUSID::NGRAMID
                 key = record[0].split('::')
                 # yields ngram id associated with its Cooc obj
-                yield ( key[2], record[1])
+                yield (key[1], record[1])
                 record = coocGen.next()
         except StopIteration, si:
             return
 
 
     def select( self, tabname, key=None, raw=False ):
-        """Yields raw or unpickled tuples from a range of key"""
+        """
+        Yields raw or unpickled tuples (key, obj)
+        from a table filtered with a range of key prefix
+        """
         cursor = self.safereadrange( tabname )
         try:
             record = cursor.next()
@@ -336,13 +343,13 @@ class Engine(Backend):
                 # if cursor is empty
                 if record is None: return
                 # if the record does not belong to the corpus_id
-                if minkey is not None and record["id"].startswith(key) is False:
+                if key is not None and record["id"].startswith(key) is False:
                     continue
                 # otherwise yields the next value
                 if raw is True:
                     yield record
                 else:
-                    yield ( record["id"], self.unpickle(record["pickle"]))
+                    yield ( record["id"], self.unpickle(str(record["pickle"])))
                 record = cursor.next()
         except StopIteration, si:
             return

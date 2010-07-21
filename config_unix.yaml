@@ -44,14 +44,14 @@ datamining:
     template: 'shared/gexf/gexf.template'
     DocumentGraph:
         edgethreshold:
-            - 0.0
+            - 1.0
             - 2.0
         nodethreshold:
             - 1
             - 'inf'
     NGramGraph:
         edgethreshold:
-            - 0.0
+            - 0.5
             - 1.0
         nodethreshold:
             - 1
