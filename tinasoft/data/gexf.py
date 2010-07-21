@@ -197,8 +197,8 @@ class NGramGraph(SubGraph):
                     or graph.gexf['nodes'][source]['weight'] < self.edgethreshold[0]:
                         del graph.gexf['nodes'][source]
                         del self.cache[source.split('::')[1]]
-                else:
-                    _logger.debug("found goo occ = %d"%graph.gexf['nodes'][source]['weight'])
+                #else:
+                #    _logger.debug("found goo occ = %d"%graph.gexf['nodes'][source]['weight'])
 
     def addEdge( self, graph,  source, target, weight, type, **kwargs ):
         #kwargs['cooccurrences'] = weight
