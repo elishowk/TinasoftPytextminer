@@ -31,29 +31,6 @@ from cx_Freeze import setup, Executable
 
 # for win32, see: http://wiki.wxpython.org/cx_freeze
 
-# TODO
-data_files = [
-    ('README',''),
-    ('LICENSE',''),
-    (join('shared','gexf','gexf.template'),'')
-]
-data_files += [(join('shared','stopwords'),'')]
-data_files += [(join('shared','nltk_data','corpora','brown'),'')]
-data_files += [(join('shared','nltk_data','corpora','conll2000'),'')]
-data_files += [(join('shared','nltk_data','tokenizers','punkt'),'')]
-
-
-import platform
-if platform.system() == 'Windows':
-    data_files += [('Microsoft.VC90.CRT','')]
-    data_files += [('config_win.yaml','')]
-else:
-    data_files += [
-        ('config_unix.yaml','')
-    ]
-
-print data_files
-
 includes = [
   'tinasoft.data.basecsv',
   'tinasoft.data.coocmatrix',
@@ -78,7 +55,6 @@ setup(
                 "includes": includes,
                 "excludes": excludes,
                 "packages": packages,
-                "include_files": data_files,
             }
         }
 )

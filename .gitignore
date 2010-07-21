@@ -1,4 +1,3 @@
-.*
 *.pyc
 *.pyo
 dist/
@@ -9,13 +8,9 @@ build/
 nbproject
 nbproject/*
 db/
-inDistribution.png
 index/
 log/
-outDistribution.png
-report.html
 TinasoftPytextminer.egg-info/
-shared/nltk_data/
 user/
 *.cache
 releases/
