@@ -24,8 +24,8 @@ from os.path import exists
 from os.path import join
 from os import makedirs
 
-import pickle
-from time import sleep, time
+import cPickle as pickle
+#from time import sleep, time
 
 import logging
 _logger = logging.getLogger('TinaAppLogger')
@@ -68,9 +68,9 @@ class Backend(Handler):
         """connection method, need to have self.home directory created"""
         try:
             self._db = sqlite3.connect(join(self.home,self.path))
+            self._db.execute("PRAGMA SYNCHRONOUS = OFF;")
             self._db.row_factory = sqlite3.Row
             cur = self._db.cursor()
-            cur.execute("PRAGMA SYNCHRONOUS = OFF")
             for tabname in self.tables:
                 sql = "CREATE TABLE IF NOT EXISTS %s (id VARCHAR(256) PRIMARY KEY, pickle BLOB)"%tabname
                 cur.execute(sql)
