@@ -413,7 +413,7 @@ class TinaApp(object):
         """returns a filename from the user directory"""
         path = join( self.user, dataset, filetype )
         now = "".join(str(datetime.now())[:10].split("-"))
-        # standar separator in filenames
+        # standard separator in filenames
         filename = now + "-" + filename
         finalpath = join( path, filename )
         if not exists(path):
@@ -438,12 +438,12 @@ class TinaApp(object):
     def walk_user_path(self, dataset, filetype):
         """
         Part of the File API
-        returns the list of files in the gexf directory tree
+        returns the list of files in the user directory tree
         """
         path = join( self.user, dataset, filetype )
         if not exists( path ):
             return []
-        return [join( path, file ) for file in os.listdir( path )]
+        return [abspath(join( path, file )) for file in os.listdir( path )]
 
     def walk_datasets(self):
         """
