@@ -31,10 +31,10 @@ from cx_Freeze import setup, Executable
 
 data_files = [
 #    ('Microsoft.VC90.CRT',glob(join('Microsoft.VC90.CRT','*.*'))),
-	'README',
+    'README',
     'LICENSE',
-	'config_win.yaml',
-	join('shared','gexf','gexf.template'),
+    'config_win.yaml',
+    join('shared','gexf','gexf.template'),
 #    (join('shared','gexf'),join('shared','gexf','gexf.template')),
 #    (join('shared','stopwords'),glob(join('shared','stopwords','*.txt'))),
 #    (join('shared','nltk_data','corpora','brown'), join('shared','nltk_data','corpora','brown','*.*')),
@@ -43,9 +43,9 @@ data_files = [
 ]
 data_files += glob(join('Microsoft.VC90.CRT','*.*'))
 data_files += glob(join('shared','stopwords','*.txt'))
-data_files += glob(join('shared','nltk_data','corpora','brown','*.*'))
-data_files += glob(join('shared','nltk_data','corpora','conll2000','*.*'))
-data_files += glob(join('shared','nltk_data','tokenizers','punkt','*.*'))
+#data_files += glob(join('shared','nltk_data','corpora','brown','*.*'))
+#data_files += glob(join('shared','nltk_data','corpora','conll2000','*.*'))
+#data_files += glob(join('shared','nltk_data','tokenizers','punkt','*.*'))
 
 print data_files
 # for win32, see: http://wiki.wxpython.org/cx_freeze
@@ -75,7 +75,7 @@ setup(
                 "includes": includes,
                 "excludes": excludes,
                 "packages": packages,
-				"include_files": data_files,
+                "include_files": data_files,
             }
         },
 )
