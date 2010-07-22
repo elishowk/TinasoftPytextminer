@@ -112,19 +112,24 @@ class TinaApp(object):
         if 'loglevel' in self.config['general']:
             loglevel = LEVELS[self.config['general']['loglevel']]
         # logger config
-        logging.basicConfig(
-            filename = self.LOG_FILENAME,
-            level = loglevel,
-            datefmt = '%Y-%m-%d %H:%M:%S',
-            format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-        )
+        #logging.basicConfig(
+        #    filename = self.LOG_FILENAME,
+        #    datefmt = '%Y-%m-%d %H:%M:%S',
+        #    format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        #)
         self.logger = logging.getLogger('TinaAppLogger')
+        self.logger.setLevel(loglevel)
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            '%Y-%m-%d %H:%M:%S'
+        )
         # Add the log message handler to the logger
         rotatingFileHandler = logging.handlers.RotatingFileHandler(
             filename = self.LOG_FILENAME,
             maxBytes = 1024000,
             backupCount = 3
         )
+        rotatingFileHandler.setFormatter(formatter)
         self.logger.addHandler(rotatingFileHandler)
 
         # tries support of the locale by the host system

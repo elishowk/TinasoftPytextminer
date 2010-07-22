@@ -57,10 +57,7 @@ class TreeBankPosTagger():
     training_corpus_size = 8000
 
     def __init__(self, training_corpus_size=None, trained_pickle=None ):
-        # set of training sentences
-        #brown_review_sents = nltk.corpus.brown.tagged_sents(categories=['reviews'])
-        #brown_lore_sents = nltk.corpus.brown.tagged_sents(categories=['lore'])
-        #brown_romance_sents = nltk.corpus.brown.tagged_sents(categories=['romance'])
+        # get the training sentences
         if training_corpus_size is not None:
             self.training_corpus_size = training_corpus_size
         _logger.debug( "Training tagger with training_corpus_size = %d"%self.training_corpus_size )
@@ -71,24 +68,8 @@ class TreeBankPosTagger():
         tagger_classes = [nltk.tag.AffixTagger, nltk.tag.UnigramTagger, nltk.tag.BigramTagger, nltk.tag.TrigramTagger]
 
         backoff = nltk.tag.RegexpTagger(self.word_patterns)
-        #aubtr_tagger = nltk.tag.RegexpTagger(word_patterns, backoff=aubt_tagger)
         self.tagger = self._backoff(train_sents, tagger_classes, backoff=backoff)
 
-        #templates = [
-        #    brill.SymmetricProximateTokensTemplate(brill.ProximateTagsRule, (1,1)),
-        #    brill.SymmetricProximateTokensTemplate(brill.ProximateTagsRule, (2,2)),
-        #    brill.SymmetricProximateTokensTemplate(brill.ProximateTagsRule, (1,2)),
-        #    brill.SymmetricProximateTokensTemplate(brill.ProximateTagsRule, (1,3)),
-        #    brill.SymmetricProximateTokensTemplate(brill.ProximateWordsRule, (1,1)),
-        #    brill.SymmetricProximateTokensTemplate(brill.ProximateWordsRule, (2,2)),
-        #    brill.SymmetricProximateTokensTemplate(brill.ProximateWordsRule, (1,2)),
-        #    brill.SymmetricProximateTokensTemplate(brill.ProximateWordsRule, (1,3)),
-        #    brill.ProximateTokensTemplate(brill.ProximateTagsRule, (-1, -1), (1,1)),
-        #    brill.ProximateTokensTemplate(brill.ProximateWordsRule, (-1, -1), (1,1))
-        #]
-
-        #trainer = brill.FastBrillTaggerTrainer(backoff_tagger, templates)
-        #self.tagger = trainer.train(brown_train, max_rules=100, min_score=3)
 
 
     def _backoff(self, tagged_sents, tagger_classes, backoff=None):
