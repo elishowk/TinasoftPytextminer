@@ -22,6 +22,7 @@ import sys
 import os
 from os.path import exists
 from os.path import join
+from os.path import abspath
 from os import makedirs
 import yaml
 from datetime import datetime
@@ -211,7 +212,7 @@ class TinaApp(object):
         extract = extractor.Extractor( self.storage, self.config['datasets'], corporaObj, stopwds, userstopwords)
         outpath= extract.extract_file( path, format, outpath, whitelistlabel, minoccs )
         if outpath is not False:
-            return outpath
+            return abspath(outpath)
         else:
             return self.STATUS_ERROR
 
@@ -288,14 +289,14 @@ class TinaApp(object):
         userstopwords = self.import_userstopwords(userstopwords)
         whitelist = self.import_whitelist(whitelistpath, userstopwords)
         exporter = Writer('whitelist://'+outpath, **kwargs)
-        return exporter.export_whitelist(
+        return abspath(exporter.export_whitelist(
             self.storage,
             periods,
             whitelistlabel,
             userstopwords,
             whitelist,
             minoccs
-        )
+        ))
 
     def import_whitelist(
             self,
