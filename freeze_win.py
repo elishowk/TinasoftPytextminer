@@ -23,24 +23,31 @@ __keywords__="nlp,textmining,graph"
 __author__="elias showk"
 __author_email__="elishowk@nonutc.fr"
 #__classifiers__="nlp textmining http"
+
 from os.path import join
 from glob import glob
 import platform
+from cx_Freeze import setup, Executable
 
 data_files = [
-    ('Microsoft.VC90.CRT', glob(r'e:\\Microsoft.VC90.CRT\\*.*')),
+#    ('Microsoft.VC90.CRT',glob(join('Microsoft.VC90.CRT','*.*'))),
 	'README',
     'LICENSE',
 	'config_win.yaml',
-    (join('shared','gexf'), glob(join('shared','gexf','gexf.template'))),
-    (join('shared','stopwords'), glob(join('shared','stopwords','*.txt'))),
-    (join('shared','nltk_data','corpora','brown'), glob(join('shared','nltk_data','corpora','brown','*.*'))),
-    (join('shared','nltk_data','corpora','conll2000'), glob(join('shared','nltk_data','corpora','conll2000','*.*'))),
-    (join('shared','nltk_data','tokenizers','punkt'), glob(join('shared','nltk_data','tokenizers','punkt','*.*')))
+	join('shared','gexf','gexf.template'),
+#    (join('shared','gexf'),join('shared','gexf','gexf.template')),
+#    (join('shared','stopwords'),glob(join('shared','stopwords','*.txt'))),
+#    (join('shared','nltk_data','corpora','brown'), join('shared','nltk_data','corpora','brown','*.*')),
+#    (join('shared','nltk_data','corpora','conll2000'), glob(join('shared','nltk_data','corpora','conll2000','*.*'))),
+#    (join('shared','nltk_data','tokenizers','punkt'), glob(join('shared','nltk_data','tokenizers','punkt','*.*')))
 ]
+data_files += glob(join('Microsoft.VC90.CRT','*.*'))
+data_files += glob(join('shared','stopwords','*.txt'))
+data_files += glob(join('shared','nltk_data','corpora','brown','*.*'))
+data_files += glob(join('shared','nltk_data','corpora','conll2000','*.*'))
+data_files += glob(join('shared','nltk_data','tokenizers','punkt','*.*'))
 
-from cx_Freeze import setup, Executable
-
+print data_files
 # for win32, see: http://wiki.wxpython.org/cx_freeze
 
 includes = [
@@ -48,7 +55,7 @@ includes = [
   'tinasoft.data.coocmatrix',
   'tinasoft.data.gexf',
   'tinasoft.data.medline',
-  'tinasoft.data.tinabsddb',
+  #'tinasoft.data.tinabsddb',
   'tinasoft.data.tinasqlite',
   'tinasoft.data.tinacsv',
   'tinasoft.data.whitelist',
@@ -56,7 +63,7 @@ includes = [
 ]
 excludes = ['_gtkagg', '_tkagg', 'curses', 'email', 'pywin.debugger',
             'pywin.debugger.dbgcon', 'pywin.dialogs', 'tcl',
-            'Tkconstants', 'Tkinter']
+            'Tkconstants', 'Tkinter','bsddb3']
 packages = ['nltk', 'numpy', 'twisted', 'twisted.web','twisted.internet','encodings','zope.interface']
 setup(
         name = "tinasoft",
@@ -68,7 +75,7 @@ setup(
                 "includes": includes,
                 "excludes": excludes,
                 "packages": packages,
+				"include_files": data_files,
             }
         },
-		data_files = data_files,
 )
