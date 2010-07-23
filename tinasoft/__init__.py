@@ -22,6 +22,7 @@ import sys
 import os
 from os.path import exists
 from os.path import join
+from os.path import abspath
 from os import makedirs
 import yaml
 from datetime import datetime
@@ -112,19 +113,24 @@ class TinaApp(object):
         if 'loglevel' in self.config['general']:
             loglevel = LEVELS[self.config['general']['loglevel']]
         # logger config
-        logging.basicConfig(
-            filename = self.LOG_FILENAME,
-            level = loglevel,
-            datefmt = '%Y-%m-%d %H:%M:%S',
-            format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-        )
+        #logging.basicConfig(
+        #    filename = self.LOG_FILENAME,
+        #    datefmt = '%Y-%m-%d %H:%M:%S',
+        #    format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        #)
         self.logger = logging.getLogger('TinaAppLogger')
+        self.logger.setLevel(loglevel)
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            '%Y-%m-%d %H:%M:%S'
+        )
         # Add the log message handler to the logger
         rotatingFileHandler = logging.handlers.RotatingFileHandler(
             filename = self.LOG_FILENAME,
             maxBytes = 1024000,
             backupCount = 3
         )
+        rotatingFileHandler.setFormatter(formatter)
         self.logger.addHandler(rotatingFileHandler)
 
         # tries support of the locale by the host system
@@ -206,7 +212,7 @@ class TinaApp(object):
         extract = extractor.Extractor( self.storage, self.config['datasets'], corporaObj, stopwds, userstopwords)
         outpath= extract.extract_file( path, format, outpath, whitelistlabel, minoccs )
         if outpath is not False:
-            return outpath
+            return abspath(outpath)
         else:
             return self.STATUS_ERROR
 
@@ -283,14 +289,14 @@ class TinaApp(object):
         userstopwords = self.import_userstopwords(userstopwords)
         whitelist = self.import_whitelist(whitelistpath, userstopwords)
         exporter = Writer('whitelist://'+outpath, **kwargs)
-        return exporter.export_whitelist(
+        return abspath(exporter.export_whitelist(
             self.storage,
             periods,
             whitelistlabel,
             userstopwords,
             whitelist,
             minoccs
-        )
+        ))
 
     def import_whitelist(
             self,
@@ -407,7 +413,7 @@ class TinaApp(object):
         """returns a filename from the user directory"""
         path = join( self.user, dataset, filetype )
         now = "".join(str(datetime.now())[:10].split("-"))
-        # standar separator in filenames
+        # standard separator in filenames
         filename = now + "-" + filename
         finalpath = join( path, filename )
         if not exists(path):
@@ -432,12 +438,12 @@ class TinaApp(object):
     def walk_user_path(self, dataset, filetype):
         """
         Part of the File API
-        returns the list of files in the gexf directory tree
+        returns the list of files in the user directory tree
         """
         path = join( self.user, dataset, filetype )
         if not exists( path ):
             return []
-        return [join( path, file ) for file in os.listdir( path )]
+        return [abspath(join( path, file )) for file in os.listdir( path )]
 
     def walk_datasets(self):
         """

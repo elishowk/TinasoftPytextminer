@@ -1,4 +1,4 @@
-#!/usr/env/python
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 #  Copyright (C) 2009-2011 CREA Lab, CNRS/Ecole Polytechnique UMR 7656 (Fr)
 #
@@ -15,81 +15,67 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-__version__ = "1.0"
-__url__= "http://tinasoft.eu"
-__descr__ = "A text-mining python module producing bottom-up thematic field graphs"
-__license__ = "GNU GPL v3"
-__author__ = "elias showk"
-__author_email__ = "elishowk at nonutc dot fr"
+__version__="1.0alpha6"
+__url__="http://tinasoft.eu"
+__longdescr__="A text-mining python module producing thematic field graphs"
+__license__="GNU General Public License"
+__keywords__="nlp,textmining,graph"
+__author__="elias showk"
+__author_email__="elishowk@nonutc.fr"
+#__classifiers__="nlp textmining http"
 
-from setuptools import find_packages
-from distutils.core import setup
-import py2exe
-import os
 from os.path import join
 from glob import glob
-import numpy
-from numpy.core import numeric
-
-#PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
-#DEPS = glob(os.path.dirname(os.path.abspath(__file__)) + "/deps/*")
+import platform
+from cx_Freeze import setup, Executable
 
 data_files = [
-    ('Microsoft.VC90.CRT', glob(r'e:\\Microsoft.VC90.CRT\\*.*')),
-    ('',glob(r'config_win.yaml')),
-    ('',glob(r'LICENSE')),
-    (join('shared','gexf'), glob(join('shared','gexf','gexf.template'))),
-    (join('shared','stopwords'), glob(join('shared','stopwords','*.txt'))),
-    (join('shared','nltk_data','corpora','brown'), glob(join('shared','nltk_data','corpora','brown','*.*'))),
-    (join('shared','nltk_data','corpora','conll2000'), glob(join('shared','nltk_data','corpora','conll2000','*.*'))),
-    (join('shared','nltk_data','tokenizers','punkt'), glob(join('shared','nltk_data','tokenizers','punkt','*.*')))
+#    ('Microsoft.VC90.CRT',glob(join('Microsoft.VC90.CRT','*.*'))),
+    'README',
+    'LICENSE',
+    'config_win.yaml',
+    join('shared','gexf','gexf.template'),
+#    (join('shared','gexf'),join('shared','gexf','gexf.template')),
+#    (join('shared','stopwords'),glob(join('shared','stopwords','*.txt'))),
+#    (join('shared','nltk_data','corpora','brown'), join('shared','nltk_data','corpora','brown','*.*')),
+#    (join('shared','nltk_data','corpora','conll2000'), glob(join('shared','nltk_data','corpora','conll2000','*.*'))),
+#    (join('shared','nltk_data','tokenizers','punkt'), glob(join('shared','nltk_data','tokenizers','punkt','*.*')))
 ]
+data_files += glob(join('Microsoft.VC90.CRT','*.*'))
+data_files += glob(join('shared','stopwords','*.txt'))
+#data_files += glob(join('shared','nltk_data','corpora','brown','*.*'))
+#data_files += glob(join('shared','nltk_data','corpora','conll2000','*.*'))
+#data_files += glob(join('shared','nltk_data','tokenizers','punkt','*.*'))
 
-setup (
-    name = 'TinasoftPytextminer',
-	#packages = find_packages(),
-    packages = ['tinasoft','tinasoft.data','tinasoft.pytextminer',
-	#'tinasoft.data.tinabsddb','tinasoft.data.tinacsv',
-	#'tinasoft.data.basecsv','tinasoft.data.gexf','tinasoft.data.medline','tinasoft.data.whitelist',
-	'tinasoft.pytextminer.ngram','tinasoft.pytextminer.document',
-	'tinasoft.pytextminer.corpus','tinasoft.pytextminer.corpora','tinasoft.pytextminer.whitelist',
-	'tinasoft.pytextminer.extractor','tinasoft.pytextminer.filtering','tinasoft.pytextminer.stopwords',
-	'tinasoft.pytextminer.tagger','tinasoft.pytextminer.tokenizer','tinasoft.pytextminer.cooccurrences'
-	],
-	#package_dir = {'tinasoft':'tinasoft'},
-	#dependency_links=DEPS,
-    data_files = data_files,
-	#scripts = ['httpserver.py'],
-	#console_scripts = ['httpserver.py'],
-	#package_data = {'tinasoft':[join('shared'),join('tinasoft\config.yaml','README','LICENSE']},
-	requires = ['numpy','yaml','bsddb3','nltk','jsonpickle','tenjin',
-		'twisted','twisted.web','twisted.internet','twisted.web.resource','simplejson'
-	],
-    # py2exe special args
-    #zipfile = None,
-    console = ["httpserver.py"],
-    options = {
-		'py2exe': {
-			'packages': ['email','encodings','twisted','tinasoft','tinasoft.data','tinasoft.pytextminer',
-				'tinasoft.pytextminer.ngram','tinasoft.pytextminer.document',
-				'tinasoft.pytextminer.corpus','tinasoft.pytextminer.corpora','tinasoft.pytextminer.whitelist',
-				'tinasoft.pytextminer.extractor','tinasoft.pytextminer.filtering','tinasoft.pytextminer.stopwords',
-				'tinasoft.pytextminer.tagger','tinasoft.pytextminer.tokenizer','tinasoft.pytextminer.cooccurrences'
-			],
-			'unbuffered': True,
-            'compressed': True,
-			'bundle_files': 1,
-			'includes': ['numpy','numpy.*','bsddb3','encodings','encodings.*','nltk','jsonpickle','tenjin','twisted','twisted.web','twisted.internet','twisted.web.resource','simplejson'],
-			'excludes' : ['Tkconstants','Tkinter','tcl','pdb','unittest','difflib','doctest'],
-		},
-		'sdist': {
-			'formats': 'zip',
-		}
-    },
-    version = __version__,
-    url = __url__,
-    description = __descr__,
-    license = __license__,
-    author = __author__,
-    author_email = __author_email__
+print data_files
+# for win32, see: http://wiki.wxpython.org/cx_freeze
+
+includes = [
+  'tinasoft.data.basecsv',
+  'tinasoft.data.coocmatrix',
+  'tinasoft.data.gexf',
+  'tinasoft.data.medline',
+  #'tinasoft.data.tinabsddb',
+  'tinasoft.data.tinasqlite',
+  'tinasoft.data.tinacsv',
+  'tinasoft.data.whitelist',
+  'jsonpickle','tenjin','simplejson'
+]
+excludes = ['_gtkagg', '_tkagg', 'curses', 'email', 'pywin.debugger',
+            'pywin.debugger.dbgcon', 'pywin.dialogs', 'tcl',
+            'Tkconstants', 'Tkinter','bsddb3']
+packages = ['nltk', 'numpy', 'twisted', 'twisted.web','twisted.internet','encodings','zope.interface']
+setup(
+        name = "tinasoft",
+        version = __version__,
+        description = __longdescr__,
+        executables = [Executable("httpserver.py")],
+        options = {
+            "build_exe": {
+                "includes": includes,
+                "excludes": excludes,
+                "packages": packages,
+                "include_files": data_files,
+            }
+        },
 )
