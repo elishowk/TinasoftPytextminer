@@ -36,7 +36,7 @@ class TreeBankPosTagger():
         thanks to http://streamhacker.com/2010/04/12/pos-tag-nltk-brill-classifier/
         needs nltk data 'corpus/brown' and 'corpus/conll2000'
     """
-
+    # default word patterns for the RegexpTagger
     word_patterns = [
         (r'^-?[0-9]+(.[0-9]+)?$', 'CD'),
         (r'.*ould$', 'MD'),
@@ -57,6 +57,10 @@ class TreeBankPosTagger():
     training_corpus_size = 8000
 
     def __init__(self, training_corpus_size=None, trained_pickle=None ):
+        """
+        Prepares the hybrid tagger
+        Composes training sentences
+        """
         # get the training sentences
         if training_corpus_size is not None:
             self.training_corpus_size = training_corpus_size
@@ -86,7 +90,10 @@ class TreeBankPosTagger():
 
     @staticmethod
     def posTag( tokens ):
-        """each tokens becomes ['token','TAG']"""
+        """
+        gives access to static default nltk pos tagger (slower but smarter)
+        each tokens becomes ['token','TAG']
+        """
         return map( list, pos_tag( tokens ) )
 
     def _normalize(self,tagtok):

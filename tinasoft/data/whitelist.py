@@ -21,7 +21,7 @@ from tinasoft import TinaApp
 from tinasoft.pytextminer import PyTextMiner
 from tinasoft.data import basecsv
 from tinasoft.pytextminer import tokenizer, tagger, ngram, whitelist, corpus
-from tinasoft.pytextminer import filtering
+from tinasoft.pytextminer import filtering, stemmer
 
 from decimal import *
 
@@ -76,6 +76,7 @@ class Importer(basecsv.Importer):
 
     def parse_file(self):
         """Reads a whitelist file and returns the updated object"""
+        stem = stemmer.Nltk()
         if self.whitelist is None: return TinaApp.STATUS_ERROR
         for row in self.csv:
             try:
@@ -86,7 +87,8 @@ class Importer(basecsv.Importer):
                 _logger.error( "%s columns was not found, whitelist import failed"%keyexc )
                 continue
             # calculates db ID from the label, does not trust the file's db id
-            dbid = PyTextMiner.getId(label)
+            ng = ngram.NGram(label.split(" "), stemmer=stem)
+            dbid = ng['id']
             if status == self.filemodel.accept:
                 self._add_whitelist(dbid, occs)
                 self._add_ngram(dbid, label, row)

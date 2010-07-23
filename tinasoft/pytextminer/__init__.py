@@ -17,7 +17,10 @@
 __author__="Julian Bilcke, Elias Showk"
 __date__ ="$Oct 20, 2009 5:30:11 PM$"
 
-__all__ = ["filtering","corpora", "corpus", "document", "ngram", "tokenizer", "tagger", "cooccurrences", "stopwords","extractor","whitelist"]
+__all__ = [
+    "corpora", "corpus", "document", "ngram","whitelist"
+    "filtering","tokenizer", "tagger", "cooccurrences", "stopwords","extractor","stemmer"
+]
 
 from uuid import uuid4
 
@@ -53,10 +56,10 @@ class PyTextMiner():
     def getId(content):
         if content is None:
             return uuid4().hex
-        if type(content).__name__ == 'list':
-            # for NGrams
+        if type(content) == list:
+            # for NGrams-like objects : content==list
             return str(abs( hash( " ".join(content) ) ))
-        elif type(content).__name__ == 'str' or type(content).__name__ == 'unicode':
+        elif type(content) == str or type(content) == unicode:
             # for all other string content
             return str(abs( hash( content ) ))
         else:
@@ -82,13 +85,6 @@ class PyTextMiner():
         else:
             self['edges'][type][key] = value
         return True
-
-    def addEdge(self, type, key, value):
-        return self._addEdge( type, key, value )
-
-
-    def normalize(self, tokenlst):
-        return [token.lower() for token in tokenlst]
 
     def __getitem__(self, key):
         return getattr( self, key, None )

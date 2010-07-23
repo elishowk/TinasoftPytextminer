@@ -5,8 +5,7 @@ build/
 *.swp
 *.swo
 *~
-nbproject
-nbproject/*
+nbproject/
 db/
 index/
 log/

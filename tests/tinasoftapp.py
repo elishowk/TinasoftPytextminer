@@ -21,6 +21,9 @@ __date__ ="$Jan, 21 2010 5:29:16 PM$"
 # core modules
 import unittest
 
+#import tinasoft
+#import tinasoft.pytextminer
+
 from tinasoft import TinaApp
 from tinasoft.pytextminer import stopwords
 from tinasoft.data import Writer
@@ -48,7 +51,7 @@ class TinaAppTestCase(unittest.TestCase):
 
     def testB_IndexFile(self):
         """testH_IndexFile : testing index_file"""
-        return
+        #return
         self.failIfEqual( self.tinasoft.index_file(
                 self.path,
                 self.datasetId,
@@ -104,7 +107,7 @@ class TinaAppTestCase(unittest.TestCase):
 
     def testE_ExportGraph(self):
         """testE_ExportGraph : exports a gexf graph, after cooccurrences processing"""
-        #return
+        return
         print self.tinasoft.export_graph(
             self.datasetId,
             self.periods

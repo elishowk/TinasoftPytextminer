@@ -27,6 +27,8 @@ from tinasoft.pytextminer import tagger
 from tinasoft.pytextminer import filtering
 _logger = logging.getLogger('TinaAppLogger')
 
+nltk_treebank_tokenizer = nltk.TreebankWordTokenizer()
+
 class RegexpTokenizer():
     """
     A homemade tokenizer that splits a text into tokens
@@ -34,14 +36,14 @@ class RegexpTokenizer():
     """
     @staticmethod
     def sanitize(input, forbiddenChars, emptyString):
-        """sanitized a text
-
+        """
+        sanitized a text
         @return str: text
         """
         striped = string.strip(input)
         #replaces forbidden characters by a separator
         sanitized = re.sub(forbiddenChars, emptyString, striped)
-        return sanitized.lower()
+        return sanitized
 
     @staticmethod
     def cleanPunct(text, emptyString, punct=u'[\,\.\;\:\!\?\"\[\]\{\}\(\)\<\>]'):
@@ -57,25 +59,26 @@ class RegexpTokenizer():
         return tokens
 
     @staticmethod
-    def ngramize(minSize, maxSize, tokens, emptyString, stopwords=None, filters=[]):
+    def ngramize(minSize, maxSize, tokens, emptyString, stopwords=None, filters=[], stemmer=None):
         """
             returns a dict of NGram instances
             using the optional stopwords object to filter by ngram length
-            tokens = [sentence1, sentence2, etc]
-            sentences = list of words = [word,postagged_word]
+            tokens = [[sentence1 tokens], [sentence2 tokens], etc]
+            sentences = list of tuples = [(word,TAG_word), etc]
         """
         ngrams = {}
         for sent in tokens:
+            # content is the list of tokens from sent
             content = tagger.TreeBankPosTagger.getContent(sent)
             for i in range(len(content)):
                 for n in range(minSize, maxSize + 1):
                     if len(content) >= i + n:
-                        #content = tagger.TreeBankPosTagger.getContent(sent[i:n+i])
-                        ng = ngram.NGram(content[i:n + i], occs=1, postag=sent[i:n + i])
+                        ng = ngram.NGram(content[i:n + i], occs=1, postag=sent[i:n + i], stemmer=stemmer)
                         if ng['id'] in ngrams:
-                            # exists in document : only increments occs
+                            # already exists in document : increments occs
                             ngrams[ng['id']]['occs'] += 1
                         else:
+                            # first stopwords filters, then content and postag filtering
                             if stopwords is None or stopwords.contains(ng) is False:
                                 if filtering.apply_filters(ng, filters) is True:
                                     ngrams[ng['id']] = ng
@@ -91,13 +94,21 @@ class TreeBankWordTokenizer(RegexpTokenizer):
     def tokenize(text, emptyString, stopwords=None):
         sentences = nltk.sent_tokenize(text)
         # WARNING : only works on english
-        sentences = [nltk.TreebankWordTokenizer().\
-            tokenize(RegexpTokenizer.cleanPunct(sent, emptyString)) \
-            for sent in sentences]
+        sentences = [
+            nltk_treebank_tokenizer.tokenize(
+                TreeBankWordTokenizer.cleanPunct(sent, emptyString)
+            ) for sent in sentences
+        ]
         return sentences
 
     @staticmethod
-    def extract(doc, stopwords, ngramMin, ngramMax, filters, tagger):
+    def extract(doc, stopwords, ngramMin, ngramMax, filters, tagger, stemmer):
+        """
+        sanitizes content and label texts
+        tokenizes it
+        POS tags the tokens
+        constructs the resulting NGram objects
+        """
         sanitizedTarget = TreeBankWordTokenizer.sanitize(
                                                     doc['content'] +" . "+ doc['label'],
                                                     doc['forbChars'],
@@ -108,6 +119,7 @@ class TreeBankWordTokenizer(RegexpTokenizer):
                                                     emptyString=doc['ngramEmpty'],
                                                     )
         tokens = []
+        # sentence becomes a list of tuples (token, TAG)
         for sentence in sentenceTokens:
             tokens.append(tagger.tag(sentence))
         return TreeBankWordTokenizer.ngramize(
@@ -117,4 +129,5 @@ class TreeBankWordTokenizer(RegexpTokenizer):
                                         emptyString=doc['ngramEmpty'],
                                         stopwords=stopwords,
                                         filters=filters,
+                                        stemmer=stemmer
                                         )
