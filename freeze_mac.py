@@ -12,7 +12,7 @@ from setuptools import setup
 
 APP = ['httpserver.py']
 DATA_FILES = [
-    ('',glob(r'config_unix.yaml')),
+    ('',glob(r'desktop_config_unix.yaml')),
     ('',glob(r'LICENSE')), 
     ('source_files',glob(join('source_files','*.csv'))),
     ('',glob(join('static'))), 
@@ -25,7 +25,7 @@ DATA_FILES = [
 
 OPTIONS = {
 'argv_emulation': True,
-'argv_inject': "config_unix.yaml",
+'argv_inject': "desktop_config_unix.yaml",
 'includes': ['zope.interface','twisted','nltk','numpy','jsonpickle','yaml','tenjin','simplejson'],
 'resources': DATA_FILES
 }
@@ -35,3 +35,4 @@ setup(
     options={'py2app': OPTIONS},
     setup_requires=['py2app'],
 )
+
