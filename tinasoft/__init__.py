@@ -41,6 +41,9 @@ from tinasoft.pytextminer import extractor
 from tinasoft.pytextminer import cooccurrences
 from tinasoft.pytextminer import whitelist
 from tinasoft.pytextminer import stopwords
+#from tinasoft.pytextminer import stemmer
+#import tinasoft
+#import tinasoft.pytextminer
 
 LEVELS = {
     'debug': logging.DEBUG,
@@ -50,7 +53,7 @@ LEVELS = {
     'critical': logging.CRITICAL
 }
 
-CWD = '.'
+# fixes the type and name of database
 STORAGE_DSN = "tinasqlite://tinasoft.sqlite"
 
 class TinaApp(object):
@@ -112,19 +115,13 @@ class TinaApp(object):
         # set default level to DEBUG
         if 'loglevel' in self.config['general']:
             loglevel = LEVELS[self.config['general']['loglevel']]
-        # logger config
-        #logging.basicConfig(
-        #    filename = self.LOG_FILENAME,
-        #    datefmt = '%Y-%m-%d %H:%M:%S',
-        #    format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-        #)
+        # logger configuration
         self.logger = logging.getLogger('TinaAppLogger')
         self.logger.setLevel(loglevel)
         formatter = logging.Formatter(
             "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
             '%Y-%m-%d %H:%M:%S'
         )
-        # Add the log message handler to the logger
         rotatingFileHandler = logging.handlers.RotatingFileHandler(
             filename = self.LOG_FILENAME,
             maxBytes = 1024000,
@@ -132,7 +129,6 @@ class TinaApp(object):
         )
         rotatingFileHandler.setFormatter(formatter)
         self.logger.addHandler(rotatingFileHandler)
-
         # tries support of the locale by the host system
         try:
             if loc is None:
@@ -207,9 +203,21 @@ class TinaApp(object):
             outpath = self._user_filepath(whitelistlabel, 'whitelist', "%s-extract_dataset.csv"%dataset)
         corporaObj = corpora.Corpora(dataset)
         # instanciate extractor class
-        stopwds = stopwords.StopWords( "file://%s"%join(self.config['general']['basedirectory'],self.config['general']['shared'],self.config['general']['stopwords']) )
-        userstopwords = self.import_userstopwords(userstopwords)
-        extract = extractor.Extractor( self.storage, self.config['datasets'], corporaObj, stopwds, userstopwords)
+        stopwds = stopwords.StopWords(
+            "file://%s"%join(self.config['general']['basedirectory'],
+            self.config['general']['shared'],
+            self.config['general']['stopwords'])
+        )
+        stemmer = self._import_module( self.config['datasets']['stemmer'] )
+        userstopwords = self.import_userstopwords( userstopwords )
+        extract = extractor.Extractor(
+            self.storage,
+            self.config['datasets'],
+            corporaObj,
+            stopwds,
+            userstopwords,
+            stemmer=stemmer.Nltk()
+        )
         outpath= extract.extract_file( path, format, outpath, whitelistlabel, minoccs )
         if outpath is not False:
             return abspath(outpath)
@@ -232,8 +240,19 @@ class TinaApp(object):
         if self.set_storage( dataset ) == self.STATUS_ERROR:
             return self.STATUS_ERROR
         # instanciate stopwords and extractor class
-        stopwds = stopwords.StopWords( "file://%s"%join(self.config['general']['basedirectory'],self.config['general']['shared'],self.config['general']['stopwords']) )
-        extract = extractor.Extractor( self.storage, self.config['datasets'], corporaObj, stopwds )
+        stopwds = stopwords.StopWords(
+            "file://%s"%join(self.config['general']['basedirectory'],
+            self.config['general']['shared'],
+            self.config['general']['stopwords'])
+        )
+        stemmer = self._import_module( self.config['datasets']['stemmer'] )
+        extract = extractor.Extractor(
+            self.storage,
+            self.config['datasets'],
+            corporaObj,
+            stopwds,
+            stemmer=stemmer.Nltk()
+        )
         if extract.index_file(
             path,
             format,
@@ -251,6 +270,7 @@ class TinaApp(object):
             overwrite=False,
         ):
         """
+        OBSOLETE
         tinasoft common csv file import controler
         """
         path = self._get_sourcefile_path(path)
@@ -258,8 +278,19 @@ class TinaApp(object):
         if self.set_storage( dataset ) == self.STATUS_ERROR:
             return self.STATUS_ERROR
         # instanciate stopwords and extractor class
-        stopwds = stopwords.StopWords( "file://%s"%join(self.config['general']['basedirectory'],self.config['general']['shared'],self.config['general']['stopwords']) )
-        extract = extractor.Extractor( self.storage, self.config['datasets'], corporaObj, stopwds )
+        stopwds = stopwords.StopWords(
+            "file://%s"%join(self.config['general']['basedirectory'],
+            self.config['general']['shared'],
+            self.config['general']['stopwords'])
+        )
+        stemmer = self._import_module( self.config['datasets']['stemmer'])
+        extract = extractor.Extractor(
+            self.storage,
+            self.config['datasets'],
+            corporaObj,
+            stopwds,
+            stemmer=stemmer.Nltk()
+        )
         if extract.import_file(
             path,
             format,
@@ -477,3 +508,10 @@ class TinaApp(object):
             return None
         return path
 
+    def _import_module(self, name):
+        """returns a imported module given its string name"""
+        try:
+            module =  __import__(name)
+            return sys.modules[name]
+        except ImportError, exc:
+            raise Exception("couldn't load module %s: %s"%(name,exc))

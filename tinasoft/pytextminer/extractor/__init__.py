@@ -26,7 +26,7 @@ _logger = logging.getLogger('TinaAppLogger')
 
 class Extractor():
     """A source file importer = data set = corpora"""
-    def __init__( self, storage, config, corpora, stopwds, filters=None ):
+    def __init__( self, storage, config, corpora, stopwds, filters=None, stemmer=None ):
         self.reader = None
         self.config=config
         # load Stopwords object
@@ -37,6 +37,7 @@ class Extractor():
         self.filters = [filterContent,validTag]
         if filters is not None:
             self.filters += filters
+        self.stemmer = stemmer
         # keep duplicate document objects
         self.duplicate = []
         # params from the controler
@@ -91,7 +92,8 @@ class Extractor():
                     self.config['ngramMin'],
                     self.config['ngramMax'],
                     self.filters,
-                    self.tagger
+                    self.tagger,
+                    self.stemmer
                 )
                 ### updates newwl to prepare export
                 # increments number of docs per period
@@ -146,7 +148,8 @@ class Extractor():
                     self.config['ngramMin'],
                     self.config['ngramMax'],
                     self.filters,
-                    self.tagger
+                    self.tagger,
+                    self.stemmer
                 )
                 #### inserts/updates document, corpus and corpora
                 self._insert_NGrams(docngrams, document, corpusNum, overwrite)
@@ -191,6 +194,7 @@ class Extractor():
             # updates Doc-NGram edges
             document.addEdge( 'NGram', ng['id'], docOccs )
             # queue the update of the ngram
+            print ng
             self.storage.updateNGram( ng, overwrite, document['id'], corpusNum )
         self.storage.flushNGramQueue()
 
@@ -242,7 +246,8 @@ class Extractor():
                     ngramMin, \
                     ngramMax, \
                     self.filters, \
-                    self.tagger \
+                    self.tagger,
+                    self.stemmer
                 )
                 self._insert_NGrams(
                     docngrams,

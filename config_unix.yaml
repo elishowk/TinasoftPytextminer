@@ -40,6 +40,7 @@ datasets:
     ngramMax: 4
     training_tagger_size: 1000
     overwrite: 0
+    stemmer: 'tinasoft.pytextminer.stemmer'
 datamining:
     template: 'shared/gexf/gexf.template'
     DocumentGraph:
