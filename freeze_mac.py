@@ -10,7 +10,7 @@ from glob import glob
 
 from setuptools import setup
 
-APP = ['httpserver.py']
+APP = ['Tinasoft.py']
 DATA_FILES = [
     ('',glob(r'desktop_config_unix.yaml')),
     ('',glob(r'LICENSE')), 
