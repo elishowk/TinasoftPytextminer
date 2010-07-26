@@ -38,8 +38,10 @@ datasets:
     # extraction params
     ngramMin: 1
     ngramMax: 4
-    training_tagger_size: 1000
-    overwrite: 0
+    training_tagger_size: 8000
+    stemmer: 'tinasoft.pytextminer.stemmer'
+    # under "share" directory
+    tagger: 'shared/tagger.pickle'
 datamining:
     template: 'shared\gexf\gexf.template'
     DocumentGraph:

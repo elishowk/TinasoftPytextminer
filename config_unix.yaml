@@ -4,16 +4,17 @@ general:
     # where all path and following file are located
     basedirectory: '.'
     locale: 'en_US.UTF-8'
+    # all the following directories or files a under "basedirectory"
     index: 'index'
     dbenv: 'db'
     log: 'log'
     loglevel: 'debug'
     user: 'user'
+    userstopwords: 'user_stopwords.csv'
     shared: 'shared'
     source_file_directory: 'source_files'
     # stopwords are under share
     stopwords: 'stopwords/en.txt'
-    userstopwords: 'user_stopwords.csv'
 # extraction settings
 datasets:
     # tina csv columns declaration
@@ -38,9 +39,10 @@ datasets:
     # extraction params
     ngramMin: 1
     ngramMax: 4
-    training_tagger_size: 1000
-    overwrite: 0
+    training_tagger_size: 8000
     stemmer: 'tinasoft.pytextminer.stemmer'
+    # under "share" directory
+    tagger: 'shared/tagger.pickle'
 datamining:
     template: 'shared/gexf/gexf.template'
     DocumentGraph:

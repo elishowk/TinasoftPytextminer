@@ -21,9 +21,9 @@ __date__ ="$Nov 19, 2009$"
 import nltk.corpus
 import nltk.tag
 import itertools
-from nltk.tag import brill
+#from nltk.tag import brill
 from nltk import pos_tag
-
+import cPickle as pickle
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
@@ -54,26 +54,42 @@ class TreeBankPosTagger():
         (r'^a$', 'PREP'),
     ]
 
-    training_corpus_size = 8000
+    default_training_corpus_size = 2000
 
-    def __init__(self, training_corpus_size=None, trained_pickle=None ):
+    def __init__(self, training_corpus_size, trained_pickle):
         """
         Prepares the hybrid tagger
         Composes training sentences
         """
+        if trained_pickle is not None:
+            self._loading(training_corpus_size, trained_pickle)
+        else:
+            self._training(training_corpus_size, trained_pickle)
+
+    def _loading(self, training_corpus_size, trained_pickle):
+        try:
+            self.tagger = pickle.load(file(trained_pickle,'r'))
+        except pickle.PickleError, pickerr:
+            _logger.warning("%s"%pickerr)
+            self._training(training_corpus_size, trained_pickle)
+        except IOError, ioerr:
+            _logger.warning("Pickled tagger %s not found, will train its own tagger"%trained_pickle)
+            self._training(training_corpus_size, trained_pickle)
+
+    def _training(self, training_corpus_size, trained_pickle):
         # get the training sentences
-        if training_corpus_size is not None:
-            self.training_corpus_size = training_corpus_size
-        _logger.debug( "Training tagger with training_corpus_size = %d"%self.training_corpus_size )
-        brown_train = list(nltk.corpus.brown.tagged_sents()[:self.training_corpus_size])
-        conll_train = list(nltk.corpus.conll2000.tagged_sents()[:self.training_corpus_size])
+        if training_corpus_size is None:
+            training_corpus_size = default_training_corpus_size
+        _logger.debug( "Training tagger with training_corpus_size = %d"%training_corpus_size )
+        brown_train = list(nltk.corpus.brown.tagged_sents()[:training_corpus_size])
+        conll_train = list(nltk.corpus.conll2000.tagged_sents()[:training_corpus_size])
         train_sents = list(itertools.chain( brown_train, conll_train ))
         # base tagger classes for initial tagger
         tagger_classes = [nltk.tag.AffixTagger, nltk.tag.UnigramTagger, nltk.tag.BigramTagger, nltk.tag.TrigramTagger]
 
         backoff = nltk.tag.RegexpTagger(self.word_patterns)
         self.tagger = self._backoff(train_sents, tagger_classes, backoff=backoff)
-
+        pickle.dump(self.tagger, file(trained_pickle,'w+'))
 
 
     def _backoff(self, tagged_sents, tagger_classes, backoff=None):

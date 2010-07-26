@@ -44,7 +44,10 @@ class Extractor():
         self.corpora = corpora
         self.storage = storage
         # instanciate the tagger, takes times on learning
-        self.tagger = tagger.TreeBankPosTagger(training_corpus_size=self.config['training_tagger_size'])
+        self.tagger = tagger.TreeBankPosTagger(
+            training_corpus_size=self.config['training_tagger_size'],
+            trained_pickle=self.config['tagger']
+        )
         #self.__insert_threads = []
 
     def _openFile(self, path, format ):
