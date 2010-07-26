@@ -15,7 +15,6 @@ DATA_FILES = [
     ('',glob(r'desktop_config_unix.yaml')),
     ('',glob(r'LICENSE')), 
     ('source_files',glob(join('source_files','*.csv'))),
-    ('',glob(join('static'))), 
     (join('shared','gexf'), glob(join('shared','gexf','gexf.template'))),
     (join('shared','stopwords'), glob(join('shared','stopwords','*.txt'))),
     (join('shared','nltk_data','corpora','brown'), glob(join('shared','nltk_data','corpora','brown','*.*'))),
