@@ -23,6 +23,10 @@ _logger = logging.getLogger('TinaAppLogger')
 class NGram(PyTextMiner):
     """NGram class"""
     def __init__(self, tokenlist, id=None, label=None, edges=None, stemmer=None, **metas):
+        """
+        initiate the object
+        normalize must be local value for pickling reasons
+        """
         normalize = self.normalize
         # normalize and stemmer
         if stemmer is not None:
@@ -37,10 +41,23 @@ class NGram(PyTextMiner):
         PyTextMiner.__init__(self, normlist, id, label, edges, **metas)
 
     def addEdge(self, type, key, value):
+        """
+        The NGram object accepts only one edge write to a Document object
+        All the ohter edges are multiples
+        """
         if type == 'Document':
             return self._addUniqueEdge( type, key, value )
         else:
             return self._addEdge( type, key, value )
 
     def normalize(self, token):
+        """
+        Default tokens normalizing
+        """
         return token.lower()
+
+class Dictionary():
+    """
+    Class handling non-stemmed ngrams
+    """
+    pass

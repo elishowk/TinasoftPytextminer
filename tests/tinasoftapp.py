@@ -51,7 +51,7 @@ class TinaAppTestCase(unittest.TestCase):
 
     def testB_IndexFile(self):
         """testH_IndexFile : testing index_file"""
-        #return
+        return
         self.failIfEqual( self.tinasoft.index_file(
                 self.path,
                 self.datasetId,
@@ -63,7 +63,7 @@ class TinaAppTestCase(unittest.TestCase):
 
     def testA_ExtractFile(self):
         """testA_ExtractFile : testing extract_file"""
-        return
+        #return
         print self.tinasoft.extract_file(
                 self.path,
                 self.datasetId,
@@ -87,13 +87,11 @@ class TinaAppTestCase(unittest.TestCase):
     def testC_export_whitelist(self):
         """testC_export_whitelist : Exports a whitelist file"""
         return
-        print self.tinasoft.export_whitelist( \
-            self.periods, \
-            self.datasetId, \
-            'test export whitelist', \
-            'tinaapptests-export_whitelist.csv', \
-            self.whitelist, \
-            self.userstopwordfilter
+        print self.tinasoft.export_whitelist(
+            self.periods,
+            self.datasetId,
+            'test export whitelist',
+            'tinaapptests-export_whitelist.csv'
         )
 
     def testD_ProcessCooc(self):

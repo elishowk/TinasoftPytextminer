@@ -194,7 +194,6 @@ class Extractor():
             # updates Doc-NGram edges
             document.addEdge( 'NGram', ng['id'], docOccs )
             # queue the update of the ngram
-            print ng
             self.storage.updateNGram( ng, overwrite, document['id'], corpusNum )
         self.storage.flushNGramQueue()
 

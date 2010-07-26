@@ -423,6 +423,7 @@ class TinaApp(object):
         Produces the default GEXF graph file
         for given list of periods (to aggregate)
         and a given ngram whitelist
+        @return relative path to the gexf file
         """
         if outpath is None:
             outpath = self._user_filepath(dataset, 'gexf', "%s-graph.gexf"%"_".join(periods))
@@ -432,7 +433,6 @@ class TinaApp(object):
 
         if self.set_storage( dataset ) == self.STATUS_ERROR:
             return self.STATUS_ERROR
-
         return GEXFWriter.ngramDocGraph(
             outpath,
             db = self.storage,

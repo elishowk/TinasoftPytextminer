@@ -167,7 +167,7 @@ class Exporter(basecsv.Exporter):
             # prepares the row
             row = [
                 ng['status'],
-                ng['label'],
+                ng['label'].replace('"',"'"),
                 tag,
                 str(occs),
                 str(len(ng['content'])),

@@ -29,6 +29,9 @@ class Nltk():
     Interface to nltk's Stemmers
     """
     def __init__(self, stemmer=None ):
+        """
+        Instanciate PorterStemmer if @stemmer is None
+        """
         if stemmer is None:
             stemmer = PorterStemmer()
         self.stemmer = stemmer
