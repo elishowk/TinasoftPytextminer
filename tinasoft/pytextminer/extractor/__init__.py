@@ -15,6 +15,7 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 __author__="Elias Showk"
+from tinasoft.pytextminer import PyTextMiner
 
 from tinasoft.pytextminer import corpus, tagger, stopwords, tokenizer, filtering, whitelist
 from tinasoft.data import Engine, Reader, Writer
@@ -107,6 +108,8 @@ class Extractor():
                     if ngid not in newwl['content']:
                         newwl['content'][ngid] = ng
                         newwl['content'][ngid]['status'] = ""
+                    else:
+                        newwl['content'][ngid] = PyTextMiner.updateEdges( ng, newwl['content'][ngid], ['Corpus','Document','label','postag'] )
                     # increments per period occs
                     newwl['content'][ngid].addEdge( 'Corpus', corpusNum, 1 )
                     # increments total occurences within the dataset
@@ -268,16 +271,6 @@ class Extractor():
             return False
 
     def _update_Document(self, overwrite, corpusNum, document):
-        """doc's storage : checks if exists, then updates the necessary"""
-        #if self.storage.loadDocument( document['id'] ) is not None:
-            # force add the doc-corpus edge : aims at at attaching a doc to multiple corpus
-            #storedDoc.addEdge( 'Corpus', corpusNum, 1 )
-            # force update, will merge edges following the class constraints
-            #self.storage.updateDocument( storedDoc, True )
-            #_logger.warning( "Doc %s is already stored"%document['id'] )
-            # skip document
-            #self.duplicate += [document]
-            #return False
-        # anyway, insert document to storage
+        """doc's storage : updates and returns duplicates"""
         self.duplicate += self.storage.updateDocument( document, overwrite )
         return True

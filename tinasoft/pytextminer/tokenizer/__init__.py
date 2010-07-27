@@ -99,7 +99,7 @@ class RegexpTokenizer():
                     # new NGram instance
                     ng = ngram.NGram(content[i:n + i], occs=1, postag=tags[i:n + i], stemmer=stemmer)
                     if ng['id'] in ngrams:
-                        # already exists in document : increments occs
+                        # already exists in document : increments occs and updates edges
                         ngrams[ng['id']]['occs'] += 1
                         ngrams[ng['id']] = PyTextMiner.updateEdges( ng, ngrams[ng['id']], ['label','postag'] )
                     else:
