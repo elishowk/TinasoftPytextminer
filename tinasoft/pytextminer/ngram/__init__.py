@@ -35,8 +35,13 @@ class NGram(PyTextMiner):
         normlist = [normalize(word) for word in tokenlist]
         if label is None:
             label = " ".join(tokenlist)
+
         if edges is None:
-            edges = { 'Document' : {}, 'Corpus' : {} }
+            edges = { 'Document' : {}, 'Corpus' : {}, 'label': {}, 'postag' }
+
+        self.addEdge('label', label, 1)
+        if postag is not None:
+            self.addEdge('postag', " ".join(postag), 1 )
 
         PyTextMiner.__init__(self, normlist, id, label, edges, **metas)
 
