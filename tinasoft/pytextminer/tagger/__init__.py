@@ -21,6 +21,7 @@ __date__ ="$Nov 19, 2009$"
 import nltk.corpus
 import nltk.tag
 import itertools
+import string
 #from nltk.tag import brill
 from nltk import pos_tag
 import cPickle as pickle
@@ -52,6 +53,7 @@ class TreeBankPosTagger():
         (r'.*ic$', 'JJ'),
         (r'.*est$', 'JJ'),
         (r'^a$', 'PREP'),
+        (r'['+string.punctuation+']', 'PUN'),
     ]
 
     default_training_corpus_size = 2000

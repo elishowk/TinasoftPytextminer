@@ -55,9 +55,3 @@ class NGram(PyTextMiner):
         Default tokens normalizing
         """
         return token.lower()
-
-class Dictionary():
-    """
-    Class handling non-stemmed ngrams
-    """
-    pass
