@@ -152,7 +152,7 @@ class PosTagFilter(Content):
 
     def get_content(self, ng):
         """selects NGram's postag"""
-        return [token[1] for token in ng['postag']]
+        return [token for token in ng['postag']]
 
 class PosTagValid(PosTagFilter):
     """

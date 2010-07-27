@@ -119,7 +119,6 @@ class TreeBankPosTagger():
         tagtok = list(tagtok)
         if tagtok[1] is None:
             tagtok[1] = '?'
-            #_logger.debug(tagtok)
         return tagtok
 
     def tag(self, tokens):
@@ -132,10 +131,10 @@ class TreeBankPosTagger():
 
     @staticmethod
     def getContent( sentence ):
-        """return words from a tagged list"""
+        """return words from a tagged list like [["the","DET"],["python","NN"]]"""
         return [tagged[0] for tagged in sentence]
 
     @staticmethod
     def getTag( sentence ):
-        """return TAGS from a tagged list"""
+        """return TAGS from a tagged list like [["the","DET"],["python","NN"]]"""
         return [tagged[1] for tagged in sentence]

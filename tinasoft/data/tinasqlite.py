@@ -17,6 +17,7 @@
 
 __author__="Elias Showk"
 from tinasoft.data import Handler
+from tinasoft.pytextminer import PyTextMiner
 
 import sqlite3
 import os
@@ -354,16 +355,6 @@ class Engine(Backend):
         except StopIteration, si:
             return
 
-    def updateEdges(self, canditate, update, types):
-        """updates an existent object's edges with the candidate object's edges"""
-        for targets in types:
-            for targetsId, targetWeight in canditate['edges'][targets].iteritems():
-                res = update.addEdge( targets, targetsId, targetWeight )
-                #if res is False:
-                    #_logger.debug( "%s addEdge refused, target type = %s, %s" \
-                    #    %(update.__class__.__name__,targets, targetsId) )
-        return update
-
     def updateWhitelist( self, whitelistObj, overwrite ):
         """updates or overwrite a Whitelist and associations"""
         if overwrite is True:
@@ -371,7 +362,7 @@ class Engine(Backend):
             return
         stored = self.loadWhitelist( whitelistObj['id'] )
         if stored is not None:
-            whitelistObj = self.updateEdges( whitelistObj, stored, ['NGram'] )
+            whitelistObj = PyTextMiner.updateEdges( whitelistObj, stored, ['NGram'] )
         self.insertWhitelist( whitelistObj, overwrite=True )
 
     def updateCluster( self, obj, overwrite ):
@@ -381,7 +372,7 @@ class Engine(Backend):
             return
         stored = self.loadCluster( obj['id'] )
         if stored is not None:
-            obj = self.updateEdges( obj, stored, ['NGram'] )
+            obj = PyTextMiner.updateEdges( obj, stored, ['NGram'] )
         self.insertCluster( obj, overwrite=True )
 
 
@@ -392,7 +383,7 @@ class Engine(Backend):
             return
         storedCorpora = self.loadCorpora( corporaObj['id'] )
         if storedCorpora is not None:
-            corporaObj = self.updateEdges( corporaObj, storedCorpora, ['Corpus'] )
+            corporaObj = PyTextMiner.updateEdges( corporaObj, storedCorpora, ['Corpus'] )
         self.insertCorpora( corporaObj, overwrite=True )
 
     def updateCorpus( self, corpusObj, overwrite ):
@@ -402,7 +393,7 @@ class Engine(Backend):
             return
         storedCorpus = self.loadCorpus( corpusObj['id'] )
         if storedCorpus is not None:
-            corpusObj = self.updateEdges( corpusObj, storedCorpus, ['Document','NGram'] )
+            corpusObj = PyTextMiner.updateEdges( corpusObj, storedCorpus, ['Document','NGram'] )
         self.insertCorpus( corpusObj, overwrite=True )
 
     def updateDocument( self, documentObj, overwrite ):
@@ -412,7 +403,7 @@ class Engine(Backend):
             return
         storedDocument = self.loadDocument( documentObj['id'] )
         if storedDocument is not None:
-            documentObj = self.updateEdges( documentObj, storedDocument, ['Corpus','NGram'] )
+            documentObj = PyTextMiner.updateEdges( documentObj, storedDocument, ['Corpus','NGram'] )
         self.insertDocument( documentObj, overwrite=True )
         # returns a duplicate information
         if storedDocument is not None:
@@ -463,7 +454,7 @@ class Engine(Backend):
                 # NOTE : document edges are protected
                 if docId in storedNGram['edges']['Document']:
                     del storedNGram['edges']['Document'][docId]
-            ngObj = self.updateEdges( ngObj, storedNGram, ['Corpus','Document'] )
+            ngObj = PyTextMiner.updateEdges( ngObj, storedNGram, ['Corpus','Document','label','postag'] )
         return self._ngramQueue( ngObj['id'], ngObj )
 
     def _coocQueue( self, id, obj, overwrite ):

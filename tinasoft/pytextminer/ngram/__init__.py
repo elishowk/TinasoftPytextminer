@@ -22,7 +22,7 @@ _logger = logging.getLogger('TinaAppLogger')
 
 class NGram(PyTextMiner):
     """NGram class"""
-    def __init__(self, tokenlist, id=None, label=None, edges=None, stemmer=None, **metas):
+    def __init__(self, tokenlist, id=None, label=None, edges=None, stemmer=None, postag=None, **metas):
         """
         initiate the object
         normalize must be local value for pickling reasons
@@ -33,17 +33,19 @@ class NGram(PyTextMiner):
             normalize = lambda x: stemmer.stem(x).lower()
         # normlist will produce an unique id associated with the stemmed form
         normlist = [normalize(word) for word in tokenlist]
+        # auto creates label
         if label is None:
             label = " ".join(tokenlist)
+        postag_label = None
+        # prepares postag
+        if postag is not None:
+            postag_label = " ".join(postag)
+            metas["postag"] = postag
 
         if edges is None:
-            edges = { 'Document' : {}, 'Corpus' : {}, 'label': {}, 'postag' }
-
-        self.addEdge('label', label, 1)
-        if postag is not None:
-            self.addEdge('postag', " ".join(postag), 1 )
-
+            edges = { 'Document' : {}, 'Corpus' : {}, 'label': {}, 'postag' : {}}
         PyTextMiner.__init__(self, normlist, id, label, edges, **metas)
+        self.updateMajorForm(label, postag_label)
 
     def addEdge(self, type, key, value):
         """
@@ -60,3 +62,34 @@ class NGram(PyTextMiner):
         Default tokens normalizing
         """
         return token.lower()
+
+    def updateMajorForm(self, label, postag_label):
+        """
+        updates major form of a nlemma
+        """
+        # updates edges
+        self.addEdge('label', label, 1)
+        if postag_label is not None:
+            self.addEdge('postag', postag_label, 1)
+        # updates major form label attr
+        self.label = self.getLabel()
+
+    def getLabel(self):
+        """
+        returns the major form label or None
+        """
+        ordered_forms = sorted(self['edges']['label'])
+        if len(ordered_forms) > 0:
+            return ordered_forms[0]
+        else:
+            return None
+
+    def getPostag(self):
+        """
+        returns the major form POS tag or None
+        """
+        ordered_forms = sorted(self['edges']['postag'])
+        if len(ordered_forms) > 0:
+            return ordered_forms[0]
+        else:
+            return None

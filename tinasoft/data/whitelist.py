@@ -103,7 +103,10 @@ class Exporter(basecsv.Exporter):
 
 
     def export_whitelist(self, storage, periods, new_whitelist_label, filters=None, compl_whitelist=None, minOccs=1):
-        """creates and exports a whitelist within selected periods=corpus"""
+        """
+        creates a Whitelist Object from DB
+        then exports it
+        """
         newwl = whitelist.Whitelist( new_whitelist_label, new_whitelist_label )
         newwl.load_from_storage( storage, periods, filters, compl_whitelist )
         (export_path, newwl) = self.write_whitelist(newwl, minOccs)
@@ -112,6 +115,9 @@ class Exporter(basecsv.Exporter):
         return export_path
 
     def write_whitelist(self, newwl, minOccs=1):
+        """
+        Writes a Whitelist object to a file
+        """
         self.writeRow([x[1] for x in self.filemodel.columns])
         # basic monitoring counters
         totalexported = 0
@@ -136,7 +142,6 @@ class Exporter(basecsv.Exporter):
                     del newwl['content'][ngid]
                     continue
             totalexported += 1
-            #print occs, len(ng['content'])
             occsn = occs**len(ng['content'])
             # TODO update NGram in db after adding new scores
             #if 'MaxCorpus' not in ng['edges'] or 'MaxNormalizedCorpus' not in ng['edges']:
@@ -162,12 +167,15 @@ class Exporter(basecsv.Exporter):
             ng.addEdge('MaxCorpus',maxperiodid,maxperiod)
             ng.addEdge('MaxNormalizedCorpus',maxnormalizedperiodid,maxnormalizedperiod)
 
-            tag = " ".join( tagger.TreeBankPosTagger.getTag( ng['postag'] ) )
+            # gets the major form
+            label = ng.getLabel().replace('"',"'")
+            tag = ng.getPostag()
+
             corp_list = " ".join([corpid for corpid in ng['edges']['Corpus'].keys() if corpid in newwl['corpus']])
             # prepares the row
             row = [
                 ng['status'],
-                ng['label'].replace('"',"'"),
+                label,
                 tag,
                 str(occs),
                 str(len(ng['content'])),

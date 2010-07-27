@@ -63,7 +63,7 @@ class TinaAppTestCase(unittest.TestCase):
 
     def testA_ExtractFile(self):
         """testA_ExtractFile : testing extract_file"""
-        #return
+        return
         print self.tinasoft.extract_file(
                 self.path,
                 self.datasetId,
@@ -86,7 +86,7 @@ class TinaAppTestCase(unittest.TestCase):
 
     def testC_export_whitelist(self):
         """testC_export_whitelist : Exports a whitelist file"""
-        return
+        #return
         print self.tinasoft.export_whitelist(
             self.periods,
             self.datasetId,

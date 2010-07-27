@@ -25,6 +25,7 @@ import string
 from tinasoft.pytextminer import ngram
 from tinasoft.pytextminer import tagger
 from tinasoft.pytextminer import filtering
+from tinasoft.pytextminer import PyTextMiner
 _logger = logging.getLogger('TinaAppLogger')
 
 nltk_treebank_tokenizer = nltk.TreebankWordTokenizer()
@@ -90,13 +91,17 @@ class RegexpTokenizer():
         """
         # content is the list of words from tagTokens
         content = tagger.TreeBankPosTagger.getContent(tagTokens)
+        # tags is the list of tags from tagTokens
+        tags = tagger.TreeBankPosTagger.getTag(tagTokens)
         for i in range(len(content)):
             for n in range(minSize, maxSize + 1):
                 if len(content) >= i + n:
-                    ng = ngram.NGram(content[i:n + i], occs=1, postag=tagTokens[i:n + i], stemmer=stemmer)
+                    # new NGram instance
+                    ng = ngram.NGram(content[i:n + i], occs=1, postag=tags[i:n + i], stemmer=stemmer)
                     if ng['id'] in ngrams:
                         # already exists in document : increments occs
                         ngrams[ng['id']]['occs'] += 1
+                        ngrams[ng['id']] = PyTextMiner.updateEdges( ng, ngrams[ng['id']], ['label','postag'] )
                     else:
                         # first stopwords filters, then content and postag filtering
                         if stopwords is None or stopwords.contains(ng) is False:

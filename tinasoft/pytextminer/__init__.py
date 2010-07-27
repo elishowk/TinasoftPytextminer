@@ -31,9 +31,7 @@ class PyTextMiner():
 
     """
         PyTextMiner class
-        parent of classes analyzed by this module
-        common to all analysed objects in this software :
-        ngram, document, etc
+        is a the parent class of the graph nodes classes
     """
 
     def __init__(self, content, id=None, label=None, edges=None, **metas):
@@ -49,11 +47,17 @@ class PyTextMiner():
         self.loadOptions( metas )
 
     def loadOptions(self, metas):
+        """
+        Transforms metas to obj attributes
+        """
         for attr, value in metas.iteritems():
             setattr(self,attr,value)
 
     @staticmethod
     def getId(content):
+        """
+        Common staticmethod constructing an ID str for all PyTextMiner objects
+        """
         if content is None:
             return uuid4().hex
         if type(content) == list:
@@ -66,7 +70,18 @@ class PyTextMiner():
             raise ValueError
             return None
 
+    @staticmethod
+    def updateEdges(canditate, update, types):
+        """updates an existent object's edges with the candidate object's edges"""
+        for targets in types:
+            for targetsId, targetWeight in canditate['edges'][targets].iteritems():
+                res = update.addEdge( targets, targetsId, targetWeight )
+        return update
+
     def _addUniqueEdge( self, type, key, value ):
+        """
+        low level method adding ONLY ONCE a weighted edge to a PyTextMiner object
+        """
         if type not in self['edges']:
             self['edges'][type]={}
             #return 0
@@ -77,7 +92,9 @@ class PyTextMiner():
             return True
 
     def _addEdge(self, type, key, value):
-        #_logger.debug(key)
+        """
+        low level method adding or incrementing a weighted edge to a PyTextMiner object
+        """
         if type not in self['edges']:
             self['edges'][type]={}
         if key in self['edges'][type]:
@@ -87,15 +104,27 @@ class PyTextMiner():
         return True
 
     def __getitem__(self, key):
+        """
+        compatibility with the dict class
+        """
         return getattr( self, key, None )
 
     def __setitem__(self, key, value):
+        """
+        compatibility with the dict class
+        """
         setattr( self, key, value )
 
     def __delitem__(self, key):
+        """
+        compatibility with the dict class
+        """
         delattr(self, key)
 
     def __contains__(self, key):
+        """
+        compatibility with the dict class
+        """
         try:
             getattr(self, key, None)
             return True
