@@ -211,7 +211,7 @@ class NGramGraph(SubGraph):
             self.cache[ nodeid ] = ngobj
         nodeattr = {
             #'category' : 'NGram',
-            'label' :  self.cache[ nodeid ]['label'],
+            'label' :  self.cache[ nodeid ].getLabel(),
             #'id' :  self.cache[ nodeid ]['id'],
         }
         graph.addNode( nodeid, weight, **nodeattr )
