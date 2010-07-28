@@ -63,7 +63,7 @@ class TinaAppTestCase(unittest.TestCase):
 
     def testA_ExtractFile(self):
         """testA_ExtractFile : testing extract_file"""
-        #return
+        return
         print self.tinasoft.extract_file(
                 self.path,
                 self.datasetId,
@@ -96,7 +96,7 @@ class TinaAppTestCase(unittest.TestCase):
 
     def testD_ProcessCooc(self):
         """testD_ProcessCooc : processes and stores the cooccurrence matrix"""
-        return
+        #return
         print self.tinasoft.process_cooc(
             self.datasetId,
             self.periods
@@ -105,7 +105,7 @@ class TinaAppTestCase(unittest.TestCase):
 
     def testE_ExportGraph(self):
         """testE_ExportGraph : exports a gexf graph, after cooccurrences processing"""
-        return
+        #return
         print self.tinasoft.export_graph(
             self.datasetId,
             self.periods
