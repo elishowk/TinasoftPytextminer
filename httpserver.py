@@ -31,16 +31,33 @@ import jsonpickle
 import traceback
 
 # unescaping uri components
-import cgi
+#import cgi
+# web browser control
+import webbrowser
 
+# OS utilities
 from os.path import join, exists
+import sys
 
 # MS windows trick to print to a file server's output to a file
-import sys
 import platform
 if platform.system() == 'Windows':
     sys.stdout = open('tmp_httpserver_stdout.log', 'a+b')
     sys.stderr = open('tmp_httpserver_stderr.log', 'a+b')
+
+# web browser controler
+try:
+    browser = webbrowser.get('firefox')
+except webbrowser.Error, wb_error:
+    browser = webbrowser.get()
+
+def open_browser(url):
+    """
+    url must be valid !
+    """
+    #url = "http://localhost:8888/user" + relative_url.partition('user')[2]
+    #url = url.replace("\\","/")
+    browser.open(url)
 
 class TinaServerResource(resource.Resource):
     """
@@ -63,6 +80,7 @@ class TinaServerResource(resource.Resource):
         'id': str,
         'format': str,
         'filetype': str,
+        'fileurl': str,
     }
     def __init__(self, method, back):
         self.method = method
@@ -245,6 +263,9 @@ class TinaAppGET():
     def walk_source_files(self):
         """list any existing fily for a given dataset and filetype"""
         return self.tinaappinstance.walk_source_files()
+
+    def open_user_file(self, fileurl):
+        return open_browser(fileurl)
 
 class TinaServerCallback():
     """

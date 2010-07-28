@@ -41,9 +41,7 @@ from tinasoft.pytextminer import extractor
 from tinasoft.pytextminer import cooccurrences
 from tinasoft.pytextminer import whitelist
 from tinasoft.pytextminer import stopwords
-#from tinasoft.pytextminer import stemmer
-#import tinasoft
-#import tinasoft.pytextminer
+
 
 LEVELS = {
     'debug': logging.DEBUG,
