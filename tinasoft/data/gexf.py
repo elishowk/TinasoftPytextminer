@@ -397,7 +397,7 @@ class Exporter (GEXFHandler):
         ngramGraph.mapNodes( graph )
         ngramGraph.mapEdges( graph )
         docGraph.mapNodes( graph )
-        #docGraph.mapEdges( graph )
+        docGraph.mapEdges( graph )
         ngramGraph.cache = {}
         docGraph.cache = {}
         #_logger.debug( graph.gexf )
