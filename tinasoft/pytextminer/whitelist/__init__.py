@@ -51,9 +51,9 @@ class Whitelist(PyTextMiner):
         if isinstance(ng, ngram.NGram) is True:
             if ng['id'] in self['edges']['NGram']: return True
             else: return False
-        elif isinstance(ng, str) is True:
+        if isinstance(ng, str) is True or isinstance(ng, unicode) is True:
             if ng in self['edges']['NGram']: return True
-            return False
+            else: return False
         return False
 
     def load_from_storage(self, storage, periods, filters=None, wlinstance=None):

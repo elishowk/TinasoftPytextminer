@@ -361,10 +361,10 @@ class Exporter (GEXFHandler):
                     ngid1,row = coocmatrix.next()
                     # whitelist check
                     if whitelist is not None and whitelist.test(ngid1) is False:
-                        _logger.error("skipping not white listed ngram")
+                        _logger.error("skipping ngram node : not in the whitelist")
                         continue
                     if ngid1 not in corp['edges']['NGram']:
-                        _logger.error("skipping not in a corpus ngram")
+                        _logger.error("skipping ngram node : not in the corpus")
                         continue
                     occ1 = corp['edges']['NGram'][ngid1]
                     # source NGram node
