@@ -15,7 +15,6 @@
 __author__="Elias Showk"
 
 from tinasoft.pytextminer import PyTextMiner
-from tinasoft.pytextminer import stemmer
 
 import logging
 _logger = logging.getLogger('TinaAppLogger')

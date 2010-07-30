@@ -12,7 +12,7 @@
 <?py i = 0 ?>
 <?py for name,type in attrnodes.iteritems(): ?>
     <?py if name not in ('label'): ?>
-        <attribute id="#{i}" title="${name}" type="#{type}">
+        <attribute id="#{i}" title="${name}" type="static">
         </attribute>
         <?py attrnodes[name] = { 'type' : type, 'id' : i } ?>
         <?py i += 1 ?>
@@ -23,7 +23,7 @@
 <?py i = 0 ?>
 <?py for name,type in attredges.iteritems(): ?>
     <?py if name not in ('weight','type'): ?>
-        <attribute id="#{i}" title="${name}" type="#{type}">
+        <attribute id="#{i}" title="${name}" type="static">
         </attribute>
         <?py attredges[name] = { 'type' : type, 'id' : i } ?>
         <?py i += 1 ?>
@@ -37,7 +37,10 @@
     <?py if len(node.keys()) > 0: ?>
             <attvalues>
         <?py for attrname,value in node.iteritems(): ?>
-                <attvalue for="#{attrnodes[attrname]['id']}" value="${value}" />
+            <?py if isinstance(value,float): ?>
+            <?py     value = "%.6f"%value ?>
+            <?py #endif ?>
+            <attvalue for="#{attrnodes[attrname]['id']}" value="${value}" />
         <?py #endfor ?>
     <?py #endif ?>
             </attvalues>
@@ -54,12 +57,18 @@
 <?py    #        continue ?>
     <?py for target, edge in targets.iteritems(): ?>
         <?py i += 1 ?>
+        <?py if isinstance(edge['weight'],float): ?>
+        <?py     edge['weight'] = "%.6f"%edge['weight'] ?>
+        <?py #endif ?>
         <edge id="#{i}" source="#{source}" target="#{target}" type="#{edge['type']}" weight="#{edge['weight']}">
         <?py del edge['weight'] ?>
         <?py del edge['type'] ?>
         <?py if len(edge.keys()) > 0: ?>
             <attvalues>
             <?py for attrname,value in edge.iteritems(): ?>
+                <?py if isinstance(value,float): ?>
+                <?py     value = "%.6f"%value ?>
+                <?py #endif ?>
                 <attvalue for="#{attredges[attrname]['id']}" value="${value}" />
             <?py #endfor ?>
             </attvalues>

@@ -20,8 +20,7 @@ import os
 from tinasoft import TinaApp
 from tinasoft.pytextminer import PyTextMiner
 from tinasoft.data import basecsv
-from tinasoft.pytextminer import tokenizer, tagger, ngram, whitelist, corpus
-from tinasoft.pytextminer import filtering, stemmer
+from tinasoft.pytextminer import tokenizer, tagger, ngram, whitelist, corpus, filtering, stemmer
 
 from decimal import *
 
