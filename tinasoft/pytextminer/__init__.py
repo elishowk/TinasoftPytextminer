@@ -88,8 +88,6 @@ class PyTextMiner():
         """
         low level method adding ONLY ONCE a weighted edge to a PyTextMiner object
         """
-        if not isinstance(key,str):
-            key=str(key)
         if type not in self['edges']:
             self['edges'][type]={}
         if key in self['edges'][type]:
@@ -102,8 +100,6 @@ class PyTextMiner():
         """
         low level method adding or incrementing a weighted edge to a PyTextMiner object
         """
-        if not isinstance(key,str):
-            key=str(key)
         if type not in self['edges']:
             self['edges'][type]={}
         if key in self['edges'][type]:
@@ -116,24 +112,18 @@ class PyTextMiner():
         """
         compatibility with the dict class
         """
-        if not isinstance(key,str):
-            key=str(key)
         return getattr( self, key, None )
 
     def __setitem__(self, key, value):
         """
         compatibility with the dict class
         """
-        if not isinstance(key,str):
-            key=str(key)
         setattr( self, key, value )
 
     def __delitem__(self, key):
         """
         compatibility with the dict class
         """
-        if not isinstance(key,str):
-            key=str(key)
         delattr(self, key)
 
     def __contains__(self, key):
@@ -141,8 +131,6 @@ class PyTextMiner():
         compatibility with the dict class
         """
         try:
-            if not isinstance(key,str):
-                key=str(key)
             getattr(self, key, None)
             return True
         except AttributeError, a:
