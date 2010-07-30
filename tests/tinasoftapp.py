@@ -96,7 +96,7 @@ class TinaAppTestCase(unittest.TestCase):
 
     def testD_ProcessCooc(self):
         """testD_ProcessCooc : processes and stores the cooccurrence matrix"""
-        #return
+        return
         print self.tinasoft.process_cooc(
             self.datasetId,
             self.periods
@@ -108,9 +108,9 @@ class TinaAppTestCase(unittest.TestCase):
         #return
         print self.tinasoft.export_graph(
             self.datasetId,
-            self.periods
+            self.periods,
+            whitelistpath=self.extracted_whitelist
         )
-
 
     def testF_ExportCoocMatrix(self):
         """testF_ExportCoocMatrix : TODO"""

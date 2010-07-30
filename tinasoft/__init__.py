@@ -424,7 +424,7 @@ class TinaApp(object):
         @return relative path to the gexf file
         """
         if outpath is None:
-            outpath = self._user_filepath(dataset, 'gexf', "%s-graph.gexf"%"_".join(periods))
+            outpath = self._user_filepath(dataset, 'gexf', "whitelist_%s_periods_%s-graph.gexf"%(self._get_filepath_id(whitelistpath),"_".join(periods)))
 
         whitelist = self.import_whitelist(whitelistpath)
         GEXFWriter = Writer('gexf://', **self.config['datamining'])
