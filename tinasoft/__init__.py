@@ -415,7 +415,10 @@ class TinaApp(object):
             dataset,
             periods,
             outpath=None,
-            whitelistpath=None
+            whitelistpath=None,
+            ngramgraphconfig=None,
+            documentgraphconfig=None,
+
         ):
         """
         Produces the default GEXF graph file
@@ -423,25 +426,30 @@ class TinaApp(object):
         and a given ngram whitelist
         @return relative path to the gexf file
         """
-        filename = "whitelist_%s_periods_%s-graph.gexf"%(self._get_filepath_id(whitelistpath),"_".join(periods))
+        params_string = "whitelist::%s_periods::%s"%(self._get_filepath_id(whitelistpath),"_".join(periods))
         if outpath is None:
-            outpath = self._user_filepath(dataset, 'gexf', filename)
-
+            outpath = self._user_filepath(dataset, 'gexf', params_string)
+        else:
+            outpath = self._user_filepath(dataset, 'gexf', params_string + "label::%s"%outpath)
+        # import whitelist
         whitelist = self.import_whitelist(whitelistpath)
+        # call the GEXF exporter
         GEXFWriter = Writer('gexf://', **self.config['datamining'])
-
+        # adds meta to the futur gexf file
         graphmeta = {
-            'keywords' : filename
+            'keywords' : params_string
         }
 
         if self.set_storage( dataset ) == self.STATUS_ERROR:
             return self.STATUS_ERROR
         return GEXFWriter.ngramDocGraph(
-            outpath,
+            outpath + ".gexf",
             db = self.storage,
             periods = periods,
             whitelist = whitelist,
-            meta=graphmeta
+            meta=graphmeta,
+            ngramgraphconfig=ngramgraphconfig,
+            documentgraphconfig=documentgraphconfig
         )
 
     def _user_filepath(self, dataset, filetype, filename):

@@ -6,14 +6,14 @@
 <?py for creator in creators: ?>
     <creator>${creator}</creator>
 <?py #end ?>
-<keywords>${keywords}</keywords>
+    <keywords>${keywords}</keywords>
 </meta>
 <graph type="#{type}">
     <attributes class="node" type="#{type}">
 <?py i = 0 ?>
 <?py for name,type in attrnodes.iteritems(): ?>
     <?py if name not in ('label'): ?>
-        <attribute id="#{i}" title="${name}" type="static">
+        <attribute id="#{i}" title="${name}" type="#{type}">
         </attribute>
         <?py attrnodes[name] = { 'type' : type, 'id' : i } ?>
         <?py i += 1 ?>
@@ -24,7 +24,7 @@
 <?py i = 0 ?>
 <?py for name,type in attredges.iteritems(): ?>
     <?py if name not in ('weight','type'): ?>
-        <attribute id="#{i}" title="${name}" type="static">
+        <attribute id="#{i}" title="${name}" type="#{type}">
         </attribute>
         <?py attredges[name] = { 'type' : type, 'id' : i } ?>
         <?py i += 1 ?>

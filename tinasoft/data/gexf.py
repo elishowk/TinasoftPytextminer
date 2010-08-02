@@ -110,7 +110,7 @@ class SubGraph():
     """
     Base class for subgraph classes, must be under classed
     """
-    def __init__(self, db_load_object, proximity, opts):
+    def __init__(self, db_load_object, opts, defaults):
         """
         initialize the subgraph instance
         @db_load_object must must the database method returning the type of object
@@ -119,26 +119,27 @@ class SubGraph():
         self.db_load_object = db_load_object
         # temp store for database objects
         self.cache = {}
-        # default params OR config params
+        # config params OR defaults
         if 'edgethreshold' not in opts:
-            self.edgethreshold = self.defaults['edgethreshold']
+            self.edgethreshold = defaults['edgethreshold']
         else:
-            if opts['edgethreshold'][1] == 'inf':
+            # max == 'inf' or max == 0 : set to float('inf')
+            if opts['edgethreshold'][1] == 'inf' or opts['edgethreshold'][1] == 0:
                 opts['edgethreshold'][1] = float('inf')
             self.edgethreshold = opts['edgethreshold']
 
         if 'nodethreshold' not in opts:
-            self.nodethreshold = self.defaults['nodethreshold']
+            self.nodethreshold = defaults['nodethreshold']
         else:
-            if opts['nodethreshold'][1] == 'inf':
+            if opts['nodethreshold'][1] == 'inf' or opts['nodethreshold'][1] == 0:
                 opts['nodethreshold'][1] = float('inf')
             self.nodethreshold = opts['nodethreshold']
         try:
-            if proximity is not None:
-                self.proximity = proximity
-            elif 'proximity' in opts:
+            if 'proximity' in opts:
                 # string eval to method
                 self.proximity = eval(opts['proximity'])
+            elif 'proximity' in defaults:
+                self.proximity = eval(defaults['proximity'])
             else:
                 self.proximity = SubGraph.proximity
         except Exception, exc:
@@ -149,6 +150,7 @@ class SubGraph():
         self.id_prefix = "SubGraph::"
         # get its own threrad pool
         #self.thread_pool = threadpool.ThreadPool(50)
+
 
     @staticmethod
     def proximity( node1_weight, node2_weight, edge_weight, alpha, graph ):
@@ -209,23 +211,23 @@ class NGramGraph(SubGraph):
     """
     A NGram graph constructor
     depends on Graph object
+
+    default_config = {
+        'edgethreshold': [0.0,1.0],
+        'nodethreshold': [1,float('inf')],
+        'alpha': 0.1
+    }
     """
 
-    defaults = {
-        'edgethreshold': [0.0,1.0],
-        'nodethreshold': [1,float('inf')]
-    }
-
-    def __init__(self, db_load_obj, proximity, opts):
-
-        SubGraph.__init__(self, db_load_obj, proximity, opts)
-
+    def __init__(self, db_load_obj, opts, defaults):
+        SubGraph.__init__(self, db_load_obj, opts, defaults)
         if 'alpha' not in opts:
-            self.alpha = 0.01
+            self.alpha = self.defaults['alpha']
         else:
             self.alpha = opts['alpha']
 
         self.id_prefix = "NGram::"
+
 
     @staticmethod
     def pseudoInclusionProx( occ1, occ2, cooc, alpha, graph ):
@@ -285,16 +287,15 @@ class DocumentGraph(SubGraph):
     """
     A document graph constructor
     depends on Graph object
-    """
 
     defaults = {
         'edgethreshold': [0.0,2.0],
         'nodethreshold': [1,float('inf')]
     }
+    """
+    def __init__(self, db_load_obj, opts, defaults, whitelist=None):
 
-    def __init__(self, db_load_obj, proximity, opts, whitelist=None):
-
-        SubGraph.__init__(self, db_load_obj, proximity, opts)
+        SubGraph.__init__(self, db_load_obj, opts, defaults)
         self.whitelist = whitelist
         self.id_prefix = "Document::"
 
@@ -367,7 +368,7 @@ class Exporter (GEXFHandler):
         if count % 100 == 0:
             _logger.debug( "%d graph nodes processed"%count )
 
-    def ngramDocGraph(self, path, db, periods, meta={}, whitelist=None):
+    def ngramDocGraph(self, path, db, periods, meta={}, whitelist=None, ngramgraphconfig=None, documentgraphconfig=None):
         """
         uses Cooc from database to write a NGram & Document graph for a given list of periods
         using Cooccurencesfor NGram proximity computing
@@ -378,8 +379,8 @@ class Exporter (GEXFHandler):
         graph = Graph()
         graph.gexf.update(meta)
         # init subgraphs objects
-        ngramGraph = NGramGraph( db.loadNGram, NGramGraph.pseudoInclusionProx, self.NGramGraph )
-        docGraph = DocumentGraph( db.loadDocument, DocumentGraph.inverseLogOccNGrams, self.DocumentGraph, whitelist=whitelist)
+        ngramGraph = NGramGraph( db.loadNGram, ngramgraphconfig, self.NGramGraph )
+        docGraph = DocumentGraph( db.loadDocument, documentgraphconfig, self.DocumentGraph, whitelist=whitelist)
         # TODO Create an internal cooccurrences package to move matrix loading
         #coocMatrix = cooccurrences.CoocMatrix( len( whitelist.keys() ) )
         for period in periods:

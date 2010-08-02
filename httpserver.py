@@ -81,6 +81,8 @@ class TinaServerResource(resource.Resource):
         'format': str,
         'filetype': str,
         'fileurl': str,
+        'ngramgraphconfig':dict,
+        'documentgraphconfig':dict,
     }
     def __init__(self, method, back):
         self.method = method
@@ -105,6 +107,8 @@ class TinaServerResource(resource.Resource):
                 if request.args[key][0] == 'False': parsed_args[key] = False
             elif self.argument_types[key] == list:
                 parsed_args[key] = self.argument_types[key](request.args[key])
+             elif self.argument_types[key] == dict:
+                parsed_args[key] = request.args[key]
             else:
                 parsed_args[key] = self.argument_types[key](request.args[key][0])
 

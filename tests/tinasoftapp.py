@@ -110,7 +110,19 @@ class TinaAppTestCase(unittest.TestCase):
         print self.tinasoft.export_graph(
             self.datasetId,
             self.periods,
-            whitelistpath=self.extracted_whitelist
+            whitelistpath=self.extracted_whitelist,
+            outpath='test_graph',
+            ngramgraphconfig={
+                'edgethreshold': [0.0,1.0],
+                'nodethreshold': [1,0],
+                'alpha': 0.1,
+                'proximity': 'NGramGraph.pseudoInclusionProx'
+            },
+            documentgraphconfig={
+                'edgethreshold': [0.0,0.01],
+                'nodethreshold': [1,0],
+                'proximity': 'DocumentGraph.inverseLogOccNGrams'
+            },
         )
 
     def testF_ExportCoocMatrix(self):
