@@ -107,7 +107,7 @@ class TinaServerResource(resource.Resource):
                 if request.args[key][0] == 'False': parsed_args[key] = False
             elif self.argument_types[key] == list:
                 parsed_args[key] = self.argument_types[key](request.args[key])
-             elif self.argument_types[key] == dict:
+            elif self.argument_types[key] == dict:
                 parsed_args[key] = request.args[key]
             else:
                 parsed_args[key] = self.argument_types[key](request.args[key][0])
