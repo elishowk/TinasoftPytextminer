@@ -6,6 +6,7 @@
 <?py for creator in creators: ?>
     <creator>${creator}</creator>
 <?py #end ?>
+<keywords>${keywords}</keywords>
 </meta>
 <graph type="#{type}">
     <attributes class="node" type="#{type}">

@@ -31,6 +31,7 @@ import cPickle as pickle
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
+sqlite3.enable_callback_tracebacks(True)
 
 # LOW-LEVEL BACKEND
 class Backend(Handler):
@@ -339,8 +340,8 @@ class Engine(Backend):
         """
         cursor = self.safereadrange( tabname )
         try:
-            record = cursor.next()
             while 1:
+                record = cursor.next()
                 # if cursor is empty
                 if record is None: return
                 # if the record does not belong to the corpus_id
@@ -351,7 +352,6 @@ class Engine(Backend):
                     yield record
                 else:
                     yield ( record["id"], self.unpickle(str(record["pickle"])))
-                record = cursor.next()
         except StopIteration, si:
             return
 

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import tinasoft
+from tinasoft import threadpool
 from tinasoft.data import Handler
 
 import datetime
@@ -146,6 +147,8 @@ class SubGraph():
             self.proximity = SubGraph.proximity
         # overwrite this with the node type you want
         self.id_prefix = "SubGraph::"
+        # get its own threrad pool
+        #self.thread_pool = threadpool.ThreadPool(50)
 
     @staticmethod
     def proximity( node1_weight, node2_weight, edge_weight, alpha, graph ):
@@ -237,8 +240,10 @@ class NGramGraph(SubGraph):
 
     def mapEdges( self, graph ):
         """
-        Maps the whole graph to transform cooc edge weight to gen-spec prox
+        Maps the whole graph to transform cooc edge weight to the rezsult of a given proximity measure
+        edge weight must be already computed here, to be transformed by promity()
         """
+        _logger.debug( "mapping ngrams edges")
         count = 0
         for source in graph.gexf['edges'].keys():
             (sourceCategory, sourceDbId) = source.split('::')
@@ -253,6 +258,8 @@ class NGramGraph(SubGraph):
                         occ1 = graph.gexf['nodes'][source]['weight']
                         occ2 = graph.gexf['nodes'][target]['weight']
                         cooc = graph.gexf['edges'][source][target]['weight']
+                        # TODO push in thread pool
+                        #prox = self.thread_pool.queueTask( self.proximity, args=( occ1, occ2, cooc, self.alpha, graph ) )
                         prox = self.proximity( occ1, occ2, cooc, self.alpha, graph )
                         count+=1
                         self.notify(count)
@@ -264,6 +271,7 @@ class NGramGraph(SubGraph):
                             del graph.gexf['edges'][source][target]
 
     def mapNodes(self, graph):
+        _logger.debug( "mapping ngrams nodes")
         for source in graph.gexf['nodes'].keys():
             sourceCategory = source.split('::')[0]
             if source in graph.gexf['nodes'] and sourceCategory == 'NGram':
@@ -287,7 +295,6 @@ class DocumentGraph(SubGraph):
     def __init__(self, db_load_obj, proximity, opts, whitelist=None):
 
         SubGraph.__init__(self, db_load_obj, proximity, opts)
-
         self.whitelist = whitelist
         self.id_prefix = "Document::"
 
@@ -314,27 +321,34 @@ class DocumentGraph(SubGraph):
         """
         if whitelist is not None:
             doc1ngrams = set( doc1['edges']['NGram'].keys() ) & set( whitelist['edges']['NGram'] )
+            doc2ngrams = set( doc2['edges']['NGram'].keys() ) & set( whitelist['edges']['NGram'] )
         else:
             doc1ngrams = set( doc1['edges']['NGram'].keys() )
-        ngrams = doc1ngrams & set( doc2['edges']['NGram'].keys() )
+            doc2ngrams = set( doc2['edges']['NGram'].keys() )
+        ngrams = doc1ngrams & doc2ngrams
         return sum(
-            [(float(1)/float( math.log( 1+ graph.gexf['nodes']['NGram::'+ngramid]['weight'] ) )) for ngramid in ngrams],
+            [ float(1)/float( math.log( 1+ graph.gexf['nodes']['NGram::'+ngramid]['weight'] )) for ngramid in ngrams if 'NGram::'+ngramid in graph.gexf['nodes'] ],
             0
         )
 
     def mapEdges( self, graph ):
-        _logger.debug( "Documents in cache = %d"%len(self.cache.keys()) )
+        """
+        Maps the whole graph to CREATE document edges and weights
+        """
+        _logger.debug( "mapping document edges")
         total=0
         for (docid1, docid2) in itertools.combinations(self.cache.keys(), 2):
             if docid1 == docid2: continue
             total+=1
             self.notify(total)
+            # TODO push to thread pool
             weight = self.proximity( self.cache[docid1], self.cache[docid2], self.whitelist, graph )
             # weight filtering
             if weight <= self.edgethreshold[1] and weight >= self.edgethreshold[0]:
                 self.addEdge( graph, self.cache[docid1]['id'], self.cache[docid2]['id'], weight, 'mutual', overwrite=False )
 
     def mapNodes(self, graph):
+        _logger.debug( "mapping document nodes")
         for source in graph.gexf['nodes'].keys():
             sourceCategory = source.split('::')[0]
             if source in graph.gexf['nodes'] and sourceCategory == 'NGram':
@@ -349,9 +363,9 @@ class Exporter (GEXFHandler):
     A Gexf Exporter engine providing various graph construction methods
     """
 
-    def notify( self ):
-        if self.count % 100 == 0:
-            _logger.debug( "%d graph nodes processed"%self.count )
+    def notify(self, count):
+        if count % 100 == 0:
+            _logger.debug( "%d graph nodes processed"%count )
 
     def ngramDocGraph(self, path, db, periods, meta={}, whitelist=None):
         """
@@ -359,7 +373,7 @@ class Exporter (GEXFHandler):
         using Cooccurencesfor NGram proximity computing
         """
         if len(periods) == 0: return
-        self.count = 1
+        count = 0
         # init graph object
         graph = Graph()
         graph.gexf.update(meta)
@@ -381,8 +395,8 @@ class Exporter (GEXFHandler):
             # add documents nodes
             for doc_id, occ in corp['edges']['Document'].iteritems():
                 docGraph.addNode( graph, doc_id, occ )
-                self.count += 1
-                self.notify()
+                count += 1
+                self.notify(count)
             # gets the database Cooc matrix lines cursor for the current period
             coocmatrixlines = db.selectCorpusCooc(period)
             try:
@@ -413,8 +427,8 @@ class Exporter (GEXFHandler):
                         # cooccurrences is the temporary edge's weight
                         ngramGraph.addEdge( graph, ngid1, ngid2, cooc, 'directed', overwrite=False )
 
-                    self.notify()
-                    self.count += 1
+                    self.notify(count)
+                    count += 1
 
             # End of database cursor
             except StopIteration:

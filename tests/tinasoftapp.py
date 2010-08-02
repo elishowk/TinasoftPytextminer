@@ -40,26 +40,15 @@ class TinaAppTestCase(unittest.TestCase):
     def setUp(self):
         self.tinasoft = tinasoftSingleton
         self.datasetId = "test_data_set"
-        self.periods = ['1','2']
-        self.path = "tinacsv_test_200.csv"
+        self.periods = ['1','pubmed1','2']
+        #self.path = "tinacsv_test_200.csv"
+        self.path = "pubmed_tina_1000.csv"
         self.format = "tinacsv"
         #self.path = "/home/elishowk/TINA/Datas/MedlineCancer/pubmed_cancer_tina_toydb.txt"
         #self.format = "medline"
         #self.whitelist = whitelistSingleton
         #self.userstopwordfilter = stopwordsSingleton
         self.extracted_whitelist = 'tests/date-pubmed_test_whitelist-extract_file.csv'
-
-    def testB_IndexFile(self):
-        """testH_IndexFile : testing index_file"""
-        return
-        self.failIfEqual( self.tinasoft.index_file(
-                self.path,
-                self.datasetId,
-                self.extracted_whitelist,
-                format=self.format,
-                overwrite=False
-            ), TinaApp.STATUS_ERROR
-        )
 
     def testA_ExtractFile(self):
         """testA_ExtractFile : testing extract_file"""
@@ -72,6 +61,18 @@ class TinaAppTestCase(unittest.TestCase):
                 minoccs=1,
         )
         self.failIfEqual(self.extracted_whitelist, TinaApp.STATUS_ERROR)
+
+    def testB_IndexFile(self):
+        """testH_IndexFile : testing index_file"""
+        return
+        self.failIfEqual( self.tinasoft.index_file(
+                self.path,
+                self.datasetId,
+                self.extracted_whitelist,
+                format=self.format,
+                overwrite=False
+            ), TinaApp.STATUS_ERROR
+        )
 
 
     def testZ_ImportFile(self):

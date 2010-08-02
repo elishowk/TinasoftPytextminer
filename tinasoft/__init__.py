@@ -423,11 +423,16 @@ class TinaApp(object):
         and a given ngram whitelist
         @return relative path to the gexf file
         """
+        filename = "whitelist_%s_periods_%s-graph.gexf"%(self._get_filepath_id(whitelistpath),"_".join(periods))
         if outpath is None:
-            outpath = self._user_filepath(dataset, 'gexf', "whitelist_%s_periods_%s-graph.gexf"%(self._get_filepath_id(whitelistpath),"_".join(periods)))
+            outpath = self._user_filepath(dataset, 'gexf', filename)
 
         whitelist = self.import_whitelist(whitelistpath)
         GEXFWriter = Writer('gexf://', **self.config['datamining'])
+
+        graphmeta = {
+            'keywords' : filename
+        }
 
         if self.set_storage( dataset ) == self.STATUS_ERROR:
             return self.STATUS_ERROR
@@ -436,6 +441,7 @@ class TinaApp(object):
             db = self.storage,
             periods = periods,
             whitelist = whitelist,
+            meta=graphmeta
         )
 
     def _user_filepath(self, dataset, filetype, filename):

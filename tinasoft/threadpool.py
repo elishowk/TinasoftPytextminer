@@ -1,20 +1,23 @@
 #  Copyright (C) 2010 elishowk
-# 
+#
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
 #  (at your option) any later version.
-# 
+#
 #  This program is distributed in the hope that it will be useful,
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
-# 
+#
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 __author__="elishowk"
 __date__ ="$5 mai 2010$"
+
+import threading
+from time import sleep
 
 class ThreadPool():
 
@@ -80,8 +83,10 @@ held."""
 
     def queueTask(self, task, args=(), kwargs={}, taskCallback=None):
 
-        """Insert a task into the queue. task must be callable;
-args and taskCallback can be None."""
+        """
+        Insert a task into the queue. task must be callable;
+        args and taskCallback can be None.
+        """
 
         if self.__isJoining == True:
             return False
@@ -97,8 +102,9 @@ args and taskCallback can be None."""
 
     def getNextTask(self):
 
-        """ Retrieve the next task from the task queue. For use
-only by ThreadPoolThread objects contained in the pool."""
+        """ Retrieve the next task from the task queue.
+        For use only by ThreadPoolThread objects contained in the pool.
+        """
 
         self.__taskLock.acquire()
         try:
