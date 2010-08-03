@@ -30,8 +30,8 @@ import jsonpickle
 # traceback to print error traces
 import traceback
 
-# unescaping uri components
-#import cgi
+# parsing uri components
+from urlparse import parse_qs
 # web browser control
 import webbrowser
 
@@ -79,8 +79,8 @@ class TinaServerResource(resource.Resource):
         'format': str,
         'filetype': str,
         'fileurl': str,
-        'ngramgraphconfig':'json',
-        'documentgraphconfig':'json',
+        'ngramgraphconfig': parse_qs,
+        'documentgraphconfig': parse_qs,
     }
     def __init__(self, method, back):
         self.method = method
@@ -98,7 +98,7 @@ class TinaServerResource(resource.Resource):
             if key not in self.argument_types:
                 continue
             # empty args handling
-            if self.argument_types[key](request.args[key][0]) == '':
+            if request.args[key][0] == '':
                 parsed_args[key] = None
             # boolean args handling
             elif self.argument_types[key] == bool:
@@ -107,9 +107,6 @@ class TinaServerResource(resource.Resource):
             # list args
             elif self.argument_types[key] == list:
                 parsed_args[key] = self.argument_types[key](request.args[key])
-            # dict args
-            elif self.argument_types[key] == 'json':
-                parsed_args[key] = jsonpickle.decode( request.args[key] )
             else:
                 parsed_args[key] = self.argument_types[key](request.args[key][0])
 
