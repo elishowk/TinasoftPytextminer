@@ -486,7 +486,7 @@ class TinaApp(object):
         path = join( self.user, dataset, filetype )
         if not exists( path ):
             return []
-        return [abspath(join( path, file )) for file in os.listdir( path )]
+        return [abspath(join( path, file )) for file in os.listdir( path ) if not file.startswith("~") and not file.startswith(".")]
 
     def walk_datasets(self):
         """
