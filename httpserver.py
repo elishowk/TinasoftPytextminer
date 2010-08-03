@@ -48,7 +48,7 @@ if platform.system() == 'Windows':
 # web browser controler
 try:
     browser = webbrowser.get('firefox')
-except:
+except Exception:
     browser = webbrowser.get()
 
 def open_browser(url):
