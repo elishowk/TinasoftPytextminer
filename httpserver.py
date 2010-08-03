@@ -48,15 +48,13 @@ if platform.system() == 'Windows':
 # web browser controler
 try:
     browser = webbrowser.get('firefox')
-except webbrowser.Error, wb_error:
+except:
     browser = webbrowser.get()
 
 def open_browser(url):
     """
     url must be valid !
     """
-    #url = "http://localhost:8888/user" + relative_url.partition('user')[2]
-    #url = url.replace("\\","/")
     browser.open(url)
 
 class TinaServerResource(resource.Resource):
@@ -81,8 +79,8 @@ class TinaServerResource(resource.Resource):
         'format': str,
         'filetype': str,
         'fileurl': str,
-        'ngramgraphconfig':dict,
-        'documentgraphconfig':dict,
+        'ngramgraphconfig':'json',
+        'documentgraphconfig':'json',
     }
     def __init__(self, method, back):
         self.method = method
@@ -99,16 +97,19 @@ class TinaServerResource(resource.Resource):
         for key in request.args.iterkeys():
             if key not in self.argument_types:
                 continue
+            # empty args handling
             if self.argument_types[key](request.args[key][0]) == '':
                 parsed_args[key] = None
-                continue
-            if self.argument_types[key] == bool:
+            # boolean args handling
+            elif self.argument_types[key] == bool:
                 if request.args[key][0] == 'True': parsed_args[key] = True
                 if request.args[key][0] == 'False': parsed_args[key] = False
+            # list args
             elif self.argument_types[key] == list:
                 parsed_args[key] = self.argument_types[key](request.args[key])
-            elif self.argument_types[key] == dict:
-                parsed_args[key] = request.args[key]
+            # dict args
+            elif self.argument_types[key] == 'json':
+                parsed_args[key] = jsonpickle.decode( request.args[key] )
             else:
                 parsed_args[key] = self.argument_types[key](request.args[key][0])
 
