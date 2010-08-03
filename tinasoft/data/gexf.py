@@ -302,6 +302,7 @@ class DocumentGraph(SubGraph):
     @staticmethod
     def sharedNGrams( doc1, doc2, whitelist, graph ):
         """
+        OBSOLETE
         intersection of doc1 ngrams with a whitelist
         then return length of the intersection with doc2 ngrams
         """
