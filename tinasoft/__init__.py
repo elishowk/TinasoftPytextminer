@@ -426,11 +426,11 @@ class TinaApp(object):
         and a given ngram whitelist
         @return relative path to the gexf file
         """
-        params_string = "whitelist::%s_periods::%s"%(self._get_filepath_id(whitelistpath),"_".join(periods))
+        params_string = "%s_%s"%(self._get_filepath_id(whitelistpath),"+".join(periods))
         if outpath is None:
             outpath = self._user_filepath(dataset, 'gexf', params_string)
         else:
-            outpath = self._user_filepath(dataset, 'gexf', params_string + "label::%s"%outpath)
+            outpath = self._user_filepath(dataset, 'gexf', params_string + "_%s"%outpath)
         # import whitelist
         whitelist = self.import_whitelist(whitelistpath)
         # call the GEXF exporter

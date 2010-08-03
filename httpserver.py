@@ -81,35 +81,44 @@ class TinaServerResource(resource.Resource):
         'fileurl': str,
         'ngramgraphconfig': parse_qs,
         'documentgraphconfig': parse_qs,
+        'proximity': str,
+        'alpha': float,
+        'nodethreshold': list,
+        'edgethreshold': list,
     }
     def __init__(self, method, back):
         self.method = method
         self.back = back
         resource.Resource.__init__(self)
 
+    def _parse_args(self, args):
+        parsed_args = {}
+        # parameters parsing
+        for key in args.iterkeys():
+            if key not in self.argument_types:
+                continue
+            # empty args handling
+            if args[key][0] == '':
+                parsed_args[key] = None
+            # boolean args handling
+            elif self.argument_types[key] == bool:
+                if args[key][0] == 'True': parsed_args[key] = True
+                if args[key][0] == 'False': parsed_args[key] = False
+            # list args
+            elif self.argument_types[key] == list:
+                parsed_args[key] = self.argument_types[key](args[key])
+            elif self.argument_types[key] == parse_qs:
+                parsed_args[key] = self._parse_args( self.argument_types[key](args[key][0]) )
+            else:
+                parsed_args[key] = self.argument_types[key](args[key][0])
+        return parsed_args
+
     def render(self, request):
         """
         Prepares arguments and call the method
         """
-        parsed_args = {}
-        print request.args
         # parameters parsing
-        for key in request.args.iterkeys():
-            if key not in self.argument_types:
-                continue
-            # empty args handling
-            if request.args[key][0] == '':
-                parsed_args[key] = None
-            # boolean args handling
-            elif self.argument_types[key] == bool:
-                if request.args[key][0] == 'True': parsed_args[key] = True
-                if request.args[key][0] == 'False': parsed_args[key] = False
-            # list args
-            elif self.argument_types[key] == list:
-                parsed_args[key] = self.argument_types[key](request.args[key])
-            else:
-                parsed_args[key] = self.argument_types[key](request.args[key][0])
-
+        parsed_args = self._parse_args(request.args)
         print self.method, parsed_args
 
         request.setHeader("content-type", "application/json")

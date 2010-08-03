@@ -126,14 +126,14 @@ class SubGraph():
             # max == 'inf' or max == 0 : set to float('inf')
             if opts['edgethreshold'][1] == 'inf' or opts['edgethreshold'][1] == 0:
                 opts['edgethreshold'][1] = float('inf')
-            self.edgethreshold = opts['edgethreshold']
+            self.edgethreshold = [ float(opts['edgethreshold'][0]), float(opts['edgethreshold'][1]) ]
 
         if 'nodethreshold' not in opts:
             self.nodethreshold = defaults['nodethreshold']
         else:
             if opts['nodethreshold'][1] == 'inf' or opts['nodethreshold'][1] == 0:
                 opts['nodethreshold'][1] = float('inf')
-            self.nodethreshold = opts['nodethreshold']
+            self.nodethreshold = [ float(opts['nodethreshold'][0]), float(opts['nodethreshold'][1]) ]
         try:
             if 'proximity' in opts:
                 # string eval to method
@@ -143,7 +143,7 @@ class SubGraph():
             else:
                 self.proximity = SubGraph.proximity
         except Exception, exc:
-            _logger.warning("unable to load proximity measure method %s, switching to default"%proximity)
+            _logger.warning("unable to load proximity measure method, switching to default")
             _logger.warning(repr(exc))
             self.proximity = SubGraph.proximity
         # overwrite this with the node type you want
@@ -169,14 +169,14 @@ class SubGraph():
     def mapEdges( self, graph ):
         """
         Method to overwrite
-        Maps the whole graph to transform edges weight to the result of SubGraph.proximity measure
+        Maps the whole graph to transform, filter OR create edges weight to the result of SubGraph.proximity measure
         """
         pass
 
     def mapNodes(self, graph):
         """
         Method to overwrite
-        Maps the whole graph to transform nodes
+        Maps the whole graph to transform or filter nodes
         """
         pass
 
@@ -242,20 +242,28 @@ class NGramGraph(SubGraph):
 
     def mapEdges( self, graph ):
         """
-        Maps the whole graph to transform cooc edge weight to the rezsult of a given proximity measure
-        edge weight must be already computed here, to be transformed by promity()
+        Maps the whole graph to TRANSFORM raw cooccurrences (edge weight)
+        to the result of a given proximity measure
+        edge weight MUST be already computed here, to be transformed by promity()
+        mapNodes always before madEdges
         """
         _logger.debug( "mapping ngrams edges")
         count = 0
+        # walk all edges
         for source in graph.gexf['edges'].keys():
             (sourceCategory, sourceDbId) = source.split('::')
-            if source in graph.gexf['nodes'] and sourceCategory == 'NGram':
+            # remove edges of unexistant node
+            if source not in graph.gexf['nodes']:
+                del graph.gexf['edges'][source]
+                continue
+            elif sourceCategory == 'NGram':
                 for target in graph.gexf['edges'][source].keys():
                     (targetCategory, targetDbId) = target.split('::')
-                    if target == source:
+                    # remove edges
+                    if target == source or target not in graph.gexf['nodes']:
                         del graph.gexf['edges'][source][target]
                         continue
-                    if target in graph.gexf['nodes'] and targetCategory == 'NGram':
+                    elif targetCategory == 'NGram':
                         # computes the proximity
                         occ1 = graph.gexf['nodes'][source]['weight']
                         occ2 = graph.gexf['nodes'][target]['weight']
@@ -272,15 +280,20 @@ class NGramGraph(SubGraph):
                         else:
                             del graph.gexf['edges'][source][target]
 
+
     def mapNodes(self, graph):
+        """
+        Filters NGramGraph nodes
+        """
         _logger.debug( "mapping ngrams nodes")
         for source in graph.gexf['nodes'].keys():
             sourceCategory = source.split('::')[0]
-            if source in graph.gexf['nodes'] and sourceCategory == 'NGram':
+            if sourceCategory == 'NGram':
                 if graph.gexf['nodes'][source]['weight'] > self.nodethreshold[1]\
                     or graph.gexf['nodes'][source]['weight'] < self.edgethreshold[0]:
                         del graph.gexf['nodes'][source]
-                        del self.cache[source.split('::')[1]]
+                        if source in self.cache:
+                            del self.cache[source]
 
 
 class DocumentGraph(SubGraph):
@@ -339,17 +352,23 @@ class DocumentGraph(SubGraph):
         """
         _logger.debug( "mapping document edges")
         total=0
-        for (docid1, docid2) in itertools.combinations(self.cache.keys(), 2):
-            if docid1 == docid2: continue
+        for (id1, id2) in itertools.combinations(graph.gexf['nodes'].keys(), 2):
+            id1Category = id1.split('::')[0]
+            id2Category = id2.split('::')[0]
+            if id1Category != 'Document' or id2Category != 'Document': continue
+            if id1 == id2: continue
             total+=1
             self.notify(total)
             # TODO push to thread pool
-            weight = self.proximity( self.cache[docid1], self.cache[docid2], self.whitelist, graph )
+            weight = self.proximity( self.cache[id1], self.cache[id2], self.whitelist, graph )
             # weight filtering
             if weight <= self.edgethreshold[1] and weight >= self.edgethreshold[0]:
-                self.addEdge( graph, self.cache[docid1]['id'], self.cache[docid2]['id'], weight, 'mutual', overwrite=False )
+                self.addEdge( graph, self.cache[id1]['id'], self.cache[id2]['id'], weight, 'mutual', overwrite=False )
 
     def mapNodes(self, graph):
+        """
+        Filters DocumentGraph nodes
+        """
         _logger.debug( "mapping document nodes")
         for source in graph.gexf['nodes'].keys():
             sourceCategory = source.split('::')[0]
@@ -357,7 +376,8 @@ class DocumentGraph(SubGraph):
                 if graph.gexf['nodes'][source]['weight'] > self.nodethreshold[1]\
                     or graph.gexf['nodes'][source]['weight'] < self.edgethreshold[0]:
                         del graph.gexf['nodes'][source]
-                        del self.cache[source.split('::')[1]]
+                        if source in self.cache:
+                            del self.cache[source]
 
 
 class Exporter (GEXFHandler):
