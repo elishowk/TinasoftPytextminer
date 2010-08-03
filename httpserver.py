@@ -94,7 +94,7 @@ class TinaServerResource(resource.Resource):
         Prepares arguments and call the method
         """
         parsed_args = {}
-
+        print request.args
         # parameters parsing
         for key in request.args.iterkeys():
             if key not in self.argument_types:
