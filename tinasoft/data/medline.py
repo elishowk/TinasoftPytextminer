@@ -145,6 +145,15 @@ class Record(dict):
         self.undefined = []
 
 class Importer(Handler):
+    """
+    Medline file importer class
+    """
+
+    # defaults
+    options = {
+        'period_size': 4
+    }
+
     def __init__(self, path, **options):
         self.loadOptions(options)
         self.corpusDict = {}
@@ -155,7 +164,7 @@ class Importer(Handler):
     def parsePeriod(self, record):
         if 'DP' not in record:
             return None
-        return str(record['DP'][0:3])
+        return str(record['DP'][:self.period_size])
 
     def get_record(self):
         # These keys point to string values
@@ -241,6 +250,6 @@ class Importer(Handler):
             **model
         )
         # document's edges
-        newdoc.addEdge('Corpus', corpusid, 1)
+        #newdoc.addEdge('Corpus', corpusid, 1)
         return newdoc
 

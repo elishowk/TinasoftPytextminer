@@ -15,21 +15,24 @@ import pickle
 import os
 
 
-class CoocTestCase(unittest.TestCase):
+class MedlineTestCase(unittest.TestCase):
     def setUp(self):
-        self.corpora = corpora.Corpora('test corpora')
-        self.file = '/home/elishowk/TINA/Datas/MedlineCancer/pubmed_cancer_tina_toydb.txt'
+        self.corpora = corpora.Corpora('medline corpora')
+        self.file = 'source_files/pubmed_cancer_tina_toydb.txt'
 
     def testImporter(self):
         count=0
-        reader = Reader( "medline://"+self.file )
+        opts = { 'period_size': 8 }
+        reader = Reader( "medline://"+self.file, **opts )
         fileGenerator = reader.parseFile()
         try:
             while 1:
                 count += 1
                 fileGenerator.next()
         except StopIteration, si:
-            print "finished test, found %d documents"%count
+            print "finished test"
+            print "found %d documents"%count
+            print "found the following corpus : ", reader.corpusDict
             return
         except Exception,e:
             self.fail(e)

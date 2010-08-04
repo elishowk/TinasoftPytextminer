@@ -14,19 +14,18 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-__all__ = ["pytextminer","data"]
+__all__ = ["pytextminer","data","tests"]
 import sys
-#sys.stdout = open('tinaapp_stdout.log', 'a+b')
-#sys.stderr = open('tinaapp_stderr.log', 'a+b')
+
 # python utility modules
 import os
 from os.path import exists
 from os.path import join
 from os.path import abspath
 from os import makedirs
+
 import yaml
 from datetime import datetime
-
 
 import locale
 import logging

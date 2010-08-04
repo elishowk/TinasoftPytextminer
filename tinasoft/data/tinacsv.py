@@ -36,9 +36,9 @@ class Importer (basecsv.Importer):
         """
         self.line = 0
         for doc in self.csv:
-            self.line += 1
-            if self.line % 2 == 0:
-                TinaApp.notify( None, 'tinasoft_runImportFile_running_status', str(self.line) )
+            #self.line += 1
+            #if self.line % 2 == 0:
+            #    TinaApp.notify( None, 'tinasoft_runImportFile_running_status', str(self.line) )
             tmpfields=dict(self.fields)
             # decoding & parsing TRY
             try:
@@ -98,5 +98,5 @@ class Importer (basecsv.Importer):
             **docArgs
         )
         # add a corpus edge
-        newdoc.addEdge('Corpus', corpusNum, 1)
+        #newdoc.addEdge('Corpus', corpusNum, 1)
         return newdoc
