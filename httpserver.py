@@ -47,15 +47,17 @@ if platform.system() == 'Windows':
 
 # web browser controler
 try:
-    browser = webbrowser.get('firefox')
-except Exception:
     browser = webbrowser.get()
+except Exception, e:
+    print "%s"%e
+    browser = None
 
 def open_browser(url):
     """
     url must be valid !
     """
-    browser.open(url)
+    if browser is not None:
+        browser.open(url)
 
 class TinaServerResource(resource.Resource):
     """

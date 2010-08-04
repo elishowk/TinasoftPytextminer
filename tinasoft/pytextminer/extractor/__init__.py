@@ -52,7 +52,10 @@ class Extractor():
         #self.__insert_threads = []
 
     def _openFile(self, path, format ):
-        """loads the source file"""
+        """
+        loads the source file
+        automatically giving the Reader its config
+        """
         dsn = format+"://"+path
         if format in self.config:
             return Reader( dsn, **self.config[format] )
@@ -61,7 +64,7 @@ class Extractor():
 
 
     def _walkFile( self, path, format ):
-        """Main parsing method"""
+        """Main parsing generator method"""
         self.reader = self._openFile( path, format )
         fileGenerator = self.reader.parseFile()
         try:
@@ -87,6 +90,7 @@ class Extractor():
             while 1:
                 # gets the next document
                 document, corpusNum = fileGenerator.next()
+                document.addEdge( 'Corpus', corpusNum, 1 )
                 ### updates Corpora and Corpus objects edges
                 self.corpora.addEdge( 'Corpus', corpusNum, 1 )
                 # extract and filter ngrams
@@ -141,6 +145,7 @@ class Extractor():
             while 1:
                 ### gets the next document
                 document, corpusNum = fileGenerator.next()
+                document.addEdge( 'Corpus', corpusNum, 1 )
                 ### updates Corpora and Corpus objects edges
                 #self.corpora.addEdge( 'Corpus', corpusNum, 1 )
                 self.reader.corpusDict[ corpusNum ].addEdge( 'Corpora', self.corpora['id'], 1)
@@ -213,6 +218,7 @@ class Extractor():
             while 1:
                 # document parsing, doc-corpus edge is written
                 document, corpusNum = fileGenerator.next()
+                document.addEdge( 'Corpus', corpusNum, 1 )
 
                 # add Corpora-Corpus edges if possible
                 self.corpora.addEdge( 'Corpus', corpusNum, 1 )

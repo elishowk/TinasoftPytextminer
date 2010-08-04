@@ -20,39 +20,28 @@ __date__ ="$Jan, 21 2010 5:29:16 PM$"
 
 # core modules
 import unittest
-
-#import tinasoft
-#import tinasoft.pytextminer
+import sys
 
 from tinasoft import TinaApp
-from tinasoft.pytextminer import stopwords
-from tinasoft.data import Writer
 
 
-tinasoftSingleton = TinaApp("config_unix.yaml")
-#whitelistSingleton = tinasoftSingleton.import_whitelist(
-#    #'/home/elishowk/TINA/Datas/100226-pubmed_whitelist.csv'
-#    'tests/data/20100630-pubmed_whitelist-extract_dataset.csv', 'test_whitelist'
-#)
-#stopwordsSingleton = [stopwords.StopWordFilter( "file://%s" % tinasoftSingleton.config['general']['userstopwords'] )]
-
-class TinaAppTestCase(unittest.TestCase):
+class TinaAppTests(unittest.TestCase):
     def setUp(self):
         self.tinasoft = tinasoftSingleton
         self.datasetId = "test_data_set"
         self.periods = ['1','pubmed1','2']
         #self.path = "tinacsv_test_200.csv"
-        self.path = "pubmed_tina_1000.csv"
-        self.format = "tinacsv"
-        #self.path = "/home/elishowk/TINA/Datas/MedlineCancer/pubmed_cancer_tina_toydb.txt"
+        #self.path = "pubmed_tina_1000.csv"
+        #self.format = "tinacsv"
+        #self.path = "pubmed_cancer_tina_toydb.txt"
         #self.format = "medline"
-        #self.whitelist = whitelistSingleton
-        #self.userstopwordfilter = stopwordsSingleton
+        self.path = sourceFile
+        self.format = sourceFormat
         self.extracted_whitelist = 'tests/date-pubmed_test_whitelist-extract_file.csv'
 
-    def testA_ExtractFile(self):
-        """testA_ExtractFile : testing extract_file"""
-        return
+class ExtractFile(TinaAppTests):
+    def runTest(self):
+        """ExtractFile : testing extract_file"""
         print self.tinasoft.extract_file(
                 self.path,
                 self.datasetId,
@@ -62,9 +51,9 @@ class TinaAppTestCase(unittest.TestCase):
         )
         self.failIfEqual(self.extracted_whitelist, TinaApp.STATUS_ERROR)
 
-    def testB_IndexFile(self):
-        """testH_IndexFile : testing index_file"""
-        return
+class IndexFile(TinaAppTests):
+    def runTest(self):
+        """IndexFile : testing index_file"""
         self.failIfEqual( self.tinasoft.index_file(
                 self.path,
                 self.datasetId,
@@ -74,9 +63,9 @@ class TinaAppTestCase(unittest.TestCase):
             ), TinaApp.STATUS_ERROR
         )
 
-
-    def testZ_ImportFile(self):
-        """testB_ImportFile : testing import_file"""
+class ImportFile(TinaAppTests):
+    def runTest(self):
+        """ImportFile : testing import_file"""
         return
         self.failIfEqual( self.tinasoft.import_file(
                 path=self.path,
@@ -85,8 +74,9 @@ class TinaAppTestCase(unittest.TestCase):
             ), TinaApp.STATUS_ERROR
         )
 
-    def testC_export_whitelist(self):
-        """testC_export_whitelist : Exports a whitelist file"""
+class ExportWhitelist(TinaAppTests):
+    def runTest(self):
+        """ExportWhitelist : Exports a whitelist file"""
         return
         print self.tinasoft.export_whitelist(
             self.periods,
@@ -95,18 +85,18 @@ class TinaAppTestCase(unittest.TestCase):
             'tinaapptests-export_whitelist.csv'
         )
 
-    def testD_ProcessCooc(self):
-        """testD_ProcessCooc : processes and stores the cooccurrence matrix"""
-        return
+class ProcessCooc(TinaAppTests):
+    def runTest(self):
+        """ProcessCooc : processes and stores the cooccurrence matrix"""
         print self.tinasoft.process_cooc(
             self.datasetId,
             self.periods
         )
         self.tinasoft.logger.debug( "processCooc test finished " )
 
-    def testE_ExportGraph(self):
-        """testE_ExportGraph : exports a gexf graph, after cooccurrences processing"""
-        #return
+class ExportGraph(TinaAppTests):
+    def runTest(self):
+        """ExportGraph : exports a gexf graph, after cooccurrences processing"""
         print self.tinasoft.export_graph(
             self.datasetId,
             self.periods,
@@ -125,22 +115,25 @@ class TinaAppTestCase(unittest.TestCase):
             },
         )
 
-    def testF_ExportCoocMatrix(self):
+class ExportCoocMatrix(TinaAppTests):
+    def runTest(self):
         """testF_ExportCoocMatrix : TODO"""
-        return
         path = 'tinaapptests-exportCoocMatrix.csv'
         self.tinasoft.logger.debug( "created : " + \
             self.tinasoft.export_cooc(path, self.periods, self.whitelist) )
 
-    def testG_ExportDocuments(self):
-        """testG_ExportDocuments :OBSOLETE"""
-        return
-        path = 'tinaapptests-exportDocuments.csv'
-        exporter = Writer( 'ngram://'+path )
-        return exporter.export_documents( self.tinasoft.storage, \
-            self.periods, \
-            self.datasetId, \
-        )
+def usage():
+    print "USAGE : python tests.py TestClass configuration_file_path source_filename file_format"
 
 if __name__ == '__main__':
+    print sys.argv
+    try:
+        confFile = sys.argv[2]
+        sourceFile = sys.argv[3]
+        sourceFormat = sys.argv[4]
+        tinasoftSingleton = TinaApp(confFile)
+        del sys.argv[2:]
+    except:
+        usage()
+        exit()
     unittest.main()
