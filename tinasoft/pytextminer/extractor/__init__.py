@@ -90,7 +90,7 @@ class Extractor():
             while 1:
                 # gets the next document
                 document, corpusNum = fileGenerator.next()
-                document.addEgde( 'Corpus', corpusNum, 1 )
+                document.addEdge( 'Corpus', corpusNum, 1 )
                 ### updates Corpora and Corpus objects edges
                 self.corpora.addEdge( 'Corpus', corpusNum, 1 )
                 # extract and filter ngrams
@@ -145,7 +145,7 @@ class Extractor():
             while 1:
                 ### gets the next document
                 document, corpusNum = fileGenerator.next()
-                document.addEgde( 'Corpus', corpusNum, 1 )
+                document.addEdge( 'Corpus', corpusNum, 1 )
                 ### updates Corpora and Corpus objects edges
                 #self.corpora.addEdge( 'Corpus', corpusNum, 1 )
                 self.reader.corpusDict[ corpusNum ].addEdge( 'Corpora', self.corpora['id'], 1)
@@ -218,7 +218,7 @@ class Extractor():
             while 1:
                 # document parsing, doc-corpus edge is written
                 document, corpusNum = fileGenerator.next()
-                document.addEgde( 'Corpus', corpusNum, 1 )
+                document.addEdge( 'Corpus', corpusNum, 1 )
 
                 # add Corpora-Corpus edges if possible
                 self.corpora.addEdge( 'Corpus', corpusNum, 1 )
