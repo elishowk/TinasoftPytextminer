@@ -43,9 +43,9 @@ data_files = [
 ]
 data_files += glob(join('Microsoft.VC90.CRT','*.*'))
 data_files += glob(join('shared','stopwords','*.txt'))
-#data_files += glob(join('shared','nltk_data','corpora','brown','*.*'))
-#data_files += glob(join('shared','nltk_data','corpora','conll2000','*.*'))
-#data_files += glob(join('shared','nltk_data','tokenizers','punkt','*.*'))
+data_files += glob(join('shared','nltk_data','corpora','brown','*'))
+data_files += glob(join('shared','nltk_data','corpora','conll2000','*'))
+data_files += glob(join('shared','nltk_data','tokenizers','punkt','*'))
 
 print data_files
 # for win32, see: http://wiki.wxpython.org/cx_freeze
