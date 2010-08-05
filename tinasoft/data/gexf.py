@@ -116,6 +116,7 @@ class SubGraph():
         @db_load_object must must the database method returning the type of object
         @opts is a dict of paramaters
         """
+        _logger.debug(opts)
         self.db_load_object = db_load_object
         # temp store for database objects
         self.cache = {}
@@ -123,17 +124,24 @@ class SubGraph():
         if 'edgethreshold' not in opts:
             self.edgethreshold = defaults['edgethreshold']
         else:
-            # max == 'inf' or max == 0 : set to float('inf')
-            if opts['edgethreshold'][1] == 'inf' or opts['edgethreshold'][1] == 0:
-                opts['edgethreshold'][1] = float('inf')
-            self.edgethreshold = [ float(opts['edgethreshold'][0]), float(opts['edgethreshold'][1]) ]
+            self.edgethreshold = opts['edgethreshold']
+
+        # max == 'inf' or max == 0 : set to float('inf')
+        self.edgethreshold = [ float(self.edgethreshold[0]), float(self.edgethreshold[1]) ]
+        if self.edgethreshold[1] == 0:
+            _logger.debug("transformed 0 to inf")
+            self.edgethreshold[1] = float('inf')
 
         if 'nodethreshold' not in opts:
             self.nodethreshold = defaults['nodethreshold']
         else:
-            if opts['nodethreshold'][1] == 'inf' or opts['nodethreshold'][1] == 0:
-                opts['nodethreshold'][1] = float('inf')
-            self.nodethreshold = [ float(opts['nodethreshold'][0]), float(opts['nodethreshold'][1]) ]
+            self.nodethreshold = opts['nodethreshold']
+
+        # max == 'inf' or max == 0 : set to float('inf')
+        self.nodethreshold = [ float(self.nodethreshold[0]), float(self.nodethreshold[1]) ]
+        if self.nodethreshold[1] == 0:
+            _logger.debug("transformed 0 to inf")
+            self.nodethreshold[1] = float('inf')
         try:
             if 'proximity' in opts:
                 # string eval to method

@@ -197,7 +197,7 @@ class TinaApp(object):
         if outpath is None:
             if whitelistlabel is None:
                 whitelistlabel=dataset
-            outpath = self._user_filepath(whitelistlabel, 'whitelist', "%s-extract_dataset.csv"%dataset)
+            outpath = self._user_filepath(dataset, 'whitelist', "%s-extract_dataset.csv"%whitelistlabel)
         corporaObj = corpora.Corpora(dataset)
         # instanciate extractor class
         stopwds = stopwords.StopWords(
