@@ -1,4 +1,5 @@
-#  Copyright (C) 2010 elishowk
+# -*- coding: utf-8 -*-
+#  Copyright (C) 2009-2011 CREA Lab, CNRS/Ecole Polytechnique UMR 7656 (Fr)
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -14,7 +15,8 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-__author__="Julian Bilcke, Elias Showk"
+
+__author__="elishowk@nonutc.fr"
 __date__ ="$Oct 20, 2009 5:30:11 PM$"
 
 __all__ = [

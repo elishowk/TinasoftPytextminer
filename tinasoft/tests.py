@@ -122,6 +122,12 @@ class ExportCoocMatrix(TinaAppTests):
         self.tinasoft.logger.debug( "created : " + \
             self.tinasoft.export_cooc(path, self.periods, self.whitelist) )
 
+class SerialCounter(TinaAppTests):
+    def runTest(self):
+        from tinasoft.pytextminer.cooccurrences import serialcounter
+        sc = serialcounter.SerialCounter()
+        sc.serialCounter('List_gene_coli', 1990, 1990, '/home/elishowk/TINA/Datas/Medline','medline')
+
 def usage():
     print "USAGE : python tests.py TestClass configuration_file_path source_filename file_format"
 
