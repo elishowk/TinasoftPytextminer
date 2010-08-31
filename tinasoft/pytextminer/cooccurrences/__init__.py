@@ -31,7 +31,7 @@ class CoocMatrix():
     def __init__(self, size):
         self.reverse = {}
         self.lastindex = -1
-        self.array = zeros((size,size),dtype=int8)
+        self.array = zeros((size,size),dtype=int32)
 
     def _getindex(self, key):
         if key in self.reverse:
@@ -113,8 +113,6 @@ class Simple():
             key = self.corpusid+'::'
         else:
             return
-
-        totalrows = len(self.matrix.reverse.keys())
         countcooc = 0
         for ngi in self.matrix.reverse.iterkeys():
             row = {}
@@ -134,11 +132,9 @@ class Simple():
             generator = self.storage.selectCorpusCooc( self.corpusid )
             while 1:
                 id,row = generator.next()
-                if id not in self.whitelist['edges']['NGram']:
-                    continue
                 self.reducer( [id, row] )
         except StopIteration, si:
-            return
+            return self.matrix
 
 
 

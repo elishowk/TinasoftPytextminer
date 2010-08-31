@@ -18,7 +18,8 @@ from tinasoft.data import Handler
 
 import codecs
 import csv
-#from datetime import datetime
+from decimal import *
+
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
@@ -41,12 +42,21 @@ class Exporter (Handler):
         self.file = codecs.open(self.filepath, "w+", encoding=self.encoding, errors='replace' )
 
     def writeRow( self, row ):
-        #row=map(str, row)
-        self.file.write( self.delimiter.join( \
-            ["".join([self.quotechar,cell,self.quotechar]) \
-            for cell in row] ) + "\n" )
+        """
+        writes a csv row to the file handler
+        """
+        line=[]
+        for cell in row:
+            if isinstance(cell, str) is True or isinstance(cell, unicode) is True:
+                line += ["".join([self.quotechar,str(cell),self.quotechar])]
+            elif isinstance(cell, int) is True or isinstance(cell, float) is True or isinstance(cell, Decimal) is True:
+                line += [str(cell)]
+        self.file.write( self.delimiter.join(line) + "\n" )
 
     def writeFile( self, columns, rows ):
+        """
+        Iterates over a list of rows and calls
+        """
         self.writeRow( columns )
         for row in rows:
             self.writeRow( row )

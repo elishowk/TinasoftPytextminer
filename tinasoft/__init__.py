@@ -17,9 +17,9 @@
 __author__="elishowk@nonutc.fr"
 
 __all__ = ["pytextminer","data","tests"]
-import sys
 
 # python utility modules
+import sys
 import os
 from os.path import exists
 from os.path import join
@@ -42,7 +42,7 @@ from tinasoft.pytextminer import extractor
 from tinasoft.pytextminer import cooccurrences
 from tinasoft.pytextminer import whitelist
 from tinasoft.pytextminer import stopwords
-
+from tinasoft.pytextminer import indexer
 
 LEVELS = {
     'debug': logging.DEBUG,
@@ -262,6 +262,38 @@ class TinaApp(object):
         else:
             return self.STATUS_ERROR
 
+    def index_archive(self,
+            path,
+            dataset,
+            periods,
+            whitelistpath,
+            format,
+            outpath=None,
+        ):
+        """
+        Index a whitelist against a whitelist, producing an exported cooccurrence matrix
+        """
+        if self.set_storage( dataset ) == self.STATUS_ERROR:
+            return self.STATUS_ERROR
+        # path is an archive directory
+        path = self._get_sourcefile_path(path)
+        corporaObj = corpora.Corpora(dataset)
+        whitelist = self.import_whitelist(whitelistpath)
+        # prepares extraction export path
+        if outpath is None:
+            outpath = join( self.user, dataset, "cooccurrences" )
+        # for each period, processes cocc and stores them
+        for id in periods:
+            abstractFilePath = join(path, id, id + '.txt')
+            reader = Reader( format + "://" + abstractFilePath )
+            reader_gen = reader.parseFile()
+            sc = indexer.ArchiveCounter(self.storage, id)
+            if not sc.walkCorpus(whitelist, reader_gen, outpath):
+                return self.STATUS_ERROR
+            elif not sc.writeMatrix(True):
+                return self.STATUS_ERROR
+        return self.STATUS_OK
+
     def import_file(self,
             path,
             dataset,
@@ -310,7 +342,10 @@ class TinaApp(object):
             minoccs=1,
             **kwargs
         ):
-        """Public access to tinasoft.data.ngram.export_whitelist()"""
+        """
+        OBSOLETE
+        Public access to tinasoft.data.ngram.export_whitelist()
+        """
         # creating default outpath
         if outpath is None:
             outpath = self._user_filepath(dataset, 'whitelist', "%s-export_whitelist.csv"%whitelistlabel)
@@ -355,8 +390,8 @@ class TinaApp(object):
         else:
             # whitelist_id is a whitelist label
             self.logger.debug("loading whitelist %s from storage"%whitelist_id)
-            newwl = whitelist.Whitelist( whitelist_id, whitelist_id )
-            newwl.load_from_storage(dataset, periods, userstopwords)
+            new_wl = whitelist.Whitelist( whitelist_id, whitelist_id )
+            new_wl.load_from_storage(dataset, periods, userstopwords)
         # TODO stores the whitelist ?
         return new_wl
 
@@ -402,6 +437,7 @@ class TinaApp(object):
 
     def export_cooc(self, periods, whitelistpath, outpath=None):
         """
+        OBSOLETE
         returns a text file outpath containing the db cooc
         for a list of periods ans an ngrams whitelist
         """

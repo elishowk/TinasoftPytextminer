@@ -34,9 +34,9 @@ class Document(PyTextMiner):
         self.ngramSep = ngramSep
         self.ngramEmpty = ngramEmpty
 
-    def getDate(self):
-        if self.date is not None:
-            return self.date.split('/')
+    #def getDate(self):
+    #    if self.date is not None:
+    #        return self.date.split('/')
 
     def addEdge(self, type, key, value):
         if type == 'Corpus' or type == 'NGram':

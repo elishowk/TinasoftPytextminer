@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#  Copyright (C) 2010 elishowk
+#  Copyright (C) 2009-2011 CREA Lab, CNRS/Ecole Polytechnique UMR 7656 (Fr)
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -14,13 +14,12 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+__author__="elishowk@nonutc.fr"
 # used for FS handling
 import os
 
-from tinasoft import TinaApp
-from tinasoft.pytextminer import PyTextMiner
 from tinasoft.data import basecsv
-from tinasoft.pytextminer import tokenizer, tagger, ngram, whitelist, corpus, filtering, stemmer
+from tinasoft.pytextminer import ngram, corpus, stemmer
 
 from decimal import *
 
@@ -29,6 +28,7 @@ import logging
 _logger = logging.getLogger('TinaAppLogger')
 
 class WhitelistFile():
+
     columns = [
         ("status", "status"),
         ("label", "label"),
@@ -40,12 +40,16 @@ class WhitelistFile():
         ("maxperiod", "max occs period id"),
         ("maxperiodoccsn", "max occs  ^ length per period"),
         ("maxperiodn", "max occs ^ length period id"),
-        ("doclist", "doc list"),
+        ("forms", "ngram forms"),
         ("corplist", "corp list"),
         ("dbid", "db ID")
     ]
     accept = "w"
     refuse = "s"
+    forms_separator = " %%% "
+
+    def __init__(self):
+        return
 
 
 
@@ -56,41 +60,60 @@ class Importer(basecsv.Importer):
     whitelist = None
 
     def _add_whitelist(self, dbid, occs):
-        """adds a whitelisted ngram"""
+        """
+        adds a whitelisted ngram
+        """
         self.whitelist.addEdge( 'NGram', dbid, occs )
 
     def _add_stopword(self, dbid, occs):
-        """adds a user defined stop-ngram"""
+        """
+        adds a user defined stop-ngram
+        """
         self.whitelist.addEdge( 'StopNGram', dbid, occs )
 
-    def _add_ngram(self, dbid, label, row):
-        self.whitelist['content'][dbid] = ngram.NGram(label.split(" "), dbid, label)
-        try:
-            for corpid in row[self.filemodel.columns[11][1]].split(" "):
-                self.whitelist.addEdge( 'Corpus', str(corpid), 1 )
-                if corpid not in self.whitelist['corpus']:
-                    self.whitelist['corpus'][corpid] = corpus.Corpus(corpid)
-        except KeyError, keyexc:
-            _logger.error( "%s columns was not found, whitelist import failed"%keyexc )
+    def _add_ngram(self, dbid, ngobj):
+        """
+        General method adding any ngram to the whitelist
+        """
+        self.whitelist['content'][dbid] = ngobj
 
     def parse_file(self):
         """Reads a whitelist file and returns the updated object"""
         stem = stemmer.Nltk()
-        if self.whitelist is None: return TinaApp.STATUS_ERROR
+        if self.whitelist is None: return False
         for row in self.csv:
             try:
                 status = row[self.filemodel.columns[0][1]]
-                occs = row[self.filemodel.columns[3][1]]
+                occs = int(row[self.filemodel.columns[3][1]])
                 label = row[self.filemodel.columns[1][1]]
+                forms_tokens = row[self.filemodel.columns[10][1]].split(self.filemodel.forms_separator)
+                # prepares forms ID to add them to the whitelist edges
+                forms_id = [ngram.NGram.getId(tokens.split(" ")) for tokens in forms_tokens]
+                # prepares forms label to add the to NGram objects in the whitelist
+                forms_label = dict().fromkeys( [tokens for tokens in forms_tokens] , 1 )
+                periods = row[self.filemodel.columns[11][1]].split(self.filemodel.forms_separator)
             except KeyError, keyexc:
                 _logger.error( "%s columns was not found, whitelist import failed"%keyexc )
                 continue
+            # instanciate a NGram object
+            edges = { 'Document' : {}, 'Corpus' : {}, 'label': forms_label, 'postag' : {}}
+            ng = ngram.NGram(label.split(" "), stemmer=stem, edges=edges)
             # calculates db ID from the label, does not trust the file's db id
-            ng = ngram.NGram(label.split(" "), stemmer=stem)
+            for corpid in periods:
+                # increments all the Corpus edges
+                self.whitelist.addEdge( 'Corpus', str(corpid), 1 )
+                ng.addEdge( 'Corpus', str(corpid), 1)
+                # keeps a corpus object into whitelist object
+                if corpid not in self.whitelist['corpus']:
+                    self.whitelist['corpus'][corpid] = corpus.Corpus(corpid)
             dbid = ng['id']
+            # increments the whitelist edges
             if status == self.filemodel.accept:
+                # adds all forms to the whitelist
+                for form_id in forms_id:
+                    self._add_whitelist(dbid, 0)
                 self._add_whitelist(dbid, occs)
-                self._add_ngram(dbid, label, row)
+                self._add_ngram(dbid, ng)
             elif status == self.filemodel.refuse:
                 self._add_stopword(dbid, occs)
         return self.whitelist
@@ -100,13 +123,12 @@ class Exporter(basecsv.Exporter):
 
     filemodel = WhitelistFile()
 
-
-    def export_whitelist(self, storage, periods, new_whitelist_label, filters=None, compl_whitelist=None, minOccs=1):
+    def export_whitelist(self, storage, periods, newwl, filters=None, compl_whitelist=None, minOccs=1):
         """
-        creates a Whitelist Object from DB
-        then exports it
+        Used only to export index NGrams from storage
+        creates a Whitelist Object given periods and optional filters, and another whitelist object to be merged
         """
-        newwl = whitelist.Whitelist( new_whitelist_label, new_whitelist_label )
+        #newwl = whitelist.Whitelist( new_whitelist_label, new_whitelist_label )
         newwl.load_from_storage( storage, periods, filters, compl_whitelist )
         (export_path, newwl) = self.write_whitelist(newwl, minOccs)
         newwl['content'] = newwl['corpus'] = {}
@@ -166,30 +188,34 @@ class Exporter(basecsv.Exporter):
             ng.addEdge('MaxCorpus',maxperiodid,maxperiod)
             ng.addEdge('MaxNormalizedCorpus',maxnormalizedperiodid,maxnormalizedperiod)
 
-            # gets the major form
+            # gets major forms
             label = ng.getLabel().replace('"',"'")
             tag = ng.getPostag()
-
-            corp_list = " ".join([corpid for corpid in ng['edges']['Corpus'].keys() if corpid in newwl['corpus']])
+            # get all forms and appropriate list of corpus to export
+            forms = self.filemodel.forms_separator.join(ng['edges']['label'].keys())
+            corp_list = self.filemodel.forms_separator.join([corpid for corpid in ng['edges']['Corpus'].keys() if corpid in newwl['corpus']])
             # prepares the row
             row = [
                 ng['status'],
                 label,
                 tag,
-                str(occs),
-                str(len(ng['content'])),
-                str(occsn),
-                str(maxperiod),
+                occs,
+                len(ng['content']),
+                occsn,
+                maxperiod,
                 str(maxperiodid),
-                str(maxnormalizedperiod),
+                maxnormalizedperiod,
                 str(maxnormalizedperiodid),
-                " ".join(ng['edges']['Document'].keys()),
-                " ".join(ng['edges']['Corpus'].keys()),
-                ngid
+                forms,
+                corp_list,
+                str(ngid)
             ]
+            print row
             self.writeRow(row)
-            # updates ng in whitelist object
-            newwl['content'][ngid] = ng
+            # TODO restore when whitelist stored in DB updates ng in whitelist object
+            #newwl['content'][ngid] = ng
+            # TEMPORARY clean memory usage
+            del newwl['content'][ngid]
             # notifies progression
             #if ngramcount % 500 == 0:
             #    TinaApp.notify( None,

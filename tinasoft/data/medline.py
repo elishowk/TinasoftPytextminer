@@ -181,9 +181,12 @@ class Importer(Handler):
             else:
                 return
         record = Record()
-        finished = False
-        while not finished:
+        while 1:
             if line[:6]=="      ": # continuation line
+                # there's already a key
+                if key not in record:
+                    _logger.warning("continuation line without a key")
+                    record[key] = []
                 record[key].append(line[6:])
             elif line:
                 key = str(line[:4].rstrip())
@@ -191,10 +194,12 @@ class Importer(Handler):
                     record[key] = []
                 record[key].append(line[6:])
             try:
+                # next line
                 line = handle.next()
             except StopIteration:
-                finished = True
+                return
             else:
+                # cleans line and jump to next iteration
                 line = line.rstrip()
                 if line:
                     continue
@@ -202,6 +207,7 @@ class Importer(Handler):
             for key in textkeys:
                 if key in record:
                     record[key] = " ".join(record[key])
+
             yield record
             record = Record()
 
@@ -239,7 +245,7 @@ class Importer(Handler):
             del model['TI']
             del model['AB']
         except KeyError, ke:
-            _logger.error( "%s key was not found, skipping document"%ke )
+            #_logger.error( "%s key was not found, skipping document"%ke )
             return None
         # document instance
         newdoc = document.Document(

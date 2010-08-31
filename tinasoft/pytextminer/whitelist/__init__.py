@@ -1,4 +1,5 @@
-#  Copyright (C) 2010 elishowk
+# -*- coding: utf-8 -*-
+#  Copyright (C) 2009-2011 CREA Lab, CNRS/Ecole Polytechnique UMR 7656 (Fr)
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -13,28 +14,29 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-__author__="Elias Showk"
+__author__="elishowk@nonutc.fr"
 
 from tinasoft.pytextminer import PyTextMiner
 from tinasoft.pytextminer import filtering
 from tinasoft.pytextminer import ngram
+from tinasoft.data import whitelist
 
 # used for sorting
-from operator import itemgetter
+#from operator import itemgetter
 
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
-class Whitelist(PyTextMiner):
-    """Whitelist class
+class Whitelist(PyTextMiner,whitelist.WhitelistFile):
+    """
+    Whitelist class
     StopNGram edges represent a session's user stopwords
     NGram edges represent a session's whitelisted NGrams
     """
 
     # standard accept and refuse codes
-    refuse = 's'
-    accept = 'w'
+    #refuse = 's'
+    #accept = 'w'
 
     def __init__(self, id, label, content=None, edges=None, **metas):
         if content is None:
@@ -42,22 +44,32 @@ class Whitelist(PyTextMiner):
         if edges is None:
             edges = { 'NGram' : {}, 'StopNGram': {} }
         self.corpus = {}
+        whitelist.WhitelistFile.__init__(self)
         PyTextMiner.__init__(self, content, id, label, edges, **metas)
 
     def addEdge(self, type, key, value):
         return self._addEdge( type, key, value )
 
     def test(self, ng):
+        """
+        Identifies an NGram in the whitelist
+        """
         if isinstance(ng, ngram.NGram) is True:
+            # NG obj submitted
             if ng['id'] in self['edges']['NGram']: return True
             else: return False
         if isinstance(ng, str) is True or isinstance(ng, unicode) is True:
+            # NG ID submitted
             if ng in self['edges']['NGram']: return True
             else: return False
         return False
 
     def load_from_storage(self, storage, periods, filters=None, wlinstance=None):
-        """Whitelist creator/updater utility"""
+        """
+        TODO move to export_whitelist() utility in data.whitelist
+        Whitelist creator/updater utility
+        Loads a whitelist from storage
+        """
         for corpusid in periods:
             # gets a corpus from the storage or continue
             corpusobj = storage.loadCorpus(corpusid)

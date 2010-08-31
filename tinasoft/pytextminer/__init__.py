@@ -20,8 +20,9 @@ __author__="elishowk@nonutc.fr"
 __date__ ="$Oct 20, 2009 5:30:11 PM$"
 
 __all__ = [
-    "corpora", "corpus", "document", "ngram","whitelist"
-    "filtering","tokenizer", "tagger", "cooccurrences", "stopwords","extractor","stemmer"
+    "corpora", "corpus", "document", "ngram", "whitelist"
+    "filtering", "tokenizer", "tagger", "cooccurrences",
+    "stopwords", "extractor", "stemmer"
 ]
 
 from uuid import uuid4
@@ -60,14 +61,14 @@ class PyTextMiner():
         """
         Common staticmethod constructing an ID str for all PyTextMiner objects
         """
-        if content is None:
-            return uuid4().hex
         if type(content) == list:
             # for NGrams-like objects : content==list
             return str(abs( hash( " ".join(content) ) ))
         elif type(content) == str or type(content) == unicode:
             # for all other string content
             return str(abs( hash( content ) ))
+        elif content is None:
+            return uuid4().hex
         else:
             raise ValueError
             return None

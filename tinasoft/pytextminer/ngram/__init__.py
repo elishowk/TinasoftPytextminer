@@ -1,4 +1,5 @@
-#  Copyright (C) 2010 elishowk
+# -*- coding: utf-8 -*-
+#  Copyright (C) 2009-2011 CREA Lab, CNRS/Ecole Polytechnique UMR 7656 (Fr)
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -12,7 +13,8 @@
 #
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-__author__="Elias Showk"
+
+__author__="elishowk@nonutc.fr"
 
 from tinasoft.pytextminer import PyTextMiner
 
@@ -26,7 +28,7 @@ class NGram(PyTextMiner):
         initiate the object
         normalize must be local value for pickling reasons
         """
-        normalize = self.normalize
+        normalize = NGram.normalize
         # normalize and stemmer
         if stemmer is not None:
             normalize = lambda x: stemmer.stem(x).lower()
@@ -40,7 +42,6 @@ class NGram(PyTextMiner):
         if postag is not None:
             postag_label = " ".join(postag)
             metas["postag"] = postag
-
         if edges is None:
             edges = { 'Document' : {}, 'Corpus' : {}, 'label': {}, 'postag' : {}}
         PyTextMiner.__init__(self, normlist, id, label, edges, **metas)
@@ -56,7 +57,8 @@ class NGram(PyTextMiner):
         else:
             return self._addEdge( type, key, value )
 
-    def normalize(self, token):
+    @staticmethod
+    def normalize(token):
         """
         Default tokens normalizing
         """
@@ -92,3 +94,14 @@ class NGram(PyTextMiner):
             return ordered_forms[0]
         else:
             return None
+
+    @staticmethod
+    def getId(tokens, normalize=None):
+        """
+        Returns a normalized NGram ID given a tokenlist
+        """
+        if normalize is None:
+            normalize = NGram.normalize
+        # normlist will produce an unique id associated with the stemmed form
+        normlist = [normalize(word) for word in tokens]
+        return PyTextMiner.getId(normlist)

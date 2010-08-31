@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-#  Copyright (C) 2010 elishowk
+#  Copyright (C) 2009-2011 CREA Lab, CNRS/Ecole Polytechnique UMR 7656 (Fr)
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-__author__="Elias Showk"
+__author__="elishowk@nonutc.fr"
 __date__ ="$Jan, 21 2010 5:29:16 PM$"
 
 # core modules
@@ -122,11 +122,15 @@ class ExportCoocMatrix(TinaAppTests):
         self.tinasoft.logger.debug( "created : " + \
             self.tinasoft.export_cooc(path, self.periods, self.whitelist) )
 
-class SerialCounter(TinaAppTests):
+class IndexArchive(TinaAppTests):
     def runTest(self):
-        from tinasoft.pytextminer.cooccurrences import serialcounter
-        sc = serialcounter.SerialCounter()
-        sc.serialCounter('List_gene_coli', 1990, 1990, '/home/elishowk/TINA/Datas/Medline','medline')
+        print self.tinasoft.index_archive(
+                self.path,
+                self.datasetId,
+                ["Pubmed_1980[dp]"],
+                self.extracted_whitelist,
+                self.format
+            )
 
 def usage():
     print "USAGE : python tests.py TestClass configuration_file_path source_filename file_format"
