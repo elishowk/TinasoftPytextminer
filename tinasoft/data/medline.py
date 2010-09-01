@@ -236,7 +236,7 @@ class Importer(Handler):
 
     def parseDocument(self, model, corpusid):
         try:
-            content = "%s %s"%(model['AB'],model['TI'])
+            content = "%s . %s"%(model['AB'],model['TI'])
             title = model['TI']
             pubdate = model['DP']
             docid = model['PMID']

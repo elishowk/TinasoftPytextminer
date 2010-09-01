@@ -27,11 +27,14 @@ import logging
 _logger = logging.getLogger('TinaAppLogger')
 
 class CoocMatrix():
-
-    def __init__(self, size):
+    """
+    Matrix class counting cooccurrences
+    Manages external IDs as keys and constructs its internal auto-tincremented reversed index
+    """
+    def __init__(self, size, type=int32):
         self.reverse = {}
         self.lastindex = -1
-        self.array = zeros((size,size),dtype=int32)
+        self.array = zeros((size,size),dtype=type)
 
     def _getindex(self, key):
         if key in self.reverse:
@@ -42,12 +45,16 @@ class CoocMatrix():
             return self.reverse[key]
 
     def get( self, key1, key2=None ):
+        """
+        Getter returning rows or cell from the array
+        """
         if key2 is None:
             return self.array[ self._getindex(key1), : ]
         else:
             return self.array[ self._getindex(key1), self._getindex(key2) ]
 
     def set( self, key1, key2, value=1 ):
+        """Setter using sums to increment cooc values"""
         index1 = self._getindex(key1)
         index2 = self._getindex(key2)
         self.array[ index1, index2 ] += value
@@ -138,11 +145,9 @@ class Simple():
 
 
 
-class MapReduce():
+class Filtered(Simple):
     """
-    A homemade cooccurrences matrix calculator
-    get a corpus number as input and returns a matrix's slice :
-    { 'ngram_id' : {  dictionnary of all 'ngid2' : integer } }
+    TO TEST
     """
     def __init__(self, storage, whitelist=None, corpusid=None, filter=None):
         self.storage = storage
@@ -156,26 +161,6 @@ class MapReduce():
             self.matrix = CoocMatrix( len( self.whitelist['edges']['NGram'].keys() ) )
         else:
             self.matrix = CoocMatrix( len( self.corpus['edges']['NGram'].keys() ) )
-
-    def walkCorpus(self):
-        """processes a list of documents into a corpus"""
-        totaldocs = len(self.corpus['edges']['Document'].keys())
-        doccount = 0
-        for doc_id in self.corpus['edges']['Document']:
-            obj = self.storage.loadDocument( doc_id )
-            if obj is not None:
-                mapgenerator = self.mapper(obj)
-                try:
-                    # documents loop
-                    while mapgenerator:
-                        term_map = mapgenerator.next()
-                        self.reducer( term_map )
-                except StopIteration, si: pass
-            doccount += 1
-            if doccount % 50 == 0:
-                _logger.debug(
-                    'processed coocs for %d of %d documents in period %s'%(doccount,totaldocs,self.corpusid)
-                )
 
     def filterNGrams(self, ngrams):
         """
@@ -204,49 +189,4 @@ class MapReduce():
         # map is a unity slice of the matrix
         for ng in map.keys():
             yield [ng,map]
-
-    def reducer(self, term_map):
-        """updates the cooc matrix"""
-        ng1 = term_map[0]
-        map = term_map[1]
-        for ngi in map.iterkeys():
-            self.matrix.set( ng1, ngi )
-
-
-    def writeMatrix(self, overwrite=True):
-        """
-        writes in the db rows of the matrix
-        'Cooc::corpus::ngramid' => '{ 'ngx' : y, 'ngy': z }'
-        """
-
-        if self.corpusid is not None:
-            key = self.corpusid+'::'
-        else:
-            return
-
-        totalrows = len(self.matrix.reverse.keys())
-        countcooc = 0
-        for ngi in self.matrix.reverse.iterkeys():
-            row = {}
-            for ngj in self.matrix.reverse.iterkeys():
-                cooc = self.matrix.get( ngi, ngj )
-                if cooc > 0:
-                    countcooc += 1
-                    row[ngj] = cooc
-            if len( row.keys() ) > 0:
-                self.storage.updateCooc( key+ngi, row, overwrite )
-        _logger.debug( 'will store %d non-zero cooc values'%countcooc )
-        self.storage.flushCoocQueue()
-        _logger.debug( 'finished storing %d non-zero cooc values'%countcooc )
-
-    def readMatrix( self ):
-        try:
-            generator = self.storage.selectCorpusCooc( self.corpusid )
-            while 1:
-                id,row = generator.next()
-                if id not in self.whitelist['edges']['NGram']:
-                    continue
-                self.reducer( [id, row] )
-        except StopIteration, si:
-            return
 

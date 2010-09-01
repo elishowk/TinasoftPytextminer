@@ -45,6 +45,7 @@ class NGram(PyTextMiner):
         if edges is None:
             edges = { 'Document' : {}, 'Corpus' : {}, 'label': {}, 'postag' : {}}
         PyTextMiner.__init__(self, normlist, id, label, edges, **metas)
+        # updates majors forms before returning instance
         self.updateMajorForm(label, postag_label)
 
     def addEdge(self, type, key, value):
@@ -63,6 +64,17 @@ class NGram(PyTextMiner):
         Default tokens normalizing
         """
         return token.lower()
+
+    @staticmethod
+    def getId(tokens, normalize=None):
+        """
+        Returns a normalized NGram ID given a tokenlist
+        """
+        if normalize is None:
+            normalize = NGram.normalize
+        # normlist will produce an unique id associated with the stemmed form
+        normlist = [normalize(word) for word in tokens]
+        return PyTextMiner.getId(normlist)
 
     def updateMajorForm(self, label, postag_label):
         """
@@ -94,14 +106,3 @@ class NGram(PyTextMiner):
             return ordered_forms[0]
         else:
             return None
-
-    @staticmethod
-    def getId(tokens, normalize=None):
-        """
-        Returns a normalized NGram ID given a tokenlist
-        """
-        if normalize is None:
-            normalize = NGram.normalize
-        # normlist will produce an unique id associated with the stemmed form
-        normlist = [normalize(word) for word in tokens]
-        return PyTextMiner.getId(normlist)

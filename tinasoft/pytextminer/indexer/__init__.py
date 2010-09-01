@@ -16,31 +16,22 @@
 
 __author__="elishowk@nonutc.fr"
 
-from tinasoft.pytextminer import ngram, cooccurrences
+from tinasoft.pytextminer import ngram, cooccurrences, tokenizer
 from tinasoft.data import Reader
 # traceback to print error traces
 import traceback
-import pickle
 import time
 #import os
 from numpy import *
 from os import access, W_OK, mkdir
 from os.path import join
 
-# *** Variables used for special characters removal ***
-# allChars = string of all characters
-# toKeep = string of characters to keep
-# toStrip = string of characters to remove
-
-from string import letters
-toKeep = letters + ' ' + '-' + '0123456789'
-allChars = "".join(map(chr, xrange(256)))
-toStrip = "".join(c for c in allChars if c not in toKeep)
-
 
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
+
+import pdb
 
 def createDirectory(directory):
     if not access(directory, W_OK):
@@ -57,7 +48,6 @@ class Matrix(cooccurrences.CoocMatrix):
         self.array[self._getindex(key1),self._getindex(key2)] += bool1*bool2
         if key1 != key2:
             self.array[self._getindex(key2),self._getindex(key1)] += bool1*bool2
-        print self.array[self._getindex(key1),self._getindex(key2)]
 
 class ArchiveCounter():
     """
@@ -86,10 +76,7 @@ class ArchiveCounter():
         nDescriptors = len(descriptorNameList)
         # creates a cooc array
         self.matrix = Matrix(nDescriptors)
-        # array of boolean terms presence markers with the same index than termDictList
-        markerList = zeros((nDescriptors), dtype = bool_)
-        # list of term index present in the document (correspondingDescriptorNumber)
-        currentDescriptors = []
+        # starts parsing file
         try:
             while 1:
                 # Scan input file (loop broken if end-of-file reached, see below)
@@ -97,18 +84,19 @@ class ArchiveCounter():
                 articleNumber += 1
                 self._notify(articleNumber)
                 # words list
-                wordSequence = abstract['content']\
-                    .lower()\
-                    .translate(allChars, toStrip)\
-                    .replace("-", " ")\
-                    .split(" ")
+                wordSequence = tokenizer.RegexpTokenizer.tokenize(
+                    tokenizer.TreeBankWordTokenizer.sanitize(abstract['content'])
+                )
+                #abstract['content']\
+                #    .lower()\
+                #    .translate(allChars, toStrip)\
+                #    .replace("-", " ")\
+                #    .split(" ")
                 # Occurrences
-                currentDescriptors, markerList = self._occurrences(termDictList, wordSequence, markerList, currentDescriptors)
+                currentDescriptors, markerList = self._occurrences(termDictList, wordSequence, nDescriptors)
                 # Cooccurrences
                 self._cooccurrences(descriptorNameList, currentDescriptors, markerList)
-                # Reset
-                markerList[:] = False
-                currentDescriptors = []
+
         except StopIteration, si:
             return True
         except Exception, exc:
@@ -117,37 +105,43 @@ class ArchiveCounter():
     def _load_whitelist(self, whitelist):
         """
         transforms a whitelist object to descriptorNameList and termDictList
+        *** example values :
+        descriptorNameList = ['brain', 'cell', 'neuron', 'pain threshold', 'long term memory', 'mind theory']
+        termDictList = [{'brains': 0, 'brain': 0, 'cell': 1, 'neuron': 2, 'neurons' : 2, 'neuronal' : 2}, {'pain threshold' : 3, 'mind theory' : 5 }, {'long term memory' : 4}]
+
         """
         termNameList = []
         termDictList = []
         maxLength = 0
+
         # walks through all ngram in the whitelist
         for ngid in whitelist['content'].iterkeys():
             # check if the ng is whitelisted
             if whitelist.test(ngid):
                 ngobj = whitelist['content'][ngid]
-                if len(ngobj['content']) > maxLength:
-                    maxLength = len(ngobj['content'])
                 # puts the major form into termNameList
                 termNameList.append(ngobj['label'])
-        termNameList.sort()
-        for i in range(maxLength):
-            termDictList.append({})
-
-        for ngid in whitelist['content'].iterkeys():
-            if whitelist.test(ngid):
-                # puts all the forms into termDictList
-                index = termNameList.index(ngobj['label'])
+                if len(termDictList) < len(ngobj['content']):
+                    # auto-adjust termDictList size
+                    for i in range(len(termDictList),len(ngobj['content'])):
+                        termDictList.append({})
+                # insert terms and forms into termDictList
+                index = len(termNameList) - 1
                 termDictList[len(ngobj['content'])-1][ngobj['label']] = index
                 for label in ngobj['edges']['label'].iterkeys():
                     termDictList[len(label.split(" "))-1][label] = index
-
+        termNameList.sort()
         return termNameList, termDictList
 
-    def _occurrences(self, termDictList, wordSequence, markerList, currentDescriptors):
+    def _occurrences(self, termDictList, wordSequence, nDescriptors):
         """
-        Detect occurring relevant terms and mark corresponding descriptors
+        Constitue NGrams and detects occurrences and mark corresponding descriptors
         """
+        # array of boolean terms presence markers with the same index than termDictList
+        markerList = zeros((nDescriptors), dtype = bool_)
+        markerList[:] = False
+        # list of term index present in the document (correspondingDescriptorNumber)
+        currentDescriptors = []
         for termWordLengthMinusOne in range(len(termDictList)):
             for i in range(len(wordSequence) - termWordLengthMinusOne):
                 # form ngrams into wordWindow
