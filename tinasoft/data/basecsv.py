@@ -33,7 +33,6 @@ class Exporter (Handler):
             #dialect = 'excel',
             **kwargs
         ):
-        #Handler.__init__(self)
         self.loadOptions(kwargs)
         self.filepath = filepath
         self.delimiter = delimiter
@@ -49,7 +48,7 @@ class Exporter (Handler):
         for cell in row:
             if isinstance(cell, str) is True or isinstance(cell, unicode) is True:
                 line += ["".join([self.quotechar,str(cell),self.quotechar])]
-            elif isinstance(cell, int) is True or isinstance(cell, float) is True or isinstance(cell, Decimal) is True:
+            else:
                 line += [str(cell)]
         self.file.write( self.delimiter.join(line) + "\n" )
 

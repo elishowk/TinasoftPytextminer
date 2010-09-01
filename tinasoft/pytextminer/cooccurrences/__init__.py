@@ -96,6 +96,7 @@ class Simple():
         """
         generates a row for each ngram in the doc,
         cooccurrences to 1 to every other ngram in the doc
+        will produce a symmetric matrix
         """
         map = dict.fromkeys(doc['edges']['NGram'].keys(), 1)
         # map is a unity slice of the matrix
@@ -113,7 +114,7 @@ class Simple():
     def writeMatrix(self, overwrite=True):
         """
         writes in the db rows of the matrix
-        'Cooc::corpus::ngramid' => '{ 'ngx' : y, 'ngy': z }'
+        'corpus::ngramid' => '{ 'ngx' : y, 'ngy': z }'
         """
 
         if self.corpusid is not None:

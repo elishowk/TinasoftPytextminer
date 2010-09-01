@@ -31,7 +31,7 @@ import logging
 _logger = logging.getLogger('TinaAppLogger')
 
 
-import pdb
+#import pdb
 
 def createDirectory(directory):
     if not access(directory, W_OK):
@@ -43,7 +43,7 @@ class Matrix(cooccurrences.CoocMatrix):
     """
     def set( self, key1, key2, bool1, bool2 ):
         """
-        Increments cooc array using boolean multiplication, including the symetric value
+        Increments cooc array using boolean multiplication, including symmetric value
         """
         self.array[self._getindex(key1),self._getindex(key2)] += bool1*bool2
         if key1 != key2:
@@ -58,12 +58,11 @@ class ArchiveCounter():
         self.storage = storage
         self.corpusid = corpusid
 
-
     def _notify(self, articleNumber):
         if not articleNumber%1000 :
             _logger.debug( "ArchiveCounter executed on %d abstracts at %s"%(articleNumber,time.asctime(time.localtime())) )
 
-    def walkCorpus(self, whitelist, reader, outpath=None):
+    def walkCorpus(self, whitelist, reader, exporter=None):
         """
         parses a file, with documents for one period
         and processes cooc for a given whitelist
@@ -80,6 +79,8 @@ class ArchiveCounter():
         try:
             while 1:
                 # Scan input file (loop broken if end-of-file reached, see below)
+                #import pdb
+                #pdb.set_trace()
                 abstract, period = reader.next()
                 articleNumber += 1
                 self._notify(articleNumber)
@@ -87,20 +88,19 @@ class ArchiveCounter():
                 wordSequence = tokenizer.RegexpTokenizer.tokenize(
                     tokenizer.TreeBankWordTokenizer.sanitize(abstract['content'])
                 )
-                #abstract['content']\
-                #    .lower()\
-                #    .translate(allChars, toStrip)\
-                #    .replace("-", " ")\
-                #    .split(" ")
                 # Occurrences
                 currentDescriptors, markerList = self._occurrences(termDictList, wordSequence, nDescriptors)
                 # Cooccurrences
                 self._cooccurrences(descriptorNameList, currentDescriptors, markerList)
-
+                if articleNumber == 1000:
+                    raise StopIteration()
         except StopIteration, si:
+            if exporter:
+                exporter.export_matrix(self.matrix, self.corpusid)
             return True
         except Exception, exc:
             return False
+
 
     def _load_whitelist(self, whitelist):
         """
@@ -144,7 +144,7 @@ class ArchiveCounter():
         currentDescriptors = []
         for termWordLengthMinusOne in range(len(termDictList)):
             for i in range(len(wordSequence) - termWordLengthMinusOne):
-                # form ngrams into wordWindow
+                # extract ngrams into wordWindow
                 if i == 0 :
                     wordWindow = wordSequence[:termWordLengthMinusOne + 1]
                 else :
@@ -176,7 +176,7 @@ class ArchiveCounter():
                     markerList[c]
                 )
 
-    def writeMatrix(self, overwrite=True):
+    def writeMatrix(self, overwrite=True, minCooc=1):
         """
         writes in the db rows of the matrix
         'Cooc::corpus::ngramid' => '{ 'ngx' : y, 'ngy': z }'
@@ -188,7 +188,7 @@ class ArchiveCounter():
                 row = {}
                 for ngj in self.matrix.reverse.iterkeys():
                     cooc = self.matrix.get( ngi, ngj )
-                    if cooc > 0:
+                    if cooc >= minCooc:
                         countcooc += 1
                         row[ngj] = cooc
                 if len( row.keys() ) > 0:
@@ -215,174 +215,3 @@ class ArchiveCounter():
                     matrix.set( id, ngi )
         except StopIteration, si:
             return matrix
-
-
-class SerialCounter():
-    """
-    Fast cooccurrences processor
-    """
-    def serialCounter(self,
-            whitelist,
-            periods,
-            dataPath,
-            outPath,
-            dataType,
-        ):
-        """
-        SerialCounter main method : iterate on periods and calls countCooccurrences()
-        """
-        self.abstractsPath = dataPath
-        self.resultsPath = join(outPath, whitelist.label)
-
-        self.semNetResultFileName = join(self.resultsPath, str(periods[0]) + '-' + str(periods[1]) + '_semantic_network.txt')
-        self.nArticlesFileName = join(self.resultsPath, str(periods[0]) + '-' + str(periods[1]) + '_articles_per_period.txt')
-
-        for year in periods:
-            self.countCooccurrences(whitelist, year, dataType)
-        return True
-
-
-    def countCooccurrences(self, whitelist, period, dataType):
-        """
-        Count occurrences and cooccurences of chosen terms in titles and abstracts
-        of archive articles for a given period
-        """
-
-        _logger.debug( "SerialCounter.countCooccurences on period %s starting at %s"%(period,time.asctime(time.localtime())) )
-
-        #periodNoSpace = period.strip()
-
-        #tNamesAndTDictsFileName = self.termsPath + termListName + '_tNamesAndTDicts.list'
-        #if not os.path.isfile(tNamesAndTDictsFileName):
-        #    self.termListFile2TNamesAndTDictsFile(termListName)
-        #    _logger.debug( "Dictionaries file derived from term list '" + termListName + "' created" )
-        #else:
-        #    _logger.debug( "Dictionaries file derived from term list '" + termListName + "' already exists" )
-
-        # loads pickle files from self.termListFile2TNamesAndTDictsFile
-        #tNamesAndTDictsFile = file(tNamesAndTDictsFileName, 'r')
-
-        # loads WHITELIST
-        descriptorNameList, termDictList = self.whitelist2TNamesAndTDictsFile(whitelist)
-        #tNamesAndTDictsFile.close()
-
-        abstractsFilePath = join(self.abstractsPath, period, period + '.txt')
-         # Test : use test file 'cooctest.txt' instead
-        abstractsFile = Reader( dataType + "://" + abstractsFilePath )
-        abstractsGen = abstractsFile.parseFile()
-        # *** Test values :
-        #descriptorNameList = ['brain', 'cell', 'neuron', 'pain threshold', 'long term memory', 'mind theory']
-        #termDictList = [{'brains': 0, 'brain': 0, 'cell': 1, 'neuron': 2, 'neurons' : 2, 'neuronal' : 2}, {'pain threshold' : 3, 'mind theory' : 5 }, {'long term memory' : 4}]
-
-        nDescriptors = len(descriptorNameList)
-
-        cooccurrenceArray = zeros((nDescriptors,nDescriptors), dtype = int32)
-        markerList = zeros((nDescriptors), dtype = bool_)
-
-        articleNumber = 0
-
-        currentDescriptors = []
-        try:
-            while 1: # Scan input file (loop broken if end-of-file reached, see below)
-
-                abstract, period = abstractsGen.next()
-                if not articleNumber%1000 :
-                    print "countCooccurrences executed on %d abstracts at %s"%(articleNumber,time.asctime(time.localtime()))
-
-                articleNumber +=1
-
-                titleAndAbstractWordsSequence = abstract['content'].lower().translate(allChars, toStrip).replace('-', ' ').split()
-
-                # Detect occurring relevant terms and mark corresponding descriptors
-
-                for termWordLengthMinusOne in range(len(termDictList)):
-                    for i in range(len(titleAndAbstractWordsSequence) - termWordLengthMinusOne):
-                        if i == 0 :
-                            wordWindow = titleAndAbstractWordsSequence[:termWordLengthMinusOne + 1]
-                        else :
-                            wordWindow.append(titleAndAbstractWordsSequence[i + termWordLengthMinusOne])
-                            wordWindow.pop(0)
-                        currentTerm = ' '.join(wordWindow)
-
-                        if termDictList[termWordLengthMinusOne].has_key(currentTerm):
-                            correspondingDescriptorNumber = termDictList[termWordLengthMinusOne][currentTerm]
-                            if not markerList[correspondingDescriptorNumber]:
-                                markerList[correspondingDescriptorNumber] = True
-                                currentDescriptors.append(correspondingDescriptorNumber)
-
-                # Cooccurrences
-                nCurrentDescriptors = len(currentDescriptors)
-
-                for i in range(nCurrentDescriptors):
-                    l = currentDescriptors[i]
-                    for j in range(nCurrentDescriptors-i):
-                        c = currentDescriptors[i+j]
-                        cooccurrenceArray[l,c] += markerList[l]*markerList[c]
-                        if l != c:
-                            cooccurrenceArray[c,l] += markerList[l]*markerList[c]
-
-                # Reset
-                markerList[:] = False
-                currentDescriptors = []
-
-        except StopIteration, si:
-            del abstractsFile
-
-        createDirectory(self.resultsPath)
-        # writes the cooccurrences matrix file
-        semNetResultFile = open(self.semNetResultFileName, 'w+')
-        for i in range(nDescriptors):
-            for j in range(nDescriptors):
-                if(str(cooccurrenceArray[i,j])!="0"):
-                    semNetResultFile.write(str(i) + " " + str(j) + " " + str(cooccurrenceArray[i,j]) + " " + period + "\n")
-        semNetResultFile.close()
-        # writes the synthesis of the period to a file
-        nArticlesFile = open(self.nArticlesFileName, 'w+')
-        nArticlesFile.write(str(period)+" "+str(articleNumber)+"\r\n")
-        nArticlesFile.close()
-
-        print 'Finished at ' + time.asctime(time.localtime())
-        print 'Processed %s articles from archive at %s'%articleNumber
-
-        print 'Cooccurrences lines written to file ' + self.semNetResultFileName
-        print 'Number of articles written to file ' + self.nArticlesFileName
-
-    def whitelist2TNamesAndTDictsFile(self, whitelist):
-        """
-        Creates term list and dictionaries from plain text file
-        and pickle them to filesystem
-            termNameList = ['brain', 'cell', 'neuron', 'pain threshold', 'long term memory', 'mind theory']
-            termDictList = [
-                {'brains': 0, 'brain': 0, 'cell': 1, 'neuron': 2, 'neurons' : 2, 'neuronal' : 2},
-                {'pain threshold' : 3, 'mind theory' : 5 },
-                {'long term memory' : 4}
-            ]
-
-        """
-        print "whitelist2TNamesAndTDictsFile"
-
-        termNameList = []
-        termDictList = []
-        maxLength = 0
-        # walks through all ngram in the whitelist
-        for ngid in whitelist['content'].iterkeys():
-            # check if the ng is whitelisted
-            if whitelist.test(ngid):
-                ngobj = whitelist['content'][ngid]
-                if len(ngobj['content']) > maxLength:
-                    maxLength = len(ngobj['content'])
-                # puts the major form into termNameList
-                termNameList.append(ngobj['label'])
-        termNameList.sort()
-        for i in range(maxLength - 1):
-            termDictList.append({})
-
-        for ngid in whitelist['content'].iterkeys():
-            if whitelist.test(ngid):
-                # puts all the forms into termDictList
-                index = termNameList.index(ngobj['label'])
-                termDictList[len(ngobj['content'])-1][ngobj['label']] = index
-                for label in ngobj['edges']['label'].iterkeys():
-                    termDictList[len(label.split())-1][label] = index
-
-        return termNameList, termDictList

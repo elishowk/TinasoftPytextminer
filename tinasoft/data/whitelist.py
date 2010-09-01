@@ -18,8 +18,8 @@ __author__="elishowk@nonutc.fr"
 # used for FS handling
 import os
 
-from tinasoft.data import basecsv
-from tinasoft.pytextminer import ngram, corpus, stemmer
+from tinasoft.data import basecsv, Handler
+from tinasoft.pytextminer import ngram, corpus, stemmer, filtering
 
 from decimal import *
 
@@ -118,6 +118,58 @@ class Importer(basecsv.Importer):
                 self._add_stopword(dbid, occs)
         return self.whitelist
 
+def load_from_storage(whitelist, storage, periods, filters=None, wlinstance=None):
+    """
+    TODO move to export_whitelist() utility in data.whitelist
+    Whitelist creator/updater utility
+    Loads a whitelist from storage
+    """
+    filemodel = WhitelistFile()
+    for corpusid in periods:
+        # gets a corpus from the storage or continue
+        corpusobj = storage.loadCorpus(corpusid)
+        if corpusobj is None:
+            _logger.error( "corpus %s not found"%corpusid )
+            continue
+        # increments number of docs per period
+        if  corpusid not in periods:
+            whitelist['corpus'][corpusid] = corpus.Corpus(corpusid, edges=corpusobj['edges'])
+
+        # TODO sorts ngrams by occs
+        #sortedngrams = reversed(sorted(corpusobj['edges']['NGram'].items(), key=itemgetter(1)))
+        # walks through ngrams in the corpus
+        # occ is the number of docs in the corpus where ngid app
+        for ngid, occ in corpusobj['edges']['NGram'].iteritems():
+            # if NGram's unknown, then loads an checks ngram
+            ng = storage.loadNGram(ngid)
+            if ng is None:
+                _logger.error( "ngram not found %s in database %s"%(ngid,corpusid) )
+                continue
+            # default status
+            ng['status'] = ''
+            # if a complementary whitelist is given
+            if wlinstance is not None:
+                # increment edge weight by status
+                if ngid in wlinstance['edges']['StopNGram']:
+                    ng['status'] = filemodel.refuse
+                if ngid in wlinstance['edges']['NGram']:
+                    ng['status'] = filemodel.accept
+            # if filtering is active
+            if filters is not None and filtering.apply_filters(ng, filters) is False:
+                ng['status'] = filemodel.refuse
+            # updates whitelist's edges
+            if ng['status'] == filemodel.refuse:
+                whitelist.addEdge('StopNGram', ngid, occ)
+            else:
+                whitelist.addEdge( 'NGram', ngid, occ )
+
+            # add ngram to cache or update the status
+            if ngid not in  whitelist['content']:
+                whitelist['content'][ngid] = ng
+            else:
+                whitelist['content'][ngid] = ng['status']
+        return whitelist
+
 class Exporter(basecsv.Exporter):
     """A class for csv exports of NGrams Whitelists"""
 
@@ -128,11 +180,14 @@ class Exporter(basecsv.Exporter):
         Used only to export index NGrams from storage
         creates a Whitelist Object given periods and optional filters, and another whitelist object to be merged
         """
-        #newwl = whitelist.Whitelist( new_whitelist_label, new_whitelist_label )
-        newwl.load_from_storage( storage, periods, filters, compl_whitelist )
-        (export_path, newwl) = self.write_whitelist(newwl, minOccs)
-        newwl['content'] = newwl['corpus'] = {}
-        storage.insertWhitelist( newwl, newwl['id'], overwrite=True )
+        # loads whitelist object from storage
+        whitelist = load_from_storage(newwl, storage, periods, filters, compl_whitelist)
+        # exports to a file
+        (export_path, whitelist) = self.write_whitelist(whitelist, minOccs)
+        # cleans whitelist
+        whitelist['content'] = whitelist['corpus'] = {}
+        # updates whitelist into storage
+        storage.insertWhitelist(whitelist, self.whitelist['id'], overwrite=True)
         return export_path
 
     def write_whitelist(self, newwl, minOccs=1):

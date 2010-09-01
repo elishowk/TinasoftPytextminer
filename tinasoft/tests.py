@@ -129,7 +129,8 @@ class IndexArchive(TinaAppTests):
                 self.datasetId,
                 ["Pubmed_1980[dp]"],
                 self.extracted_whitelist,
-                self.format
+                self.format,
+                1
             )
 
 def usage():

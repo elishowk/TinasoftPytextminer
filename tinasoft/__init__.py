@@ -37,6 +37,7 @@ import logging.handlers
 from tinasoft.data import Engine
 from tinasoft.data import Reader
 from tinasoft.data import Writer
+from tinasoft.data import whitelist as whitelistdata
 from tinasoft.pytextminer import corpora
 from tinasoft.pytextminer import extractor
 from tinasoft.pytextminer import cooccurrences
@@ -269,9 +270,12 @@ class TinaApp(object):
             whitelistpath,
             format,
             outpath=None,
+            minCooc=1
         ):
         """
-        Index a whitelist against a whitelist, producing an exported cooccurrence matrix
+        Index a whitelist against an archive of articles,
+        updates cooccurrences into storage,
+        optionally exporting cooccurrence matrix
         """
         if self.set_storage( dataset ) == self.STATUS_ERROR:
             return self.STATUS_ERROR
@@ -280,17 +284,20 @@ class TinaApp(object):
         corporaObj = corpora.Corpora(dataset)
         whitelist = self.import_whitelist(whitelistpath)
         # prepares extraction export path
-        if outpath is None:
-            outpath = join( self.user, dataset, "cooccurrences" )
+        if outpath is not None:
+            outpath = self._user_filepath(dataset, 'cooccurrences', "%s_%s-index_archive.csv"%("+".join(periods),whitelist['label']))
+            exporter = Writer("coocmatrix://"+outpath)
+        else:
+            exporter = None
         # for each period, processes cocc and stores them
         for id in periods:
             abstractFilePath = join(path, id, id + '.txt')
             reader = Reader( format + "://" + abstractFilePath )
             reader_gen = reader.parseFile()
             sc = indexer.ArchiveCounter(self.storage, id)
-            if not sc.walkCorpus(whitelist, reader_gen, outpath):
+            if not sc.walkCorpus(whitelist, reader_gen, exporter):
                 return self.STATUS_ERROR
-            elif not sc.writeMatrix(True):
+            elif not sc.writeMatrix(True,minCooc):
                 return self.STATUS_ERROR
         return self.STATUS_OK
 
@@ -382,16 +389,16 @@ class TinaApp(object):
         # whitelists aggregation
         whitelist_id = self._get_filepath_id(whitelistpath)
         if whitelist_id is not None:
-            # whitelist_id is a file path
+            # whitelist_path EXIST
             self.logger.debug("loading whitelist from %s (%s)"%(whitelistpath, whitelist_id))
             wlimport = Reader('whitelist://'+whitelistpath, **kwargs)
             wlimport.whitelist = whitelist.Whitelist( whitelist_id, whitelist_id )
             new_wl = wlimport.parse_file()
         else:
-            # whitelist_id is a whitelist label
+            # whitelist_id is a whitelist label into storage
             self.logger.debug("loading whitelist %s from storage"%whitelist_id)
             new_wl = whitelist.Whitelist( whitelist_id, whitelist_id )
-            new_wl.load_from_storage(dataset, periods, userstopwords)
+            new_wl = whitelistdata.load_from_storage(new_wl, dataset, periods, userstopwords)
         # TODO stores the whitelist ?
         return new_wl
 
@@ -410,8 +417,8 @@ class TinaApp(object):
             userstopwords=None
         ):
         """
-        Main function importing a whitelist and generating cooccurrences
-        process cooccurrences for each period=corpus
+        Uses a whitelist and generates cooccurrences from stored Ngrams
+        for a given list of periods=corpus
         """
         if self.set_storage( dataset ) == self.STATUS_ERROR:
             return self.STATUS_ERROR
@@ -442,7 +449,7 @@ class TinaApp(object):
         for a list of periods ans an ngrams whitelist
         """
         if outpath is None:
-            outpath = self._user_filepath("", 'cooccurrences', "%s-export_cooc.txt"%whitelist['id'])
+            outpath = self._user_filepath("", 'cooccurrences', "%s_%s-export_cooc.txt"%("+".join(periods),whitelist['label']))
         self.logger.debug("export_cooc to %s"%outpath)
         whitelist = self.import_whitelist(whitelistpath)
         exporter = Writer('coocmatrix://'+outpath)

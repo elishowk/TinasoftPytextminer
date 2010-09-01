@@ -1,5 +1,6 @@
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
-#  Copyright (C) 2010 elishowk
+#  Copyright (C) 2009-2011 CREA Lab, CNRS/Ecole Polytechnique UMR 7656 (Fr)
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -14,7 +15,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-__author__ = "Elias Showk"
+__author__="elishowk@nonutc.fr"
 __date__ = "$Oct 20, 2009 6:32:44 PM$"
 
 import nltk
@@ -186,3 +187,32 @@ class TreeBankWordTokenizer(RegexpTokenizer):
                 )
         except StopIteration, stopit:
             return ngrams
+
+    @staticmethod
+    def ngramize(minSize, maxSize, tagTokens, stopwords, filters, stemmer, ngrams):
+        """
+            common ngramizing method
+            returns a dict of NGram instances
+            using the optional stopwords object to filter by ngram length
+            tokens = [[sentence1 tokens], [sentence2 tokens], etc]
+            sentences = list of tuples = [(word,TAG_word), etc]
+        """
+        # content is the list of words from tagTokens
+        content = tagger.TreeBankPosTagger.getContent(tagTokens)
+        # tags is the list of tags from tagTokens
+        tags = tagger.TreeBankPosTagger.getTag(tagTokens)
+        for i in range(len(content)):
+            for n in range(minSize, maxSize + 1):
+                if len(content) >= i + n:
+                    # new NGram instance
+                    ng = ngram.NGram(content[i:n + i], occs=1, postag=tags[i:n + i], stemmer=stemmer)
+                    if ng['id'] in ngrams:
+                        # already exists in document : increments occs and updates edges
+                        ngrams[ng['id']]['occs'] += 1
+                        ngrams[ng['id']] = PyTextMiner.updateEdges( ng, ngrams[ng['id']], ['label','postag'] )
+                    else:
+                        # first stopwords filters, then content and postag filtering
+                        if stopwords is None or stopwords.contains(ng) is False:
+                            if filtering.apply_filters(ng, filters) is True:
+                                ngrams[ng['id']] = ng
+        return ngrams
