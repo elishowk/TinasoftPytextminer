@@ -41,22 +41,25 @@ class Exporter(basecsv.Exporter):
             quotechar,
             **kwargs
         )
+        self.file.truncate(0)
         self.file.close()
-        self.file = codecs.open(self.filepath, "a+", encoding=self.encoding, errors='replace' )
+        self.file = codecs.open(self.filepath, "a+", encoding=self.encoding, errors='replace')
 
-    def export_cooc(self, storage, periods, whitelist):
+    def export_cooc(self, storage, periods, whitelist, minCooc=1):
         """exports a reconstitued cooc matrix from storage, applying whitelist filtering"""
         for corpusid in periods:
             try:
                 generator = storage.selectCorpusCooc( corpusid )
                 while 1:
                     ng1, row = generator.next()
-                    if whitelist is not None and not whitelist.text(ng1):
+                    if whitelist is not None and not whitelist.test(ng1):
                         continue
                     for ng2, cooc in row.iteritems():
+                        if cooc < minCooc:
+                            continue
                         if cooc > row[ng1]:
                             _logger.error( "inconsistency cooc %s %d > %d occur %s" % (ng2, cooc, row[ng1], ng1) )
-                        if whitelist is not None and not whitelist.text(ng2):
+                        if whitelist is not None and not whitelist.test(ng2):
                             continue
                         self.writeRow([ ng1, ng2, cooc, corpusid ])
             except StopIteration, si:
@@ -64,15 +67,18 @@ class Exporter(basecsv.Exporter):
         return self.filepath
 
     def export_matrix(self, matrix, period, minCooc=1):
-        """exports a SEMI cooccurrences matrix"""
+        """exports one half of a symmetric cooccurrences matrix"""
         #import pdb
         #pdb.set_trace()
-        size = len( matrix.reverse.keys() )
-        for i in range(size):
-            for j in range(size-i):
-                ngi = matrix.reverse.keys()[i]
-                ngj = matrix.reverse.keys()[j]
-                cooc = matrix.get(ngi, ngj)
-                if(cooc >= minCooc):
-                    self.writeRow([ngi, ngj, cooc, period])
-        return self.filepath
+        generator = matrix.walk_matrix(minCooc)
+        countcooc = 0
+        try:
+            while 1:
+                ngi, row = generator.next()
+                if len( row.keys() ) > 0:
+                    for ngj,cooc in row.iteritems():
+                        countcooc += 1
+                        self.writeRow([ngi, ngj, cooc, period])
+        except StopIteration, si:
+            _logger.debug("Exported %d non-zeros cooccurrences for the period %s"%(countcooc, period))
+            return self.filepath
