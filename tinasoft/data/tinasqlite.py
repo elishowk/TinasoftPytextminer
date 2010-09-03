@@ -70,7 +70,7 @@ class Backend(Handler):
         """connection method, need to have self.home directory created"""
         try:
             self._db = sqlite3.connect(join(self.home,self.path))
-            self._db.execute("PRAGMA SYNCHRONOUS = OFF;")
+            self._db.execute("PRAGMA SYNCHRONOUS=0")
             self._db.row_factory = sqlite3.Row
             cur = self._db.cursor()
             for tabname in self.tables:

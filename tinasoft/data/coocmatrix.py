@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
 #  Copyright (C) 2009-2011 CREA Lab, CNRS/Ecole Polytechnique UMR 7656 (Fr)
 #
 #  This program is free software: you can redistribute it and/or modify
@@ -41,12 +39,10 @@ class Exporter(basecsv.Exporter):
             quotechar,
             **kwargs
         )
-        self.file.truncate(0)
-        self.file.close()
-        self.file = codecs.open(self.filepath, "a+", encoding=self.encoding, errors='replace')
 
-    def export_cooc(self, storage, periods, whitelist, minCooc=1):
+    def export_cooc(self, storage, periods, whitelist=None, minCooc=1):
         """exports a reconstitued cooc matrix from storage, applying whitelist filtering"""
+        countcooc=0
         for corpusid in periods:
             try:
                 generator = storage.selectCorpusCooc( corpusid )
@@ -61,15 +57,15 @@ class Exporter(basecsv.Exporter):
                             _logger.error( "inconsistency cooc %s %d > %d occur %s" % (ng2, cooc, row[ng1], ng1) )
                         if whitelist is not None and not whitelist.test(ng2):
                             continue
+                        countcooc += 1
                         self.writeRow([ ng1, ng2, cooc, corpusid ])
             except StopIteration, si:
                 continue
+        _logger.debug("Exported %d non-zeros cooccurrences"%countcooc)
         return self.filepath
 
     def export_matrix(self, matrix, period, minCooc=1):
         """exports one half of a symmetric cooccurrences matrix"""
-        #import pdb
-        #pdb.set_trace()
         generator = matrix.walk_matrix(minCooc)
         countcooc = 0
         try:

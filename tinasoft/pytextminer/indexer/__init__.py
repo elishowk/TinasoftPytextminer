@@ -29,7 +29,6 @@ from numpy import *
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
-
 class SymmetricMatrix():
     """
     subclass of cooccurrences.CoocMatrix
@@ -97,20 +96,20 @@ class SymmetricMatrix():
                 yield (ngi, row)
         _logger.debug("found %d non-zeros cooccurrences values"%countcooc)
 
+
 class ArchiveCounter():
     """
     A cooccurrences matrix processor for large archives given a whitelist
     """
-    def __init__(self, storage, corpusid):
+    def __init__(self, storage):
         # target database
         self.storage = storage
-        self.corpusid = corpusid
 
     def _notify(self, articleNumber):
         if not articleNumber%1000 :
             _logger.debug( "ArchiveCounter executed on %d abstracts at %s"%(articleNumber,time.asctime(time.localtime())) )
 
-    def walkCorpus(self, whitelist, reader, exporter=None, minCooc=1):
+    def walkCorpus(self, whitelist, reader, period, exporter=None, minCooc=1):
         """
         parses a file, with documents for one period
         and processes cooc for a given whitelist
@@ -138,11 +137,9 @@ class ArchiveCounter():
                 currentDescriptors, markerList = self._occurrences(termDictList, wordSequence, nDescriptors)
                 # Cooccurrences
                 self._cooccurrences(descriptorNameList, currentDescriptors, markerList)
-                if articleNumber == 5000:
-                    raise StopIteration()
         except StopIteration, si:
             if exporter:
-                exporter.export_matrix(self.matrix, self.corpusid, minCooc)
+                exporter.export_matrix(self.matrix, period, minCooc)
             return True
         except Exception, exc:
             return False
@@ -223,14 +220,14 @@ class ArchiveCounter():
                     markerList[c]
                 )
 
-    def writeMatrix(self, overwrite=True, minCooc=1):
+    def writeMatrix(self, period, overwrite=True, minCooc=1):
         """
         stores into Cooc DB table of the SEMI matrix
         'corpus::ngramid' => '{ 'ngx' : y, 'ngy': z }'
         where ngramid <= ngi
         """
         generator = self.matrix.walk_matrix(minCooc)
-        key = self.corpusid+'::'
+        key = period+'::'
         try:
             while 1:
                 ngi, row = generator.next()
@@ -244,13 +241,13 @@ class ArchiveCounter():
             return False
 
 
-    def readMatrix(self, size):
+    def readMatrix(self, size, period):
         """
         OBSOLETE : TO UPDATE
         """
         matrix = SymmetricMatrix(size)
         try:
-            generator = self.storage.selectCorpusCooc( self.corpusid )
+            generator = self.storage.selectCorpusCooc( period )
             while 1:
                 ngi,row = generator.next()
                 for ngj in row.iterkeys():

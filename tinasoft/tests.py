@@ -65,7 +65,7 @@ class IndexFile(TinaAppTests):
 
 class ImportFile(TinaAppTests):
     def runTest(self):
-        """ImportFile : testing import_file"""
+        """OBSOLETE ImportFile : testing import_file"""
         return
         self.failIfEqual( self.tinasoft.import_file(
                 path=self.path,
@@ -76,7 +76,7 @@ class ImportFile(TinaAppTests):
 
 class ExportWhitelist(TinaAppTests):
     def runTest(self):
-        """ExportWhitelist : Exports a whitelist file"""
+        """OBSOLETE ExportWhitelist : Exports a whitelist file"""
         return
         print self.tinasoft.export_whitelist(
             self.periods,
@@ -118,16 +118,14 @@ class ExportGraph(TinaAppTests):
 class ExportCoocMatrix(TinaAppTests):
     def runTest(self):
         """testF_ExportCoocMatrix : TODO"""
-        path = 'tinaapptests-exportCoocMatrix.csv'
-        self.tinasoft.logger.debug( "created : " + \
-            self.tinasoft.export_cooc(path, self.periods, self.whitelist) )
+        print self.tinasoft.export_cooc(self.datasetId, "Pubmed_1980[dp]")
 
 class IndexArchive(TinaAppTests):
     def runTest(self):
         print self.tinasoft.index_archive(
                 self.path,
                 self.datasetId,
-                ["Pubmed_1980[dp]"],
+                ["Pubmed_clinicalAND2007[dp]"],
                 self.extracted_whitelist,
                 self.format,
                 1

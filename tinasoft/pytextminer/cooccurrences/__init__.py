@@ -29,7 +29,7 @@ _logger = logging.getLogger('TinaAppLogger')
 class CoocMatrix():
     """
     Matrix class counting cooccurrences
-    Manages external IDs as keys and constructs its internal auto-tincremented reversed index
+    Manages external IDs as keys and constructs its internal auto-incremented reversed index
     """
     def __init__(self, size, type=int32):
         self.reverse = {}

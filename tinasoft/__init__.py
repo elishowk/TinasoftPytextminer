@@ -289,17 +289,17 @@ class TinaApp(object):
             exporter = Writer("coocmatrix://"+outpath)
         else:
             exporter = None
-        # for each period, processes cocc and stores them
-        for id in periods:
-            abstractFilePath = join(path, id, id + '.txt')
-            reader = Reader( format + "://" + abstractFilePath )
-            reader_gen = reader.parseFile()
-            sc = indexer.ArchiveCounter(self.storage, id)
-            if not sc.walkCorpus(whitelist, reader_gen, exporter):
+        archive = Reader( format + "://" + path )
+        archive_walker = archive.walkArchive(periods)
+        try:
+            period_gen, period = archive_walker.next()
+            sc = indexer.ArchiveCounter(self.storage)
+            if not sc.walkCorpus(whitelist, period_gen, period, exporter, minCooc):
                 return self.STATUS_ERROR
-            elif not sc.writeMatrix(True,minCooc):
+            elif not sc.writeMatrix(period, True, minCooc):
                 return self.STATUS_ERROR
-        return self.STATUS_OK
+        except StopIteration, si:
+            return self.STATUS_OK
 
     def import_file(self,
             path,
@@ -370,46 +370,6 @@ class TinaApp(object):
             minoccs
         ))
 
-    def import_whitelist(
-            self,
-            whitelistpath,
-            userstopwords=None,
-            **kwargs
-        ):
-        """
-        import one or a list of whitelits files
-        returns a whitelist object to be used as input of other methods
-        """
-        if whitelistpath is None:
-            return None
-        #if isinstance(whitelistpath,str) or isinstance(whitelistpath, unicode):
-        #    whitelistpath=[whitelistpath]
-        # new whitelist
-        #new_wl = whitelist.Whitelist( whitelistlabel, whitelistlabel )
-        # whitelists aggregation
-        whitelist_id = self._get_filepath_id(whitelistpath)
-        if whitelist_id is not None:
-            # whitelist_path EXIST
-            self.logger.debug("loading whitelist from %s (%s)"%(whitelistpath, whitelist_id))
-            wlimport = Reader('whitelist://'+whitelistpath, **kwargs)
-            wlimport.whitelist = whitelist.Whitelist( whitelist_id, whitelist_id )
-            new_wl = wlimport.parse_file()
-        else:
-            # whitelist_id is a whitelist label into storage
-            self.logger.debug("loading whitelist %s from storage"%whitelist_id)
-            new_wl = whitelist.Whitelist( whitelist_id, whitelist_id )
-            new_wl = whitelistdata.load_from_storage(new_wl, dataset, periods, userstopwords)
-        # TODO stores the whitelist ?
-        return new_wl
-
-    def import_userstopwords(
-            self,
-            path=None
-        ):
-        if path is None:
-            path = join(self.config['general']['basedirectory'], self.config['general']['userstopwords'])
-        return [stopwords.StopWordFilter( "file://%s" % path )]
-
     def process_cooc(self,
             dataset,
             periods,
@@ -442,16 +402,24 @@ class TinaApp(object):
         return self.STATUS_OK
 
 
-    def export_cooc(self, periods, whitelistpath, outpath=None):
+    def export_cooc(self,
+            dataset,
+            periods,
+            whitelistpath=None,
+            outpath=None
+        ):
         """
         OBSOLETE
         returns a text file outpath containing the db cooc
         for a list of periods ans an ngrams whitelist
         """
+        if self.set_storage( dataset ) == self.STATUS_ERROR:
+            return self.STATUS_ERROR
         if outpath is None:
-            outpath = self._user_filepath("", 'cooccurrences', "%s_%s-export_cooc.txt"%("+".join(periods),whitelist['label']))
-        self.logger.debug("export_cooc to %s"%outpath)
-        whitelist = self.import_whitelist(whitelistpath)
+            outpath = self._user_filepath(dataset, 'cooccurrences', "%s-export_cooc.txt"%"+".join(periods))
+        whitelist = None
+        if whitelistpath is not None:
+            whitelist = self.import_whitelist(whitelistpath)
         exporter = Writer('coocmatrix://'+outpath)
         return exporter.export_cooc( self.storage, periods, whitelist )
 
@@ -495,6 +463,43 @@ class TinaApp(object):
             ngramgraphconfig=ngramgraphconfig,
             documentgraphconfig=documentgraphconfig
         )
+
+    def import_whitelist(
+            self,
+            whitelistpath,
+            userstopwords=None,
+            **kwargs
+        ):
+        """
+        import one or a list of whitelits files
+        returns a whitelist object to be used as input of other methods
+        """
+        whitelist_id = self._get_filepath_id(whitelistpath)
+        if whitelist_id is not None:
+            # whitelist_path EXIST
+            self.logger.debug("loading whitelist from %s (%s)"%(whitelistpath, whitelist_id))
+            wlimport = Reader('whitelist://'+whitelistpath, **kwargs)
+            wlimport.whitelist = whitelist.Whitelist( whitelist_id, whitelist_id )
+            new_wl = wlimport.parse_file()
+        else:
+            # whitelist_id is a whitelist label into storage
+            self.logger.debug("loading whitelist %s from storage"%whitelist_id)
+            new_wl = whitelist.Whitelist( whitelist_id, whitelist_id )
+            new_wl = whitelistdata.load_from_storage(new_wl, dataset, periods, userstopwords)
+        # TODO stores the whitelist ?
+        return new_wl
+
+    def import_userstopwords(
+            self,
+            path=None
+        ):
+        """
+        imports a user defined stopword file (one ngram per line)
+        returns a list of one StopWordFilter class instance to be used as input of other methods
+        """
+        if path is None:
+            path = join(self.config['general']['basedirectory'], self.config['general']['userstopwords'])
+        return [stopwords.StopWordFilter( "file://%s" % path )]
 
     def _user_filepath(self, dataset, filetype, filename):
         """returns a filename from the user directory"""
