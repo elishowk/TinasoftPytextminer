@@ -125,10 +125,11 @@ class IndexArchive(TinaAppTests):
         print self.tinasoft.index_archive(
                 self.path,
                 self.datasetId,
-                ["Pubmed_clinicalAND2007[dp]"],
+                ["Pubmed_2001[dp]"],
                 self.extracted_whitelist,
                 self.format,
-                1
+                outpath=True,
+                minCooc=10
             )
 
 def usage():

@@ -16,7 +16,7 @@
 
 __author__="elishowk@nonutc.fr"
 
-from tinasoft.pytextminer import ngram, cooccurrences, tokenizer
+from tinasoft.pytextminer import ngram, tokenizer
 from tinasoft.data import Reader
 
 # traceback to print error traces
@@ -31,68 +31,65 @@ _logger = logging.getLogger('TinaAppLogger')
 
 class SymmetricMatrix():
     """
-    subclass of cooccurrences.CoocMatrix
-    used only for semi matrix
+    Specialized semi numpy bi-dimensional array container
+    Gets and Set only upper part of the matrix
     SymmetricMatrix.set(key1,key2,boolean,boolean) === SymmetricMatrix.set(key2,key1,boolean,boolean)
     SymmetricMatrix.get(key1,key2) === SymmetricMatrix.get(key2,key1)
-    DO NOT increment cooccurrence twice !!!
+    DO NOT increment cooccurrences twice !!!
     """
-    def __init__(self, size, type=int32):
-        self.size = size
-        self.matrix = zeros((size,size), dtype=int32)
-        self.index = []
-
-    def _getindex(self, key):
+    def __init__(self, ngrams, type=int32):
         """
-        incremental index handler
-        given an external key, gives the internal key
+        Container of a numpy bi-dimensional matrix
+        Caches Ngrams labels list in self.index
+        and theier respective Pytextminer's ID in self.ngram_id
         """
-        if key in self.index:
-            return self.index.index(key)
-        else:
-            self.index.append(key)
-            return len(self.index) - 1
+        self.index = ngrams
+        self.size = len(ngrams)
+        self.matrix = zeros((self.size,self.size), dtype=int32)
+        self.id_index =[]
+        for label in self.index:
+            self.id_index.append( ngram.NGram.getId(label.split(" ")) )
 
     def get( self, key1, key2=None ):
         """
-        Getter returning rows or cell from the array
+        Getter returning rows or cell from the matrix
         """
         if key2 is None:
-            return self.matrix[ self._getindex(key1), : ]
+            return self.matrix[ key1, : ]
         else:
-            indices = [self._getindex(key1), self._getindex(key2)]
+            indices = [key1, key2]
             indices.sort()
-            return self.matrix[ indices[1], indices[0] ]
+            return self.matrix[ indices[0], indices[1] ]
 
     def set( self, key1, key2, bool1, bool2, value=None ):
         """
         Increments cooc array using boolean multiplication
         Sort keys and avoid duplicates values.
         """
-        indices = [self._getindex(key1), self._getindex(key2)]
+        indices = [key1, key2]
         indices.sort()
         if value is None:
-            self.matrix[ indices[1], indices[0] ] += bool1*bool2
+            self.matrix[ indices[0], indices[1] ] += bool1*bool2
         else:
-            self.matrix[ indices[1], indices[0] ] += value
+            self.matrix[ indices[0], indices[1] ] += value
 
-    def walk_matrix(self, minCooc=1):
+    def extract_matrix(self, minCooc=1):
         """
-        yields all values of the semi-matrix
+        yields all values of the upper part of the matrix
+        associating ngrams with theirs tinasoft's id
         """
         countcooc = 0
         for i in range(self.size):
-            if i <= len(self.index) -1:
-                ngi = self.index[i]
-                row = {}
-                line = self.matrix[i,:]
-                for j in range(i+1):
-                    cooc = line[j]
-                    if cooc >= minCooc:
-                        countcooc += 1
-                        if j <= len(self.index) - 1:
-                            ngj = self.index[j]
-                            row[ngj] = line[j]
+            ngi = self.id_index[i]
+            row = {}
+            coocline = self.matrix[i,:]
+            for j in range(self.size - i):
+                cooc = coocline[i+j]
+                if cooc >= minCooc:
+                    countcooc += 1
+                    ngj = self.id_index[j]
+                    row[ngj] = cooc
+            if len(row.keys()) > 0:
                 yield (ngi, row)
         _logger.debug("found %d non-zeros cooccurrences values"%countcooc)
 
@@ -121,7 +118,7 @@ class ArchiveCounter():
         # size of the whitelist
         nDescriptors = len(descriptorNameList)
         # creates a cooc array
-        self.matrix = SymmetricMatrix(nDescriptors)
+        self.matrix = SymmetricMatrix(descriptorNameList)
         # starts parsing file
         try:
             while 1:
@@ -137,6 +134,8 @@ class ArchiveCounter():
                 currentDescriptors, markerList = self._occurrences(termDictList, wordSequence, nDescriptors)
                 # Cooccurrences
                 self._cooccurrences(descriptorNameList, currentDescriptors, markerList)
+                #if articleNumber == 10000:
+                #    raise StopIteration()
         except StopIteration, si:
             if exporter:
                 exporter.export_matrix(self.matrix, period, minCooc)
@@ -148,6 +147,7 @@ class ArchiveCounter():
     def _load_whitelist(self, whitelist):
         """
         transforms a whitelist object to descriptorNameList and termDictList
+        index in descriptorNameList will be used as internal id during the process
         *** example values :
         descriptorNameList = ['brain', 'cell', 'neuron', 'pain threshold', 'long term memory', 'mind theory']
         termDictList = [{'brains': 0, 'brain': 0, 'cell': 1, 'neuron': 2, 'neurons' : 2, 'neuronal' : 2}, {'pain threshold' : 3, 'mind theory' : 5 }, {'long term memory' : 4}]
@@ -212,10 +212,10 @@ class ArchiveCounter():
             l = currentDescriptors[i]
             for j in range(nCurrentDescriptors-i):
                 c = currentDescriptors[i+j]
-                # l and c are the ngram index from descriptorNameList
+                # l and c are the id from descriptorNameList
+                # [l,c] === the upper part of the symmetric matrix
                 self.matrix.set(
-                    ngram.NGram.getId(descriptorNameList[l].split(" ")),
-                    ngram.NGram.getId(descriptorNameList[c].split(" ")),
+                    l,c,
                     markerList[l],
                     markerList[c]
                 )
@@ -226,13 +226,12 @@ class ArchiveCounter():
         'corpus::ngramid' => '{ 'ngx' : y, 'ngy': z }'
         where ngramid <= ngi
         """
-        generator = self.matrix.walk_matrix(minCooc)
+        generator = self.matrix.extract_matrix(minCooc)
         key = period+'::'
         try:
             while 1:
                 ngi, row = generator.next()
-                if len( row.keys() ) > 0:
-                    self.storage.updateCooc( key+ngi, row, overwrite )
+                self.storage.updateCooc( key+ngi, row, overwrite )
         except StopIteration, si:
             self.storage.flushCoocQueue()
             return True
@@ -241,11 +240,11 @@ class ArchiveCounter():
             return False
 
 
-    def readMatrix(self, size, period):
+    def readMatrix(self, termList, period):
         """
         OBSOLETE : TO UPDATE
         """
-        matrix = SymmetricMatrix(size)
+        matrix = SymmetricMatrix(termList)
         try:
             generator = self.storage.selectCorpusCooc( period )
             while 1:

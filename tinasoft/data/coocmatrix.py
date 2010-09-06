@@ -66,15 +66,14 @@ class Exporter(basecsv.Exporter):
 
     def export_matrix(self, matrix, period, minCooc=1):
         """exports one half of a symmetric cooccurrences matrix"""
-        generator = matrix.walk_matrix(minCooc)
+        generator = matrix.extract_matrix(minCooc)
         countcooc = 0
         try:
             while 1:
                 ngi, row = generator.next()
-                if len( row.keys() ) > 0:
-                    for ngj,cooc in row.iteritems():
-                        countcooc += 1
-                        self.writeRow([ngi, ngj, cooc, period])
+                for ngj,cooc in row.iteritems():
+                    countcooc += 1
+                    self.writeRow([ngi, ngj, cooc, period])
         except StopIteration, si:
             _logger.debug("Exported %d non-zeros cooccurrences for the period %s"%(countcooc, period))
             return self.filepath
