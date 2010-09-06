@@ -244,7 +244,7 @@ class Exporter(basecsv.Exporter):
             ng.addEdge('MaxNormalizedCorpus',maxnormalizedperiodid,maxnormalizedperiod)
 
             # gets major forms
-            label = ng.getLabel().replace('"',"'")
+            label = ng.getLabel()
             tag = ng.getPostag()
             # get all forms and appropriate list of corpus to export
             forms = self.filemodel.forms_separator.join(ng['edges']['label'].keys())
@@ -265,18 +265,11 @@ class Exporter(basecsv.Exporter):
                 corp_list,
                 str(ngid)
             ]
-            print row
             self.writeRow(row)
             # TODO restore when whitelist stored in DB updates ng in whitelist object
             #newwl['content'][ngid] = ng
             # TEMPORARY clean memory usage
             del newwl['content'][ngid]
-            # notifies progression
-            #if ngramcount % 500 == 0:
-            #    TinaApp.notify( None,
-            #        'tinasoft_runExportCorpora_running_status',
-            #        str(float( (ngramcount * 100) / ngramtotal ))
-            #    )
         _logger.debug( "%d ngrams exported after filtering" %totalexported )
         return (self.filepath, newwl)
 

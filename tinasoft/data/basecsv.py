@@ -30,14 +30,12 @@ class Exporter (Handler):
             filepath,
             delimiter = ',',
             quotechar = '"',
-            #dialect = 'excel',
             **kwargs
         ):
         self.loadOptions(kwargs)
         self.filepath = filepath
         self.delimiter = delimiter
         self.quotechar = quotechar
-        #self.dialect = dialect
         self.file = codecs.open(self.filepath, "w+", encoding=self.encoding, errors='replace' )
 
     def writeRow( self, row ):
@@ -47,7 +45,7 @@ class Exporter (Handler):
         line=[]
         for cell in row:
             if isinstance(cell, str) is True or isinstance(cell, unicode) is True:
-                line += ["".join([self.quotechar,str(cell),self.quotechar])]
+                line += ["".join([self.quotechar,str(cell).replace('"',"'"),self.quotechar])]
             else:
                 line += [str(cell)]
         self.file.write( self.delimiter.join(line) + "\n" )
