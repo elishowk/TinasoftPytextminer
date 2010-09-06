@@ -91,32 +91,18 @@ class RegexpTokenizer():
         return tokens
 
     @staticmethod
-    def ngramize(minSize, maxSize, tagTokens, stopwords, filters, stemmer, ngrams):
+    def ngramize(minSize, maxSize, content):
         """
-            common ngramizing method
-            returns a dict of NGram instances
-            using the optional stopwords object to filter by ngram length
-            tokens = [[sentence1 tokens], [sentence2 tokens], etc]
-            sentences = list of tuples = [(word,TAG_word), etc]
+            simple ngramizing method
+            returns a list of ngrams (as words lists) ordered by ngram length
         """
-        # content is the list of words from tagTokens
-        content = tagger.TreeBankPosTagger.getContent(tagTokens)
-        # tags is the list of tags from tagTokens
-        tags = tagger.TreeBankPosTagger.getTag(tagTokens)
+        ngrams = []
+        for size in range(maxSize):
+            ngrams.append([])
         for i in range(len(content)):
             for n in range(minSize, maxSize + 1):
                 if len(content) >= i + n:
-                    # new NGram instance
-                    ng = ngram.NGram(content[i:n + i], occs=1, postag=tags[i:n + i], stemmer=stemmer)
-                    if ng['id'] in ngrams:
-                        # already exists in document : increments occs and updates edges
-                        ngrams[ng['id']]['occs'] += 1
-                        ngrams[ng['id']] = PyTextMiner.updateEdges( ng, ngrams[ng['id']], ['label','postag'] )
-                    else:
-                        # first stopwords filters, then content and postag filtering
-                        if stopwords is None or stopwords.contains(ng) is False:
-                            if filtering.apply_filters(ng, filters) is True:
-                                ngrams[ng['id']] = ng
+                    ngrams[n-1].append(content[i:n + i])
         return ngrams
 
 class TreeBankWordTokenizer(RegexpTokenizer):
