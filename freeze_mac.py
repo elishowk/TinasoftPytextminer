@@ -13,7 +13,7 @@ from setuptools import setup
 APP = ['Tinasoft.py']
 DATA_FILES = [
     ('',glob(r'desktop_config_unix.yaml')),
-    ('',glob(r'LICENSE')), 
+    ('',glob(r'LICENSE')),
     ('source_files',glob(join('source_files','*.csv'))),
     (join('shared','gexf'), glob(join('shared','gexf','gexf.template'))),
     (join('shared','stopwords'), glob(join('shared','stopwords','*'))),
@@ -26,10 +26,11 @@ OPTIONS = {
 'argv_emulation': True,
 'argv_inject': "desktop_config_unix.yaml",
 'packages': ['numpy'],
-'includes': ['tinasoft.data.gexf','tinasoft.data.medline','tinasoft.data.tinabsddb','tinasoft.data.tinasqlite','tinasoft.data.tinacsv','tinasoft.data.whitelist','tinasoft.data.coocmatrix','tinasoft.data.basecsv','traceback','zope.interface','twisted','nltk','numpy','jsonpickle','yaml','tenjin','simplejson'],
+'includes': ['tinasoft.data.gexf','tinasoft.data.medline','tinasoft.data.tinasqlite','tinasoft.data.tinacsv','tinasoft.data.whitelist','tinasoft.data.coocmatrix','tinasoft.data.basecsv','traceback','zope.interface','twisted','nltk','numpy','jsonpickle','yaml','tenjin','simplejson'],
+'excludes': ['bsddb3','tinasoft.data.tinabsddb']
 'resources': DATA_FILES,
-'plist': { 
-	'LSEnvironment': {'NLTK_DATA':'TinasoftPytextminer/shared/nltk_data'}
+'plist': {
+    'LSEnvironment': {'NLTK_DATA':'shared/nltk_data'}
 },
 }
 setup(
