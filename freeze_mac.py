@@ -14,6 +14,7 @@ APP = ['Tinasoft.py']
 DATA_FILES = [
     ('',glob(r'desktop_config_unix.yaml')),
     ('',glob(r'LICENSE')),
+    ('',glob(r'README')),
     ('source_files',glob(join('source_files','*.csv'))),
     (join('shared','gexf'), glob(join('shared','gexf','gexf.template'))),
     (join('shared','stopwords'), glob(join('shared','stopwords','*'))),
