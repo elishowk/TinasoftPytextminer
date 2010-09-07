@@ -47,16 +47,6 @@ punct2find_re = re.compile(ur"([^ ])([["+string.punctuation+"])",
                            re.IGNORECASE|re.VERBOSE)
 punct2find_subst = ur"\1 \2"
 
-# *** Variables used for special characters removal ***
-# allChars = string of all characters
-# toKeep = string of characters to keep
-# toStrip = string of characters to remove
-
-from string import letters
-toKeep = letters + ' ' + '-' + '0123456789'
-allChars = "".join(map(chr, xrange(256)))
-toStrip = "".join(c for c in allChars if c not in toKeep)
-
 class RegexpTokenizer():
     """
     A faster homemade tokenizer that splits a text into tokens

@@ -45,7 +45,7 @@ class Exporter (Handler):
         line=[]
         for cell in row:
             if isinstance(cell, str) is True or isinstance(cell, unicode) is True:
-                line += ["".join([self.quotechar,str(cell).replace('"',"'"),self.quotechar])]
+                line += ["".join([self.quotechar,cell.replace('"',"'"),self.quotechar])]
             else:
                 line += [str(cell)]
         self.file.write( self.delimiter.join(line) + "\n" )

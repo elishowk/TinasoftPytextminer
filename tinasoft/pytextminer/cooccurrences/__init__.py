@@ -42,7 +42,7 @@ class CoocMatrix():
         else:
             self.lastindex += 1
             self.reverse[key] = self.lastindex
-            return self.reverse[key]
+            return self.lastindex
 
     def get( self, key1, key2=None ):
         """
@@ -70,7 +70,14 @@ class Simple():
         self.corpus = self.storage.loadCorpus( self.corpusid )
         if self.corpus is None:
             raise Warning('Corpus not found')
+
         self.matrix = CoocMatrix( len( self.corpus['edges']['NGram'].keys() ) )
+
+    def notify(self, doccount, totaldocs):
+        if doccount % 50 == 0:
+            _logger.debug(
+                'processed coocs for %d of %d documents in period %s'%(doccount,totaldocs,self.corpusid)
+            )
 
     def walkCorpus(self):
         """processes a list of documents into a corpus"""
@@ -85,12 +92,10 @@ class Simple():
                     while mapgenerator:
                         term_map = mapgenerator.next()
                         self.reducer( term_map )
-                except StopIteration, si: pass
-            doccount += 1
-            if doccount % 50 == 0:
-                _logger.debug(
-                    'processed coocs for %d of %d documents in period %s'%(doccount,totaldocs,self.corpusid)
-                )
+                except StopIteration, si:
+                    doccount += 1
+                    self.notify(doccount, totaldocs)
+
 
     def mapper(self, doc):
         """
@@ -98,9 +103,10 @@ class Simple():
         cooccurrences to 1 to every other ngram in the doc
         will produce a symmetric matrix
         """
-        map = dict.fromkeys(doc['edges']['NGram'].keys(), 1)
+        valid_keys = set(doc['edges']['NGram'].keys()) & set(self.corpus['edges']['NGram'].keys())
+        map = dict.fromkeys(valid_keys, 1)
         # map is a unity slice of the matrix
-        for ng in doc['edges']['NGram'].keys():
+        for ng in map.keys():
             yield [ng,map]
 
     def reducer(self, term_map):

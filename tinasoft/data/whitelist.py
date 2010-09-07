@@ -46,7 +46,7 @@ class WhitelistFile():
     ]
     accept = "w"
     refuse = "s"
-    forms_separator = " %%% "
+    forms_separator = " _l_ "
 
     def __init__(self):
         return

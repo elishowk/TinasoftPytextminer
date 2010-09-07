@@ -125,7 +125,7 @@ class IndexArchive(TinaAppTests):
         print self.tinasoft.index_archive(
                 self.path,
                 self.datasetId,
-                ["Pubmed_2001[dp]"],
+                ["03"],
                 self.extracted_whitelist,
                 self.format,
                 outpath=True,
