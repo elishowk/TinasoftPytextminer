@@ -63,7 +63,7 @@ includes = [
 ]
 excludes = ['_gtkagg', '_tkagg', 'curses', 'email', 'pywin.debugger',
             'pywin.debugger.dbgcon', 'pywin.dialogs', 'tcl',
-            'Tkconstants', 'Tkinter','bsddb3']
+            'Tkconstants', 'Tkinter','bsddb3','tinasoft.data.tinabsddb']
 packages = ['nltk', 'numpy', 'twisted', 'twisted.web','twisted.internet','encodings','zope.interface']
 setup(
         name = "tinasoft",
