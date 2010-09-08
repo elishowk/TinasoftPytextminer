@@ -33,6 +33,7 @@ import traceback
 
 # parsing uri components
 from urlparse import parse_qs
+import urllib
 # web browser control
 import webbrowser
 
@@ -266,7 +267,9 @@ class TinaAppGET():
         return self.tinaappinstance.walk_source_files()
 
     def open_user_file(self, fileurl):
-        return webbrowser.open_new_tab(fileurl)
+        browser  = webbrowser.get()
+        decoded = urllib.unquote_plus(fileurl)
+        return browser.open(decoded.replace("%5C","\\").replace("%2F","/").replace("%3A",":"))
 
 class TinaServerCallback():
     """
