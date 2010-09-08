@@ -91,8 +91,6 @@ class Extractor():
                 # gets the next document
                 document, corpusNum = fileGenerator.next()
                 document.addEdge( 'Corpus', corpusNum, 1 )
-                ### updates Corpora and Corpus objects edges
-                #self.corpora.addEdge( 'Corpus', corpusNum, 1 )
                 # extract and filter ngrams
                 docngrams = tokenizer.TreeBankWordTokenizer.extract(
                     document,
@@ -209,7 +207,9 @@ class Extractor():
         self.storage.flushNGramQueue()
 
     def import_file(self, path, format, overwrite=False):
-
+        """
+        OBSOLETE
+        """
         # opens and starts walking a file
         fileGenerator = self._walkFile( path, format )
         # 1st part = ngram extraction

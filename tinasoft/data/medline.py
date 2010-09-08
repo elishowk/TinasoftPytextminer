@@ -195,7 +195,7 @@ class Importer(Handler):
             if line:
                 break
             else:
-                return
+                continue
         record = Record()
         while 1:
             if line[:6]=="      ": # continuation line

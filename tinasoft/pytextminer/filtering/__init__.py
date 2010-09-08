@@ -41,7 +41,7 @@ class Content():
         'any':[''],
         'begin':[],
         'end':[],
-        'both':['by','in','of','a','have','is','are','or','and'],
+        'both':['by','in','of','a','have','is','are','or','and',],
     }
     def __init__(self, config=None):
         """default rules based on english stopwords"""
