@@ -342,15 +342,19 @@ class DocumentGraph(SubGraph):
         else:
             doc1ngrams = set( doc1['edges']['NGram'].keys() )
             doc2ngrams = set( doc2['edges']['NGram'].keys() )
-        ngramsintersection = doc1ngrams & doc2ngrams
-        ngramsunion = doc1ngrams | doc2ngrams
-        return sum(
-            [ float(1)/float( math.log( 1+ graph.gexf['nodes']['NGram::'+ngramid]['weight'] )) for ngramid in ngramsintersection if 'NGram::'+ngramid in graph.gexf['nodes'] ],
-            0
-        ) / sum(
-            [ float(1)/float( math.log( 1+ graph.gexf['nodes']['NGram::'+ngramid]['weight'] )) for ngramid in ngramsunion if 'NGram::'+ngramid in graph.gexf['nodes'] ],
-            0
-        )
+        graphngrams = set(map( lambda ngramid: 'NGram::'+ngramid , graph.gexf['nodes'] ))
+        ngramsintersection = (doc1ngrams & doc2ngrams) & graphngrams
+        ngramsunion = (doc1ngrams | doc2ngrams) & graphngrams
+        weight = 0
+        if len(ngramsunion) > 0:
+            weight = sum(
+                [ float(1)/float( math.log( 1+ graph.gexf['nodes']['NGram::'+ngramid]['weight'] )) for ngramid in ngramsintersection],
+                0
+            ) / sum(
+                [ float(1)/float( math.log( 1+ graph.gexf['nodes']['NGram::'+ngramid]['weight'] )) for ngramid in ngramsunion],
+                0
+            )
+        return weight
 
     def mapEdges( self, graph ):
         """
