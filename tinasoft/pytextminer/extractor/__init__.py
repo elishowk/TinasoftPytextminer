@@ -92,7 +92,7 @@ class Extractor():
                 document, corpusNum = fileGenerator.next()
                 document.addEdge( 'Corpus', corpusNum, 1 )
                 ### updates Corpora and Corpus objects edges
-                self.corpora.addEdge( 'Corpus', corpusNum, 1 )
+                #self.corpora.addEdge( 'Corpus', corpusNum, 1 )
                 # extract and filter ngrams
                 docngrams = tokenizer.TreeBankWordTokenizer.extract(
                     document,
@@ -147,7 +147,7 @@ class Extractor():
                 document, corpusNum = fileGenerator.next()
                 document.addEdge( 'Corpus', corpusNum, 1 )
                 ### updates Corpora and Corpus objects edges
-                #self.corpora.addEdge( 'Corpus', corpusNum, 1 )
+                self.corpora.addEdge( 'Corpus', corpusNum, 1 )
                 self.reader.corpusDict[ corpusNum ].addEdge( 'Corpora', self.corpora['id'], 1)
                 ### adds Corpus-Doc edge if possible
                 self.reader.corpusDict[ corpusNum ].addEdge( 'Document', document['id'], 1)
@@ -172,7 +172,7 @@ class Extractor():
                     _logger.debug("%d documents indexed"%doccount)
 
         except StopIteration:
-            #self.storage.updateCorpora( self.corpora, overwrite )
+            self.storage.updateCorpora( self.corpora, overwrite )
             for corpusObj in self.reader.corpusDict.values():
                 self.storage.updateCorpus( corpusObj, overwrite )
             return True
