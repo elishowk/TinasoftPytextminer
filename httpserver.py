@@ -46,19 +46,6 @@ if platform.system() == 'Windows':
     sys.stdout = open('tmp_httpserver_stdout.log', 'a+b')
     sys.stderr = open('tmp_httpserver_stderr.log', 'a+b')
 
-# web browser controler
-try:
-    browser = webbrowser.get()
-except Exception, e:
-    print "%s"%e
-    browser = None
-
-def open_browser(url):
-    """
-    url must be valid !
-    """
-    if browser is not None:
-        browser.open(url)
 
 class TinaServerResource(resource.Resource):
     """
@@ -279,7 +266,7 @@ class TinaAppGET():
         return self.tinaappinstance.walk_source_files()
 
     def open_user_file(self, fileurl):
-        return open_browser(fileurl)
+        return webbrowser.open_new_tab(fileurl)
 
 class TinaServerCallback():
     """
