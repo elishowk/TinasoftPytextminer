@@ -247,7 +247,6 @@ class NGramGraph(SubGraph):
             _logger.error( "Parameters occ1=%d, occ2=%d, cooc=%d, alpha=%d"%(occ1, occ2, cooc, alpha) )
             return 0
 
-
     def mapEdges( self, graph ):
         """
         Maps the whole graph to TRANSFORM raw cooccurrences (edge weight)
@@ -334,13 +333,8 @@ class DocumentGraph(SubGraph):
         return len( doc1ngrams & set( doc2['edges']['NGram'].keys() ) )
 
     @staticmethod
-    def inverseLogOccNGrams( doc1, doc2, whitelist, graph ):
+    def logJacquard( doc1, doc2, whitelist, graph ):
         """
-        intersection of doc1 & doc2 ngrams with a whitelist
-        then returns :
-            - 0 if no common ngrams found
-            - a very little floating value if intersection's ngrams have many occurrences
-            - ~1.44 if intersection's ngrams occurs only 1 time
         """
         if whitelist is not None:
             doc1ngrams = set( doc1['edges']['NGram'].keys() ) & set( whitelist['edges']['NGram'] )
@@ -348,9 +342,13 @@ class DocumentGraph(SubGraph):
         else:
             doc1ngrams = set( doc1['edges']['NGram'].keys() )
             doc2ngrams = set( doc2['edges']['NGram'].keys() )
-        ngrams = doc1ngrams & doc2ngrams
+        ngramsintersection = doc1ngrams & doc2ngrams
+        ngramsunion = doc1ngrams | doc2ngrams
         return sum(
-            [ float(1)/float( math.log( 1+ graph.gexf['nodes']['NGram::'+ngramid]['weight'] )) for ngramid in ngrams if 'NGram::'+ngramid in graph.gexf['nodes'] ],
+            [ float(1)/float( math.log( 1+ graph.gexf['nodes']['NGram::'+ngramid]['weight'] )) for ngramid in ngramsintersection if 'NGram::'+ngramid in graph.gexf['nodes'] ],
+            0
+        ) / sum(
+            [ float(1)/float( math.log( 1+ graph.gexf['nodes']['NGram::'+ngramid]['weight'] )) for ngramid in ngramsunion if 'NGram::'+ngramid in graph.gexf['nodes'] ],
             0
         )
 

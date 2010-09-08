@@ -271,6 +271,7 @@ class TinaAppGET():
         decoded = urllib.unquote_plus(fileurl)
         return browser.open(decoded.replace("%5C","\\").replace("%2F","/").replace("%3A",":"))
 
+
 class TinaServerCallback():
     """
     Tinaserver's callback class

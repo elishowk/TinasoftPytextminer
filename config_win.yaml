@@ -55,7 +55,7 @@ datamining:
         nodethreshold:
             - 1
             - 'inf'
-        proximity: 'DocumentGraph.inverseLogOccNGrams'
+        proximity: 'DocumentGraph.logJacquard'
     NGramGraph:
         edgethreshold:
             - 0.0
