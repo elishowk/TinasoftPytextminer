@@ -41,10 +41,13 @@ includes = [
   'tinasoft.data.whitelist',
   'jsonpickle','tenjin','simplejson'
 ]
+
 excludes = ['_gtkagg', '_tkagg', 'curses', 'email', 'pywin.debugger',
             'pywin.debugger.dbgcon', 'pywin.dialogs', 'tcl',
             'Tkconstants', 'Tkinter','tinasoft.data.tinabsddb','bsddb3']
+
 packages = ['nltk', 'numpy', 'twisted', 'twisted.web','twisted.internet','encodings','zope.interface']
+
 setup(
         name = "tinasoft",
         version = __version__,
@@ -58,4 +61,3 @@ setup(
             }
         }
 )
-

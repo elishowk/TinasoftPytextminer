@@ -373,20 +373,19 @@ class TinaApp(object):
     def process_cooc(self,
             dataset,
             periods,
-            whitelistpath=None,
-            userstopwords=None
+        #    whitelistpath=None,
+        #    userstopwords=None
         ):
         """
-        Uses a whitelist and generates cooccurrences from stored Ngrams
-        for a given list of periods=corpus
+        Generates cooccurrences from stored NGrams within a data set and periods
         """
         if self.set_storage( dataset ) == self.STATUS_ERROR:
             return self.STATUS_ERROR
-        userstopwords = self.import_userstopwords(userstopwords)
-        if whitelistpath is not None:
-            whitelist = self.import_whitelist(whitelistpath, userstopwords)
-        else:
-            whitelist = None
+        #userstopwords = self.import_userstopwords(userstopwords)
+        #if whitelistpath is not None:
+        #    whitelist = self.import_whitelist(whitelistpath, userstopwords)
+        #else:
+        #    whitelist = None
         # for each period, processes cocc and stores them
         for id in periods:
             try:
@@ -443,8 +442,10 @@ class TinaApp(object):
             outpath = self._user_filepath(dataset, 'gexf', params_string)
         else:
             outpath = self._user_filepath(dataset, 'gexf', params_string + "_%s"%outpath)
-        # import whitelist
-        whitelist = self.import_whitelist(whitelistpath)
+        whitelist = None
+        if whitelistpath is not None:
+            # import whitelist
+            whitelist = self.import_whitelist(whitelistpath)
         # call the GEXF exporter
         GEXFWriter = Writer('gexf://', **self.config['datamining'])
         # adds meta to the futur gexf file
@@ -459,9 +460,9 @@ class TinaApp(object):
             db = self.storage,
             periods = periods,
             whitelist = whitelist,
-            meta=graphmeta,
-            ngramgraphconfig=ngramgraphconfig,
-            documentgraphconfig=documentgraphconfig
+            meta = graphmeta,
+            ngramgraphconfig = ngramgraphconfig,
+            documentgraphconfig = documentgraphconfig
         )
 
     def import_whitelist(
