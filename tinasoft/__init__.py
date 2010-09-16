@@ -16,7 +16,7 @@
 
 __author__="elishowk@nonutc.fr"
 
-__all__ = ["pytextminer","data","tests"]
+__all__ = ["pytextminer","data"]
 
 # python utility modules
 import sys
@@ -103,15 +103,35 @@ class TinaApp(object):
         if not exists(self.source_file_directory):
             makedirs(self.source_file_directory)
 
-        if not exists(join( self.config['general']['basedirectory'], self.config['general']['dbenv'] )):
-            makedirs(join( self.config['general']['basedirectory'], self.config['general']['dbenv'] ))
+        if not exists(join(
+                self.config['general']['basedirectory'],
+                self.config['general']['dbenv']
+            )
+            ):
+            makedirs(join(
+                self.config['general']['basedirectory'],
+                self.config['general']['dbenv']
+                )
+            )
         #if not exists(join( self.config['general']['basedirectory'], self.config['general']['index'] )):
             #makedirs(join( self.config['general']['basedirectory'], self.config['general']['index'] ))
-        if not exists(join( self.config['general']['basedirectory'], self.config['general']['log'] )):
-            makedirs(join( self.config['general']['basedirectory'], self.config['general']['log'] ))
+        if not exists(join(
+                self.config['general']['basedirectory'],
+                self.config['general']['log']
+            )
+            ):
+            makedirs(join(
+                self.config['general']['basedirectory'],
+                self.config['general']['log']
+                )
+            )
 
         # Set up a specific logger with our desired output level
-        self.LOG_FILENAME = join( self.config['general']['basedirectory'], self.config['general']['log'], 'tinasoft.log' )
+        self.LOG_FILENAME = join(
+            self.config['general']['basedirectory'],
+            self.config['general']['log'],
+            'tinasoft.log'
+        )
         # set default level to DEBUG
         if 'loglevel' in self.config['general']:
             loglevel = LEVELS[self.config['general']['loglevel']]
@@ -138,10 +158,12 @@ class TinaApp(object):
             locale.setlocale(locale.LC_ALL, self.locale)
         except:
             self.locale = ''
-            self.logger.warning( "configured locale was not found, switching to default ='%s'"%self.locale)
+            self.logger.warning(
+                "configured locale was not found, switching to default ='%s'"%self.locale
+            )
             locale.setlocale(locale.LC_ALL, self.locale)
 
-        self.logger.debug("TinaApp started components = config, logger, locale loaded")
+        self.logger.debug("TinaApp started")
 
     def __del__(self):
         """resumes the storage transactions when destroying this object"""
@@ -161,7 +183,11 @@ class TinaApp(object):
             self.logger.debug("safely closing last storage connection")
             del self.storage
         try:
-            storagedir = join( self.config['general']['basedirectory'], self.config['general']['dbenv'], dataset_id )
+            storagedir = join(
+                self.config['general']['basedirectory'],
+                self.config['general']['dbenv'],
+                dataset_id
+            )
             if not exists( storagedir ) and create is False:
                 raise Exception("dataset %s does not exists, won't create it"%dataset_id)
                 return TinaApp.STATUS_OK
@@ -170,7 +196,9 @@ class TinaApp(object):
             else:
                 # overwrite db home dir
                 options['home'] = storagedir
-                self.logger.debug("new connection to a storage for data set %s at %s"%(dataset_id, storagedir))
+                self.logger.debug(
+                    "new connection to a storage for data set %s at %s"%(dataset_id, storagedir)
+                )
                 self.storage = Engine(STORAGE_DSN, **options)
                 self.last_dataset_id = dataset_id
                 return TinaApp.STATUS_OK
@@ -200,7 +228,11 @@ class TinaApp(object):
         if outpath is None:
             if whitelistlabel is None:
                 whitelistlabel=dataset
-            outpath = self._user_filepath(dataset, 'whitelist', "%s-extract_dataset.csv"%whitelistlabel)
+            outpath = self._get_user_filepath(
+                dataset,
+                'whitelist',
+                "%s-extract_dataset.csv"%whitelistlabel
+            )
         corporaObj = corpora.Corpora(dataset)
         # instanciate extractor class
         stopwds = stopwords.StopWords(
@@ -285,7 +317,11 @@ class TinaApp(object):
         whitelist = self.import_whitelist(whitelistpath)
         # prepares extraction export path
         if outpath is not None:
-            outpath = self._user_filepath(dataset, 'cooccurrences', "%s_%s-index_archive.csv"%("+".join(periods),whitelist['label']))
+            outpath = self._get_user_filepath(
+                dataset,
+                'cooccurrences',
+                "%s_%s-index_archive.csv"%("+".join(periods),whitelist['label'])
+            )
             exporter = Writer("coocmatrix://"+outpath)
         else:
             exporter = None
@@ -355,7 +391,11 @@ class TinaApp(object):
         """
         # creating default outpath
         if outpath is None:
-            outpath = self._user_filepath(dataset, 'whitelist', "%s-export_whitelist.csv"%whitelistlabel)
+            outpath = self._get_user_filepath(
+                dataset,
+                'whitelist',
+                "%s-export_whitelist.csv"%whitelistlabel
+            )
         if self.set_storage( dataset ) == self.STATUS_ERROR:
             return self.STATUS_ERROR
         userstopwords = self.import_userstopwords(userstopwords)
@@ -416,7 +456,11 @@ class TinaApp(object):
         if self.set_storage( dataset ) == self.STATUS_ERROR:
             return self.STATUS_ERROR
         if outpath is None:
-            outpath = self._user_filepath(dataset, 'cooccurrences', "%s-export_cooc.txt"%"+".join(periods))
+            outpath = self._get_user_filepath(
+                dataset,
+                'cooccurrences',
+                "%s-export_cooc.txt"%"+".join(periods)
+            )
         whitelist = None
         if whitelistpath is not None:
             whitelist = self.import_whitelist(whitelistpath)
@@ -438,22 +482,30 @@ class TinaApp(object):
         and a given ngram whitelist
         @return relative path to the gexf file
         """
+        if self.set_storage( dataset ) == self.STATUS_ERROR:
+            return self.STATUS_ERROR
+        # prepares gexf out path
         params_string = "%s_%s"%(self._get_filepath_id(whitelistpath),"+".join(periods))
         if outpath is None:
-            outpath = self._user_filepath(dataset, 'gexf', params_string)
+            outpath = self._get_user_filepath(dataset, 'gexf', params_string)
         else:
-            outpath = self._user_filepath(dataset, 'gexf', params_string + "_%s"%outpath)
-        # import whitelist
+            outpath = self._get_user_filepath(dataset, 'gexf', params_string + "_%s"%outpath)
+        # import a whitelist
         whitelist = self.import_whitelist(whitelistpath)
         # call the GEXF exporter
         GEXFWriter = Writer('gexf://', **self.config['datamining'])
         # adds meta to the futur gexf file
         graphmeta = {
-            'keywords' : params_string
+            'parameters': {
+                'periods' : "+".join(periods),
+                'whitelist': str(whitelistpath),
+                'location': outpath,
+                'dataset': dataset,
+                'layout/algorithm': 'tinaforce',
+                'rendering/edge/shape': 'curve',
+                'data/source': 'browser'
+            }
         }
-
-        if self.set_storage( dataset ) == self.STATUS_ERROR:
-            return self.STATUS_ERROR
         return GEXFWriter.ngramDocGraph(
             outpath + ".gexf",
             db = self.storage,
@@ -495,13 +547,17 @@ class TinaApp(object):
         ):
         """
         imports a user defined stopword file (one ngram per line)
-        returns a list of one StopWordFilter class instance to be used as input of other methods
+        returns a list of one StopWordFilter class instance
+        to be used as input of other methods
         """
         if path is None:
-            path = join(self.config['general']['basedirectory'], self.config['general']['userstopwords'])
+            path = join(
+                self.config['general']['basedirectory'],
+                self.config['general']['userstopwords']
+            )
         return [stopwords.StopWordFilter( "file://%s" % path )]
 
-    def _user_filepath(self, dataset, filetype, filename):
+    def _get_user_filepath(self, dataset, filetype, filename):
         """returns a filename from the user directory"""
         path = join( self.user, dataset, filetype )
         now = "".join(str(datetime.now())[:10].split("-"))
@@ -535,7 +591,11 @@ class TinaApp(object):
         path = join( self.user, dataset, filetype )
         if not exists( path ):
             return []
-        return [abspath(join( path, file )) for file in os.listdir( path ) if not file.startswith("~") and not file.startswith(".")]
+        return [
+            abspath(join( path, file ))
+            for file in os.listdir( path )
+            if not file.startswith("~") and not file.startswith(".")
+        ]
 
     def walk_datasets(self):
         """
@@ -557,15 +617,28 @@ class TinaApp(object):
         Part of the File API
         returns the list of files in "sources" directory
         """
-        path = join( self.config['general']['basedirectory'], self.config['general']['source_file_directory'] )
+        path = join(
+            self.config['general']['basedirectory'],
+            self.config['general']['source_file_directory']
+        )
         if not exists( path ):
             return []
         return os.listdir( path )
 
     def _get_sourcefile_path(self, filename):
-        path = join( self.config['general']['basedirectory'], self.config['general']['source_file_directory'], filename )
+        path = join(
+            self.config['general']['basedirectory'],
+            self.config['general']['source_file_directory'],
+            filename
+        )
         if not exists( path ):
-            raise IOError("file named %s was not found in %s"%(filename, join( self.config['general']['basedirectory'], self.config['general']['source_file_directory'])))
+            raise IOError("file named %s was not found in %s"%(
+                filename,
+                join(
+                    self.config['general']['basedirectory'],
+                    self.config['general']['source_file_directory'])
+                )
+            )
             return None
         return path
 

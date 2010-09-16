@@ -37,7 +37,7 @@ class TinaAppTests(unittest.TestCase):
         #self.format = "medline"
         self.path = sourceFile
         self.format = sourceFormat
-        self.extracted_whitelist = 'tests/date-pubmed_test_whitelist-extract_file.csv'
+        self.extracted_whitelist = 'date-test_whitelist-extract_file.csv'
 
 class ExtractFile(TinaAppTests):
     def runTest(self):
@@ -111,7 +111,7 @@ class ExportGraph(TinaAppTests):
             documentgraphconfig={
                 'edgethreshold': [0.0,0.01],
                 'nodethreshold': [1,0],
-                'proximity': 'DocumentGraph.inverseLogOccNGrams'
+                'proximity': 'DocumentGraph.logJacquard'
             },
         )
 

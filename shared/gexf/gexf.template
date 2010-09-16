@@ -6,7 +6,11 @@
 <?py for creator in creators: ?>
     <creator>${creator}</creator>
 <?py #end ?>
-    <keywords>${keywords}</keywords>
+    <paramaters>
+<?py for param,value in parameters.iteritems(): ?>
+    <param key="${param}" value="${value}"/>
+<?py #end ?>
+    </paramaters>
 </meta>
 <graph type="#{type}">
     <attributes class="node" type="#{type}">

@@ -24,8 +24,6 @@ class GEXFHandler(Handler):
     """
     options = {
         'locale'     : 'en_US.UTF-8',
-        'dieOnError' : False,
-        'debug'      : False,
         'compression': None,
         'template'   : 'shared/gexf/gexf.template',
     }
@@ -49,7 +47,7 @@ class Graph():
         'int16' : 'integer',
         'int32' : 'integer',
         'long' : 'long',
-        'bool': 'boolean',
+        'bool' : 'boolean',
         'float' : 'float',
         'str' : 'string',
         'unicode' : 'string',
@@ -57,8 +55,8 @@ class Graph():
 
     def __init__( self ):
         self.gexf = {
-            'description' : "tinasoft graph",
-            'creators'    : [],
+            'description' : "tinasoft",
+            'creators'    : ["tinasoft team"],
             'date' : "%s"%datetime.datetime.now().strftime("%Y-%m-%d"),
             'type'        : 'static',
             'attrnodes'   : {},
@@ -66,9 +64,6 @@ class Graph():
             'nodes': {},
             'edges' : {},
         }
-
-    #def getWeight( self, method, *args ):
-    #    return method( *args )
 
     def updateAttrNodes( self, attr ):
         for name, value in attr.iteritems():
@@ -161,7 +156,7 @@ class SubGraph():
 
 
     @staticmethod
-    def proximity( node1_weight, node2_weight, edge_weight, alpha, graph ):
+    def proximity( node1_weight, node2_weight, edge_weight, graph, alpha=None ):
         """
         must be overwritten or replaced by another staticmethod with same params
         """
@@ -238,7 +233,7 @@ class NGramGraph(SubGraph):
 
 
     @staticmethod
-    def pseudoInclusionProx( occ1, occ2, cooc, alpha, graph ):
+    def pseudoInclusionProx( occ1, occ2, cooc, graph, alpha ):
         try:
             prox = (( float(cooc) / float(occ1) )**alpha) * (( float(cooc) / float(occ2) )**(float(1)/float(alpha)))
             return prox
@@ -277,7 +272,7 @@ class NGramGraph(SubGraph):
                         cooc = graph.gexf['edges'][source][target]['weight']
                         # TODO push in thread pool
                         #prox = self.thread_pool.queueTask( self.proximity, args=( occ1, occ2, cooc, self.alpha, graph ) )
-                        prox = self.proximity( occ1, occ2, cooc, self.alpha, graph )
+                        prox = self.proximity( occ1, occ2, cooc, graph, self.alpha )
                         count+=1
                         self.notify(count)
                         if prox <= self.edgethreshold[1] and prox >= self.edgethreshold[0]:
@@ -322,7 +317,6 @@ class DocumentGraph(SubGraph):
     @staticmethod
     def sharedNGrams( doc1, doc2, whitelist, graph ):
         """
-        OBSOLETE
         intersection of doc1 ngrams with a whitelist
         then return length of the intersection with doc2 ngrams
         """
@@ -335,6 +329,7 @@ class DocumentGraph(SubGraph):
     @staticmethod
     def logJacquard( doc1, doc2, whitelist, graph ):
         """
+        Jacquard-like distance
         """
         if whitelist is not None:
             doc1ngrams = set( doc1['edges']['NGram'].keys() ) & set( whitelist['edges']['NGram'] )
@@ -342,16 +337,15 @@ class DocumentGraph(SubGraph):
         else:
             doc1ngrams = set( doc1['edges']['NGram'].keys() )
             doc2ngrams = set( doc2['edges']['NGram'].keys() )
-        graphngrams = set(map( lambda ngramid: 'NGram::'+ngramid , graph.gexf['nodes'] ))
-        ngramsintersection = (doc1ngrams & doc2ngrams) & graphngrams
-        ngramsunion = (doc1ngrams | doc2ngrams) & graphngrams
+        ngramsintersection = doc1ngrams & doc2ngrams
+        ngramsunion = doc1ngrams | doc2ngrams
         weight = 0
         if len(ngramsunion) > 0:
             weight = sum(
-                [ float(1)/float( math.log( 1+ graph.gexf['nodes']['NGram::'+ngramid]['weight'] )) for ngramid in ngramsintersection],
+                [ float(1)/float( math.log( 1+ graph.gexf['nodes']['NGram::'+ngramid]['weight'] )) for ngramid in ngramsintersection if 'NGram::'+ngramid in graph.gexf['nodes'] ],
                 0
             ) / sum(
-                [ float(1)/float( math.log( 1+ graph.gexf['nodes']['NGram::'+ngramid]['weight'] )) for ngramid in ngramsunion],
+                [ float(1)/float( math.log( 1+ graph.gexf['nodes']['NGram::'+ngramid]['weight'] )) for ngramid in ngramsunion if 'NGram::'+ngramid in graph.gexf['nodes'] ],
                 0
             )
         return weight
