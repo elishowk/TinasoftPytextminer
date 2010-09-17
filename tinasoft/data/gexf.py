@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import tinasoft
-from tinasoft import threadpool
+#from tinasoft import threadpool
 from tinasoft.data import Handler
+from tinasoft.pytextminer import PyTextMiner
 
 import datetime
 import itertools
@@ -84,7 +85,7 @@ class Graph():
             # sums the weight attr
             self.gexf['nodes'][nodeid]['weight'] += weight
 
-    def addEdge( self, source, target, weight, type, overwrite=False, **kwargs ):
+    def addEdge( self, source, target, weight, type, overwrite, **kwargs ):
         if source not in self.gexf['edges']:
             self.gexf['edges'][source] = {}
         if target not in self.gexf['edges'][source]:
@@ -100,6 +101,12 @@ class Graph():
                 # overwrites weight
                 self.gexf['edges'][source][target]['weight'] = weight
 
+    def delEdge( self, source, target=None ):
+        if target is None:
+            del self.gexf['edges'][source]
+        else:
+            del self.gexf['edges'][source][target]
+
 
 class SubGraph():
     """
@@ -111,7 +118,6 @@ class SubGraph():
         @db_load_object must must the database method returning the type of object
         @opts is a dict of paramaters
         """
-        _logger.debug(opts)
         self.db_load_object = db_load_object
         # temp store for database objects
         self.cache = {}
@@ -124,7 +130,6 @@ class SubGraph():
         # max == 'inf' or max == 0 : set to float('inf')
         self.edgethreshold = [ float(self.edgethreshold[0]), float(self.edgethreshold[1]) ]
         if self.edgethreshold[1] == 0:
-            _logger.debug("transformed 0 to inf")
             self.edgethreshold[1] = float('inf')
 
         if 'nodethreshold' not in opts:
@@ -135,8 +140,8 @@ class SubGraph():
         # max == 'inf' or max == 0 : set to float('inf')
         self.nodethreshold = [ float(self.nodethreshold[0]), float(self.nodethreshold[1]) ]
         if self.nodethreshold[1] == 0:
-            _logger.debug("transformed 0 to inf")
             self.nodethreshold[1] = float('inf')
+
         try:
             if 'proximity' in opts:
                 # string eval to method
@@ -145,20 +150,21 @@ class SubGraph():
                 self.proximity = eval(defaults['proximity'])
             else:
                 self.proximity = SubGraph.proximity
+
         except Exception, exc:
             _logger.warning("unable to load proximity measure method, switching to default")
             _logger.warning(repr(exc))
             self.proximity = SubGraph.proximity
         # overwrite this with the node type you want
         self.id_prefix = "SubGraph::"
-        # get its own threrad pool
+        # get its own thread pool
         #self.thread_pool = threadpool.ThreadPool(50)
 
 
     @staticmethod
     def proximity( node1_weight, node2_weight, edge_weight, graph, alpha=None ):
         """
-        must be overwritten or replaced by another staticmethod with same params
+        must be overwritten or replaced by another staticmethod with the same interface
         """
         return edge_weight
 
@@ -183,12 +189,18 @@ class SubGraph():
         """
         pass
 
-    def addEdge( self, graph, source, target, weight, type, overwrite=False, **kwargs ):
+    def addEdge( self, graph, source, target, weight, type, overwrite, **kwargs ):
         """
         Adds an edge to the graph
         Source and Target are already graph nodes ID : eg "Subgraph::123457654"
         """
         graph.addEdge( self.id_prefix + source, self.id_prefix + target, weight, type, overwrite, **kwargs )
+
+    def delEdge( self, graph, source, target=None ):
+        if target is None:
+            graph.delEdge( self.id_prefix + source, None )
+        else:
+            graph.delEdge( self.id_prefix + source, self.id_prefix + target )
 
     def addNode( self, graph, obj_id, weight ):
         """
@@ -256,14 +268,15 @@ class NGramGraph(SubGraph):
             (sourceCategory, sourceDbId) = source.split('::')
             # remove edges of unexistant node
             if source not in graph.gexf['nodes']:
-                del graph.gexf['edges'][source]
+                self.delEdge(graph, source)
                 continue
             elif sourceCategory == 'NGram':
                 for target in graph.gexf['edges'][source].keys():
                     (targetCategory, targetDbId) = target.split('::')
                     # remove edges
                     if target == source or target not in graph.gexf['nodes']:
-                        del graph.gexf['edges'][source][target]
+                        self.delEdge(graph, sourceDbId, targetDbId)
+                        #del graph.gexf['edges'][source][target]
                         continue
                     elif targetCategory == 'NGram':
                         # computes the proximity
@@ -276,14 +289,16 @@ class NGramGraph(SubGraph):
                         count+=1
                         self.notify(count)
                         if prox <= self.edgethreshold[1] and prox >= self.edgethreshold[0]:
-                            self.addEdge(graph, sourceDbId, targetDbId, prox, 'directed', True)
+                            # overwrites the cooc edge with the pseudo-inclusion edge
+                            self.addEdge(graph, sourceDbId, targetDbId, prox, 'directed', True )
+                            self.cache[source].addEdge( 'Ngram', targetDbId, graph.gexf['edges'][source][target]['weight'] )
                             #graph.gexf['edges'][source][target]['weight'] = prox
                             #graph.gexf['edges'][source][target]['type'] = 'directed'
                         else:
-                            del graph.gexf['edges'][source][target]
+                            self.delEdge(graph, sourceDbId, targetDbId)
 
 
-    def mapNodes(self, graph):
+    def mapNodes( self, graph ):
         """
         Filters NGramGraph nodes
         """
@@ -327,9 +342,9 @@ class DocumentGraph(SubGraph):
         return len( doc1ngrams & set( doc2['edges']['NGram'].keys() ) )
 
     @staticmethod
-    def logJacquard( doc1, doc2, whitelist, graph ):
+    def logJaccard( doc1, doc2, whitelist, graph ):
         """
-        Jacquard-like distance
+        Jaccard-like distance
         """
         if whitelist is not None:
             doc1ngrams = set( doc1['edges']['NGram'].keys() ) & set( whitelist['edges']['NGram'] )
@@ -367,9 +382,17 @@ class DocumentGraph(SubGraph):
             weight = self.proximity( self.cache[id1], self.cache[id2], self.whitelist, graph )
             # weight filtering
             if weight <= self.edgethreshold[1] and weight >= self.edgethreshold[0]:
-                self.addEdge( graph, self.cache[id1]['id'], self.cache[id2]['id'], weight, 'mutual', overwrite=False )
+                self.addEdge(
+                    graph,
+                    self.cache[id1]['id'],
+                    self.cache[id2]['id'],
+                    weight,
+                    'mutual',
+                    False
+                )
+                self.cache[id1].addEdge( 'Document', self.cache[id2]['id'], graph.gexf['edges'][id1][id2]['weight'] )
 
-    def mapNodes(self, graph):
+    def mapNodes( self, graph ):
         """
         Filters DocumentGraph nodes
         """
@@ -393,7 +416,16 @@ class Exporter (GEXFHandler):
         if count % 100 == 0:
             _logger.debug( "%d graph nodes processed"%count )
 
-    def ngramDocGraph(self, path, db, periods, meta={}, whitelist=None, ngramgraphconfig=None, documentgraphconfig=None):
+    def ngramDocGraph(
+            self,
+            path,
+            db,
+            periods,
+            meta={},
+            whitelist=None,
+            ngramgraphconfig=None,
+            documentgraphconfig=None
+        ):
         """
         uses Cooc from database to write a NGram & Document graph for a given list of periods
         using Cooccurencesfor NGram proximity computing
@@ -404,8 +436,17 @@ class Exporter (GEXFHandler):
         graph = Graph()
         graph.gexf.update(meta)
         # init subgraphs objects
-        ngramGraph = NGramGraph( db.loadNGram, ngramgraphconfig, self.NGramGraph )
-        docGraph = DocumentGraph( db.loadDocument, documentgraphconfig, self.DocumentGraph, whitelist=whitelist)
+        ngramGraph = NGramGraph(
+            db.loadNGram,
+            ngramgraphconfig,
+            self.NGramGraph
+        )
+        docGraph = DocumentGraph(
+            db.loadDocument,
+            documentgraphconfig,
+            self.DocumentGraph,
+            whitelist=whitelist
+        )
         # TODO Create an internal cooccurrences package to move matrix loading
         #coocMatrix = cooccurrences.CoocMatrix( len( whitelist.keys() ) )
         for period in periods:
@@ -451,7 +492,7 @@ class Exporter (GEXFHandler):
                         # weight must be 0 here because the coocmatrix is symmetric
                         ngramGraph.addNode( graph, ngid2, 0 )
                         # cooccurrences is the temporary edge's weight
-                        ngramGraph.addEdge( graph, ngid1, ngid2, cooc, 'directed', overwrite=False )
+                        ngramGraph.addEdge( graph, ngid1, ngid2, cooc, 'directed', False )
 
                     self.notify(count)
                     count += 1
@@ -468,10 +509,27 @@ class Exporter (GEXFHandler):
         ngramGraph.mapEdges( graph )
         docGraph.mapNodes( graph )
         docGraph.mapEdges( graph )
+        # stores edges in database
+        ngramGraph.cache.update( docGraph.cache )
         # empty db object cache
         ngramGraph.cache = {}
         docGraph.cache = {}
+        self._updateEdgeStorage( db, ngramGraph.cache )
+        # remove edges from the graph
+        #graph.gexf['edges'] = {}
         # compiles then writes the gexf file
         open(path, 'w+b').write(self.render( graph.gexf ))
         # return relative path
         return path
+
+    def _updateEdgeStorage( self, db, cache ):
+        """
+        Updates objects with the computed edges
+        Then stores it into database
+        """
+        for graphid in cache.keys():
+            type, dbid = graphid.split("::")
+            if type == 'NGram':
+                db.insertNGram( cache[graphid], overwrite=True )
+            elif type == 'Document':
+                db.insertDocument( cache[graphid], overwrite=True )

@@ -43,7 +43,7 @@ class NGram(PyTextMiner):
             postag_label = " ".join(postag)
             metas["postag"] = postag
         if edges is None:
-            edges = { 'Document' : {}, 'Corpus' : {}, 'label': {}, 'postag' : {}}
+            edges = { 'Document' : {}, 'Corpus' : {}, 'NGram': {}, 'label': {}, 'postag' : {}}
         PyTextMiner.__init__(self, normlist, id, label, edges, **metas)
         # updates majors forms before returning instance
         self.updateMajorForm(label, postag_label)
