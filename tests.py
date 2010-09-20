@@ -63,6 +63,53 @@ class IndexFile(TinaAppTests):
             ), TinaApp.STATUS_ERROR
         )
 
+class ProcessCooc(TinaAppTests):
+    def runTest(self):
+        """ProcessCooc : processes and stores the cooccurrence matrix"""
+        print self.tinasoft.process_cooc(
+            self.datasetId,
+            self.periods
+        )
+        self.tinasoft.logger.debug( "processCooc test finished " )
+
+class ExportGraph(TinaAppTests):
+    def runTest(self):
+        """ExportGraph : exports a gexf graph, after cooccurrences processing"""
+        print self.tinasoft.export_graph(
+            self.datasetId,
+            self.periods,
+            whitelistpath=self.extracted_whitelist,
+            outpath='test_graph',
+            ngramgraphconfig={
+                #'edgethreshold': [0.0,1.0],
+                #'nodethreshold': [1,0],
+                'alpha': 0.1,
+                'proximity': 'NGramGraph.pseudoInclusionProx'
+            },
+            documentgraphconfig={
+                #'edgethreshold': [0.0,1.0],
+                #'nodethreshold': [1,0],
+                'proximity': 'DocumentGraph.logJaccard'
+            },
+        )
+
+class ExportCoocMatrix(TinaAppTests):
+    def runTest(self):
+        """testF_ExportCoocMatrix : TODO"""
+        print self.tinasoft.export_cooc(self.datasetId, "Pubmed_1980[dp]")
+
+class IndexArchive(TinaAppTests):
+    def runTest(self):
+        print self.tinasoft.index_archive(
+                self.path,
+                self.datasetId,
+                ["03"],
+                self.extracted_whitelist,
+                self.format,
+                outpath=True,
+                minCooc=10
+            )
+
 class ImportFile(TinaAppTests):
     def runTest(self):
         """OBSOLETE ImportFile : testing import_file"""
@@ -84,53 +131,6 @@ class ExportWhitelist(TinaAppTests):
             'test export whitelist',
             'tinaapptests-export_whitelist.csv'
         )
-
-class ProcessCooc(TinaAppTests):
-    def runTest(self):
-        """ProcessCooc : processes and stores the cooccurrence matrix"""
-        print self.tinasoft.process_cooc(
-            self.datasetId,
-            self.periods
-        )
-        self.tinasoft.logger.debug( "processCooc test finished " )
-
-class ExportGraph(TinaAppTests):
-    def runTest(self):
-        """ExportGraph : exports a gexf graph, after cooccurrences processing"""
-        print self.tinasoft.export_graph(
-            self.datasetId,
-            self.periods,
-            whitelistpath=self.extracted_whitelist,
-            outpath='test_graph',
-            ngramgraphconfig={
-                'edgethreshold': [0.0,1.0],
-                'nodethreshold': [1,0],
-                'alpha': 0.1,
-                'proximity': 'NGramGraph.pseudoInclusionProx'
-            },
-            documentgraphconfig={
-                'edgethreshold': [0.0,0.01],
-                'nodethreshold': [1,0],
-                'proximity': 'DocumentGraph.logJacquard'
-            },
-        )
-
-class ExportCoocMatrix(TinaAppTests):
-    def runTest(self):
-        """testF_ExportCoocMatrix : TODO"""
-        print self.tinasoft.export_cooc(self.datasetId, "Pubmed_1980[dp]")
-
-class IndexArchive(TinaAppTests):
-    def runTest(self):
-        print self.tinasoft.index_archive(
-                self.path,
-                self.datasetId,
-                ["03"],
-                self.extracted_whitelist,
-                self.format,
-                outpath=True,
-                minCooc=10
-            )
 
 def usage():
     print "USAGE : python tests.py TestClass configuration_file_path source_filename file_format"

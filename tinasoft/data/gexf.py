@@ -296,6 +296,7 @@ class NGramGraph(SubGraph):
                             #graph.gexf['edges'][source][target]['type'] = 'directed'
                         else:
                             self.delEdge(graph, sourceDbId, targetDbId)
+                            del self.cache[source]['NGram'][targetDbId]
 
 
     def mapNodes( self, graph ):
@@ -512,11 +513,11 @@ class Exporter (GEXFHandler):
         # stores edges in database
         ngramGraph.cache.update( docGraph.cache )
         # empty db object cache
-        ngramGraph.cache = {}
         docGraph.cache = {}
         self._updateEdgeStorage( db, ngramGraph.cache )
+        ngramGraph.cache = {}
         # remove edges from the graph
-        #graph.gexf['edges'] = {}
+        graph.gexf['edges'] = {}
         # compiles then writes the gexf file
         open(path, 'w+b').write(self.render( graph.gexf ))
         # return relative path
@@ -527,9 +528,11 @@ class Exporter (GEXFHandler):
         Updates objects with the computed edges
         Then stores it into database
         """
+        _logger.debug("will update graph edges into storage")
         for graphid in cache.keys():
             type, dbid = graphid.split("::")
             if type == 'NGram':
                 db.insertNGram( cache[graphid], overwrite=True )
             elif type == 'Document':
                 db.insertDocument( cache[graphid], overwrite=True )
+            del cache[graphid]
