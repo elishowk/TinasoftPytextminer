@@ -20,6 +20,8 @@ from tinasoft.pytextminer import PyTextMiner
 from tinasoft.pytextminer import corpus, tagger, stopwords, tokenizer, filtering, whitelist
 from tinasoft.data import Engine, Reader, Writer
 
+import re
+
 import traceback
 
 import logging
@@ -34,7 +36,11 @@ class Extractor():
         self.stopwords = stopwds
         #filtertag = filtering.PosTagFilter()
         filterContent = filtering.Content()
-        validTag = filtering.PosTagValid()
+        validTag = filtering.PosTagValid(
+            config= {
+                'rules': re.compile(self.config['postag_valid'])
+            }
+        )
         self.filters = [filterContent,validTag]
         if filters is not None:
             self.filters += filters

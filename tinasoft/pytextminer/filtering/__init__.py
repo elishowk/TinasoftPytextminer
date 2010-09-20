@@ -17,6 +17,8 @@ __author__="elishowk"
 __date__ ="$19 mai 2010$"
 
 import re
+import logging
+_logger = logging.getLogger('TinaAppLogger')
 
 def apply_filters(ngram, filters=None):
     """
@@ -37,19 +39,21 @@ class Content():
     applies on a generator of (ngram_objects)
     """
     # TODO move rules into app config, and add language support
-    rules={
+    rules = {
         'any':[''],
         'begin':[],
         'end':[],
         'both':['by','in','of','a','have','is','are','or','and',],
     }
+    lang='en'
+
     def __init__(self, config=None):
         """default rules based on english stopwords"""
         #self.lang='en'
         if config is not None:
-            if rules in config:
+            if 'rules' in config:
                 self.rules = config['rules']
-            if lang in rules:
+            if 'lang' in config:
                 self.lang = config['lang']
 
     def get_content(self, ng):
@@ -157,35 +161,19 @@ class PosTagFilter(Content):
 class PosTagValid(PosTagFilter):
     """
     Regexp-based POS tag filteringvalidation
-
     """
-    # TODO move rules into app config, and add language support
-    rules = {
-        'standard': re.compile(r"^((VB.?,|JJ.?,|\?,){0,2}?(NN.?,|\?,))+?((IN.?,|CC.?,|\?,)((VB.?,|JJ.?,|\?,){0,2}?(NN.?,|\?,))+?)*?$")
-    }
+    # default rules
+    rules = re.compile(r"^((VB.?,|JJ.?,|\?,){0,2}?(NN.?,|\?,))+?((IN.?,|CC.?,|\?,)((VB.?,|JJ.?,|\?,){0,2}?(NN.?,|\?,))+?)*?$")
 
-    def standard(self, nggenerator):
-        """NGram generator, applies the _standard() filter"""
-        try:
-            record = nggenerator.next()
-            while record:
-                if self._standard(record[1]) is True:
-                    yield record
-                record = nggenerator.next()
-        except StopIteration, si:
-            return
-
-    def _standard(self, ng):
+    def _validate(self, ng):
         content = self.get_content(ng)
         pattern = ",".join(content)
         pattern += ","
-        if self.rules['standard'].match( pattern ) is None:
-            #rint "REFUSE %s : %s"%(ng['label'],pattern)
+        if self.rules.match( pattern ) is None:
             return False
         else:
-            #print "ACCEPT %s : %s"%(ng['label'],pattern)
             return True
 
     def test(self, ng):
         """returns True if ALL the tests passed"""
-        return self._standard(ng)
+        return self._validate(ng)
