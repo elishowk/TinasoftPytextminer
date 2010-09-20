@@ -36,7 +36,7 @@ Copyright (C) 2009-2011 CREA Lab, CNRS/Ecole Polytechnique UMR 7656 (Fr)
 
 SOURCE CODE REPOSITORY
 
-    http://github.com/elishowk/TinasoftPytextminer
+    https://forge.iscpif.fr/projects/tinasoft-pytextminer
 
 AUTHORS
 
@@ -50,15 +50,43 @@ DOCUMENTATION, SUPPORT AND FEEDBACK
 
     http://tinasoft.eu/
     https://forge.iscpif.fr/projects/tinasoft-pytextminer
-    http://github.com/moma/TinasoftPytextminer/
 
-INSTALL TINASOFT PYTEXTMINER AS A STANDALONE SOFTWARE
+PYTEXTMINER AS A USER
 
-    DOWNLOAD available standalone packages from http://tinasoft.eu
+    DOWNLOAD standalone packages from http://tinasoft.eu
 
-    MANUAL INSTALL on MS WINDOWS:
-        - download the dependencies' installer at http://tina.iscpif.fr/htdocs/repository/tinasoftpytextminer_win32_deps_installer.zip
-        - then, in a command line :
+PYTEXTMINER AS A DEVELOPER
+
+
+    * we provide a trying-to-be-RESTfull server providing a HTTP API
+    * alternatively, tests.py script provide examples to use the sofware API
+
+
+    PYTHON : you'll need Python 2.6 interpreter : http://python.org/
+
+    INSTALL THE PYTHON PACKAGE
+
+        $ sudo python setup.py install
+        or
+        $ sudo python setup.py develop
+
+    Dependencies should be checked : numpy, nltk, twisted, etc (see setup.py)
+
+    OTHERWISE MANUALLY INSTALL PYTHON DEPENDENCIES
+
+        - they're listed in setup.py
+
+    DOWNLOAD NLTK DATA
+
+    You'll need to install manually required nltk corpus data
+        $ export NLTK_DATA="your/path/to/TinasoftPytextminer/shared/nltk_data"
+        $ python
+        > import nltk.download()
+        Downloader> d punkt
+        Downloader> d brown
+        Downloader> d conll2000
+
+    on MS WINDOWS:
 
             $ set NLTK_DATA="TinasoftPytextminer\shared\nltk_data"
             $ PATH C:\Python26;%PATH%
@@ -74,36 +102,10 @@ INSTALL TINASOFT PYTEXTMINER AS A STANDALONE SOFTWARE
 
         - open your browser at http://localhost:8888
 
-INSTALL TINASOFT PYTEXTMINER AS A LIBRARY
-
-    * we provide an http trying-to-be-RESTfull server providing a stable API
-
-    DEPENDENCIES
-
-    BERKELEY DB : install it on your system from http://www.oracle.com/technology/software/products/berkeley-db/index.html
-
-    PYTHON : you'll need Python 2.6 interpreter : http://python.org/
-
-        $ sudo python setup.py install
-        or
-        $ sudo python setup.py develop
-
-    Dependencies should be checked : numpy, nltk, twisted, etc (see setup.py)
-
-    DOWNLOAD NLTK DATA
-
-    You'll need to install manually required nltk corpus data
-        $ export NLTK_DATA="/path/to/TinasoftPytextminer/shared/nltk_data"
-        $ python
-        > import nltk.download()
-        Downloader> d punkt
-        Downloader> d brown
-        Downloader> d conll2000
-
 CONFIGURATION
 
     config_*.yaml are a YAML configuration files.
-    The main application (TinaApp class) searches it during init, its path is a required paramater
+    The main application (TinaApp class) searches it during init, its path is a required parameter
 
     GUIDELINES
 
