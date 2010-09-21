@@ -55,12 +55,21 @@ PYTEXTMINER AS A USER
 
     DOWNLOAD standalone packages from http://tinasoft.eu
 
+    DEVELOPER DOCUMENTATION
+
+        http://tina.csregistry.org/tinauserdoc
+
 PYTEXTMINER AS A DEVELOPER
 
 
     * we provide a trying-to-be-RESTfull server providing a HTTP API
     * alternatively, tests.py script provide examples to use the sofware API
 
+    - get the source code :
+
+    https://forge.iscpif.fr/projects/tinasoft-pytextminer/repository
+    OR
+    git clone https://sources.iscpif.fr/tinasoft.pytextminer.git
 
     PYTHON : you'll need Python 2.6 interpreter : http://python.org/
 
@@ -70,7 +79,7 @@ PYTEXTMINER AS A DEVELOPER
         or
         $ sudo python setup.py develop
 
-    Dependencies should be checked : numpy, nltk, twisted, etc (see setup.py)
+    Dependencies should be checked : numpy, nltk, twisted, jsonpickle, tenjin, pyyaml
 
     OTHERWISE MANUALLY INSTALL PYTHON DEPENDENCIES
 
@@ -101,6 +110,10 @@ PYTEXTMINER AS A DEVELOPER
             $ python httpserver config_unix.yaml
 
         - open your browser at http://localhost:8888
+
+    DEVELOPER DOCUMENTATION
+
+        http://tina.csregistry.org/tinadevdoc
 
 CONFIGURATION
 
@@ -143,4 +156,4 @@ SUPPORTED OPERATING SYSTEMS
 
         GNU/Linux (amd4, i386) with Python 2.6
         Windows XP (32bit) with Python 2.6
-
+        Mac OS X >= 10.6
