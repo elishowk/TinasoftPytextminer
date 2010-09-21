@@ -63,6 +63,8 @@ class IndexFile(TinaAppTests):
             ), TinaApp.STATUS_ERROR
         )
 
+
+
 class ProcessCooc(TinaAppTests):
     def runTest(self):
         """ProcessCooc : processes and stores the cooccurrence matrix"""
@@ -72,10 +74,10 @@ class ProcessCooc(TinaAppTests):
         )
         self.tinasoft.logger.debug( "processCooc test finished " )
 
-class ExportGraph(TinaAppTests):
+class GenerateGraph(TinaAppTests):
     def runTest(self):
         """ExportGraph : exports a gexf graph, after cooccurrences processing"""
-        print self.tinasoft.export_graph(
+        print self.tinasoft.generate_graph(
             self.datasetId,
             self.periods,
             whitelistpath=self.extracted_whitelist,

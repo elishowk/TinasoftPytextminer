@@ -77,3 +77,39 @@ class Exporter(basecsv.Exporter):
         except StopIteration, si:
             _logger.debug("Exported %d non-zeros cooccurrences for the period %s"%(countcooc, period))
             return self.filepath
+
+
+class MatrixStorage():
+    """
+    OBSOLETE
+    Numpy Matrix to Tinasoft storage handler
+    """
+
+    def write(self, storage, corpusid, matrix, table, overwrite=True):
+        """
+        writes in the db rows of the matrix
+        'corpus::ngramid' => '{ 'ngx' : y, 'ngy': z }'
+        """
+        key = corpusid+'::'
+        count = 0
+        for obji in matrix.reverse.iterkeys():
+            row = {}
+            for objj in matrix.reverse.iterkeys():
+                value = matrix.get( obji, objj )
+                if value > 0:
+                    count += 1
+                    row[objj] = value
+            if len( row.keys() ) > 0:
+                storage.updateMatrix( name, key+obji, row, overwrite )
+        _logger.debug( 'will store %d non-zero cooc values'%count )
+        storage.flushQueues()
+        _logger.debug( 'finished storing %d non-zero cooc values'%count )
+
+    def read(self, storage ):
+        try:
+            generator = storage.selectCorpusCooc( self.corpusid )
+            while 1:
+                id,row = generator.next()
+                self.reducer( [id, row] )
+        except StopIteration, si:
+            return self.matrix

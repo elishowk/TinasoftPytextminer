@@ -410,36 +410,76 @@ class TinaApp(object):
             minoccs
         ))
 
-    def process_cooc(self,
+    def generate_graph(self,
             dataset,
             periods,
-        #    whitelistpath=None,
-        #    userstopwords=None
+            whitelistpath,
+            outpath=None,
+            ngramgraphconfig=None,
+            documentgraphconfig=None
         ):
         """
-        Generates cooccurrences from stored NGrams within a data set and periods
+        Generates proximity numpy matrix from indexed NGrams/Document/Corpus
+        given some periods and a whitelist
+        Then export the corresponding graph
         """
         if self.set_storage( dataset ) == self.STATUS_ERROR:
             return self.STATUS_ERROR
-        #userstopwords = self.import_userstopwords(userstopwords)
-        #if whitelistpath is not None:
-        #    whitelist = self.import_whitelist(whitelistpath, userstopwords)
-        #else:
-        #    whitelist = None
-        # for each period, processes cocc and stores them
-        for id in periods:
+
+        # for each period, processes cooc and doc intersection
+        for period in periods:
             try:
-                cooc = cooccurrences.Simple(self.storage, corpusid=id)
+                cooc = cooccurrences.NgramCooc(self.storage, period)
+                docintersection = cooccurrences.DocIntersection(self.storage, period)
+                # to aggregate matrix of multiple periods
+                if coocmatrix:
+                    cooc.matrix = coocmatrix
+                if docmatrix:
+                    docintersection.matrix = docmatrix
             except Warning, warner:
                 self.logger.warning( warner )
                 continue
-            if cooc.walkCorpus() is False:
+            except Exception, e:
+                self.logger.error(str(e))
                 return self.STATUS_ERROR
-            if cooc.writeMatrix(True) is False:
-                return self.STATUS_ERROR
-            del cooc
-        return self.STATUS_OK
+            coocmatrix = cooc.walkDocuments()
+            docmatrix = docintersection.walkDocuments()
+        # prepares gexf out path
+        params_string = "%s_%s"%(self._get_filepath_id(whitelistpath),"+".join(periods))
+        # outpath is an optional label
+        if outpath is None:
+            outpath = self._get_user_filepath(dataset, 'gexf', params_string)
+        else:
+            outpath = self._get_user_filepath(dataset, 'gexf', params_string + "_%s"%outpath)
 
+        # import whitelist
+        whitelist = self.import_whitelist(whitelistpath)
+
+        # call the GEXF exporter
+        GEXFWriter = Writer('gexf://', **self.config['datamining'])
+        # adds meta to the futur gexf file
+        graphmeta = {
+            'parameters': {
+                'periods' : "+".join(periods),
+                'whitelist': self._get_filepath_id(whitelistpath),
+                'location': outpath,
+                'dataset': dataset,
+                'layout/algorithm': 'tinaforce',
+                'rendering/edge/shape': 'curve',
+                'data/source': 'browser'
+            }
+        }
+        return GEXFWriter.ngramDocGraph(
+            coocmatrix,
+            docmatrix,
+            outpath + ".gexf",
+            db = self.storage,
+            periods = periods,
+            whitelist = whitelist,
+            meta = graphmeta,
+            ngramgraphconfig = ngramgraphconfig,
+            documentgraphconfig = documentgraphconfig
+        )
 
     def export_cooc(self,
             dataset,
@@ -466,59 +506,24 @@ class TinaApp(object):
         exporter = Writer('coocmatrix://'+outpath)
         return exporter.export_cooc( self.storage, periods, whitelist )
 
-    def export_graph( self,
-            dataset,
-            periods,
-            outpath=None,
-            whitelistpath=None,
-            ngramgraphconfig=None,
-            documentgraphconfig=None,
+    #def export_graph( self,
+    #        dataset,
+    #        periods,
+    #        outpath=None,
+    #        whitelistpath=None,
+    #        ngramgraphconfig=None,
+    #        documentgraphconfig=None,
 
-        ):
+    #    ):
         """
         Produces the default GEXF graph file
         for given list of periods (to aggregate)
         and a given ngram whitelist
         @return relative path to the gexf file
         """
-        if self.set_storage( dataset ) == self.STATUS_ERROR:
-            return self.STATUS_ERROR
-        # prepares gexf out path
-        params_string = "%s_%s"%(self._get_filepath_id(whitelistpath),"+".join(periods))
-        if outpath is None:
-            outpath = self._get_user_filepath(dataset, 'gexf', params_string)
-        else:
+    #    if self.set_storage( dataset ) == self.STATUS_ERROR:
+    #        return self.STATUS_ERROR
 
-            outpath = self._get_user_filepath(dataset, 'gexf', params_string + "_%s"%outpath)
-
-        # import a whitelist
-        whitelist = None
-        if whitelistpath is not None:
-            # import whitelist
-            whitelist = self.import_whitelist(whitelistpath)
-        # call the GEXF exporter
-        GEXFWriter = Writer('gexf://', **self.config['datamining'])
-        # adds meta to the futur gexf file
-        graphmeta = {
-            'parameters': {
-                'periods' : "+".join(periods),
-                'whitelist': str(whitelistpath),
-                'location': outpath,
-                'dataset': dataset,
-                'layout/algorithm': 'tinaforce',
-                'rendering/edge/shape': 'curve',
-                'data/source': 'browser'
-            }
-        }
-        return GEXFWriter.ngramDocGraph(
-            outpath + ".gexf",
-            db = self.storage,
-            periods = periods,
-            whitelist = whitelist,
-            meta = graphmeta,
-            ngramgraphconfig = ngramgraphconfig,
-            documentgraphconfig = documentgraphconfig
-        )
 
     def import_whitelist(
             self,

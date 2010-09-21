@@ -21,8 +21,8 @@ __date__ ="$Oct 20, 2009 5:30:11 PM$"
 
 __all__ = [
     "corpora", "corpus", "document", "ngram", "whitelist"
-    "filtering", "tokenizer", "tagger", "cooccurrences",
-    "stopwords", "extractor", "stemmer"
+    "filtering", "tokenizer", "tagger", "adjacency",
+    "stopwords", "extractor", "stemmer", "graph", "indexer"
 ]
 
 from uuid import uuid4

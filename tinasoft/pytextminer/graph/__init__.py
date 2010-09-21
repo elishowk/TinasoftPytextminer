@@ -16,6 +16,8 @@
 
 __author__="elishowk@nonutc.fr"
 
+import tinasoft
+
 import datetime
 import itertools
 import math
@@ -154,12 +156,12 @@ class SubGraph():
         """
         return edge_weight
 
-    def notify( self, count ):
+    def notify( self, count, name="" ):
         """
         notifer filtering quantity of messages
         """
         if count % 10000 == 0:
-            _logger.debug( "%d %s subgraph's edges processed"%(count,self.id_prefix) )
+            _logger.debug( "%d %s subgraph %s processed"%(count,self.id_prefix,name) )
 
     def mapEdges( self, graph ):
         """
@@ -220,84 +222,22 @@ class NGramGraph(SubGraph):
     }
     """
 
-    def __init__(self, db_load_obj, opts, defaults):
+    def __init__(self, db_load_obj, opts, defaults, whitelist):
+
         SubGraph.__init__(self, db_load_obj, opts, defaults)
-        if 'alpha' not in opts:
-            self.alpha = self.defaults['alpha']
-        else:
-            self.alpha = opts['alpha']
 
         self.id_prefix = "NGram::"
+        self.whitelist = whitelist
 
-
-    @staticmethod
-    def pseudoInclusionProx( occ1, occ2, cooc, graph, alpha ):
-        try:
-            prox = (( float(cooc) / float(occ1) )**alpha) * (( float(cooc) / float(occ2) )**(float(1)/float(alpha)))
-            return prox
-        except Exception, e:
-            _logger.error(e)
-            _logger.error( "Parameters occ1=%d, occ2=%d, cooc=%d, alpha=%d"%(occ1, occ2, cooc, alpha) )
-            return 0
-
-    def mapEdges( self, graph ):
-        """
-        Maps the whole graph to TRANSFORM raw cooccurrences (edge weight)
-        to the result of a given proximity measure
-        edge weight MUST be already computed here, to be transformed by promity()
-        mapNodes always before madEdges
-        """
-        _logger.debug( "mapping ngrams edges")
-        count = 0
-        # walk all edges
-        for source in graph.gexf['edges'].keys():
-            (sourceCategory, sourceDbId) = source.split('::')
-            # remove edges of unexistant node
-            if source not in graph.gexf['nodes']:
-                self.delEdge(graph, source)
-                continue
-            elif sourceCategory == 'NGram':
-                for target in graph.gexf['edges'][source].keys():
-                    (targetCategory, targetDbId) = target.split('::')
-                    # remove edges
-                    if target == source or target not in graph.gexf['nodes']:
-                        self.delEdge(graph, sourceDbId, targetDbId)
-                        #del graph.gexf['edges'][source][target]
-                        continue
-                    elif targetCategory == 'NGram':
-                        # computes the proximity
-                        occ1 = graph.gexf['nodes'][source]['weight']
-                        occ2 = graph.gexf['nodes'][target]['weight']
-                        cooc = graph.gexf['edges'][source][target]['weight']
-                        # TODO push in thread pool
-                        #prox = self.thread_pool.queueTask( self.proximity, args=( occ1, occ2, cooc, self.alpha, graph ) )
-                        prox = self.proximity( occ1, occ2, cooc, graph, self.alpha )
-                        count+=1
-                        self.notify(count)
-                        if prox <= self.edgethreshold[1] and prox >= self.edgethreshold[0]:
-                            # overwrites the cooc edge with the pseudo-inclusion edge
-                            self.addEdge(graph, sourceDbId, targetDbId, prox, 'directed', True )
-                            self.cache[source].addEdge( 'Ngram', targetDbId, graph.gexf['edges'][source][target]['weight'] )
-                            #graph.gexf['edges'][source][target]['weight'] = prox
-                            #graph.gexf['edges'][source][target]['type'] = 'directed'
-                        else:
-                            self.delEdge(graph, sourceDbId, targetDbId)
-                            del self.cache[source]['NGram'][targetDbId]
-
-
-    def mapNodes( self, graph ):
-        """
-        Filters NGramGraph nodes
-        """
-        _logger.debug( "mapping ngrams nodes")
-        for source in graph.gexf['nodes'].keys():
-            sourceCategory = source.split('::')[0]
-            if sourceCategory == 'NGram':
-                if graph.gexf['nodes'][source]['weight'] > self.nodethreshold[1]\
-                    or graph.gexf['nodes'][source]['weight'] < self.edgethreshold[0]:
-                        del graph.gexf['nodes'][source]
-                        if source in self.cache:
-                            del self.cache[source]
+    def load( matrix, graph, corp ):
+        for ngram, occ in self.whitelist['edges']['NGram'].iteritems():
+            if occ <= self.nodethreshold[1] and weight >= self.nodethreshold[0]:
+                self.addNode( graph, ngram, occ )
+        for (ng1, ng2) in itertools.permutations(self.whitelist['edges']['NGram'].keys()):
+            # TODO update Documents in DB
+            weight = matrix.get(ng1, ng2)
+            if weight <= self.edgethreshold[1] and weight >= self.edgethreshold[0]:
+                ngramGraph.addEdge( graph, ngid1, ngid2, weight, 'directed', False )
 
 
 class DocumentGraph(SubGraph):
@@ -310,85 +250,21 @@ class DocumentGraph(SubGraph):
         'nodethreshold': [1,float('inf')]
     }
     """
-    def __init__(self, db_load_obj, opts, defaults, whitelist=None):
+    def __init__(self, db_load_obj, opts, defaults, whitelist):
 
         SubGraph.__init__(self, db_load_obj, opts, defaults)
         self.whitelist = whitelist
         self.id_prefix = "Document::"
 
-    @staticmethod
-    def sharedNGrams( doc1, doc2, whitelist, graph ):
-        """
-        intersection of doc1 ngrams with a whitelist
-        then return length of the intersection with doc2 ngrams
-        """
-        if whitelist is not None:
-            doc1ngrams = set( doc1['edges']['NGram'].keys() ) & set( whitelist['edges']['NGram'] )
-        else:
-            doc1ngrams = set( doc1['edges']['NGram'].keys() )
-        return len( doc1ngrams & set( doc2['edges']['NGram'].keys() ) )
-
-    @staticmethod
-    def logJaccard( doc1, doc2, whitelist, graph ):
-        """
-        Jaccard-like distance
-        """
-        if whitelist is not None:
-            doc1ngrams = set( doc1['edges']['NGram'].keys() ) & set( whitelist['edges']['NGram'] )
-            doc2ngrams = set( doc2['edges']['NGram'].keys() ) & set( whitelist['edges']['NGram'] )
-        else:
-            doc1ngrams = set( doc1['edges']['NGram'].keys() )
-            doc2ngrams = set( doc2['edges']['NGram'].keys() )
-        ngramsintersection = doc1ngrams & doc2ngrams
-        ngramsunion = doc1ngrams | doc2ngrams
-        weight = 0
-        if len(ngramsunion) > 0:
-            weight = sum(
-                [ float(1)/float( math.log( 1+ graph.gexf['nodes']['NGram::'+ngramid]['weight'] )) for ngramid in ngramsintersection if 'NGram::'+ngramid in graph.gexf['nodes'] ],
-                0
-            ) / sum(
-                [ float(1)/float( math.log( 1+ graph.gexf['nodes']['NGram::'+ngramid]['weight'] )) for ngramid in ngramsunion if 'NGram::'+ngramid in graph.gexf['nodes'] ],
-                0
-            )
-        return weight
-
-    def mapEdges( self, graph ):
-        """
-        Maps the whole graph to CREATE document edges and weights
-        """
-        _logger.debug( "mapping document edges")
-        total=0
-        for (id1, id2) in itertools.combinations(graph.gexf['nodes'].keys(), 2):
-            id1Category = id1.split('::')[0]
-            id2Category = id2.split('::')[0]
-            if id1Category != 'Document' or id2Category != 'Document': continue
-            if id1 == id2: continue
-            total+=1
-            self.notify(total)
-            # TODO push to thread pool
-            weight = self.proximity( self.cache[id1], self.cache[id2], self.whitelist, graph )
-            # weight filtering
+    def load( self, matrix, graph, corp ):
+        # loads documents nodes
+        for doc_id, occ in corp['edges']['Document'].iteritems():
+            if occ <= self.nodethreshold[1] and weight >= self.nodethreshold[0]:
+                self.addNode( graph, doc_id, occ )
+        # loads documents edges
+        for doc1, doc2 in itertools.permutations( corp['edges']['Document'].keys() ):
+            # TODO update Documents in DB
+            weight = matrix.get(doc1, doc2)
             if weight <= self.edgethreshold[1] and weight >= self.edgethreshold[0]:
-                self.addEdge(
-                    graph,
-                    self.cache[id1]['id'],
-                    self.cache[id2]['id'],
-                    weight,
-                    'mutual',
-                    False
-                )
-                self.cache[id1].addEdge( 'Document', self.cache[id2]['id'], graph.gexf['edges'][id1][id2]['weight'] )
+                self.addEdge( graph, doc1, doc2, weight, 'undirected', False )
 
-    def mapNodes( self, graph ):
-        """
-        Filters DocumentGraph nodes
-        """
-        _logger.debug( "mapping document nodes")
-        for source in graph.gexf['nodes'].keys():
-            sourceCategory = source.split('::')[0]
-            if source in graph.gexf['nodes'] and sourceCategory == 'NGram':
-                if graph.gexf['nodes'][source]['weight'] > self.nodethreshold[1]\
-                    or graph.gexf['nodes'][source]['weight'] < self.edgethreshold[0]:
-                        del graph.gexf['nodes'][source]
-                        if source in self.cache:
-                            del self.cache[source]
