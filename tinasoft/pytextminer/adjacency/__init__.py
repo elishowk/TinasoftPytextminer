@@ -21,6 +21,7 @@ import tinasoft
 
 from datetime import date
 from decimal import Decimal
+import itertools
 
 from numpy import *
 
@@ -54,37 +55,41 @@ class Matrix():
         else:
             return self.array[ self._getindex(key1), self._getindex(key2) ]
 
-    def set( self, key1, key2, value=1 ):
+    def set( self, key1, key2, value=1, overwrite=False ):
         """Setter using sums to increment cooc values"""
         index1 = self._getindex(key1)
         index2 = self._getindex(key2)
-        self.array[ index1, index2 ] += value
+        if not overwrite:
+            self.array[ index1, index2 ] += value
+        else:
+            self.array[ index1, index2 ] = value
 
 class Adjacency(object):
     """
     A simple cooccurrences matrix processor
     Uses directly the data from storage
     """
-    def __init__(self, storage, corpusid, opts, defaults):
+    def __init__(self, config, storage, corpusid, opts):
         """
         Attach storage, a corpus objects and init the Matrix
         """
+        self.config = config
         self.storage = storage
         self.corpusid = corpusid
         # loads the corpus object
         self.corpus = self.storage.loadCorpus( self.corpusid )
         if self.corpus is None:
             raise Warning('Corpus not found')
-        # set proximity method
+        self._loadProximity(opts)
+
+    def _loadProximity(self, opts):
+        # set the proximity method
         try:
             if 'proximity' in opts:
                 # string eval to method
-                self.proximity = eval(opts['proximity'])
-            elif 'proximity' in defaults:
-                self.proximity = eval(defaults['proximity'])
+                self.proximity = getattr(self, opts['proximity'])
         except Exception, exc:
-            _logger.error("unable to load proximity method, switching to default")
-            _logger.error(str(exc))
+            self.proximity = None
 
     def walkDocuments(self):
         """
@@ -93,7 +98,7 @@ class Adjacency(object):
         """
         totaldocs = len(self.corpus['edges']['Document'].keys())
         doccount = 0
-        for doc_id in self.corpus['edges']['Document']:
+        for doc_id in self.corpus['edges']['Document'].iterkeys():
             obj = self.storage.loadDocument( doc_id )
             if obj is not None:
                 self.proximity( obj )
@@ -106,43 +111,42 @@ class Adjacency(object):
     def notify(self, doccount, totaldocs):
         if doccount % 50 == 0:
             _logger.debug(
-                'processed proximities for %d of %d documents in period %s'%(doccount,totaldocs,self.corpusid)
+                'processed proximities for %d of %d documents in period %s'\
+                    %(doccount,totaldocs,self.corpusid)
             )
 
 class NgramAdjacency(Adjacency):
-
     """
     A simple cooccurrences matrix processor
     Uses directly the data from storage
     """
-    def __init__(self, storage, corpusid, opts, defaults):
-        """
-        Attach storage, a corpus objects and init the Matrix
-        """
-        Adjacency.__init__(storage, corpusid, opts, defaults)
-        # save the alpha parameter
-        self.alpha = opts['alpha']
+    def __init__(self, config, storage, corpusid, opts):
+        Adjacency.__init__(self, config, storage, corpusid, opts)
+        self.config['datamining']['NGramGraph'].update(opts)
         self.matrix = Matrix( len( self.corpus['edges']['NGram'].keys() ), type=float )
-
+        if self.proximity is None:
+            # loads default
+            _logger.debug("loading default proximity %s"%self.config['datamining']['NGramGraph']['proximity'])
+            self._loadProximity( self.config['datamining']['NGramGraph'] )
 
     def cooccurrences( self, document ):
         valid_keys = set(document['edges']['NGram'].keys()) & set(self.corpus['edges']['NGram'].keys())
         map = dict.fromkeys(valid_keys, 1)
         # map is a unity slice of the matrix
-        for ng in map.keys():
-            for ngi in term_map.iterkeys():
-                self.matrix.set( ng_id, ngi, 1 )
+        for (ngi, ngj) in itertools.combinations(map.keys(), 2):
+            self.matrix.set( ngi, ngj, 1 )
+            self.matrix.set( ngj, ngi, 1 )
 
     def pseudoInclusion( self, document ):
         self.cooccurrences(document)
         valid_keys = set(document['edges']['NGram'].keys()) & set(self.corpus['edges']['NGram'].keys())
-        for (ng1, ng2) in itertools.permutations( valid_keys.keys(), 2):
+        alpha = self.config['datamining']['NGramGraph']['alpha']
+        for (ng1, ng2) in itertools.permutations(valid_keys, 2):
             cooc = self.matrix.get(ng1, ng2)
             occ1 = self.corpus['edges']['NGram'][ng1]
             occ2 = self.corpus['edges']['NGram'][ng2]
-            prox = (( float(cooc) / float(occ1) )**self.alpha) \
-                    * (( float(cooc) / float(occ2) )**(float(1)/float(self.alpha)))
-            self.matrix.set( ng1, ng2, prox )
+            prox = (( cooc / occ1 )**alpha) * (( cooc / occ2 )**(1/alpha))
+            self.matrix.set( ng1, ng2, prox, True )
 
 
 class DocAdjacency(Adjacency):
@@ -150,11 +154,15 @@ class DocAdjacency(Adjacency):
     Stores a index based on the size of the intersection of ngrams
     between documents
     """
-    def __init__(self, storage, corpus_id, opts, defaults):
-        Adjacency.__init__(storage, corpusid, opts, defaults)
+    def __init__(self, config, storage, corpusid, opts ):
+        Adjacency.__init__(self, config, storage, corpusid, opts )
+        self.config['datamining']['DocumentGraph'].update(opts)
         self.matrix = Matrix( len( self.corpus['edges']['Document'].keys() ), type=float )
-        # prepares caches
-        self.corpus_ngrams = set( self.corpus['edges']['NGrams'] )
+        if self.proximity is None:
+            # loads default
+            self._loadProximity( self.config['datamining']['DocumentGraph'] )
+        # prepares some cache vars
+        self.corpus_ngrams = set( self.corpus['edges']['NGram'] )
         self.documents = {}
 
     def sharedNgrams( self, document ):
