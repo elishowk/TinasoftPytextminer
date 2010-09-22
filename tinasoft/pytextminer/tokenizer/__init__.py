@@ -83,8 +83,8 @@ class RegexpTokenizer():
     @staticmethod
     def ngramize(minSize, maxSize, content):
         """
-            simple ngramizing method
-            returns a list of ngrams (as words lists) ordered by ngram length
+        simple ngramizing method
+        returns a list of ngrams (as words lists) ordered by ngram length
         """
         ngrams = []
         for size in range(maxSize):
@@ -153,13 +153,13 @@ class TreeBankWordTokenizer(RegexpTokenizer):
                 nextsent = sentenceTaggedTokens.next()
                 # updates ngrams
                 ngrams = TreeBankWordTokenizer.ngramize(
-                    minSize=ngramMin,
-                    maxSize=ngramMax,
-                    tagTokens=nextsent,
-                    stopwords=stopwords,
-                    filters=filters,
-                    stemmer=stemmer,
-                    ngrams=ngrams
+                    minSize = ngramMin,
+                    maxSize = ngramMax,
+                    tagTokens = nextsent,
+                    stopwords = stopwords,
+                    filters = filters,
+                    stemmer = stemmer,
+                    ngrams = ngrams
                 )
         except StopIteration, stopit:
             return ngrams
@@ -175,13 +175,16 @@ class TreeBankWordTokenizer(RegexpTokenizer):
         """
         # content is the list of words from tagTokens
         content = tagger.TreeBankPosTagger.getContent(tagTokens)
+        stemmedcontent = []
+        for word in content:
+             stemmedcontent += [stemmer.stem(word)]
         # tags is the list of tags from tagTokens
         tags = tagger.TreeBankPosTagger.getTag(tagTokens)
         for i in range(len(content)):
             for n in range(minSize, maxSize + 1):
                 if len(content) >= i + n:
                     # new NGram instance
-                    ng = ngram.NGram(content[i:n + i], occs=1, postag=tags[i:n + i], stemmer=stemmer)
+                    ng = ngram.NGram(content[i:n + i], occs=1, postag=tags[i:n + i], stemmed=stemmedcontent[i:n + i])
                     if ng['id'] in ngrams:
                         # already exists in document : increments occs and updates edges
                         ngrams[ng['id']]['occs'] += 1

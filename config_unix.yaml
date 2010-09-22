@@ -44,7 +44,7 @@ datasets:
     ngramMax: 4
     # tagger learning on 2 x training_tagger_size sentences of tagged nltk corpus
     training_tagger_size: 8000
-    stemmer: 'tinasoft.pytextminer.stemmer'
+    #stemmer: 'WordNetLemmatizer'
     # under "basedirectory" directory, delete this file to regenerate a new one on next starting
     tagger: 'shared/tagger.pickle'
     postag_valid: '^((VB.?,|CD.?,|JJ.?,|\?,){0,2}?(NN.?,|\?,))+?((PREP.?|DET.?,|IN.?,|CC.?,|\?,)((VB.?,|CD.?,|JJ.?,|\?,){0,2}?(NN.?,|\?,))+?)*?$'
@@ -59,7 +59,7 @@ datamining:
         nodethreshold:
             - 1
             - 'inf'
-        proximity: 'DocumentGraph.logJaccard'
+        proximity: 'logJaccard'
     NGramGraph:
         edgethreshold:
             - 0.0
@@ -68,4 +68,4 @@ datamining:
             - 1
             - 'inf'
         alpha: 0.1
-        proximity: 'NGramGraph.pseudoInclusionProx'
+        proximity: 'pseudoInclusion'

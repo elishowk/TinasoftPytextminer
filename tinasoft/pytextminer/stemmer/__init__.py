@@ -20,20 +20,20 @@ import logging
 _logger = logging.getLogger('TinaAppLogger')
 
 # english language default stemmer
-from nltk import PorterStemmer
+import nltk
+from nltk import PorterStemmer, WordNetLemmatizer
 
 
 class Nltk():
     """
     Interface to nltk's Stemmers
     """
-    def __init__(self, stemmer=None ):
+
+    def __init__(self, language='english'):
         """
         Instanciate PorterStemmer if @stemmer is None
         """
-        if stemmer is None:
-            stemmer = PorterStemmer()
-        self.stemmer = stemmer
+        self.stemmer = PorterStemmer()
 
     def stem( self, word ):
         """returns the stem of @word"""

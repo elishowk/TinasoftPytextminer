@@ -44,6 +44,7 @@ from tinasoft.pytextminer import whitelist
 from tinasoft.pytextminer import stopwords
 from tinasoft.pytextminer import indexer
 from tinasoft.pytextminer import adjacency
+from tinasoft.pytextminer import stemmer
 
 
 LEVELS = {
@@ -241,7 +242,7 @@ class TinaApp(object):
             self.config['general']['shared'],
             self.config['general']['stopwords'])
         )
-        stemmer = self._import_module( self.config['datasets']['stemmer'] )
+
         userstopwords = self.import_userstopwords( userstopwords )
         extract = extractor.Extractor(
             self.storage,
@@ -278,7 +279,7 @@ class TinaApp(object):
             self.config['general']['shared'],
             self.config['general']['stopwords'])
         )
-        stemmer = self._import_module( self.config['datasets']['stemmer'] )
+        #stemmer = self._import_module( self.config['datasets']['stemmer'] )
         extract = extractor.Extractor(
             self.storage,
             self.config['datasets'],

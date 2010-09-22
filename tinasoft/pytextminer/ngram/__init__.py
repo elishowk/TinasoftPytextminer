@@ -23,17 +23,19 @@ _logger = logging.getLogger('TinaAppLogger')
 
 class NGram(PyTextMiner):
     """NGram class"""
-    def __init__(self, tokenlist, id=None, label=None, edges=None, stemmer=None, postag=None, **metas):
+    def __init__(self, tokenlist, id=None, label=None, edges=None, stemmed=None, postag=None, **metas):
         """
         initiate the object
         normalize must be local value for pickling reasons
         """
         normalize = NGram.normalize
         # normalize and stemmer
-        if stemmer is not None:
-            normalize = lambda x: stemmer.stem(x).lower()
+        if stemmed is not None:
+            normalize = lambda x,y: stemmed[y].lower()
         # normlist will produce an unique id associated with the stemmed form
-        normlist = [normalize(word) for word in tokenlist]
+        normlist = []
+        for i in range(len(tokenlist)):
+            normlist += [normalize(tokenlist, i)]
         # auto creates label
         if label is None:
             label = " ".join(tokenlist)
@@ -59,11 +61,11 @@ class NGram(PyTextMiner):
             return self._addEdge( type, key, value )
 
     @staticmethod
-    def normalize(token):
+    def normalize(list, position):
         """
         Default tokens normalizing
         """
-        return token.lower()
+        return list[position].lower()
 
     @staticmethod
     def getId(tokens, normalize=None):
