@@ -38,6 +38,7 @@ class Graph():
         'long' : 'long',
         'bool' : 'boolean',
         'float' : 'float',
+        'float64' : 'float',
         'str' : 'string',
         'unicode' : 'string',
     }
@@ -129,32 +130,10 @@ class SubGraph():
         self.nodethreshold = [ float(self.nodethreshold[0]), float(self.nodethreshold[1]) ]
         if self.nodethreshold[1] == 0:
             self.nodethreshold[1] = float('inf')
-
-        try:
-            if 'proximity' in opts:
-                # string eval to method
-                self.proximity = eval(opts['proximity'])
-            elif 'proximity' in defaults:
-                self.proximity = eval(defaults['proximity'])
-            else:
-                self.proximity = SubGraph.proximity
-
-        except Exception, exc:
-            _logger.warning("unable to load proximity measure method, switching to default")
-            _logger.warning(repr(exc))
-            self.proximity = SubGraph.proximity
         # overwrite this with the node type you want
         self.id_prefix = "SubGraph::"
         # get its own thread pool
         #self.thread_pool = threadpool.ThreadPool(50)
-
-
-    @staticmethod
-    def proximity( node1_weight, node2_weight, edge_weight, graph, alpha=None ):
-        """
-        must be overwritten or replaced by another staticmethod with the same interface
-        """
-        return edge_weight
 
     def notify( self, count, name="" ):
         """
@@ -229,15 +208,16 @@ class NGramGraph(SubGraph):
         self.id_prefix = "NGram::"
         self.whitelist = whitelist
 
-    def load( matrix, graph, corp ):
+    def load( self, matrix, graph, corp ):
         for ngram, occ in self.whitelist['edges']['NGram'].iteritems():
-            if occ <= self.nodethreshold[1] and weight >= self.nodethreshold[0]:
+            if occ <= self.nodethreshold[1] and occ >= self.nodethreshold[0]:
                 self.addNode( graph, ngram, occ )
-        for (ng1, ng2) in itertools.permutations(self.whitelist['edges']['NGram'].keys()):
+        for (ng1, ng2) in itertools.permutations(self.whitelist['edges']['NGram'].keys(), 2):
             # TODO update Documents in DB
+            # LAST ERROR : matrix index out of range !!
             weight = matrix.get(ng1, ng2)
             if weight <= self.edgethreshold[1] and weight >= self.edgethreshold[0]:
-                ngramGraph.addEdge( graph, ngid1, ngid2, weight, 'directed', False )
+                self.addEdge( graph, ng1, ng2, weight, 'directed', False )
 
 
 class DocumentGraph(SubGraph):
@@ -257,12 +237,15 @@ class DocumentGraph(SubGraph):
         self.id_prefix = "Document::"
 
     def load( self, matrix, graph, corp ):
+        """
+        Symmetric edges
+        """
         # loads documents nodes
         for doc_id, occ in corp['edges']['Document'].iteritems():
-            if occ <= self.nodethreshold[1] and weight >= self.nodethreshold[0]:
+            if occ <= self.nodethreshold[1] and occ >= self.nodethreshold[0]:
                 self.addNode( graph, doc_id, occ )
         # loads documents edges
-        for doc1, doc2 in itertools.permutations( corp['edges']['Document'].keys() ):
+        for doc1, doc2 in itertools.permutations( corp['edges']['Document'].keys(), 2 ):
             # TODO update Documents in DB
             weight = matrix.get(doc1, doc2)
             if weight <= self.edgethreshold[1] and weight >= self.edgethreshold[0]:

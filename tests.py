@@ -86,12 +86,12 @@ class GenerateGraph(TinaAppTests):
                 #'edgethreshold': [0.0,1.0],
                 #'nodethreshold': [1,0],
                 'alpha': 0.1,
-                'proximity': 'NGramGraph.pseudoInclusionProx'
+                'proximity': 'pseudoInclusion'
             },
             documentgraphconfig={
                 #'edgethreshold': [0.0,1.0],
                 #'nodethreshold': [1,0],
-                'proximity': 'DocumentGraph.logJaccard'
+                'proximity': 'logJaccard'
             },
         )
 

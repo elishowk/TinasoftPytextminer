@@ -18,7 +18,7 @@ __author__="elishowk@nonutc.fr"
 
 #from tinasoft import threadpool
 from tinasoft.data import Handler
-from tinasoft.pytextminer import PyTextMiner
+
 from tinasoft.pytextminer import graph
 
 
@@ -68,8 +68,8 @@ class Exporter (GEXFHandler):
             path,
             db,
             periods,
-            meta={},
             whitelist,
+            meta={},
             ngramgraphconfig=None,
             documentgraphconfig=None
         ):
@@ -104,15 +104,6 @@ class Exporter (GEXFHandler):
             docGraph.load( docmatrix, ngramDocGraph, corp )
             ngramGraph.load( coocmatrix, ngramDocGraph, corp )
 
-
-        #ngramGraph.mapNodes( ngramDocGraph )
-        #ngramGraph.mapEdges( ngramDocGraph )
-        #docGraph.mapNodes( ngramDocGraph )
-        #docGraph.mapEdges( ngramDocGraph )
-        # stores edges in database
-        #ngramGraph.cache.update( docGraph.cache )
-        # empty db object cache
-        #docGraph.cache = {}
         #self._updateEdgeStorage( db, ngramGraph.cache )
         #ngramGraph.cache = {}
         # remove edges from the graph

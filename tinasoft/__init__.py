@@ -40,10 +40,11 @@ from tinasoft.data import Writer
 from tinasoft.data import whitelist as whitelistdata
 from tinasoft.pytextminer import corpora
 from tinasoft.pytextminer import extractor
-from tinasoft.pytextminer import cooccurrences
 from tinasoft.pytextminer import whitelist
 from tinasoft.pytextminer import stopwords
 from tinasoft.pytextminer import indexer
+from tinasoft.pytextminer import adjacency
+
 
 LEVELS = {
     'debug': logging.DEBUG,
@@ -337,79 +338,6 @@ class TinaApp(object):
         except StopIteration, si:
             return self.STATUS_OK
 
-    def import_file(self,
-            path,
-            dataset,
-            format='tinacsv',
-            overwrite=False,
-        ):
-        """
-        OBSOLETE
-        tinasoft common csv file import controler
-        """
-        path = self._get_sourcefile_path(path)
-        corporaObj = corpora.Corpora(dataset)
-        if self.set_storage( dataset ) == self.STATUS_ERROR:
-            return self.STATUS_ERROR
-        # instanciate stopwords and extractor class
-        stopwds = stopwords.StopWords(
-            "file://%s"%join(self.config['general']['basedirectory'],
-            self.config['general']['shared'],
-            self.config['general']['stopwords'])
-        )
-        stemmer = self._import_module( self.config['datasets']['stemmer'])
-        extract = extractor.Extractor(
-            self.storage,
-            self.config['datasets'],
-            corporaObj,
-            stopwds,
-            stemmer=stemmer.Nltk()
-        )
-        if extract.import_file(
-            path,
-            format,
-            overwrite
-        ) is True:
-            return extract.duplicate
-        else:
-            return self.STATUS_ERROR
-
-
-    def export_whitelist( self,
-            periods,
-            dataset,
-            whitelistlabel,
-            outpath=None,
-            whitelistpath=None,
-            userstopwords=None,
-            minoccs=1,
-            **kwargs
-        ):
-        """
-        OBSOLETE
-        Public access to tinasoft.data.ngram.export_whitelist()
-        """
-        # creating default outpath
-        if outpath is None:
-            outpath = self._get_user_filepath(
-                dataset,
-                'whitelist',
-                "%s-export_whitelist.csv"%whitelistlabel
-            )
-        if self.set_storage( dataset ) == self.STATUS_ERROR:
-            return self.STATUS_ERROR
-        userstopwords = self.import_userstopwords(userstopwords)
-        whitelist = self.import_whitelist(whitelistpath, userstopwords)
-        exporter = Writer('whitelist://'+outpath, **kwargs)
-        return abspath(exporter.export_whitelist(
-            self.storage,
-            periods,
-            whitelistlabel,
-            userstopwords,
-            whitelist,
-            minoccs
-        ))
-
     def generate_graph(self,
             dataset,
             periods,
@@ -419,31 +347,31 @@ class TinaApp(object):
             documentgraphconfig=None
         ):
         """
-        Generates proximity numpy matrix from indexed NGrams/Document/Corpus
-        given some periods and a whitelist
+        Generates the proximity numpy matrix from indexed NGrams/Document/Corpus
+        given a list of periods and a whitelist
         Then export the corresponding graph
+
+        @return relative path to the gexf file
         """
         if self.set_storage( dataset ) == self.STATUS_ERROR:
             return self.STATUS_ERROR
-
+        coocmatrix = docmatrix = None
         # for each period, processes cooc and doc intersection
         for period in periods:
             try:
-                cooc = cooccurrences.NgramCooc(self.storage, period)
-                docintersection = cooccurrences.DocIntersection(self.storage, period)
+                ngramAdj = adjacency.NgramAdjacency( self.config, self.storage, period, ngramgraphconfig )
+                docAdj = adjacency.DocAdjacency( self.config, self.storage, period, documentgraphconfig )
                 # to aggregate matrix of multiple periods
                 if coocmatrix:
-                    cooc.matrix = coocmatrix
+                    ngramAdj.matrix = coocmatrix
                 if docmatrix:
-                    docintersection.matrix = docmatrix
+                    docAdj.matrix = docmatrix
             except Warning, warner:
                 self.logger.warning( warner )
                 continue
-            except Exception, e:
-                self.logger.error(str(e))
-                return self.STATUS_ERROR
-            coocmatrix = cooc.walkDocuments()
-            docmatrix = docintersection.walkDocuments()
+            coocmatrix = ngramAdj.walkDocuments()
+            docmatrix = docAdj.walkDocuments()
+
         # prepares gexf out path
         params_string = "%s_%s"%(self._get_filepath_id(whitelistpath),"+".join(periods))
         # outpath is an optional label
@@ -454,7 +382,6 @@ class TinaApp(object):
 
         # import whitelist
         whitelist = self.import_whitelist(whitelistpath)
-
         # call the GEXF exporter
         GEXFWriter = Writer('gexf://', **self.config['datamining'])
         # adds meta to the futur gexf file
@@ -505,24 +432,6 @@ class TinaApp(object):
             whitelist = self.import_whitelist(whitelistpath)
         exporter = Writer('coocmatrix://'+outpath)
         return exporter.export_cooc( self.storage, periods, whitelist )
-
-    #def export_graph( self,
-    #        dataset,
-    #        periods,
-    #        outpath=None,
-    #        whitelistpath=None,
-    #        ngramgraphconfig=None,
-    #        documentgraphconfig=None,
-
-    #    ):
-        """
-        Produces the default GEXF graph file
-        for given list of periods (to aggregate)
-        and a given ngram whitelist
-        @return relative path to the gexf file
-        """
-    #    if self.set_storage( dataset ) == self.STATUS_ERROR:
-    #        return self.STATUS_ERROR
 
 
     def import_whitelist(
@@ -658,3 +567,76 @@ class TinaApp(object):
             return sys.modules[name]
         except ImportError, exc:
             raise Exception("couldn't load module %s: %s"%(name,exc))
+
+    def import_file(self,
+            path,
+            dataset,
+            format='tinacsv',
+            overwrite=False,
+        ):
+        """
+        OBSOLETE
+        tinasoft common csv file import controler
+        """
+        path = self._get_sourcefile_path(path)
+        corporaObj = corpora.Corpora(dataset)
+        if self.set_storage( dataset ) == self.STATUS_ERROR:
+            return self.STATUS_ERROR
+        # instanciate stopwords and extractor class
+        stopwds = stopwords.StopWords(
+            "file://%s"%join(self.config['general']['basedirectory'],
+            self.config['general']['shared'],
+            self.config['general']['stopwords'])
+        )
+        stemmer = self._import_module( self.config['datasets']['stemmer'])
+        extract = extractor.Extractor(
+            self.storage,
+            self.config['datasets'],
+            corporaObj,
+            stopwds,
+            stemmer=stemmer.Nltk()
+        )
+        if extract.import_file(
+            path,
+            format,
+            overwrite
+        ) is True:
+            return extract.duplicate
+        else:
+            return self.STATUS_ERROR
+
+
+    def export_whitelist( self,
+            periods,
+            dataset,
+            whitelistlabel,
+            outpath=None,
+            whitelistpath=None,
+            userstopwords=None,
+            minoccs=1,
+            **kwargs
+        ):
+        """
+        OBSOLETE
+        Public access to tinasoft.data.ngram.export_whitelist()
+        """
+        # creating default outpath
+        if outpath is None:
+            outpath = self._get_user_filepath(
+                dataset,
+                'whitelist',
+                "%s-export_whitelist.csv"%whitelistlabel
+            )
+        if self.set_storage( dataset ) == self.STATUS_ERROR:
+            return self.STATUS_ERROR
+        userstopwords = self.import_userstopwords(userstopwords)
+        whitelist = self.import_whitelist(whitelistpath, userstopwords)
+        exporter = Writer('whitelist://'+outpath, **kwargs)
+        return abspath(exporter.export_whitelist(
+            self.storage,
+            periods,
+            whitelistlabel,
+            userstopwords,
+            whitelist,
+            minoccs
+        ))
