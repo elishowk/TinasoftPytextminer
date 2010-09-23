@@ -23,6 +23,7 @@ from tinasoft.data import whitelist, Engine
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
+import tempfile
 from os.path import split
 
 
@@ -33,7 +34,7 @@ class Whitelist(PyTextMiner,whitelist.WhitelistFile):
     NGram edges represent a session's whitelisted NGrams
     """
 
-    def __init__(self, id, label, content=None, edges=None, output=None, **metas):
+    def __init__(self, id, label, content=None, edges=None, **metas):
         # content stores ngrams
         if content is None:
             content = {}
@@ -44,8 +45,7 @@ class Whitelist(PyTextMiner,whitelist.WhitelistFile):
         # double heritage
         whitelist.WhitelistFile.__init__(self)
         PyTextMiner.__init__(self, content, id, label, edges, **metas)
-        self.storage = self._get_storage(split(output)[0])
-        self.storage.MAX_INSERT_QUEUE = 1000
+        self.storage = self._get_storage()
 
     def addEdge(self, type, key, value):
         return self._addEdge( type, key, value )
@@ -64,16 +64,17 @@ class Whitelist(PyTextMiner,whitelist.WhitelistFile):
             else: return False
         return False
 
-    def _get_storage(self, storagedir):
+    def _get_storage(self):
         """
         DB connection handler
         one separate database per whitelist
         """
-        options = {'home':storagedir}
+        tmp = tempfile.mkstemp()[1]
         _logger.debug(
-            "new connection to a whitelist database at %s"%(storagedir)
+            "new connection to a whitelist database at %s"%(tmp)
         )
-        return Engine("tinasqlite://%s.sqlite"%self.label, **options)
+        options = {'home':"."}
+        return Engine("tinasqlite://%s"%tmp, **options)
 
     def addContent(self, ngram, corpus_id, document_id):
         """
@@ -91,3 +92,5 @@ class Whitelist(PyTextMiner,whitelist.WhitelistFile):
         """
         returns a generator of ngrams into the whitelist
         """
+        return self.storage.loadMany("NGram")
+

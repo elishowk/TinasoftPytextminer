@@ -199,79 +199,83 @@ class Exporter(basecsv.Exporter):
         totalexported = 0
         ngramtotal = len(newwl['content'].keys())
         _logger.debug( "Writing %d ngrams to whitelist at %s" % (ngramtotal, self.filepath) )
+        ngramgenerator = newwl.getContent()
+        try:
+            while 1:
+                ngid, ng = ngramgenerator.next()
+            #for ngid in newwl['content'].keys():
+            #    ng =  newwl['content'][ngid]
+            #    ngid = str(ngid)
+                # filters ngram from the whitelist based on min occs
+                if ngid in newwl['edges']['StopNGram']:
+                    occs = newwl['edges']['StopNGram'][ngid]
+                    ng['status'] = self.filemodel.refuse
+                    if not occs >= minOccs:
+                        del newwl['edges']['StopNGram'][ngid]
+                        del newwl['content'][ngid]
+                        continue
+                elif ngid in newwl['edges']['NGram']:
+                    occs = newwl['edges']['NGram'][ngid]
+                    if not occs >= minOccs:
+                        del newwl['edges']['NGram'][ngid]
+                        del newwl['content'][ngid]
+                        continue
+                totalexported += 1
+                occsn = occs**len(ng['content'])
+                # TODO update NGram in db after adding new scores
+                #if 'MaxCorpus' not in ng['edges'] or 'MaxNormalizedCorpus' not in ng['edges']:
+                maxperiod = maxnormalizedperiod = lastmax = lastnormmax = Decimal(0)
+                maxperiodid = maxnormalizedperiodid = None
+                for periodid, totalperiod in ng['edges']['Corpus'].iteritems():
+                    if periodid not in newwl['corpus']: continue
+                    totaldocs =  len(newwl['corpus'][periodid]['edges']['Document'].keys())
+                    if totaldocs == 0: continue
+                    # updates both per period max occs
+                    lastmax = Decimal(totalperiod) / Decimal(totaldocs)
 
-        for ngid in newwl['content'].keys():
-            ng =  newwl['content'][ngid]
-            ngid = str(ngid)
-            # filters ngram from the whitelist based on min occs
-            if ngid in newwl['edges']['StopNGram']:
-                occs = newwl['edges']['StopNGram'][ngid]
-                ng['status'] = self.filemodel.refuse
-                if not occs >= minOccs:
-                    del newwl['edges']['StopNGram'][ngid]
-                    del newwl['content'][ngid]
-                    continue
-            elif ngid in newwl['edges']['NGram']:
-                occs = newwl['edges']['NGram'][ngid]
-                if not occs >= minOccs:
-                    del newwl['edges']['NGram'][ngid]
-                    del newwl['content'][ngid]
-                    continue
-            totalexported += 1
-            occsn = occs**len(ng['content'])
-            # TODO update NGram in db after adding new scores
-            #if 'MaxCorpus' not in ng['edges'] or 'MaxNormalizedCorpus' not in ng['edges']:
-            maxperiod = maxnormalizedperiod = lastmax = lastnormmax = Decimal(0)
-            maxperiodid = maxnormalizedperiodid = None
-            for periodid, totalperiod in ng['edges']['Corpus'].iteritems():
-                if periodid not in newwl['corpus']: continue
-                totaldocs =  len(newwl['corpus'][periodid]['edges']['Document'].keys())
-                if totaldocs == 0: continue
-                # updates both per period max occs
-                lastmax = Decimal(totalperiod) / Decimal(totaldocs)
+                    if lastmax >= maxperiod:
+                        maxperiod = lastmax
+                        maxperiodid = periodid
 
-                if lastmax >= maxperiod:
-                    maxperiod = lastmax
-                    maxperiodid = periodid
+                    lastnormmax = Decimal(totalperiod**len(ng['content'])) / Decimal(totaldocs)
 
-                lastnormmax = Decimal(totalperiod**len(ng['content'])) / Decimal(totaldocs)
+                    if lastnormmax >= maxnormalizedperiod:
+                        maxnormalizedperiod = lastnormmax
+                        maxnormalizedperiodid = periodid
+                # stores meta informations
+                ng.addEdge('MaxCorpus',maxperiodid,maxperiod)
+                ng.addEdge('MaxNormalizedCorpus',maxnormalizedperiodid,maxnormalizedperiod)
 
-                if lastnormmax >= maxnormalizedperiod:
-                    maxnormalizedperiod = lastnormmax
-                    maxnormalizedperiodid = periodid
-            # stores meta informations
-            ng.addEdge('MaxCorpus',maxperiodid,maxperiod)
-            ng.addEdge('MaxNormalizedCorpus',maxnormalizedperiodid,maxnormalizedperiod)
-
-            # gets major forms
-            label = ng.getLabel()
-            tag = ng.getPostag()
-            # get all forms and appropriate list of corpus to export
-            forms = self.filemodel.forms_separator.join(ng['edges']['label'].keys())
-            corp_list = self.filemodel.forms_separator.join([corpid for corpid in ng['edges']['Corpus'].keys() if corpid in newwl['corpus']])
-            # prepares the row
-            row = [
-                ng['status'],
-                label,
-                tag,
-                occs,
-                len(ng['content']),
-                occsn,
-                maxperiod,
-                str(maxperiodid),
-                maxnormalizedperiod,
-                str(maxnormalizedperiodid),
-                forms,
-                corp_list,
-                str(ngid)
-            ]
-            self.writeRow(row)
-            # TODO restore when whitelist stored in DB updates ng in whitelist object
-            #newwl['content'][ngid] = ng
-            # TEMPORARY clean memory usage
-            del newwl['content'][ngid]
-        _logger.debug( "%d ngrams exported after filtering" %totalexported )
-        return (self.filepath, newwl)
+                # gets major forms
+                label = ng.getLabel()
+                tag = ng.getPostag()
+                # get all forms and appropriate list of corpus to export
+                forms = self.filemodel.forms_separator.join(ng['edges']['label'].keys())
+                corp_list = self.filemodel.forms_separator.join([corpid for corpid in ng['edges']['Corpus'].keys() if corpid in newwl['corpus']])
+                # prepares the row
+                row = [
+                    ng['status'],
+                    label,
+                    tag,
+                    occs,
+                    len(ng['content']),
+                    occsn,
+                    maxperiod,
+                    str(maxperiodid),
+                    maxnormalizedperiod,
+                    str(maxnormalizedperiodid),
+                    forms,
+                    corp_list,
+                    str(ngid)
+                ]
+                self.writeRow(row)
+                # TODO restore when whitelist stored in DB updates ng in whitelist object
+                #newwl['content'][ngid] = ng
+                # TEMPORARY clean memory usage
+                #del newwl['content'][ngid]
+        except StopIteration, si:
+            _logger.debug( "%d ngrams exported after filtering" %totalexported )
+            return (self.filepath, newwl)
 
 
     def export_documents( self, storage, periods, corporaid ):

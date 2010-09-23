@@ -89,8 +89,7 @@ class Extractor():
         fileGenerator = self._walkFile( path, format )
         if whitelistlabel is None:
             whitelistlabel = self.corpora['id']
-        extract_path = os.path.abspath(extract_path)
-        newwl = whitelist.Whitelist(whitelistlabel, whitelistlabel, output=extract_path)
+        newwl = whitelist.Whitelist(whitelistlabel, whitelistlabel)
         # basic counter
         doccount = 0
         try:
@@ -120,10 +119,9 @@ class Extractor():
                     _logger.debug("%d documents parsed"%doccount)
 
         except StopIteration:
+            newwl.storage.flushNGramQueue()
             _logger.debug("Total documents extracted = %d"%doccount)
             self.storage.updateCorpora( self.corpora, False )
-            #for corpusObj in newwl['corpus'].values():
-            #    self.storage.updateCorpus( corpusObj, False )
             csvfile = Writer("whitelist://"+extract_path)
             (outpath,newwl) = csvfile.write_whitelist(newwl, minoccs)
             return outpath

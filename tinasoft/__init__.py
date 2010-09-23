@@ -190,19 +190,16 @@ class TinaApp(object):
                 self.config['general']['dbenv'],
                 dataset_id
             )
+            options['home'] = storagedir
             if not exists( storagedir ) and create is False:
-                raise Exception("dataset %s does not exists, won't create it"%dataset_id)
+                raise Exception("dataset DB %s does not exists, won't create it"%dataset_id)
                 return TinaApp.STATUS_OK
-                #else:
-                #    makedirs( storagedir )
             else:
-                # overwrite db home dir
-                options['home'] = storagedir
-                self.logger.debug(
-                    "new connection to a storage for data set %s at %s"%(dataset_id, storagedir)
-                )
                 self.storage = Engine(STORAGE_DSN, **options)
                 self.last_dataset_id = dataset_id
+                self.logger.debug(
+                    "new storage connection for data set %s at %s"%(dataset_id, storagedir)
+                )
                 return TinaApp.STATUS_OK
         except Exception, exception:
             self.logger.error( exception )

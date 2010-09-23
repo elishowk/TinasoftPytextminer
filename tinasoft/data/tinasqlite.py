@@ -151,9 +151,7 @@ class Backend(Handler):
         try:
             cur = self._db.cursor()
             cur.execute("select id, pickle from %s"%tabname)
-            #if cur.row_count == 0:
-            #    return
-            #else:
+
             next_val = cur.fetchone()
             while next_val is not None:
                 yield next_val
@@ -216,7 +214,18 @@ class Engine(Backend):
         """
         returns a generator of tuples (id, pickled_obj)
         """
-        return self.safereadrange(target)
+        cursor = self.safereadrange(target)
+        try:
+            while 1:
+                record = cursor.next()
+                # if cursor is empty
+                if record is None: return
+                if not raw:
+                    yield ( record["id"], self.unpickle(str(record["pickle"])))
+                else:
+                    yield record
+        except StopIteration, si:
+            return
 
     def loadCorpora(self, id, raw=False ):
         return self.load(id, 'Corpora', raw)
