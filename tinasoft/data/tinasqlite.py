@@ -438,7 +438,7 @@ class Engine(Backend):
         return queue
 
 
-    def updateNGram( self, ngObj, overwrite, docId, corpId ):
+    def updateNGram( self, ngObj, overwrite, docId=None, corpId=None ):
         """updates or overwrite a ngram and associations"""
 
         # if ngram is already into queue, will flush it first to permit incremental updates
@@ -450,10 +450,10 @@ class Engine(Backend):
             # if overwriting and existing NGram yet NOT in the current index
             if overwrite is True and ngObj['id'] not in self.ngramindex:
                 # cleans current corpus edges
-                if corpId in storedNGram['edges']['Corpus']:
+                if corpId is not None and corpId in storedNGram['edges']['Corpus']:
                     del storedNGram['edges']['Corpus'][corpId]
                 # NOTE : document edges are protected
-                if docId in storedNGram['edges']['Document']:
+                if  docId is not None and docId in storedNGram['edges']['Document']:
                     del storedNGram['edges']['Document'][docId]
             # anyway, updates all edges
             ngObj = PyTextMiner.updateEdges( ngObj, storedNGram, ['Corpus','Document','label','postag'] )

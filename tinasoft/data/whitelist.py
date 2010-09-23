@@ -71,11 +71,6 @@ class Importer(basecsv.Importer):
         """
         self.whitelist.addEdge( 'StopNGram', dbid, occs )
 
-    def _add_ngram(self, dbid, ngobj):
-        """
-        General method adding any ngram to the whitelist
-        """
-        self.whitelist['content'][dbid] = ngobj
 
     def parse_file(self):
         """Reads a whitelist file and returns the updated object"""
@@ -102,7 +97,7 @@ class Importer(basecsv.Importer):
             for corpid in periods:
                 # increments all the Corpus edges
                 self.whitelist.addEdge( 'Corpus', str(corpid), 1 )
-                ng.addEdge( 'Corpus', str(corpid), 1)
+                #ng.addEdge( 'Corpus', str(corpid), 1)
                 # keeps a corpus object into whitelist object
                 if corpid not in self.whitelist['corpus']:
                     self.whitelist['corpus'][corpid] = corpus.Corpus(corpid)
@@ -113,7 +108,7 @@ class Importer(basecsv.Importer):
                 for form_id in forms_id:
                     self._add_whitelist(dbid, 0)
                 self._add_whitelist(dbid, occs)
-                self._add_ngram(dbid, ng)
+                self.whitelist.addContent( ng )
             elif status == self.filemodel.refuse:
                 self._add_stopword(dbid, occs)
         return self.whitelist
@@ -197,8 +192,7 @@ class Exporter(basecsv.Exporter):
         self.writeRow([x[1] for x in self.filemodel.columns])
         # basic monitoring counters
         totalexported = 0
-        ngramtotal = len(newwl['content'].keys())
-        _logger.debug( "Writing %d ngrams to whitelist at %s" % (ngramtotal, self.filepath) )
+        #_logger.debug( "Writing %d ngrams to whitelist at %s" % (ngramtotal, self.filepath) )
         ngramgenerator = newwl.getContent()
         try:
             while 1:
@@ -215,6 +209,7 @@ class Exporter(basecsv.Exporter):
                         del newwl['content'][ngid]
                         continue
                 elif ngid in newwl['edges']['NGram']:
+                    ng['status'] = ""
                     occs = newwl['edges']['NGram'][ngid]
                     if not occs >= minOccs:
                         del newwl['edges']['NGram'][ngid]
