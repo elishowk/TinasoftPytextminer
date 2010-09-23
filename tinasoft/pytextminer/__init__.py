@@ -30,7 +30,7 @@ from uuid import uuid4
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
-class PyTextMiner():
+class PyTextMiner(object):
 
     """
         PyTextMiner class

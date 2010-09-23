@@ -45,7 +45,7 @@ class ExtractFile(TinaAppTests):
         print self.tinasoft.extract_file(
                 self.path,
                 self.datasetId,
-                outpath=self.extracted_whitelist,
+                #outpath=self.extracted_whitelist,
                 format=self.format,
                 minoccs=1,
         )

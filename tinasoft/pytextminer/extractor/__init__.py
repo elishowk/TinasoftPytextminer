@@ -16,12 +16,11 @@
 
 __author__="Elias Showk"
 from tinasoft.pytextminer import PyTextMiner
-
 from tinasoft.pytextminer import corpus, tagger, stopwords, tokenizer, filtering, whitelist
 from tinasoft.data import Engine, Reader, Writer
 
 import re
-
+import os.path
 import traceback
 
 import logging
@@ -35,13 +34,13 @@ class Extractor():
         # load Stopwords object
         self.stopwords = stopwds
         #filtertag = filtering.PosTagFilter()
-        filterContent = filtering.Content()
+        #filterContent = filtering.Content()
         validTag = filtering.PosTagValid(
             config= {
                 'rules': re.compile(self.config['postag_valid'])
             }
         )
-        self.filters = [filterContent,validTag]
+        self.filters = [validTag]
         if filters is not None:
             self.filters += filters
         self.stemmer = stemmer
@@ -90,7 +89,9 @@ class Extractor():
         fileGenerator = self._walkFile( path, format )
         if whitelistlabel is None:
             whitelistlabel = self.corpora['id']
-        newwl = whitelist.Whitelist(whitelistlabel, whitelistlabel)
+        extract_path = os.path.abspath(extract_path)
+        newwl = whitelist.Whitelist(whitelistlabel, whitelistlabel, output=extract_path)
+        # basic counter
         doccount = 0
         try:
             while 1:
@@ -111,17 +112,9 @@ class Extractor():
                 # increments number of docs per period
                 if  corpusNum not in newwl['corpus']:
                     newwl['corpus'][corpusNum] = corpus.Corpus(corpusNum)
-                newwl['corpus'][corpusNum].addEdge('Document', str(document['id']), 1)
-                for ngid, ng in docngrams.iteritems():
-                    if ngid not in newwl['content']:
-                        newwl['content'][ngid] = ng
-                        newwl['content'][ngid]['status'] = ""
-                    else:
-                        newwl['content'][ngid] = PyTextMiner.updateEdges( ng, newwl['content'][ngid], ['Corpus','Document','label','postag'] )
-                    # increments per period occs
-                    newwl['content'][ngid].addEdge( 'Corpus', corpusNum, 1 )
-                    # increments total occurences within the dataset
-                    newwl.addEdge( 'NGram', ngid, 1 )
+                newwl['corpus'][corpusNum].addEdge('Document', document['id'], 1)
+                for ng in docngrams.itervalues():
+                    newwl.addContent( ng, corpusNum, document['id'] )
                 doccount += 1
                 if doccount % 100 == 0:
                     _logger.debug("%d documents parsed"%doccount)

@@ -107,13 +107,16 @@ class StopWords( object ):
         return self.words[length]
 
     def contains(self, ngramobj):
-        """Check a ngram object against the stop base using NGram['id']"""
+        """Checks a ngram object against the stop base using NGram['id']"""
         if ngramobj['id'] in self[len(ngramobj['content'])]:
             return True
         else:
             return False
 
     def test(self, ngramobj):
+        """
+        inverse of self.contains
+        """
         return not self.contains( ngramobj )
 
     ### obsolete
@@ -132,8 +135,9 @@ class StopWords( object ):
 
 class StopWordFilter(StopWords):
     """
-    used for filtering ngrams
-    given a file or a list
+    variaton of StopWords to fit the Filter model
+    used to filter ngrams given a list of words
+    eg : dynamically user defined stopword
     """
     def __init__(self, stopngrams):
         StopWords.__init__(self, stopngrams)

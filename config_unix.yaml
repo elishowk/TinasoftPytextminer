@@ -60,6 +60,7 @@ datamining:
             - 1
             - 'inf'
         proximity: 'logJaccard'
+        exportedges: 0
     NGramGraph:
         edgethreshold:
             - 0.0
@@ -69,3 +70,4 @@ datamining:
             - 'inf'
         alpha: 0.1
         proximity: 'pseudoInclusion'
+        exportedges: 0

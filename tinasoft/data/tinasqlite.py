@@ -70,7 +70,8 @@ class Backend(Handler):
         """connection method, need to have self.home directory created"""
         try:
             self._db = sqlite3.connect(join(self.home,self.path))
-            self._db.execute("PRAGMA SYNCHRONOUS=0")
+            # this pragma does not work
+            self._db.execute("PRAGMA SYNCHRONOUS=0;")
             self._db.row_factory = sqlite3.Row
             cur = self._db.cursor()
             for tabname in self.tables:
@@ -118,7 +119,7 @@ class Backend(Handler):
         rollbacks
         """
         self._db.rollback()
-        _logger.error("rolling back")
+        _logger.warning("rolled back an sql statement")
 
 
     def pickle( self, obj ):
@@ -135,12 +136,9 @@ class Backend(Handler):
             key = str(key)
         try:
             cur = self._db.cursor()
-            #_logger.debug("select * from %s where id=?"%tabname)
-            #_logger.debug(key)
             cur.execute("select pickle from %s where id=?"%tabname, (key,))
             row = cur.fetchone()
             if row is not None:
-                #_logger.debug(type(row["pickle"]))
                 return row["pickle"]
             else:
                 return None
@@ -198,12 +196,8 @@ class Engine(Backend):
 
     def __del__(self):
         """safely closes db and dbenv"""
-        #try:
         self.flushQueues()
         self.close()
-        #except Exception, e:
-        #    _logger.error( "tinasqlite.Engine.__del__ exception " )
-        #     raise Exception(e)
 
     def delete(self, id, deltype):
         """deletes a object given its type and id"""
@@ -267,8 +261,6 @@ class Engine(Backend):
         """TODO overwrite is ignored"""
         if id is None:
             id = obj['id']
-        #_logger.debug(target)
-        #_logger.debug([(id, obj)])
         return self.safewrite( target, [(id, obj)] )
 
     def insertCorpora(self, obj, id=None, overwrite=False ):
@@ -424,7 +416,7 @@ class Engine(Backend):
         self.flushCoocQueue()
         self.flushNGramQueue()
         self.ngramindex= []
-        _logger.debug("flushed ngram and cooc queues and indices")
+        _logger.debug("flushed insert queues for database %s"%self.path)
 
     def _ngramQueue( self, id, ng ):
         """
@@ -439,14 +431,14 @@ class Engine(Backend):
 
     def updateNGram( self, ngObj, overwrite, docId, corpId ):
         """updates or overwrite a ngram and associations"""
-        # overwrites while ngrams is not in self.ngramindex
+
         # if ngram is already into queue, will flush it first to permit incremental updates
         if ngObj['id'] in self.ngramqueueindex:
             self.flushNGramQueue()
-        # else updates NGram
+        # then try to update the NGram
         storedNGram = self.loadNGram( ngObj['id'] )
         if storedNGram is not None:
-            # if overwriting and NGram yet NOT in the current index
+            # if overwriting and existing NGram yet NOT in the current index
             if overwrite is True and ngObj['id'] not in self.ngramindex:
                 # cleans current corpus edges
                 if corpId in storedNGram['edges']['Corpus']:
@@ -454,7 +446,9 @@ class Engine(Backend):
                 # NOTE : document edges are protected
                 if docId in storedNGram['edges']['Document']:
                     del storedNGram['edges']['Document'][docId]
+            # anyway, updates all edges
             ngObj = PyTextMiner.updateEdges( ngObj, storedNGram, ['Corpus','Document','label','postag'] )
+        # adds to the queue
         return self._ngramQueue( ngObj['id'], ngObj )
 
     def _coocQueue( self, id, obj, overwrite ):

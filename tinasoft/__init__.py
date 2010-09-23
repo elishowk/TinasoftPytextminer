@@ -236,14 +236,16 @@ class TinaApp(object):
                 "%s-extract_dataset.csv"%whitelistlabel
             )
         corporaObj = corpora.Corpora(dataset)
-        # instanciate extractor class
         stopwds = stopwords.StopWords(
-            "file://%s"%join(self.config['general']['basedirectory'],
-            self.config['general']['shared'],
-            self.config['general']['stopwords'])
+            "file://%s"%join(
+                self.config['general']['basedirectory'],
+                self.config['general']['shared'],
+                self.config['general']['stopwords']
+            )
         )
 
         userstopwords = self.import_userstopwords( userstopwords )
+        # instanciate extractor class
         extract = extractor.Extractor(
             self.storage,
             self.config['datasets'],
@@ -252,7 +254,7 @@ class TinaApp(object):
             userstopwords,
             stemmer=stemmer.Nltk()
         )
-        outpath= extract.extract_file( path, format, outpath, whitelistlabel, minoccs )
+        outpath = extract.extract_file( path, format, outpath, whitelistlabel, minoccs )
         if outpath is not False:
             return abspath(outpath)
         else:
