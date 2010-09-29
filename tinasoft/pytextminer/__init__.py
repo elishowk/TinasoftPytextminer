@@ -17,14 +17,14 @@
 
 
 __author__="elishowk@nonutc.fr"
-__date__ ="$Oct 20, 2009 5:30:11 PM$"
 
 __all__ = [
     "corpora", "corpus", "document", "ngram", "whitelist"
-    "filtering", "tokenizer", "tagger", "adjacency",
+    "filtering", "tokenizer", "tagger", "adjacency", "clustering",
     "stopwords", "extractor", "stemmer", "graph", "indexer"
 ]
 
+from hashlib import sha256
 from uuid import uuid4
 
 import logging
@@ -33,20 +33,21 @@ _logger = logging.getLogger('TinaAppLogger')
 class PyTextMiner(object):
 
     """
-        PyTextMiner class
-        is a the parent class of the graph nodes classes
+    PyTextMiner class
+    is a the parent class of all the graph nodes classes
     """
 
     def __init__(self, content, id=None, label=None, edges=None, **metas):
+        """
+        Default Tinasoft's graph node object initialization
+        """
         self.content = content
         if id is None:
             self.id = PyTextMiner.getId( content )
         else:
             self.id = id
         self.label = label
-        if not edges:
-            edges = {}
-        self.edges = edges
+        self.loadEdges( edges )
         self.loadOptions( metas )
 
     def loadOptions(self, metas):
@@ -56,22 +57,22 @@ class PyTextMiner(object):
         for attr, value in metas.iteritems():
             setattr(self,attr,value)
 
+    def loadEdges(self, edges):
+        defaultedges = { 'Document' : {}, 'NGram' : {}, 'Corpus': {}, 'Corpora': {}, 'Whitelist': {} }
+        if edges:
+            defaultedges.update(edges)
+        self.edges = defaultedges
+
     @staticmethod
     def getId(content):
         """
         Common staticmethod constructing an ID str for all PyTextMiner objects
+        @content must be a list of str
         """
         if type(content) == list:
-            # for NGrams-like objects : content==list
-            return str(abs( hash( " ".join(content) ) ))
-        elif type(content) == str or type(content) == unicode:
-            # for all other string content
-            return str(abs( hash( content ) ))
-        elif content is None:
-            return uuid4().hex
+            return sha256( " ".join(content) ).hexdigest()
         else:
-            raise ValueError
-            return None
+            return uuid4().hex
 
     def getLabel(self):
         """

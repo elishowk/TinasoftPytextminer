@@ -55,7 +55,7 @@ LEVELS = {
     'critical': logging.CRITICAL
 }
 
-# fixes the type and name of database
+# type and name of the main  database
 STORAGE_DSN = "tinasqlite://tinasoft.sqlite"
 
 class TinaApp(object):

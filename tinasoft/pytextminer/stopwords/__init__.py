@@ -1,13 +1,28 @@
 # -*- coding: utf-8 -*-
+#  Copyright (C) 2009-2011 CREA Lab, CNRS/Ecole Polytechnique UMR 7656 (Fr)
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+__author__="elishowk@nonutc.fr"
 import codecs
 import pickle
 from tinasoft.pytextminer import ngram as NG
 
-class StopWords( object ):
+class StopWords(object):
     """StopWords"""
 
-    def __init__(self, arg, locale='en_US.UTF-8'):
+    def __init__(self, uri, locale='en_US.UTF-8'):
         """
         # you can pass a simple list of words
         c = StopWords(["cat","dog"])
@@ -36,14 +51,14 @@ class StopWords( object ):
         self.encoding = self.encoding.lower()
         self.words = [{}]
 
-        if isinstance(arg, list):
-            self.__list(arg)
+        if isinstance(uri, list):
+            self.__list(uri)
         else:
-            protocol, path = arg.split("://")
+            protocol, path = uri.split("://")
             if protocol == "file":
                 self.__file(path)
-            elif protocol == "http":
-                self.__file("http://"+path)
+            #elif protocol == "http":
+            #    self.__file("http://"+path)
             elif protocol == "nltk":
                 self.__nltk(path)
             elif protocol == "pickle":
@@ -52,28 +67,35 @@ class StopWords( object ):
             self.protocol = protocol
 
     def __pickle(self, path):
+        """
+        Loads a pickled StopWords object
+        """
         file = codecs.open( path , "r" )
         self.words = pickle.load( file )
 
     def __nltk(self, lang):
-        try:
-            import nltk.corpus
-        except:
-            raise Exception("you need to install NLTK library")
+        """
+        Loads NLTK's stopworks
+        """
         try:
             import nltk
-            #nltk.data.path = ['shared/nltk_data']
             from nltk.corpus import stopwords
             for word in stopwords.words(lang):
                 self.add([word])
         except ImportError, err:
             raise Exception("you need to install the 'stopwords' corpus for nltk")
 
-    def __file(self, arg):
-        for line in codecs.open("%s"%arg, "r", self.encoding).readlines():
-            self.add(line.strip().split(" "))
+    def __file(self, uri):
+        """
+        Loads stopwords from a text file
+        """
+        for line in codecs.open("%s"%uri, "r", self.encoding).readlines():
+            self.add(line.encode(self.encoding).strip().split(" "))
 
     def __list(self, lst):
+        """
+        Loads stopworsd from a list variable
+        """
         if isinstance(lst[0], list):
             if isinstance(lst[0][0], list):
                 for length in lst:
@@ -87,8 +109,11 @@ class StopWords( object ):
                 self.add([word])
 
     def add(self, stopng):
-        """ngram must be a list of words"""
-        if not isinstance(stopng,list):
+        """
+        Adds a stop-ngram to the object
+        @stopng must be a list of words
+        """
+        if not isinstance(stopng, list):
             raise Exception("%s is not a valid ngram (not a list)"%stopng)
         while len(self.words) < len(stopng) + 1:
             self.words+=[{}]
@@ -98,16 +123,23 @@ class StopWords( object ):
         return stopngobj
 
     def __len__(self):
-        """ return the length of the ngram"""
+        """
+        return the max length of ngrams present in the object
+        """
         return len(self.words)
 
     def __getitem__(self, length):
+        """
+        Access stopwords in a dict style
+        """
         while len(self.words) < length + 1:
             self.words+=[{}]
         return self.words[length]
 
     def contains(self, ngramobj):
-        """Checks a ngram object against the stop base using NGram['id']"""
+        """
+        Checks a ngram object against the stop base using NGram['id']
+        """
         if ngramobj['id'] in self[len(ngramobj['content'])]:
             return True
         else:
@@ -119,17 +151,11 @@ class StopWords( object ):
         """
         return not self.contains( ngramobj )
 
-    ### obsolete
-    def cleanText( self, string ):
-        """Obsolete - Clean a string from its 1-grams"""
-        cleaned = []
-        for word in string.split(" "):
-            if not self.contains([word]):
-                cleaned += [ word ]
-        return " ".join(cleaned)
 
     def savePickle( self, filepath ):
-        """copy the stopwords in-memory database to file"""
+        """
+        copy the stopwords in-memory database to file
+        """
         file = codecs.open( filepath, "w" )
         pickle.dump( self.words, file )
 

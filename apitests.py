@@ -30,11 +30,6 @@ class TinaAppTests(unittest.TestCase):
         self.tinasoft = tinasoftSingleton
         self.datasetId = "test_data_set"
         self.periods = ['1','pubmed1','2']
-        #self.path = "tinacsv_test_200.csv"
-        #self.path = "pubmed_tina_1000.csv"
-        #self.format = "tinacsv"
-        #self.path = "pubmed_cancer_tina_toydb.txt"
-        #self.format = "medline"
         self.path = sourceFile
         self.format = sourceFormat
         self.extracted_whitelist = 'date-test_whitelist-extract_file.csv'
@@ -97,7 +92,7 @@ class GenerateGraph(TinaAppTests):
 
 class ExportCoocMatrix(TinaAppTests):
     def runTest(self):
-        """testF_ExportCoocMatrix : TODO"""
+        """testF_ExportCoocMatrix"""
         print self.tinasoft.export_cooc(self.datasetId, "Pubmed_1980[dp]")
 
 class IndexArchive(TinaAppTests):

@@ -10,7 +10,7 @@ class Document(PyTextMiner):
     def __init__(
             self,
             content,
-            docNum,
+            id,
             title,
             edges=None,
             datestamp=None,
@@ -24,7 +24,7 @@ class Document(PyTextMiner):
         ):
         if edges is None:
             edges = { 'NGram' : {}, 'Document': {}, 'Corpus' : {} }
-        PyTextMiner.__init__(self, content, docNum, title, edges, **metas)
+        PyTextMiner.__init__(self, content, id, title, edges, **metas)
         self.date = datestamp
         self.author = author
         # these are tokenization paramaters

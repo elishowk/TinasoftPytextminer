@@ -70,10 +70,12 @@ class Backend(Handler):
         """connection method, need to have self.home directory created"""
         try:
             self._db = sqlite3.connect(join(self.home,self.path))
-            # this pragma does not work
-            self._db.execute("PRAGMA SYNCHRONOUS=0;")
+            #self._db.execute("PRAGMA SYNCHRONOUS=0")
+            # row factory provides named columns
             self._db.row_factory = sqlite3.Row
             cur = self._db.cursor()
+            sql = "PRAGMA SYNCHRONOUS=0"
+            cur.execute(sql)
             for tabname in self.tables:
                 sql = "CREATE TABLE IF NOT EXISTS %s (id VARCHAR(256) PRIMARY KEY, pickle BLOB)"%tabname
                 cur.execute(sql)

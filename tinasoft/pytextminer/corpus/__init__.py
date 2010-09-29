@@ -8,16 +8,11 @@ class Corpus(PyTextMiner):
     def __init__(self,
             id,
             edges=None,
-            #period_start=None,
-            #period_end=None,
             **metas):
-        # dict of documents {'id' : occurences, ... } in the coprus
         if edges is None:
-            edges={ 'Document' : {}, 'NGram' : {} }
+            edges = {}
         if 'Document' not in edges:
             edges['Document'] = {}
-        if 'NGram' not in edges:
-            edges['NGram'] = {}
         PyTextMiner.__init__(self, edges['Document'].keys(), id, id, edges, **metas)
 
     def addEdge(self, type, key, value):

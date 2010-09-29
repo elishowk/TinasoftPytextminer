@@ -16,13 +16,9 @@
 
 __author__="elishowk@nonutc.fr"
 
-#from multiprocessing import Process, Queue, Manager
 import tinasoft
 
-from datetime import date
-from decimal import Decimal
 import itertools
-
 from numpy import *
 
 import logging
@@ -33,12 +29,20 @@ class Matrix():
     Matrix class to build adjacency matrix using numpy
     Manages external IDs as keys and constructs its internal auto-incremented reversed index
     """
-    def __init__(self, size, type=int32):
+    def __init__(self, size, valuesize=int32):
+        """
+        Creates the numpy array and the index dictionary
+        """
         self.reverse = {}
         self.lastindex = -1
-        self.array = zeros((size,size),dtype=type)
+        custom_dtype = [('k1','S32'),('k2','S32'),('value',valuesize)]
+        print size
+        self.array = zeros((size, size),dtype=custom_dtype)
 
     def _getindex(self, key):
+        """
+        returns the internal auto-incremented index from an external ID
+        """
         if key in self.reverse:
             return self.reverse[key]
         else:
@@ -51,18 +55,24 @@ class Matrix():
         Getter returning rows or cell from the array
         """
         if key2 is None:
-            return self.array[ self._getindex(key1), : ]
+            return self.array['value'][ self._getindex(key1), : ]
         else:
-            return self.array[ self._getindex(key1), self._getindex(key2) ]
+            return self.array['value'][ self._getindex(key1), self._getindex(key2) ]
 
     def set( self, key1, key2, value=1, overwrite=False ):
         """Setter using sums to increment cooc values"""
         index1 = self._getindex(key1)
         index2 = self._getindex(key2)
-        if not overwrite:
-            self.array[ index1, index2 ] += value
+        # init description if this cell is empty
+        if self.array['k1'][ index1, index2 ] == '':
+            self.array['k1'][ index1, index2 ] = key1
+            self.array['k2'][ index1, index2 ] = key2
+        # then writes the value
+        if overwrite is False:
+            self.array['value'][ index1, index2 ] += value
         else:
-            self.array[ index1, index2 ] = value
+            self.array['value'][ index1, index2 ] = value
+
 
 class Adjacency(object):
     """
@@ -123,7 +133,7 @@ class NgramAdjacency(Adjacency):
     def __init__(self, config, storage, corpusid, opts):
         Adjacency.__init__(self, config, storage, corpusid, opts)
         self.config['datamining']['NGramGraph'].update(opts)
-        self.matrix = Matrix( len( self.corpus['edges']['NGram'].keys() ), type=float )
+        self.matrix = Matrix( len( self.corpus['edges']['NGram'].keys() ), valuesize=float32 )
         if self.proximity is None:
             # loads default
             _logger.debug("loading default proximity %s"%self.config['datamining']['NGramGraph']['proximity'])
@@ -157,7 +167,7 @@ class DocAdjacency(Adjacency):
     def __init__(self, config, storage, corpusid, opts ):
         Adjacency.__init__(self, config, storage, corpusid, opts )
         self.config['datamining']['DocumentGraph'].update(opts)
-        self.matrix = Matrix( len( self.corpus['edges']['Document'].keys() ), type=float )
+        self.matrix = Matrix( len( self.corpus['edges']['Document'].keys() ), valuesize=float32 )
         if self.proximity is None:
             # loads default
             self._loadProximity( self.config['datamining']['DocumentGraph'] )

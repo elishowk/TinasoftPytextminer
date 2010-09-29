@@ -16,22 +16,21 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 __author__="elishowk@nonutc.fr"
-__date__ = "$Oct 20, 2009 6:32:44 PM$"
 
 import nltk
-
-import logging
 import re
 import string
+
 from tinasoft.pytextminer import ngram
 from tinasoft.pytextminer import tagger
 from tinasoft.pytextminer import filtering
 from tinasoft.pytextminer import PyTextMiner
+
+import logging
 _logger = logging.getLogger('TinaAppLogger')
 
 nltk_treebank_tokenizer = nltk.TreebankWordTokenizer()
 
-import string
 # We consider following rules to apply whatever be the langage.
 # ... is an ellipsis, put spaces around before splitting on spaces
 # (make it a token)
@@ -184,7 +183,7 @@ class TreeBankWordTokenizer(RegexpTokenizer):
             for n in range(minSize, maxSize + 1):
                 if len(content) >= i + n:
                     # new NGram instance
-                    ng = ngram.NGram(content[i:n + i], occs=1, postag=tags[i:n + i], stemmed=stemmedcontent[i:n + i])
+                    ng = ngram.NGram(stemmedcontent[i:n+i], label=" ".join(content[i:n+i]), occs=1, postag=tags[i:n + i])
                     if ng['id'] in ngrams:
                         # already exists in document : increments occs and updates edges
                         ngrams[ng['id']]['occs'] += 1

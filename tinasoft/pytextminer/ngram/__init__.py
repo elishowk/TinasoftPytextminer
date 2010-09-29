@@ -23,30 +23,31 @@ _logger = logging.getLogger('TinaAppLogger')
 
 class NGram(PyTextMiner):
     """NGram class"""
-    def __init__(self, tokenlist, id=None, label=None, edges=None, stemmed=None, postag=None, **metas):
+    def __init__(self, tokenlist, id=None, label=None, edges=None, postag=None, **metas):
         """
         initiate the object
         normalize must be local value for pickling reasons
         """
-        normalize = NGram.normalize
-        # normalize and stemmer
-        if stemmed is not None:
-            normalize = lambda x,y: stemmed[y].lower()
-        # normlist will produce an unique id associated with the stemmed form
-        normlist = []
-        for i in range(len(tokenlist)):
-            normlist += [normalize(tokenlist, i)]
-        # auto creates label
+
+        # default creates label
         if label is None:
             label = " ".join(tokenlist)
+
+        # normlist is the normalized list of tokens
+        normalized_tokens = []
+        for word in tokenlist:
+            normalized_tokens += [NGram.normalize(word)]
+
         postag_label = None
         # prepares postag
         if postag is not None:
             postag_label = " ".join(postag)
             metas["postag"] = postag
+
+        # default emtpy edges
         if edges is None:
             edges = { 'Document' : {}, 'Corpus' : {}, 'NGram': {}, 'label': {}, 'postag' : {}}
-        PyTextMiner.__init__(self, normlist, id, label, edges, **metas)
+        PyTextMiner.__init__(self, normalized_tokens, id, label, edges, **metas)
         # updates majors forms before returning instance
         self.updateMajorForm(label, postag_label)
 
@@ -61,22 +62,20 @@ class NGram(PyTextMiner):
             return self._addEdge( type, key, value )
 
     @staticmethod
-    def normalize(list, position):
+    def normalize(word):
         """
         Default tokens normalizing
         """
-        return list[position].lower()
+        return word.lower()
 
     @staticmethod
-    def getId(tokens, normalize=None):
+    def getId(tokens):
         """
-        Returns a normalized NGram ID given a tokenlist
+        Utility returning a normalized NGram ID given a tokenlist
         """
-        if normalize is None:
-            normalize = NGram.normalize
-        # normlist will produce an unique id associated with the stemmed form
-        normlist = [normalize(word) for word in tokens]
-        return PyTextMiner.getId(normlist)
+        # normalized_tokens list to produce an unique id
+        normalized_tokens = [NGram.normalize(word) for word in tokens]
+        return PyTextMiner.getId(normalized_tokens)
 
     def updateMajorForm(self, label, postag_label):
         """

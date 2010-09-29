@@ -22,7 +22,6 @@ from tinasoft.data import Reader
 # traceback to print error traces
 import traceback
 import time
-#import os
 from numpy import *
 
 
@@ -186,8 +185,7 @@ class ArchiveCounter():
         # list of term index present in the document (correspondingDescriptorNumber)
         currentDescriptors = []
         ngrams = tokenizer.RegexpTokenizer.ngramize(1, len(termDictList), wordSequence)
-        #import pdb
-        #pdb.set_trace()
+
         for ngramsLengthMinusOne in range(len(ngrams)):
             for ngram in ngrams[ngramsLengthMinusOne]:
                 currentTerm = ' '.join(ngram)
@@ -197,21 +195,7 @@ class ArchiveCounter():
                     if not markerList[correspondingDescriptorNumber]:
                         markerList[correspondingDescriptorNumber] = True
                         currentDescriptors.append(correspondingDescriptorNumber)
-        #for termWordLengthMinusOne in range(len(termDictList)):
-        #    for i in range(len(wordSequence) - termWordLengthMinusOne):
-        #        # extract ngrams into wordWindow
-        #        if i == 0 :
-        #            wordWindow = wordSequence[:termWordLengthMinusOne + 1]
-        #        else :
-        #            wordWindow.append(wordSequence[i + termWordLengthMinusOne])
-         #           wordWindow.pop(0)
-         ##       currentTerm = ' '.join(wordWindow)
-         #       # mark presence of an ngram in the document
-         #       if termDictList[termWordLengthMinusOne].has_key(currentTerm):
-         #           correspondingDescriptorNumber = termDictList[termWordLengthMinusOne][currentTerm]
-         #           if not markerList[correspondingDescriptorNumber]:
-         #               markerList[correspondingDescriptorNumber] = True
-         #               currentDescriptors.append(correspondingDescriptorNumber)
+
         return currentDescriptors, markerList
 
     def _cooccurrences(self, descriptorNameList, currentDescriptors, markerList):
