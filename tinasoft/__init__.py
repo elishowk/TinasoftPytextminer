@@ -34,6 +34,7 @@ import logging
 import logging.handlers
 
 # tinasoft core modules
+#from tinasoft.processpool import ProcessPool
 from tinasoft.data import Engine
 from tinasoft.data import Reader
 from tinasoft.data import Writer
@@ -46,6 +47,7 @@ from tinasoft.pytextminer import indexer
 from tinasoft.pytextminer import adjacency
 from tinasoft.pytextminer import stemmer
 
+from threadpool import *
 
 LEVELS = {
     'debug': logging.DEBUG,
@@ -55,7 +57,7 @@ LEVELS = {
     'critical': logging.CRITICAL
 }
 
-# type and name of the main  database
+# type and name of the main database
 STORAGE_DSN = "tinasqlite://tinasoft.sqlite"
 
 class TinaApp(object):
@@ -115,8 +117,7 @@ class TinaApp(object):
                 self.config['general']['dbenv']
                 )
             )
-        #if not exists(join( self.config['general']['basedirectory'], self.config['general']['index'] )):
-            #makedirs(join( self.config['general']['basedirectory'], self.config['general']['index'] ))
+
         if not exists(join(
                 self.config['general']['basedirectory'],
                 self.config['general']['log']
@@ -355,23 +356,46 @@ class TinaApp(object):
         """
         if self.set_storage( dataset ) == self.STATUS_ERROR:
             return self.STATUS_ERROR
-        coocmatrix = docmatrix = None
-        # for each period, processes cooc and doc intersection
-        for period in periods:
-            try:
-                ngramAdj = adjacency.NgramAdjacency( self.config, self.storage, period, ngramgraphconfig )
-                docAdj = adjacency.DocAdjacency( self.config, self.storage, period, documentgraphconfig )
-                # to aggregate matrix of multiple periods
-                if coocmatrix:
-                    ngramAdj.matrix = coocmatrix
-                if docmatrix:
-                    docAdj.matrix = docmatrix
-            except Warning, warner:
-                self.logger.warning( warner )
-                continue
-            coocmatrix = ngramAdj.walkDocuments()
-            docmatrix = docAdj.walkDocuments()
 
+        periods_to_process = []
+        ngram_index = doc_index = set([])
+
+        # checks periods
+        for period in periods:
+            corpus = self.storage.loadCorpus( period )
+            if corpus is not None:
+                periods_to_process += [corpus]
+                ngram_index |= set( corpus['edges']['NGram'].keys() )
+                doc_index |= set( corpus['edges']['Document'].keys() )
+            else:
+                self.logger.warning('Period %s not found in database, skipping it from generate_graph'%str(period))
+
+        ngram_index = list(ngram_index)
+        doc_index  = list(doc_index)
+
+        docpool = ThreadPool(len(periods_to_process))
+        ngrampool = ThreadPool(len(periods_to_process))
+
+
+        ngram_matrix_reducer = adjacency.MatrixReducer()
+        doc_matrix_reducer = adjacency.MatrixReducer()
+
+        ngram_args = []
+        doc_args = []
+
+        for period in periods_to_process:
+            # tasks arguments
+            ngram_args += ( self.config, dataset, period, ngramgraphconfig, ngram_index )
+            doc_args += ( self.config, dataset, period, documentgraphconfig, doc_index )
+
+        docrequests = makeRequests(document_adj_task, doc_args, doc_matrix_reducer)
+        [docpool.putRequest(req) for req in docrequests]
+
+        ngramrequests = makeRequests(ngram_adj_task, ngram_args, ngram_matrix_reducer)
+        [ngrampool.putRequest(req) for req in ngramrequests]
+
+        docpool.wait()
+        ngrampool.wait()
         # prepares gexf out path
         params_string = "%s_%s"%(self._get_filepath_id(whitelistpath),"+".join(periods))
         # outpath is an optional label
@@ -382,7 +406,7 @@ class TinaApp(object):
 
         # import whitelist
         whitelist = self.import_whitelist(whitelistpath)
-        # call the GEXF exporter
+        # creates the GEXF exporter
         GEXFWriter = Writer('gexf://', **self.config['datamining'])
         # adds meta to the futur gexf file
         graphmeta = {
@@ -396,9 +420,30 @@ class TinaApp(object):
                 'data/source': 'browser'
             }
         }
+
+        self.logger.debug("waiting for the Process Pools to finish...")
+        ngrampool.pool.close()
+        ngrampool.pool.join()
+        docpool.pool.close()
+        docpool.pool.join()
+
+        for i in range(len(periods_to_process)):
+
+            ngramtask = ngrampool.tasks[i]
+            print "ngramtask successful ?"
+            print ngramtask.successful()
+
+            doctask = docpool.tasks[i]
+            print "doctask successful ?"
+            print doctask.successful()
+
+        print "results sent to ngramDocGraph"
+        print ngram_matrix_reducer.matrix
+        print doc_matrix_reducer.matrix
+
         return GEXFWriter.ngramDocGraph(
-            coocmatrix,
-            docmatrix,
+            ngram_matrix_reducer.matrix,
+            doc_matrix_reducer.matrix,
             outpath + ".gexf",
             db = self.storage,
             periods = periods,

@@ -49,7 +49,7 @@ setup (
     data_files = data_files,
     include_package_data = True,
     # Declare your packages' dependencies here, for eg:
-    install_requires = ['numpy','pyyaml','nltk','jsonpickle','tenjin','twisted','simplejson'],
+    install_requires = ['numpy','pyyaml','nltk','jsonpickle','tenjin','twisted','simplejson','threadpool'],
     dependency_links = DEPS,
     scripts = ['httpserver.py'],
     #package_data = {'tinasoft': ['shared', 'config.yaml', 'README', 'LICENSE']},

@@ -63,7 +63,7 @@ class Exporter (GEXFHandler):
 
     def ngramDocGraph(
             self,
-            coocmatrix,
+            ngrammatrix,
             docmatrix,
             path,
             db,
@@ -102,7 +102,7 @@ class Exporter (GEXFHandler):
                 _logger.warning("Period %s not found, passing"%period)
                 continue
             docGraph.load( docmatrix, ngramDocGraph, corp )
-            ngramGraph.load( coocmatrix, ngramDocGraph, corp )
+            ngramGraph.load( ngrammatrix, ngramDocGraph, corp )
 
         #self._updateEdgeStorage( db, ngramGraph.cache )
         #ngramGraph.cache = {}

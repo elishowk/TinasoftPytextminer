@@ -148,7 +148,7 @@ class ArchiveCounter():
         transforms a whitelist object to descriptorNameList and termDictList
         index in descriptorNameList will be used as internal id during the process
         *** example values :
-        descriptorNameList = ['brain', 'cell', 'neuron', 'pain threshold', 'long term memory', 'mind theory']
+        termNameList = ['brain', 'cell', 'neuron', 'pain threshold', 'long term memory', 'mind theory']
         termDictList = [{'brains': 0, 'brain': 0, 'cell': 1, 'neuron': 2, 'neurons' : 2, 'neuronal' : 2}, {'pain threshold' : 3, 'mind theory' : 5 }, {'long term memory' : 4}]
 
         """

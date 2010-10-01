@@ -17,62 +17,126 @@
 __author__="elishowk@nonutc.fr"
 
 import tinasoft
+from tinasoft.data import Engine
 
+from os.path import join
 import itertools
 from numpy import *
 
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
+def ngram_adj_task( config, dataset, period, ngramgraphconfig, matrix_index ):
+    storage = get_storage(dataset, config)
+    try:
+        ngramAdj = NgramAdjacency( config, storage, period, ngramgraphconfig, matrix_index )
+        ngramAdj.walkDocuments()
+        return ngramAdj.walkDocuments()
+    except Warning, warn:
+        print warn
+        return None
+
+def document_adj_task( config, dataset, period, documentgraphconfig, matrix_index):
+    storage = get_storage(dataset, config)
+    try:
+        documentAdj = DocAdjacency( config, storage, period, documentgraphconfig, matrix_index )
+        return documentAdj.walkDocuments()
+    except Warning, warn:
+        print warn
+        return None
+
+def get_storage(dataset, config):
+    # type and name of the main database
+    STORAGE_DSN = "tinasqlite://tinasoft.sqlite"
+    storagedir = join(
+        config['general']['basedirectory'],
+        config['general']['dbenv'],
+        dataset
+    )
+    options={}
+    options['home'] = storagedir
+    return Engine(STORAGE_DSN, **options)
+
+class MatrixReducer(object):
+    """
+    Callable matrix additioner which keeps previous matrix states
+    Interface from the threadpool module
+    """
+    def __init__(self):
+        self.matrix = None
+
+    def __call__(self, requestobj, matrix):
+        print matrix
+        print "callback"
+        if self.matrix is None:
+            print "first callback"
+            self.matrix = matrix
+        elif matrix is not None:
+            print "callback is doing addition"
+            self.matrix = add(self.matrix, matrix)
+
 class Matrix():
     """
     Matrix class to build adjacency matrix using numpy
     Manages external IDs as keys and constructs its internal auto-incremented reversed index
     """
-    def __init__(self, size, valuesize=int32):
+    def __init__(self, index, valuesize=int32):
         """
         Creates the numpy array and the index dictionary
         """
-        self.reverse = {}
-        self.lastindex = -1
-        custom_dtype = [('k1','S32'),('k2','S32'),('value',valuesize)]
-        print size
-        self.array = zeros((size, size),dtype=custom_dtype)
+        self.reverseindex = {}
+        for i, key in enumerate(index):
+            self.reverseindex[key] = i
+        size = len(index)
+        try:
+            self.array = zeros((size, size),dtype=valuesize)
+        except Exception, exc:
+            _logger.error(exc)
+            raise Exception(str(exc))
+
 
     def _getindex(self, key):
         """
         returns the internal auto-incremented index from an external ID
         """
-        if key in self.reverse:
-            return self.reverse[key]
-        else:
-            self.lastindex += 1
-            self.reverse[key] = self.lastindex
-            return self.lastindex
+        return self.reverseindex[key]
 
     def get( self, key1, key2=None ):
         """
         Getter returning rows or cell from the array
         """
         if key2 is None:
-            return self.array['value'][ self._getindex(key1), : ]
+            return self.array[ self._getindex(key1), : ]
         else:
-            return self.array['value'][ self._getindex(key1), self._getindex(key2) ]
+            return self.array[ self._getindex(key1), self._getindex(key2) ]
 
     def set( self, key1, key2, value=1, overwrite=False ):
         """Setter using sums to increment cooc values"""
         index1 = self._getindex(key1)
         index2 = self._getindex(key2)
-        # init description if this cell is empty
-        if self.array['k1'][ index1, index2 ] == '':
-            self.array['k1'][ index1, index2 ] = key1
-            self.array['k2'][ index1, index2 ] = key2
         # then writes the value
         if overwrite is False:
-            self.array['value'][ index1, index2 ] += value
+            self.array[ index1, index2 ] += value
         else:
-            self.array['value'][ index1, index2 ] = value
+            self.array[ index1, index2 ] = value
 
+    #def extract_matrix(self, minCooc=1):
+        """
+        yields all values of the upper part of the matrix
+        associating ngrams with theirs tinasoft's id
+        """
+    #    countcooc = 0
+    #    for tuple1, tuple2 in itertools.permutations( self.reverseindex.items(), 2 ):
+    #        row = {}
+    #        coocline = self.matrix[i,:]
+    #        for cooc in coocline:
+    #            if cooc >= minCooc:
+    #                countcooc += 1
+    #                ngj = self.id_index[j]
+    #                row[ngj] = cooc
+    #        if len(row.keys()) > 0:
+    #            yield (ngi, row)
+    #    _logger.debug("found %d non-zeros cooccurrences values"%countcooc)
 
 class Adjacency(object):
     """
@@ -90,14 +154,17 @@ class Adjacency(object):
         self.corpus = self.storage.loadCorpus( self.corpusid )
         if self.corpus is None:
             raise Warning('Corpus not found')
-        self._loadProximity(opts)
+        self._loadOptions(opts)
 
-    def _loadProximity(self, opts):
+    def _loadOptions(self, opts):
         # set the proximity method
         try:
             if 'proximity' in opts:
                 # string eval to method
                 self.proximity = getattr(self, opts['proximity'])
+                del opts['proximity']
+            for attr, value in opts.iteritems():
+                setattr(self,attr,value)
         except Exception, exc:
             self.proximity = None
 
@@ -130,10 +197,10 @@ class NgramAdjacency(Adjacency):
     A simple cooccurrences matrix processor
     Uses directly the data from storage
     """
-    def __init__(self, config, storage, corpusid, opts):
+    def __init__(self, config, storage, corpusid, opts, index):
         Adjacency.__init__(self, config, storage, corpusid, opts)
         self.config['datamining']['NGramGraph'].update(opts)
-        self.matrix = Matrix( len( self.corpus['edges']['NGram'].keys() ), valuesize=float32 )
+        self.matrix = Matrix( index, valuesize=float32 )
         if self.proximity is None:
             # loads default
             _logger.debug("loading default proximity %s"%self.config['datamining']['NGramGraph']['proximity'])
@@ -164,10 +231,10 @@ class DocAdjacency(Adjacency):
     Stores a index based on the size of the intersection of ngrams
     between documents
     """
-    def __init__(self, config, storage, corpusid, opts ):
+    def __init__(self, config, storage, corpusid, opts, index ):
         Adjacency.__init__(self, config, storage, corpusid, opts )
         self.config['datamining']['DocumentGraph'].update(opts)
-        self.matrix = Matrix( len( self.corpus['edges']['Document'].keys() ), valuesize=float32 )
+        self.matrix = Matrix( index, valuesize=float32 )
         if self.proximity is None:
             # loads default
             self._loadProximity( self.config['datamining']['DocumentGraph'] )
@@ -198,12 +265,13 @@ class DocAdjacency(Adjacency):
             ngramsintersection = self.documents[doc1] & self.documents[doc2] & self.corpus_ngrams
             ngramsunion = self.documents[doc1] | self.documents[doc2] | self.corpus_ngrams
             if len(ngramsunion) > 0:
-                weight = sum(
-                    [ 1/(math.log( 1 + self.corpus['edges']['NGram'][ngi] )) for ngi in ngramsintersection ],
-                    0
-                ) / sum(
-                    [ 1/(math.log( 1 + self.corpus['edges']['NGram'][ngj] )) for ngj in ngramsunion ],
-                    0
-                )
-            self.matrix.set(doc1, doc2, weight)
+                numerator = 0
+                for ngi in ngramsintersection:
+                    numerator += 1/(math.log( 1 + self.corpus['edges']['NGram'][ngi] ))
+                denominator = 0
+                for ngi in ngramsunion:
+                    denominator += 1/(math.log( 1 + self.corpus['edges']['NGram'][ngi] ))
+                weight = numerator / denominator
+                self.matrix.set(doc1, doc2, weight)
+                self.matrix.set(doc2, doc1, weight)
 
