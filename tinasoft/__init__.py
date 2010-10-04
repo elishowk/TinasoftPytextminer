@@ -35,7 +35,7 @@ import logging.handlers
 
 # tinasoft core modules
 #from tinasoft.processpool import ProcessPool
-from tinasoft.data import Engine
+from tinasoft.data import Engine, _factory, _check_protocol
 from tinasoft.data import Reader
 from tinasoft.data import Writer
 from tinasoft.data import whitelist as whitelistdata
@@ -47,7 +47,7 @@ from tinasoft.pytextminer import indexer
 from tinasoft.pytextminer import adjacency
 from tinasoft.pytextminer import stemmer
 
-from threadpool import *
+import pp
 
 LEVELS = {
     'debug': logging.DEBUG,
@@ -357,45 +357,6 @@ class TinaApp(object):
         if self.set_storage( dataset ) == self.STATUS_ERROR:
             return self.STATUS_ERROR
 
-        periods_to_process = []
-        ngram_index = doc_index = set([])
-
-        # checks periods
-        for period in periods:
-            corpus = self.storage.loadCorpus( period )
-            if corpus is not None:
-                periods_to_process += [corpus]
-                ngram_index |= set( corpus['edges']['NGram'].keys() )
-                doc_index |= set( corpus['edges']['Document'].keys() )
-            else:
-                self.logger.warning('Period %s not found in database, skipping it from generate_graph'%str(period))
-
-        ngram_index = list(ngram_index)
-        doc_index  = list(doc_index)
-
-        docpool = ThreadPool(len(periods_to_process))
-        ngrampool = ThreadPool(len(periods_to_process))
-
-
-        ngram_matrix_reducer = adjacency.MatrixReducer()
-        doc_matrix_reducer = adjacency.MatrixReducer()
-
-        ngram_args = []
-        doc_args = []
-
-        for period in periods_to_process:
-            # tasks arguments
-            ngram_args += ( self.config, dataset, period, ngramgraphconfig, ngram_index )
-            doc_args += ( self.config, dataset, period, documentgraphconfig, doc_index )
-
-        docrequests = makeRequests(document_adj_task, doc_args, doc_matrix_reducer)
-        [docpool.putRequest(req) for req in docrequests]
-
-        ngramrequests = makeRequests(ngram_adj_task, ngram_args, ngram_matrix_reducer)
-        [ngrampool.putRequest(req) for req in ngramrequests]
-
-        docpool.wait()
-        ngrampool.wait()
         # prepares gexf out path
         params_string = "%s_%s"%(self._get_filepath_id(whitelistpath),"+".join(periods))
         # outpath is an optional label
@@ -418,40 +379,78 @@ class TinaApp(object):
                 'layout/algorithm': 'tinaforce',
                 'rendering/edge/shape': 'curve',
                 'data/source': 'browser'
-            }
+            },
+            'description': "a tinasoft graph",
+            'creators': ["CREA Lab, CNRS/Ecole Polytechnique UMR 7656 (Fr)"],
+            'date': "%s"%datetime.now().strftime("%Y-%m-%d"),
         }
+        GEXFWriter.new_graph( outpath, self.storage, graphmeta )
 
-        self.logger.debug("waiting for the Process Pools to finish...")
-        ngrampool.pool.close()
-        ngrampool.pool.join()
-        docpool.pool.close()
-        docpool.pool.join()
+        periods_to_process = []
+        ngram_index = set( whitelist['edges']['NGram'].keys() )
+        doc_index = set([])
 
-        for i in range(len(periods_to_process)):
+        # checks periods and construct nodes' indices
+        for period in periods:
+            corpus = self.storage.loadCorpus( period )
+            if corpus is not None:
+                periods_to_process += [period]
+                ngram_index |= set( corpus['edges']['NGram'].keys() )
+                doc_index |= set( corpus['edges']['Document'].keys() )
+            else:
+                self.logger.debug('Period %s not found in database, skipping it from generate_graph'%str(period))
 
-            ngramtask = ngrampool.tasks[i]
-            print "ngramtask successful ?"
-            print ngramtask.successful()
+        #jobs=[]
+        #job_server = pp.Server()
+        #depmodules=('math','logging','cPickle','os','sqlite3','itertools','numpy','tinasoft','tinasoft.pytextminer.adjacency')
+        #depfunctions=(get_storage, Engine, _factory, _check_protocol)
 
-            doctask = docpool.tasks[i]
-            print "doctask successful ?"
-            print doctask.successful()
+        ngram_matrix_reducer = adjacency.MatrixReducer( list(ngram_index) )
+        ngram_args = []
+        periods_to_process = ["2"]
+        for process_period in periods_to_process:
+            ngram_args = ( self.config, self.storage, process_period, ngramgraphconfig, ngram_index )
+            self.logger.debug( "executing ngram_adj_task" )
+            try:
+                ngram_adj_gen = adjacency.ngram_adj_task( *ngram_args )
+                while 1:
+                    ngram_matrix_reducer.add( ngram_adj_gen.next() )
+            except StopIteration, si:
+                self.logger.debug("NGram matrix reduced for period %s"%process_period)
+        self.logger.debug("loading Ngram nodes into graph data")
+        GEXFWriter.load_ngrams( ngram_matrix_reducer, ngramgraphconfig = ngramgraphconfig)
+        del ngram_matrix_reducer
 
-        print "results sent to ngramDocGraph"
-        print ngram_matrix_reducer.matrix
-        print doc_matrix_reducer.matrix
+        #doc_args = []
+        #doc_matrix_reducer = adjacency.MatrixReducer( list(doc_index) )
 
-        return GEXFWriter.ngramDocGraph(
-            ngram_matrix_reducer.matrix,
-            doc_matrix_reducer.matrix,
-            outpath + ".gexf",
-            db = self.storage,
-            periods = periods,
-            whitelist = whitelist,
-            meta = graphmeta,
-            ngramgraphconfig = ngramgraphconfig,
-            documentgraphconfig = documentgraphconfig
-        )
+        #for process_period in periods_to_process:
+        #    doc_args = ( self.config, self.storage, process_period, documentgraphconfig, doc_index )
+        #    try:
+        #        doc_adj_gen = adjacency.document_adj_task( *doc_args )
+        #        while 1:
+        #            doc_matrix_reducer.add( doc_adj_gen.next() )
+        #    except StopIteration, si:
+        #        self.logger.debug("Document matrix reduced for period %s"%process_period)
+
+            #jobs += [job_server.submit(
+            #    ngram_adj_task,
+            #    args=ngram_args,
+            #    callback=ngram_matrix_reducer,
+            #    modules=depmodules,
+            #    depfuncs=depfunctions,
+            #    globals=globals()
+            #)]
+
+        #self.logger.debug("loading Document nodes into graph data")
+        #GEXFWriter.load_documents( doc_matrix_reducer, documentgraphconfig = documentgraphconfig)
+        #del doc_matrix_reducer
+
+        #self.logger.debug("wait for jobs to finish")
+        #job_server.wait()
+
+        self.logger.debug( "finalizing graph" )
+        return GEXFWriter.finalize()
 
     def export_cooc(self,
             dataset,
@@ -685,3 +684,18 @@ class TinaApp(object):
             whitelist,
             minoccs
         ))
+
+#def get_storage(dataset, config):
+    # type and name of the main database
+#    STORAGE_DSN = "tinasqlite://tinasoft.sqlite"
+    # type and name of the main database
+#    storagedir = os.path.join(
+#        config['general']['basedirectory'],
+#        config['general']['dbenv'],
+#        dataset
+#    )
+#    options={}
+#    options['home'] = storagedir
+#    return Engine(STORAGE_DSN, **options)
+
+

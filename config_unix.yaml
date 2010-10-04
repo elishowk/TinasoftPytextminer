@@ -50,7 +50,7 @@ datasets:
     postag_valid: '^((VB.?,|CD.?,|JJ.?,|\?,){0,2}?(NN.?,|\?,))+?((PREP.?|DET.?,|IN.?,|CC.?,|\?,)((VB.?,|CD.?,|JJ.?,|\?,){0,2}?(NN.?,|\?,))+?)*?$'
     #postag_valid: '^((VB.?,|JJ.?,|\?,){0,2}?(NN.?,|\?,))+?((IN.?,|CC.?,|\?,)((VB.?,|JJ.?,|\?,){0,2}?(NN.?,|\?,))+?)*?$'
 datamining:
-    template: 'shared/gexf/gexf.template'
+    template: 'shared/gexf/gexf.array.template'
     # default values if no params are passed to gexf exporter
     DocumentGraph:
         edgethreshold:
@@ -69,5 +69,5 @@ datamining:
             - 1
             - 'inf'
         alpha: 0.1
-        proximity: 'pseudoInclusion'
+        proximity: 'cooccurrences'
         exportedges: 0

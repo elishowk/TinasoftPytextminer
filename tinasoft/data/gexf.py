@@ -50,9 +50,7 @@ class GEXFHandler(Handler):
     def render( self, gexf ):
         return self.engine.render(self.template, gexf)
 
-
-
-class Exporter (GEXFHandler):
+class Exporter(GEXFHandler):
     """
     A Gexf Exporter engine providing various graph construction methods
     """
@@ -60,58 +58,6 @@ class Exporter (GEXFHandler):
     def notify(self, count):
         if count % 100 == 0:
             _logger.debug( "%d graph nodes processed"%count )
-
-    def ngramDocGraph(
-            self,
-            ngrammatrix,
-            docmatrix,
-            path,
-            db,
-            periods,
-            whitelist,
-            meta={},
-            ngramgraphconfig=None,
-            documentgraphconfig=None
-        ):
-        """
-        uses loaded numpy arrays to write a NGram & Document graphs
-        given a list of periods and a whitelist
-        """
-        # init graph object
-        ngramDocGraph = graph.Graph()
-        ngramDocGraph.gexf.update(meta)
-        # init subgraphs objects
-        ngramGraph = graph.NGramGraph(
-            db.loadNGram,
-            ngramgraphconfig,
-            self.NGramGraph,
-            whitelist
-        )
-
-        docGraph = graph.DocumentGraph(
-            db.loadDocument,
-            documentgraphconfig,
-            self.DocumentGraph,
-            whitelist
-        )
-
-        for period in periods:
-            # loads the corpus (=period) object
-            corp = db.loadCorpus(period)
-            if corp is None:
-                _logger.warning("Period %s not found, passing"%period)
-                continue
-            docGraph.load( docmatrix, ngramDocGraph, corp )
-            ngramGraph.load( ngrammatrix, ngramDocGraph, corp )
-
-        #self._updateEdgeStorage( db, ngramGraph.cache )
-        #ngramGraph.cache = {}
-        # remove edges from the graph
-        #ngramDocGraph.gexf['edges'] = {}
-        # compiles then writes the gexf file
-        open(path, 'w+b').write(self.render( ngramDocGraph.gexf ))
-        # return relative path
-        return path
 
     def _updateEdgeStorage( self, db, cache ):
         """
@@ -126,3 +72,83 @@ class Exporter (GEXFHandler):
             elif type == 'Document':
                 db.insertDocument( cache[graphid], overwrite=True )
             del cache[graphid]
+
+class Exporter(Exporter):
+    """
+    A Gexf Exporter engine providing various graph construction methods
+    """
+    def new_graph(
+            self,
+            path,
+            db,
+            #periods,
+            #whitelist,
+            meta
+        ):
+        self.path = path
+        self.db = db
+        # init graph object
+        self.graph = {
+            'nodes' : {},
+            'storage': db,
+        }
+        self.graph.update(meta)
+
+    def notify(self, count):
+        if count % 100 == 0:
+            _logger.debug( "%d graph nodes processed"%count )
+
+    def _updateEdgeStorage( self, db, cache ):
+        """
+        Updates objects with the computed edges
+        Then stores it into database
+        """
+        _logger.debug("will update graph edges into storage")
+        for graphid in cache.keys():
+            type, dbid = graphid.split("::")
+            if type == 'NGram':
+                db.insertNGram( cache[graphid], overwrite=True )
+            elif type == 'Document':
+                db.insertDocument( cache[graphid], overwrite=True )
+            del cache[graphid]
+
+    def load_ngrams(self, ngrammatrix, ngramgraphconfig=None):
+        """
+        uses loaded numpy arrays to write a NGram subgraph to the global graph object
+        given a list of periods and a whitelist
+        """
+        #ngramGraph = graph.NGramGraph(
+        #    self.db.loadNGram,
+        #    ngramgraphconfig,
+        #    self.NGramGraph
+        #)
+        #ngramGraph.load( ngrammatrix, self.graph )
+        self.graph['nodes']['NGram'] = {}
+        for key in ngrammatrix.reverseindex.keys():
+            self.graph['nodes']['NGram'][key] = ngrammatrix.get(key, key)
+
+    def load_documents(self, docmatrix, documentgraphconfig=None):
+        """
+        uses loaded numpy arrays to add a Document subgraph to the global graph object
+        given a list of periods and a whitelist
+        """
+        #docGraph = graph.DocumentGraph(
+        #    self.db.loadDocument,
+        #    documentgraphconfig,
+        #    self.DocumentGraph
+        #)
+        #docGraph.load( docmatrix, self.graph )
+        self.graph['nodes']['Document'] = {}
+        for key in docmatrix.reverseindex.keys():
+            self.graph['nodes']['Document'][key] = docmatrix.get(key, key)
+
+
+    def finalize(self):
+        """final mathod compiling the graph and writing it to file"""
+        #self._updateEdgeStorage( db, ngramGraph.cache )
+        # removes edges from the graph
+        #self.graph.gexf['edges'] = {}
+        # compiles then writes
+        open(self.path, 'w+b').write(self.render( self.graph ))
+        # returns relative path
+        return self.path

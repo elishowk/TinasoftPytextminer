@@ -22,80 +22,19 @@ import datetime
 import itertools
 import math
 from decimal import *
+import numpy
 
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
-class Graph():
+class Graph(dict):
     """
     Main Graph class for graph construction
     """
-    attrTypes = {
-        'int' : 'integer',
-        'int8' : 'integer',
-        'int16' : 'integer',
-        'int32' : 'integer',
-        'long' : 'long',
-        'bool' : 'boolean',
-        'float' : 'float',
-        'float64' : 'float',
-        'str' : 'string',
-        'unicode' : 'string',
-    }
 
-    def __init__( self ):
-        self.gexf = {
-            'description' : "tinasoft",
-            'creators'    : ["tinasoft team"],
-            'date' : "%s"%datetime.datetime.now().strftime("%Y-%m-%d"),
-            'type'        : 'static',
-            'attrnodes'   : {},
-            'attredges'   : {},
-            'nodes': {},
-            'edges' : {},
-        }
-
-    def updateAttrNodes( self, attr ):
-        for name, value in attr.iteritems():
-            if name not in self.gexf['attrnodes']:
-                self.gexf['attrnodes'][name] = self.attrTypes[ value.__class__.__name__ ]
-
-    def updateAttrEdges( self, attr ):
-        for name, value in attr.iteritems():
-            if name not in self.gexf['attredges']:
-                self.gexf['attredges'][name] = self.attrTypes[ value.__class__.__name__ ]
-
-    def addNode( self, nodeid, weight, **kwargs ):
-        if nodeid not in self.gexf['nodes']:
-            self.gexf['nodes'][nodeid] = kwargs
-            self.gexf['nodes'][nodeid]['weight'] = weight
-            self.updateAttrNodes( kwargs )
-        else:
-            # sums the weight attr
-            self.gexf['nodes'][nodeid]['weight'] += weight
-
-    def addEdge( self, source, target, weight, type, overwrite, **kwargs ):
-        if source not in self.gexf['edges']:
-            self.gexf['edges'][source] = {}
-        if target not in self.gexf['edges'][source]:
-            self.gexf['edges'][source][target] = kwargs
-            self.gexf['edges'][source][target]['weight'] = weight
-            self.gexf['edges'][source][target]['type'] = type
-            self.updateAttrEdges( kwargs )
-        else:
-            if overwrite is False:
-                # sums the weight attr
-                self.gexf['edges'][source][target]['weight'] += weight
-            else:
-                # overwrites weight
-                self.gexf['edges'][source][target]['weight'] = weight
-
-    def delEdge( self, source, target=None ):
-        if target is None:
-            del self.gexf['edges'][source]
-        else:
-            del self.gexf['edges'][source][target]
-
+    def __init__( self, storage ):
+        self.storage= storage
+        self.nodes = {}
 
 class SubGraph():
     """
@@ -135,59 +74,6 @@ class SubGraph():
         # get its own thread pool
         #self.thread_pool = threadpool.ThreadPool(50)
 
-    def notify( self, count, name="" ):
-        """
-        notifer filtering quantity of messages
-        """
-        if count % 10000 == 0:
-            _logger.debug( "%d %s subgraph %s processed"%(count,self.id_prefix,name) )
-
-    def mapEdges( self, graph ):
-        """
-        Method to overwrite
-        Maps the whole graph to transform, filter OR create edges weight to the result of SubGraph.proximity measure
-        """
-        pass
-
-    def mapNodes(self, graph):
-        """
-        Method to overwrite
-        Maps the whole graph to transform or filter nodes
-        """
-        pass
-
-    def addEdge( self, graph, source, target, weight, type, overwrite, **kwargs ):
-        """
-        Adds an edge to the graph
-        Source and Target are already graph nodes ID : eg "Subgraph::123457654"
-        """
-        graph.addEdge( self.id_prefix + source, self.id_prefix + target, weight, type, overwrite, **kwargs )
-
-    def delEdge( self, graph, source, target=None ):
-        if target is None:
-            graph.delEdge( self.id_prefix + source, None )
-        else:
-            graph.delEdge( self.id_prefix + source, self.id_prefix + target )
-
-    def addNode( self, graph, obj_id, weight ):
-        """
-        Adds a node to the graph
-        """
-        graphnodeid = self.id_prefix+obj_id
-        if graphnodeid not in self.cache:
-            obj = self.db_load_object( obj_id )
-            if obj is None:
-                _logger.error( "Node object %s not found in db"%obj_id )
-                return
-            self.cache[ graphnodeid ] = obj
-        nodeattr = {
-            #'category' : 'NGram',
-            'label' :  self.cache[ graphnodeid ].getLabel(),
-            #'id' :  self.cache[ nodeid ]['id'],
-        }
-        graph.addNode( graphnodeid, weight, **nodeattr )
-
-
 
 class NGramGraph(SubGraph):
     """
@@ -201,23 +87,33 @@ class NGramGraph(SubGraph):
     }
     """
 
-    def __init__(self, db_load_obj, opts, defaults, whitelist):
-
+    def __init__(self, db_load_obj, opts, defaults):
         SubGraph.__init__(self, db_load_obj, opts, defaults)
-
         self.id_prefix = "NGram::"
-        self.whitelist = whitelist
 
-    def load( self, matrix, graph, corp ):
-        for ngram, occ in self.whitelist['edges']['NGram'].iteritems():
+    def load( self, matrix, graph ):
+        """
+        loads nodes then edges into graph object
+        """
+        index = {}
+        for key, i in matrix.reverseindex.iteritems():
+            index[i] = key
+
+        for ngram in matrix.reverseindex.keys():
+            occ = matrix.get(ngram, ngram)
             if occ <= self.nodethreshold[1] and occ >= self.nodethreshold[0]:
                 self.addNode( graph, ngram, occ )
-        for (ng1, ng2) in itertools.permutations(self.whitelist['edges']['NGram'].keys(), 2):
-            # TODO update Documents in DB
-            # LAST ERROR : matrix index out of range !!
-            weight = matrix.get(ng1, ng2)
-            if weight <= self.edgethreshold[1] and weight >= self.edgethreshold[0]:
-                self.addEdge( graph, ng1, ng2, weight, 'directed', False )
+        i = 0
+        while matrix.array.shape[0] > 0:
+            row = matrix.array[0,:]
+            matrix.array = numpy.delete( matrix.array, 0, 0 )
+            ng1 = index[i]
+            for j in range(len(row)):
+                if i != j:
+                    ng2 = index[j]
+                    weight = row[j]
+                    if weight <= self.edgethreshold[1] and weight >= self.edgethreshold[0]:
+                        self.addEdge( graph, ng1, ng2, weight, 'directed', False )
 
 
 class DocumentGraph(SubGraph):
@@ -230,22 +126,22 @@ class DocumentGraph(SubGraph):
         'nodethreshold': [1,float('inf')]
     }
     """
-    def __init__(self, db_load_obj, opts, defaults, whitelist):
-
+    def __init__(self, db_load_obj, opts, defaults):
         SubGraph.__init__(self, db_load_obj, opts, defaults)
-        self.whitelist = whitelist
         self.id_prefix = "Document::"
+        #self.periods = periods
 
-    def load( self, matrix, graph, corp ):
+    def load( self, matrix, graph ):
         """
         Symmetric edges
         """
-        # loads documents nodes
-        for doc_id, occ in corp['edges']['Document'].iteritems():
+        # loads document nodes
+        for doc_id in matrix.reverseindex.keys():
+            occ = matrix.get(doc_id, doc_id)
             if occ <= self.nodethreshold[1] and occ >= self.nodethreshold[0]:
                 self.addNode( graph, doc_id, occ )
-        # loads documents edges
-        for doc1, doc2 in itertools.permutations( corp['edges']['Document'].keys(), 2 ):
+        # only combinations, matrix is symmetric
+        for (doc1, doc2) in itertools.combinations( matrix.reverseindex.keys(), 2 ):
             # TODO update Documents in DB
             weight = matrix.get(doc1, doc2)
             if weight <= self.edgethreshold[1] and weight >= self.edgethreshold[0]:
