@@ -177,9 +177,6 @@ class Adjacency(object):
             return
         self.name = name
         self._loadOptions(opts, config)
-
-        # sorted self.index contains ALL nodes' id, from ALL periods
-        self.index = copy(index)
         # sets intersection of ngrams from the whitelist and the corpus
         self.periodngrams = set(whitelist['edges']['NGram'].keys()) & set(self.corpus['edges']['NGram'].keys())
 
@@ -335,15 +332,16 @@ class DocAdjacency(Adjacency):
         doc1ngrams = self.documentngrams[document['id']]
 
         for docid in self.documentngrams.keys():
+            print "%s - %s"%(document['id'],docid)
             doc2ngrams = self.documentngrams[docid]
             ngramsintersection = doc1ngrams & doc2ngrams
-            ngramsunion_diff = (doc1ngrams | doc2ngrams) - (ngramsintersection)
+            ngramsunion = (doc1ngrams | doc2ngrams)
             weight = 0
             numerator = 0
             for ngi in ngramsintersection:
                 numerator += 1/(math.log( 1 + self.corpus['edges']['NGram'][ngi] ))
-            denominator = copy(numerator)
-            for ngi in ngramsunion_diff:
+            denominator = 0
+            for ngi in ngramsunion:
                 denominator += 1/(math.log( 1 + self.corpus['edges']['NGram'][ngi] ))
             if denominator > 0:
                 weight = numerator / denominator
