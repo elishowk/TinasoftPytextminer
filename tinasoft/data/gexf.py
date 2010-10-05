@@ -114,41 +114,31 @@ class Exporter(Exporter):
 
     def load_ngrams(self, ngrammatrix, ngramgraphconfig=None):
         """
-        uses loaded numpy arrays to write a NGram subgraph to the global graph object
-        given a list of periods and a whitelist
+        uses numpy array to write a NGram subgraph to the graph object
         """
-        #ngramGraph = graph.NGramGraph(
-        #    self.db.loadNGram,
-        #    ngramgraphconfig,
-        #    self.NGramGraph
-        #)
-        #ngramGraph.load( ngrammatrix, self.graph )
+        #TODO write and filter edges
         self.graph['nodes']['NGram'] = {}
         for key in ngrammatrix.reverseindex.keys():
-            self.graph['nodes']['NGram'][key] = ngrammatrix.get(key, key)
+            weight = ngrammatrix.get(key, key)
+            if weight <= ngramgraphconfig['nodethreshold'][1] and weight >= ngramgraphconfig['nodethreshold'][0]:
+                self.graph['nodes']['NGram'][key] = ngrammatrix.get(key, key)
 
     def load_documents(self, docmatrix, documentgraphconfig=None):
         """
-        uses loaded numpy arrays to add a Document subgraph to the global graph object
-        given a list of periods and a whitelist
+        uses a numpy array to add a Document subgraph to the global graph object
         """
-        #docGraph = graph.DocumentGraph(
-        #    self.db.loadDocument,
-        #    documentgraphconfig,
-        #    self.DocumentGraph
-        #)
-        #docGraph.load( docmatrix, self.graph )
+        #TODO write and filter edges
         self.graph['nodes']['Document'] = {}
         for key in docmatrix.reverseindex.keys():
-            self.graph['nodes']['Document'][key] = docmatrix.get(key, key)
+            weight = docmatrix.get(key, key)
+            if weight <= documentgraphconfig['nodethreshold'][1] and weight >= documentgraphconfig['nodethreshold'][0]:
+                self.graph['nodes']['Document'][key] = docmatrix.get(key, key)
 
 
     def finalize(self):
-        """final mathod compiling the graph and writing it to file"""
-        #self._updateEdgeStorage( db, ngramGraph.cache )
-        # removes edges from the graph
-        #self.graph.gexf['edges'] = {}
-        # compiles then writes
+        """
+        final method compiling the graph and writing it to file
+        """
         open(self.path, 'w+b').write(self.render( self.graph ))
         # returns relative path
         return self.path

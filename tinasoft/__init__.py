@@ -364,7 +364,7 @@ class TinaApp(object):
             outpath = self._get_user_filepath(dataset, 'gexf', params_string)
         else:
             outpath = self._get_user_filepath(dataset, 'gexf', params_string + "_%s"%outpath)
-
+        outpath = outpath + ".gexf"
         # import whitelist
         whitelist = self.import_whitelist(whitelistpath)
         # creates the GEXF exporter
@@ -405,33 +405,40 @@ class TinaApp(object):
         #depmodules=('math','logging','cPickle','os','sqlite3','itertools','numpy','tinasoft','tinasoft.pytextminer.adjacency')
         #depfunctions=(get_storage, Engine, _factory, _check_protocol)
 
+        # updates default config with parameters
+        self.config['datamining']['NGramGraph'].update(ngramgraphconfig)
+        self.config['datamining']['DocumentGraph'].update(documentgraphconfig)
+        ngramgraphconfig = self.config['datamining']['NGramGraph']
+        documentgraphconfig = self.config['datamining']['DocumentGraph']
+
         ngram_matrix_reducer = adjacency.MatrixReducer( list(ngram_index) )
         ngram_args = []
+
         periods_to_process = ["2"]
+
         for process_period in periods_to_process:
-            ngram_args = ( self.config, self.storage, process_period, ngramgraphconfig, ngram_index )
-            self.logger.debug( "executing ngram_adj_task" )
+            ngram_args = ( self.config, self.storage, process_period, ngramgraphconfig, ngram_index, whitelist )
             try:
                 ngram_adj_gen = adjacency.ngram_adj_task( *ngram_args )
                 while 1:
                     ngram_matrix_reducer.add( ngram_adj_gen.next() )
             except StopIteration, si:
-                self.logger.debug("NGram matrix reduced for period %s"%process_period)
+                pass
         self.logger.debug("loading Ngram nodes into graph data")
         GEXFWriter.load_ngrams( ngram_matrix_reducer, ngramgraphconfig = ngramgraphconfig)
         del ngram_matrix_reducer
 
-        #doc_args = []
-        #doc_matrix_reducer = adjacency.MatrixReducer( list(doc_index) )
+        doc_args = []
+        doc_matrix_reducer = adjacency.MatrixReducer( list(doc_index) )
 
-        #for process_period in periods_to_process:
-        #    doc_args = ( self.config, self.storage, process_period, documentgraphconfig, doc_index )
-        #    try:
-        #        doc_adj_gen = adjacency.document_adj_task( *doc_args )
-        #        while 1:
-        #            doc_matrix_reducer.add( doc_adj_gen.next() )
-        #    except StopIteration, si:
-        #        self.logger.debug("Document matrix reduced for period %s"%process_period)
+        for process_period in periods_to_process:
+            doc_args = ( self.config, self.storage, process_period, documentgraphconfig, doc_index, whitelist )
+            try:
+                doc_adj_gen = adjacency.document_adj_task( *doc_args )
+                while 1:
+                    doc_matrix_reducer.add( doc_adj_gen.next() )
+            except StopIteration, si:
+                self.logger.debug("Document matrix reduced for period %s"%process_period)
 
             #jobs += [job_server.submit(
             #    ngram_adj_task,
@@ -442,9 +449,9 @@ class TinaApp(object):
             #    globals=globals()
             #)]
 
-        #self.logger.debug("loading Document nodes into graph data")
-        #GEXFWriter.load_documents( doc_matrix_reducer, documentgraphconfig = documentgraphconfig)
-        #del doc_matrix_reducer
+        self.logger.debug("loading Document nodes into graph data")
+        GEXFWriter.load_documents( doc_matrix_reducer, documentgraphconfig = documentgraphconfig)
+        del doc_matrix_reducer
 
         #self.logger.debug("wait for jobs to finish")
         #job_server.wait()

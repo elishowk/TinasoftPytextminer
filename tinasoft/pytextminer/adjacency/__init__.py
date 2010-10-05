@@ -23,10 +23,10 @@ import math
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
-def ngram_adj_task( config, storage, period, ngramgraphconfig, matrix_index ):
+def ngram_adj_task( config, storage, period, ngramgraphconfig, matrix_index, whitelist ):
     try:
-        ngramAdj = NgramAdjacency( config, storage, period, ngramgraphconfig, matrix_index )
-        submatrix_gen = ngramAdj.walkDocuments()
+        adj = NgramAdjacency( config, storage, period, ngramgraphconfig, matrix_index, whitelist )
+        submatrix_gen = adj.generator()
         while 1:
             yield submatrix_gen.next()
     except Warning, warn:
@@ -35,20 +35,24 @@ def ngram_adj_task( config, storage, period, ngramgraphconfig, matrix_index ):
     except StopIteration, si:
         _logger.debug("NgramAdjancency on period %s is finished"%period)
 
-def document_adj_task( config, storage, period, documentgraphconfig, matrix_index):
+def document_adj_task( config, storage, period, documentgraphconfig, matrix_index, whitelist ):
     try:
-        documentAdj = DocAdjacency( config, storage, period, documentgraphconfig, matrix_index )
-        return documentAdj.walkDocuments()
+        adj = DocAdjacency( config, storage, period, documentgraphconfig, matrix_index, whitelist )
+        submatrix_gen = adj.generator()
+        while 1:
+            yield submatrix_gen.next()
     except Warning, warn:
         _logger.warning( str(warn) )
         return
+    except StopIteration, si:
+        _logger.debug("DocAdjacency on period %s is finished"%period)
 
 class Matrix():
     """
     Matrix class to build adjacency matrix using numpy
     Manages external IDs with an auto-incremented internal index
     """
-    def __init__(self, index, valuesize=int32):
+    def __init__(self, index, valuesize=float64):
         """
         Creates the numpy array and the index dictionary
         """
@@ -88,23 +92,58 @@ class Matrix():
         else:
             self.array[ index1, index2 ] = value
 
-    #def extract_matrix(self, minCooc=1):
+class SymmetricMatrix(Matrix):
+    """
+    Specialized semi numpy 2D array container
+    Gets and Set only upper part of the matrix
+    SymmetricMatrix.get(key1,key2) === SymmetricMatrix.get(key2,key1)
+    DO NOT increment values twice !!!
+    """
+    def __init__(self, *args, **kwargs):
+        Matrix.__init__(self, *args, **kwargs)
+
+    def get( self, key1, key2=None ):
+        """
+        Getter returning rows or cell from the matrix
+        """
+        if key2 is None:
+            return self.array[ self._getindex(key1), : ]
+        else:
+            indices = [self._getindex(key1), self._getindex(key2)]
+            indices.sort()
+            return self.array[ indices[0], indices[1] ]
+
+    def set( self, key1, key2, value=1, overwrite=False ):
+        """
+        Increments cooc array using boolean multiplication
+        Sort keys and avoid duplicates values.
+        """
+        indices = [self._getindex(key1), self._getindex(key2)]
+        indices.sort()
+        if overwrite is False:
+            self.array[ indices[0], indices[1] ] += value
+        else:
+            self.array[ indices[0], indices[1] ] = value
+
+    def extract_matrix(self, minCooc=1):
         """
         yields all values of the upper part of the matrix
         associating ngrams with theirs tinasoft's id
         """
-    #    countcooc = 0
-    #    for tuple1, tuple2 in itertools.permutations( self.reverseindex.items(), 2 ):
-    #        row = {}
-    #        coocline = self.matrix[i,:]
-    #        for cooc in coocline:
-    #            if cooc >= minCooc:
-    #                countcooc += 1
-    #                ngj = self.id_index[j]
-    #                row[ngj] = cooc
-    #        if len(row.keys()) > 0:
-    #            yield (ngi, row)
-    #    _logger.debug("found %d non-zeros cooccurrences values"%countcooc)
+        countcooc = 0
+        for i in range(self.size):
+            ngi = self.id_index[i]
+            row = {}
+            coocline = self.matrix[i,:]
+            for j in range(self.size - i):
+                cooc = coocline[i+j]
+                if cooc >= minCooc:
+                    countcooc += 1
+                    ngj = self.id_index[j]
+                    row[ngj] = cooc
+            if len(row.keys()) > 0:
+                yield (ngi, row)
+        _logger.debug("found %d non-zero cooccurrences values"%countcooc)
 
 class MatrixReducer(Matrix):
     """
@@ -116,18 +155,19 @@ class MatrixReducer(Matrix):
     def add(self, submatrix):
         """"callback adding a submatrix into the self-contained matrix"""
         if submatrix is not None:
+            for external in submatrix.reverseindex.keys():
+                self.set( external, external, value=submatrix.get( external, external ), overwrite=False )
             for (external1, external2) in itertools.permutations( submatrix.reverseindex.keys(), 2):
                 addvalue = submatrix.get( external1, external2 )
                 if addvalue != 0:
                     self.set(external1, external2, value=addvalue, overwrite=False)
-
 
 class Adjacency(object):
     """
     Base class
     A simple adjacency matrix processor
     """
-    def __init__(self, config, storage, corpusid, opts, name, index):
+    def __init__( self, config, storage, corpusid, opts, name, index, whitelist ):
         """
         Attach storage, a corpus objects and init the Matrix
         """
@@ -141,7 +181,8 @@ class Adjacency(object):
             raise Warning('Corpus not found')
         self.name = name
         self._loadOptions(opts)
-
+        self.index = index
+        self.whitelist = set( whitelist['edges']['NGram'].keys() )
 
     def _loadDefaults(self):
         """
@@ -157,10 +198,6 @@ class Adjacency(object):
         except Exception, exc:
             _logger.error("impossible to load %s"%self.config['datamining'][self.name]['proximity'])
 
-    def proximity(self, document):
-        raise Exception("proximity method not defined")
-        return 0
-
     def _loadOptions(self, opts):
         """
         First laods default options
@@ -174,12 +211,17 @@ class Adjacency(object):
         try:
             if 'proximity' in opts:
                 # string eval to method
-                _logger.debug("setting up proximity to %s"%opts['proximity'])
+                _logger.debug("setting up proximity from paramater to %s"%opts['proximity'])
                 self.proximity = getattr(self, opts['proximity'])
                 #del opts['proximity']
         except Exception, exc:
             _logger.error("impossible to load %s"%opts['proximity'])
             self.proximity = None
+
+
+    def proximity(self, document):
+        raise Exception("proximity method not defined")
+        return 0
 
     def walkDocuments(self):
         """
@@ -192,7 +234,6 @@ class Adjacency(object):
             obj = self.storage.loadDocument( doc_id )
             if obj is not None:
                 yield obj
-                #self.proximity( obj )
                 doccount += 1
                 self.notify( doccount, totaldocs )
             else:
@@ -209,25 +250,30 @@ class NgramAdjacency(Adjacency):
     """
     A NGram graph adjacency processor
     """
-    def __init__(self, config, storage, corpusid, opts, index):
-        Adjacency.__init__(self, config, storage, corpusid, opts, 'NGramGraph', index)
+    def __init__(self, config, storage, corpusid, opts, index, whitelist ):
+        Adjacency.__init__(self, config, storage, corpusid, opts, 'NGramGraph', index, whitelist )
 
     def cooccurrences( self, document ):
-        submatrix = Matrix( document['edges']['NGram'].keys(), valuesize=float32 )
-        valid_keys = set(document['edges']['NGram'].keys()) & set(self.corpus['edges']['NGram'].keys())
-        map = dict.fromkeys(valid_keys, 1)
+        """
+        simple document cooccurrences matrix calculator
+        """
+        submatrix = SymmetricMatrix( document['edges']['NGram'].keys(), valuesize=float32 )
+        valid_keys = set(document['edges']['NGram'].keys()) & self.whitelist
         # map is a unity slice of the matrix
-        for (ngi, ngj) in itertools.combinations(map.keys(), 2):
-            if ngi != ngj:
-                submatrix.set( ngi, ngj, 1 )
-                submatrix.set( ngj, ngi, 1 )
-            else:
-                submatrix.set( ngj, ngi, value=self.corpus['edges']['NGram'][ngi], overwrite=True )
+        for (ngi, ngj) in itertools.combinations(valid_keys, 2):
+            submatrix.set( ngi, ngj, 1 )
+            submatrix.set( ngj, ngi, 1 )
+        for ngi in valid_keys:
+            # diagonal set to node occurrence
+            submatrix.set( ngi, ngi, value=self.corpus['edges']['NGram'][ngi], overwrite=True )
         return submatrix
 
     def pseudoInclusion( self, document ):
+        """
+        uses cooccurrences matrix to process pseudo-inclusion proximities
+        """
         submatrix = self.cooccurrences( document )
-        valid_keys = set(document['edges']['NGram'].keys()) & set(self.corpus['edges']['NGram'].keys())
+        valid_keys = set(document['edges']['NGram'].keys()) & self.whitelist
         alpha = self.config['datamining']['NGramGraph']['alpha']
         for (ng1, ng2) in itertools.permutations(valid_keys, 2):
             if ng1 != ng2:
@@ -239,12 +285,12 @@ class NgramAdjacency(Adjacency):
             # else : let the initial occurence value into the DB
         return submatrix
 
-    def walkDocuments(self):
+    def generator(self):
         """
         walks through a list of documents into a corpus
-        to process cooccurences
+        to process proximities
         """
-        generator = super(NgramAdjacency, self).walkDocuments()
+        generator = self.walkDocuments()
         try:
             while 1:
                 document = generator.next()
@@ -256,31 +302,31 @@ class DocAdjacency(Adjacency):
     """
     A Document graph adjacency processor
     """
-    def __init__(self, config, storage, corpusid, opts, index ):
-        Adjacency.__init__(self, config, storage, corpusid, opts, 'DocumentGraph', index)
-
-    def _loadDocument( self, docid ):
-        if docid not in self.cache['Document']:
-            self.cache['Document'][docid] = self.storage.loadDocument(docid)
+    def __init__(self, config, storage, corpusid, opts, index, whitelist ):
+        Adjacency.__init__(self, config, storage, corpusid, opts, 'DocumentGraph', index, whitelist )
 
     def sharedNgrams( self, document ):
         """
         intersection of doc's ngrams every other document
         then return length of the intersection with doc2 ngrams
         """
-        submatrix = Matrix( self.corpus['edges']['Document'].keys(), valuesize=int32 )
-        ngrams = set(document['edges']['NGram'].keys()) & set(self.corpus['edges']['NGram'].keys())
+        submatrix = SymmetricMatrix( self.corpus['edges']['Document'].keys(), valuesize=int32 )
+        ngrams = set(document['edges']['NGram'].keys()) & self.whitelist
         documentobj = self.storage.loadDocument(docid)
 
         for docid in self.corpus['edges']['Document'].iterkeys():
+            # trick to calculate doc proximity only on time
+            if submatrix.get(document['id'], docid) != 0 or submatrix.get( docid, document['id'] ) != 0:
+                _logger.debug("skipping doc proximity")
+                continue
             if docid != document['id']:
                 documentobj = self.storage.loadDocument(docid)
                 if documentobj is None: continue
-
                 prox = len( ngrams & documentobj['edges']['NGram'].keys() )
                 submatrix.set( document['id'], docid, value=prox )
-                submatrix.set( docid, document['id'], value=prox )
+
             else:
+                # diagonal set to node weight
                 submatrix.set( docid, docid, value=self.corpus['edges']['Document'][docid], overwrite=True )
         return submatrix
 
@@ -289,23 +335,26 @@ class DocAdjacency(Adjacency):
         """
         Jaccard-like distance
         """
-        submatrix = Matrix( self.corpus['edges']['Document'].keys(), valuesize=float32 )
-        doc1ngrams = set(document['edges']['NGram'].keys())
-        #self.documents[document['id']] = ngrams
-        for docid in self.corpus['edges']['Document'].iterkeys():
+        submatrix = SymmetricMatrix( self.corpus['edges']['Document'].keys(), valuesize=float32 )
+        doc1ngrams = set(document['edges']['NGram'].keys()) & self.whitelist
+        #TODO reduce calculation to the symmetric matrix !!!
+        for docid in self.index:
+            # trick to calculate doc proximity only on time
+            if submatrix.get(document['id'], docid) != 0 or submatrix.get( docid, document['id'] ) != 0:
+                _logger.debug("skipping doc proximity")
+                continue
             if docid == document['id']:
+                # diagonal set to node weight
                 submatrix.set( docid, docid, value=self.corpus['edges']['Document'][docid], overwrite=True )
+                #_logger.debug(  "setting doc matrix diagonal to %d"%submatrix.get(docid, docid) )
             else:
                 documentobj = self.storage.loadDocument(docid)
                 if documentobj is None: continue
 
-                doc2ngrams = set(documentobj['edges']['NGram'].keys())
-
+                doc2ngrams = set(documentobj['edges']['NGram'].keys()) & self.whitelist
                 ngramsintersection = doc1ngrams & doc2ngrams
                 ngramsunion = doc1ngrams | doc2ngrams
-
                 weight = 0
-
                 numerator = 0
                 for ngi in ngramsintersection:
                     numerator += 1/(math.log( 1 + self.corpus['edges']['NGram'][ngi] ))
@@ -315,15 +364,14 @@ class DocAdjacency(Adjacency):
                 if denominator > 0:
                     weight = numerator / denominator
                 submatrix.set(document['id'], docid, weight)
-                submatrix.set(docid, document['id'], weight)
+
         return submatrix
 
-    def walkDocuments(self):
+    def generator(self):
         """
-        walks through a list of documents into a corpus
-        to process cooccurences
+        overwrites Adjacency.walkDocuments() to return processed proximities
         """
-        generator = super(DocAdjacency, self).walkDocuments()
+        generator = self.walkDocuments()
         try:
             while 1:
                 document = generator.next()
