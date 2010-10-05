@@ -400,6 +400,11 @@ class TinaApp(object):
             else:
                 self.logger.debug('Period %s not found in database, skipping it from generate_graph'%str(period))
 
+        doc_index = list(doc_index)
+        doc_index.sort()
+        ngram_index = list(ngram_index)
+        ngram_index.sort()
+
         #jobs=[]
         #job_server = pp.Server()
         #depmodules=('math','logging','cPickle','os','sqlite3','itertools','numpy','tinasoft','tinasoft.pytextminer.adjacency')
@@ -411,28 +416,30 @@ class TinaApp(object):
         ngramgraphconfig = self.config['datamining']['NGramGraph']
         documentgraphconfig = self.config['datamining']['DocumentGraph']
 
-        ngram_matrix_reducer = adjacency.MatrixReducer( list(ngram_index) )
-        ngram_args = []
-
-        periods_to_process = ["2"]
+        ngram_matrix_reducer = adjacency.MatrixReducer( ngram_index )
 
         for process_period in periods_to_process:
             ngram_args = ( self.config, self.storage, process_period, ngramgraphconfig, ngram_index, whitelist )
+            adj = adjacency.NgramAdjacency( *ngram_args )
+            adj.diagonal(ngram_matrix_reducer)
             try:
                 ngram_adj_gen = adjacency.ngram_adj_task( *ngram_args )
                 while 1:
                     ngram_matrix_reducer.add( ngram_adj_gen.next() )
             except StopIteration, si:
-                pass
+                self.logger.debug("NGram matrix reduced for period %s"%process_period)
+
+
         self.logger.debug("loading Ngram nodes into graph data")
         GEXFWriter.load_ngrams( ngram_matrix_reducer, ngramgraphconfig = ngramgraphconfig)
         del ngram_matrix_reducer
 
-        doc_args = []
-        doc_matrix_reducer = adjacency.MatrixReducer( list(doc_index) )
+        doc_matrix_reducer = adjacency.MatrixReducer( doc_index )
 
         for process_period in periods_to_process:
             doc_args = ( self.config, self.storage, process_period, documentgraphconfig, doc_index, whitelist )
+            adj = adjacency.DocAdjacency( *doc_args )
+            adj.diagonal(doc_matrix_reducer)
             try:
                 doc_adj_gen = adjacency.document_adj_task( *doc_args )
                 while 1:
