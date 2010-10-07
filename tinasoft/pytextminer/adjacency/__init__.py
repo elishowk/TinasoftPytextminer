@@ -23,7 +23,7 @@ import math
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
-def ngram_adj_task( config, storage, period, ngramgraphconfig, matrix_index, whitelist ):
+def ngram_submatrix_task( config, storage, period, ngramgraphconfig, matrix_index, whitelist ):
     try:
         adj = NgramAdjacency( config, storage, period, ngramgraphconfig, matrix_index, whitelist )
         submatrix_gen = adj.generator()
@@ -35,7 +35,7 @@ def ngram_adj_task( config, storage, period, ngramgraphconfig, matrix_index, whi
     except StopIteration, si:
         _logger.debug("NgramAdjancency on period %s is finished"%period)
 
-def document_adj_task( config, storage, period, documentgraphconfig, matrix_index, whitelist ):
+def document_submatrix_task( config, storage, period, documentgraphconfig, matrix_index, whitelist ):
     try:
         adj = DocAdjacency( config, storage, period, documentgraphconfig, matrix_index, whitelist )
         submatrix_gen = adj.generator()
@@ -92,6 +92,7 @@ class Matrix():
         else:
             self.array[ index1, index2 ] = value
 
+
 class SymmetricMatrix(Matrix):
     """
     Specialized semi numpy 2D array container
@@ -125,25 +126,7 @@ class SymmetricMatrix(Matrix):
         else:
             self.array[ indices[0], indices[1] ] = value
 
-    def extract_matrix(self, minCooc=1):
-        """
-        yields all values of the upper part of the matrix
-        associating ngrams with theirs tinasoft's id
-        """
-        countcooc = 0
-        for i in range(self.size):
-            ngi = self.id_index[i]
-            row = {}
-            coocline = self.matrix[i,:]
-            for j in range(self.size - i):
-                cooc = coocline[i+j]
-                if cooc >= minCooc:
-                    countcooc += 1
-                    ngj = self.id_index[j]
-                    row[ngj] = cooc
-            if len(row.keys()) > 0:
-                yield (ngi, row)
-        _logger.debug("found %d non-zero cooccurrences values"%countcooc)
+
 
 class MatrixReducer(Matrix):
     """
@@ -157,6 +140,55 @@ class MatrixReducer(Matrix):
         if submatrix is not None:
             for (external1, external2) in itertools.permutations( submatrix.reverseindex.keys(), 2):
                 self.set(external1, external2, value=submatrix.get( external1, external2 ), overwrite=False)
+
+    def extract_semiupper_matrix(self, min=1, max=None):
+        """
+        yields all values of the upper part of the matrix
+        associating ngrams with theirs tinasoft's id
+        """
+        count = 0
+        id_index = {}
+        for key, idx in self.reverseindex.iteritems():
+            id_index[idx] = key
+        for i in range(self.array.shape[0]):
+            nodei = id_index[i]
+            row = {}
+            proxline = self.array[i,:]
+            for j in range(self.array.shape[0] - i):
+                cooc = proxline[i+j]
+                if cooc >= min:
+                    if max is not None and cooc <= max:
+                        count += 1
+                        nodej = id_index[j]
+                        row[nodej] = cooc
+            if len(row.keys()) > 0:
+                yield (nodei, row)
+        _logger.debug("found %d valid proximity values"%count)
+
+    def extract_matrix(self, min=1, max=None):
+        """
+        yields all values of the matrix
+        associating ngrams with theirs tinasoft's id
+        """
+        count = 0
+        id_index = {}
+        for key, idx in self.reverseindex.iteritems():
+            id_index[idx] = key
+
+        for i in range(self.array.shape[0]):
+            nodei = id_index[i]
+            row = {}
+            arrayline = self.array[i,:]
+            for j in range(self.array.shape[0]):
+                prox = arrayline[j]
+                if prox >= min:
+                    if max is not None and cooc <= max:
+                        count += 1
+                        nodej = id_index[j]
+                        row[nodej] = prox
+            if len(row.keys()) > 0:
+                yield (nodei, row)
+        _logger.debug("found %d valid proximity values"%count)
 
 class Adjacency(object):
     """
@@ -265,9 +297,10 @@ class NgramAdjacency(Adjacency):
         """
         uses cooccurrences matrix to process pseudo-inclusion proximities
         """
-        submatrix = Matrix( document['edges']['NGram'].keys(), valuesize=float32 )
+        docngrams = document['edges']['NGram'].keys()
+        submatrix = Matrix( docngrams, valuesize=float32 )
         coocsubmatrix = self.cooccurrences( document )
-        valid_keys = set(document['edges']['NGram'].keys()) & self.periodngrams
+        valid_keys = set(docngrams) & self.periodngrams
 
         for (ng1, ng2) in itertools.permutations(valid_keys, 2):
             # permutations => ng1 != ng2
@@ -314,7 +347,7 @@ class DocAdjacency(Adjacency):
         """
         number of ngram shared by 2 documents dividedby the max over the period
         """
-        submatrix = SymmetricMatrix( self.corpus['edges']['Document'].keys(), valuesize=float32 )
+        submatrix = Matrix( self.corpus['edges']['Document'].keys(), valuesize=float32 )
         doc1ngrams = self.documentngrams[document['id']]
         for docid in self.documentngrams.keys():
             if docid != document['id']:
@@ -328,11 +361,10 @@ class DocAdjacency(Adjacency):
         """
         Jaccard-like distance
         """
-        submatrix = SymmetricMatrix( self.corpus['edges']['Document'].keys(), valuesize=float32 )
+        submatrix = Matrix( self.corpus['edges']['Document'].keys(), valuesize=float32 )
         doc1ngrams = self.documentngrams[document['id']]
 
         for docid in self.documentngrams.keys():
-            print "%s - %s"%(document['id'],docid)
             doc2ngrams = self.documentngrams[docid]
             ngramsintersection = doc1ngrams & doc2ngrams
             ngramsunion = (doc1ngrams | doc2ngrams)

@@ -46,7 +46,7 @@ class NGram(PyTextMiner):
 
         # default emtpy edges
         if edges is None:
-            edges = { 'Document' : {}, 'Corpus' : {}, 'NGram': {}, 'label': {}, 'postag' : {}}
+            edges = { 'label': {}, 'postag' : {} }
         PyTextMiner.__init__(self, normalized_tokens, id, label, edges, **metas)
         # updates majors forms before returning instance
         self.updateMajorForm(label, postag_label)
@@ -69,9 +69,10 @@ class NGram(PyTextMiner):
         return word.lower()
 
     @staticmethod
-    def getId(tokens):
+    def getNormId(tokens):
         """
         Utility returning a normalized NGram ID given a tokenlist
+        For external use
         """
         # normalized_tokens list to produce an unique id
         normalized_tokens = [NGram.normalize(word) for word in tokens]

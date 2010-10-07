@@ -26,6 +26,8 @@ __all__ = [
 
 from hashlib import sha256
 from uuid import uuid4
+import codecs
+import unicodedata
 
 import logging
 _logger = logging.getLogger('TinaAppLogger')
@@ -47,19 +49,22 @@ class PyTextMiner(object):
         else:
             self.id = id
         self.label = label
-        self.loadEdges( edges )
-        self.loadOptions( metas )
+        self._loadEdges( edges )
+        self._loadOptions( metas )
 
-    def loadOptions(self, metas):
+    def _loadOptions(self, metas):
         """
         Transforms metas to obj attributes
         """
         for attr, value in metas.iteritems():
             setattr(self,attr,value)
 
-    def loadEdges(self, edges):
+    def _loadEdges(self, edges):
+        """
+        used only by __init__
+        """
         defaultedges = { 'Document' : {}, 'NGram' : {}, 'Corpus': {}, 'Corpora': {}, 'Whitelist': {} }
-        if edges:
+        if edges is not None:
             defaultedges.update(edges)
         self.edges = defaultedges
 
@@ -70,7 +75,12 @@ class PyTextMiner(object):
         @content must be a list of str
         """
         if type(content) == list:
-            return sha256( " ".join(content) ).hexdigest()
+            try:
+                convert = " ".join(content)
+                return sha256( convert ).hexdigest()
+            except UnicodeDecodeError, uni:
+                print "invalid"
+                return "invalid"
         else:
             return uuid4().hex
 
@@ -81,12 +91,12 @@ class PyTextMiner(object):
         return self.label
 
     @staticmethod
-    def updateEdges(canditate, update, types):
-        """updates an existent object's edges with the candidate object's edges"""
+    def updateEdges(canditate, toupdate, types):
+        """updates an object's edges with the candidate object's edges"""
         for targets in types:
             for targetsId, targetWeight in canditate['edges'][targets].iteritems():
-                res = update.addEdge( targets, targetsId, targetWeight )
-        return update
+                res = toupdate.addEdge( targets, targetsId, targetWeight )
+        return toupdate
 
     def _addUniqueEdge( self, type, key, value ):
         """

@@ -84,7 +84,7 @@ class Importer(basecsv.Importer):
                 # gets forms tokens
                 forms_tokens = row[self.filemodel.columns[10][1]].split(self.filemodel.forms_separator)
                 # prepares forms ID to add them to the whitelist edges
-                forms_id = [ngram.NGram.getId(tokens.split(" ")) for tokens in forms_tokens]
+                forms_id = [ngram.NGram.getNormId(tokens.split(" ")) for tokens in forms_tokens]
                 # prepares forms label to add the to NGram objects in the whitelist
                 forms_label = dict().fromkeys( [tokens for tokens in forms_tokens] , 1 )
                 periods = row[self.filemodel.columns[11][1]].split(self.filemodel.forms_separator)
@@ -201,24 +201,15 @@ class Exporter(basecsv.Exporter):
         try:
             while 1:
                 ngid, ng = ngramgenerator.next()
-            #for ngid in newwl['content'].keys():
-            #    ng =  newwl['content'][ngid]
-            #    ngid = str(ngid)
                 # filters ngram from the whitelist based on min occs
                 if ngid in newwl['edges']['StopNGram']:
                     occs = newwl['edges']['StopNGram'][ngid]
                     ng['status'] = self.filemodel.refuse
-                    if not occs >= minOccs:
-                        del newwl['edges']['StopNGram'][ngid]
-                        del newwl['content'][ngid]
-                        continue
+                    if not occs >= minOccs: continue
                 elif ngid in newwl['edges']['NGram']:
                     ng['status'] = ""
                     occs = newwl['edges']['NGram'][ngid]
-                    if not occs >= minOccs:
-                        del newwl['edges']['NGram'][ngid]
-                        del newwl['content'][ngid]
-                        continue
+                    if not occs >= minOccs: continue
                 totalexported += 1
                 occsn = occs**len(ng['content'])
                 # TODO update NGram in db after adding new scores
@@ -268,10 +259,7 @@ class Exporter(basecsv.Exporter):
                     str(ngid)
                 ]
                 self.writeRow(row)
-                # TODO restore when whitelist stored in DB updates ng in whitelist object
-                #newwl['content'][ngid] = ng
-                # TEMPORARY clean memory usage
-                #del newwl['content'][ngid]
+
         except StopIteration, si:
             _logger.debug( "%d ngrams exported after filtering" %totalexported )
             return (self.filepath, newwl)

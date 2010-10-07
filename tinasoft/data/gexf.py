@@ -59,19 +59,6 @@ class Exporter(GEXFHandler):
         if count % 100 == 0:
             _logger.debug( "%d graph nodes processed"%count )
 
-    def _updateEdgeStorage( self, db, cache ):
-        """
-        Updates objects with the computed edges
-        Then stores it into database
-        """
-        _logger.debug("will update graph edges into storage")
-        for graphid in cache.keys():
-            type, dbid = graphid.split("::")
-            if type == 'NGram':
-                db.insertNGram( cache[graphid], overwrite=True )
-            elif type == 'Document':
-                db.insertDocument( cache[graphid], overwrite=True )
-            del cache[graphid]
 
 class Exporter(Exporter):
     """
@@ -97,20 +84,6 @@ class Exporter(Exporter):
     def notify(self, count):
         if count % 100 == 0:
             _logger.debug( "%d graph nodes processed"%count )
-
-    def _updateEdgeStorage( self, db, cache ):
-        """
-        Updates objects with the computed edges
-        Then stores it into database
-        """
-        _logger.debug("will update graph edges into storage")
-        for graphid in cache.keys():
-            type, dbid = graphid.split("::")
-            if type == 'NGram':
-                db.insertNGram( cache[graphid], overwrite=True )
-            elif type == 'Document':
-                db.insertDocument( cache[graphid], overwrite=True )
-            del cache[graphid]
 
     def load_ngrams(self, ngrammatrix, ngramgraphconfig=None):
         """

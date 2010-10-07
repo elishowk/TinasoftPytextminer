@@ -46,7 +46,7 @@ class StopWords(object):
         try:
             self.lang, self.encoding = locale.split('.')
         except:
-            self.lang = locale.split('.')[0]
+            self.lang = 'en_US'
             self.encoding = 'utf-8'
         self.encoding = self.encoding.lower()
         self.words = [{}]
@@ -89,8 +89,8 @@ class StopWords(object):
         """
         Loads stopwords from a text file
         """
-        for line in codecs.open("%s"%uri, "r", self.encoding).readlines():
-            self.add(line.encode(self.encoding).strip().split(" "))
+        for line in codecs.open("%s"%uri, "rU", self.encoding, errors='replace').readlines():
+            self.add( line.encode( self.encoding, 'replace' ).strip().split(" ") )
 
     def __list(self, lst):
         """

@@ -34,17 +34,14 @@ class Whitelist(PyTextMiner,whitelist.WhitelistFile):
     NGram edges represent a session's whitelisted NGrams
     """
 
-    def __init__(self, id, label, content=None, edges=None, **metas):
-        # content stores ngrams
-        if content is None:
-            content = {}
+    def __init__(self, id, label, edges=None, **metas):
         if edges is None:
-            edges = { 'NGram' : {}, 'StopNGram': {} }
+            edges = { 'StopNGram': {} }
         # special var storing corpus objects within a whitelist
         self.corpus = {}
         # double heritage
         whitelist.WhitelistFile.__init__(self)
-        PyTextMiner.__init__(self, content, id, label, edges, **metas)
+        PyTextMiner.__init__(self, {}, id, label, edges, **metas)
         self.storage = self._get_storage()
 
     def addEdge(self, type, key, value):

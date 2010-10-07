@@ -263,13 +263,10 @@ class Engine(Backend):
 
     def insertMany(self, iter, target, overwrite=False):
         """TODO overwrite is ignored"""
-        #_logger.debug(target)
-        #_logger.debug(iter)
         if len(iter) != 0:
             return self.safewrite(target, iter)
 
     def insert( self, obj, target, id=None, overwrite=False ):
-        """TODO overwrite is ignored"""
         if id is None:
             id = obj['id']
         return self.safewrite( target, [(id, obj)] )
@@ -365,7 +362,7 @@ class Engine(Backend):
             return
         stored = self.loadWhitelist( whitelistObj['id'] )
         if stored is not None:
-            whitelistObj = PyTextMiner.updateEdges( whitelistObj, stored, ['NGram'] )
+            whitelistObj = PyTextMiner.updateEdges( whitelistObj, stored, whitelistObj['edges'].keys() )
         self.insertWhitelist( whitelistObj, overwrite=True )
 
     def updateCluster( self, obj, overwrite ):
@@ -375,7 +372,7 @@ class Engine(Backend):
             return
         stored = self.loadCluster( obj['id'] )
         if stored is not None:
-            obj = PyTextMiner.updateEdges( obj, stored, ['NGram'] )
+            obj = PyTextMiner.updateEdges( obj, stored,  obj['edges'].keys() )
         self.insertCluster( obj, overwrite=True )
 
 
@@ -386,7 +383,7 @@ class Engine(Backend):
             return
         storedCorpora = self.loadCorpora( corporaObj['id'] )
         if storedCorpora is not None:
-            corporaObj = PyTextMiner.updateEdges( corporaObj, storedCorpora, ['Corpus'] )
+            corporaObj = PyTextMiner.updateEdges( corporaObj, storedCorpora, corporaObj['edges'].keys()  )
         self.insertCorpora( corporaObj, overwrite=True )
 
     def updateCorpus( self, corpusObj, overwrite ):
@@ -396,7 +393,7 @@ class Engine(Backend):
             return
         storedCorpus = self.loadCorpus( corpusObj['id'] )
         if storedCorpus is not None:
-            corpusObj = PyTextMiner.updateEdges( corpusObj, storedCorpus, ['Document','NGram'] )
+            corpusObj = PyTextMiner.updateEdges( corpusObj, storedCorpus, corpusObj['edges'].keys() )
         self.insertCorpus( corpusObj, overwrite=True )
 
     def updateDocument( self, documentObj, overwrite ):
@@ -406,7 +403,7 @@ class Engine(Backend):
             return
         storedDocument = self.loadDocument( documentObj['id'] )
         if storedDocument is not None:
-            documentObj = PyTextMiner.updateEdges( documentObj, storedDocument, ['Corpus','NGram'] )
+            documentObj = PyTextMiner.updateEdges( documentObj, storedDocument, documentObj['edges'].keys() )
         self.insertDocument( documentObj, overwrite=True )
         # returns a duplicate information
         if storedDocument is not None:
@@ -458,7 +455,7 @@ class Engine(Backend):
                 if  docId is not None and docId in storedNGram['edges']['Document']:
                     del storedNGram['edges']['Document'][docId]
             # anyway, updates all edges
-            ngObj = PyTextMiner.updateEdges( ngObj, storedNGram, ['Corpus','Document','label','postag'] )
+            ngObj = PyTextMiner.updateEdges( ngObj, storedNGram, ngObj['edges'].keys() )
         # adds to the queue
         return self._ngramQueue( ngObj['id'], ngObj )
 

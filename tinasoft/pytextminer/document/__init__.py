@@ -22,8 +22,7 @@ class Document(PyTextMiner):
             ngramEmpty = " ",
             **metas
         ):
-        if edges is None:
-            edges = { 'NGram' : {}, 'Document': {}, 'Corpus' : {} }
+
         PyTextMiner.__init__(self, content, id, title, edges, **metas)
         self.date = datestamp
         self.author = author

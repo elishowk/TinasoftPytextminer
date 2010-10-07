@@ -40,6 +40,7 @@ from tinasoft.data import Reader
 from tinasoft.data import Writer
 from tinasoft.data import whitelist as whitelistdata
 from tinasoft.pytextminer import corpora
+from tinasoft.pytextminer import PyTextMiner
 from tinasoft.pytextminer import extractor
 from tinasoft.pytextminer import whitelist
 from tinasoft.pytextminer import stopwords
@@ -221,7 +222,11 @@ class TinaApp(object):
         tinasoft source extraction controler
         send a corpora and a storage handler to an Extractor() instance
         """
-        path = self._get_sourcefile_path(path)
+        try:
+            path = self._get_sourcefile_path(path)
+        except IOError, ioe:
+            self.logger.error(ioe)
+            return self.STATUS_ERROR
         if self.set_storage( dataset ) == self.STATUS_ERROR:
             return self.STATUS_ERROR
         # prepares extraction export path
@@ -268,7 +273,11 @@ class TinaApp(object):
         """
         Like import_file but limited to a given whitelist
         """
-        path = self._get_sourcefile_path(path)
+        try:
+            path = self._get_sourcefile_path(path)
+        except IOError, ioe:
+            self.logger.error(ioe)
+            return self.STATUS_ERROR
         corporaObj = corpora.Corpora(dataset)
         whitelist = self.import_whitelist(whitelistpath)
         if self.set_storage( dataset ) == self.STATUS_ERROR:
@@ -311,10 +320,15 @@ class TinaApp(object):
         updates cooccurrences into storage,
         optionally exporting cooccurrence matrix
         """
+        try:
+            # path is an archive directory
+            path = self._get_sourcefile_path(path)
+        except IOError, ioe:
+            self.logger.error(ioe)
+            return self.STATUS_ERROR
         if self.set_storage( dataset ) == self.STATUS_ERROR:
             return self.STATUS_ERROR
-        # path is an archive directory
-        path = self._get_sourcefile_path(path)
+
         corporaObj = corpora.Corpora(dataset)
         whitelist = self.import_whitelist(whitelistpath)
         # prepares extraction export path
@@ -423,7 +437,7 @@ class TinaApp(object):
             adj = adjacency.NgramAdjacency( *ngram_args )
             adj.diagonal(ngram_matrix_reducer)
             try:
-                ngram_adj_gen = adjacency.ngram_adj_task( *ngram_args )
+                ngram_adj_gen = adjacency.ngram_submatrix_task( *ngram_args )
                 while 1:
                     ngram_matrix_reducer.add( ngram_adj_gen.next() )
             except StopIteration, si:
@@ -441,7 +455,7 @@ class TinaApp(object):
             adj = adjacency.DocAdjacency( *doc_args )
             adj.diagonal(doc_matrix_reducer)
             try:
-                doc_adj_gen = adjacency.document_adj_task( *doc_args )
+                doc_adj_gen = adjacency.document_submatrix_task( *doc_args )
                 while 1:
                     doc_matrix_reducer.add( doc_adj_gen.next() )
             except StopIteration, si:
@@ -458,7 +472,24 @@ class TinaApp(object):
 
         self.logger.debug("loading Document nodes into graph data")
         GEXFWriter.load_documents( doc_matrix_reducer, documentgraphconfig = documentgraphconfig)
-        del doc_matrix_reducer
+        self.logger.debug("loading Document edges into storage")
+        rows = doc_matrix_reducer.extract_semiupper_matrix(documentgraphconfig['edgethreshold'][0], documentgraphconfig['edgethreshold'][1])
+        try:
+            while 1:
+                id, row = rows.next()
+                edges = { 'Document' : row }
+                obj = self.storage.load( id, 'Document' )
+                PyTextMiner.updateEdges( document.Document( [], id, "", row), obj, obj['edges'].keys() )
+                self.storage.insertDocument(
+                    PyTextMiner.updateEdges(
+                        document.Document( [], id, "", edges),
+                        obj,
+                        obj['edges'].keys()
+                    )
+                )
+                print self.storage.loadDocument(id)
+        except StopIteration, si:
+            del doc_matrix_reducer
 
         #self.logger.debug("wait for jobs to finish")
         #job_server.wait()

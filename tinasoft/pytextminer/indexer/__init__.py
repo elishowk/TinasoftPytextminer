@@ -47,7 +47,7 @@ class SymmetricMatrix():
         self.matrix = zeros((self.size,self.size), dtype=int32)
         self.id_index =[]
         for label in self.index:
-            self.id_index.append( ngram.NGram.getId(label.split(" ")) )
+            self.id_index.append( ngram.NGram.getNormId(label.split(" ")) )
 
     def get( self, key1, key2=None ):
         """
@@ -157,10 +157,10 @@ class ArchiveCounter():
         maxLength = 0
 
         # walks through all ngram in the whitelist
-        for ngid in whitelist['content'].iterkeys():
-            # check if the ng is whitelisted
-            if whitelist.test(ngid):
-                ngobj = whitelist['content'][ngid]
+        whitelistcontent = whitelist.getContent()
+        try:
+            while 1:
+                ngid, ngobj = whitelistcontent.next()
                 # puts the major form into termNameList
                 termNameList.append(ngobj['label'])
                 if len(termDictList) < len(ngobj['content']):
@@ -172,7 +172,8 @@ class ArchiveCounter():
                 termDictList[len(ngobj['content'])-1][ngobj['label']] = index
                 for label in ngobj['edges']['label'].iterkeys():
                     termDictList[len(label.split(" "))-1][label] = index
-        termNameList.sort()
+        except StopIteration, si:
+            termNameList.sort()
         return termNameList, termDictList
 
     def _occurrences(self, termDictList, wordSequence, nDescriptors):

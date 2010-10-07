@@ -42,7 +42,7 @@ class ExtractFile(TinaAppTests):
                 self.datasetId,
                 outpath=self.extracted_whitelist,
                 format=self.format,
-                minoccs=1,
+                minoccs=5,
         )
         self.failIfEqual(self.extracted_whitelist, TinaApp.STATUS_ERROR)
 
