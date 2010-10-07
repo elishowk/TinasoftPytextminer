@@ -22,6 +22,7 @@ __all__ = ['tinasqlite','basecsv','whitelist','tinacsv','tinabsddb','gexf','medl
 
 # used by the _factory()
 import sys
+import codecs
 
 class Handler (object):
     """
@@ -35,6 +36,8 @@ class Handler (object):
             Reader()
     """
 
+    path = None
+    file = None
     options = {
         'encoding'  : 'utf-8',
     }
@@ -45,14 +48,18 @@ class Handler (object):
             setattr(self,attr,value)
 
     def encode(self, toEncode):
-        return toEncode.encode( self.encoding, 'replace')
+        return toEncode.encode( self.encoding, 'ignore')
 
-    def decode(self, toDecode):
-        return unicode( toDecode, self.encoding, 'replace' )
+    def unicode(self, toDecode):
+        return unicode( toDecode, self.encoding, 'ignore' )
 
-#class Importer(Handler): pass
+class Importer(Handler):
+    corpusDict = {}
 
-#class Exporter(Handler): pass
+    def open(self, path):
+        return codecs.open( path, 'rU', encoding=self.encoding, errors='ignore')
+
+class Exporter(Handler): pass
 
 # Factories
 

@@ -18,7 +18,7 @@
 
 __author__="elishowk@nonutc.fr"
 
-from tinasoft.data import Handler
+from tinasoft.data import Importer
 from tinasoft.pytextminer import document, corpus
 import codecs
 
@@ -162,7 +162,7 @@ class Record(dict):
 
         self.undefined = []
 
-class Importer(Handler):
+class Importer(Importer):
     """
     Medline file importer class
     """
@@ -174,8 +174,8 @@ class Importer(Handler):
 
     def __init__(self, path, **options):
         self.loadOptions(options)
-        self.corpusDict = {}
-        self.file = codecs.open(path, "rU", errors='replace')
+        self.path = path
+        self.file = self.open(path)
 
     def parsePeriod(self, record):
         if 'DP' not in record:
@@ -189,19 +189,22 @@ class Importer(Handler):
                     "STAT", "DCOM", "PUBM", "DEP", "PL", "JID", "SB", "PMC",
                     "EDAT", "MHDA", "PST", "AB", "AD", "EA", "TI", "JT")
         handle = iter(self.file)
-         # First skip blank lines
-        for line in handle:
-            line = line.rstrip()
-            if line:
-                break
-            else:
-                continue
+         # Skip blank lines at the beginning
+        try:
+            for line in handle:
+                line = line.rstrip()
+                if line:
+                    break
+                else:
+                    continue
+        except Exception, exc:
+            _logger.error("medline error reading FIRST lines : %s"%exc)
+
         record = Record()
         while 1:
             if line[:6]=="      ": # continuation line
                 # there's already a key
                 if key not in record:
-                    _logger.warning("continuation line without a key")
                     record[key] = []
                 record[key].append(line[6:])
             elif line:
@@ -214,6 +217,9 @@ class Importer(Handler):
                 line = handle.next()
             except StopIteration:
                 return
+            except Exception, exc:
+                _logger.error("medline error reading FIRST line : %s"%exc)
+                continue
             else:
                 # cleans line and jump to next iteration
                 line = line.rstrip()
@@ -261,7 +267,7 @@ class Importer(Handler):
             del model['TI']
             del model['AB']
         except KeyError, ke:
-            #_logger.error( "%s key was not found, skipping document"%ke )
+            _logger.error( "medline : skipping incomplete document, missing %s"%ke )
             return None
         # document instance
         newdoc = document.Document(
@@ -271,7 +277,5 @@ class Importer(Handler):
             datestamp = pubdate,
             **model
         )
-        # document's edges
-        #newdoc.addEdge('Corpus', corpusid, 1)
         return newdoc
 
