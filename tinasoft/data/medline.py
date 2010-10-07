@@ -168,7 +168,8 @@ class Importer(Importer):
 
     # defaults
     options = {
-        'period_size': 4
+        'period_size': 4,
+        'encoding': 'ascii'
     }
 
     def __init__(self, path, **options):

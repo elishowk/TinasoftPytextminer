@@ -82,6 +82,12 @@ class SafeCsvDictReader():
 
 class Importer (Importer):
     """importer class for a csv file"""
+    options = {
+        'encoding': 'utf-8',
+        'delimiter': ',',
+        'quotechar': '"',
+    }
+
 
     def __init__(self,
             path,

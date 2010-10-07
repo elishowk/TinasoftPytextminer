@@ -27,6 +27,7 @@ class Importer (basecsv.Importer):
         keywordsField: 'doc_keywords',
     })
     """
+
     def parseFile( self ):
         """
         parses a row to extract corpus meta-data

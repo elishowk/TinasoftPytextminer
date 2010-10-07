@@ -38,9 +38,8 @@ class Handler (object):
 
     path = None
     file = None
-    options = {
-        'encoding'  : 'utf-8',
-    }
+    # defaults
+    options = {}
 
     def loadOptions(self, options):
         self.options.update(options)

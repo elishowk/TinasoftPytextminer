@@ -35,10 +35,10 @@ datasets:
         # csv reader params
         delimiter: ','
         quotechar: '"'
-        locale: 'en_US.UTF-8'
+        encoding: 'utf-8'
     medline:
         period_size: 4
-        locale: 'en_US.UTF-8'
+        encoding: 'ascii'
     # extraction size
     ngramMin: 1
     ngramMax: 4
