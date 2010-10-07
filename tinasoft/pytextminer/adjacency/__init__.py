@@ -95,6 +95,7 @@ class Matrix():
 
 class SymmetricMatrix(Matrix):
     """
+    OBSOLETE
     Specialized semi numpy 2D array container
     Gets and Set only upper part of the matrix
     SymmetricMatrix.get(key1,key2) === SymmetricMatrix.get(key2,key1)
@@ -182,7 +183,7 @@ class MatrixReducer(Matrix):
             for j in range(self.array.shape[0]):
                 prox = arrayline[j]
                 if prox >= min:
-                    if max is not None and cooc <= max:
+                    if max is not None and prox <= max:
                         count += 1
                         nodej = id_index[j]
                         row[nodej] = prox
@@ -286,11 +287,12 @@ class NgramAdjacency(Adjacency):
         """
         simple document cooccurrences matrix calculator
         """
-        submatrix = SymmetricMatrix( document['edges']['NGram'].keys(), valuesize=float32 )
         valid_keys = set(document['edges']['NGram'].keys()) & self.periodngrams
+        submatrix = Matrix( list(valid_keys), valuesize=float32 )
         # only processes a half of the symmetric matrix
         for (ngi, ngj) in itertools.combinations(valid_keys, 2):
             submatrix.set( ngi, ngj, 1 )
+            submatrix.set( ngj, ngi, 1 )
         return submatrix
 
     def pseudoInclusion( self, document ):
@@ -298,17 +300,16 @@ class NgramAdjacency(Adjacency):
         uses cooccurrences matrix to process pseudo-inclusion proximities
         """
         docngrams = document['edges']['NGram'].keys()
-        submatrix = Matrix( docngrams, valuesize=float32 )
-        coocsubmatrix = self.cooccurrences( document )
+        submatrix = self.cooccurrences( document )
         valid_keys = set(docngrams) & self.periodngrams
 
         for (ng1, ng2) in itertools.permutations(valid_keys, 2):
             # permutations => ng1 != ng2
-            cooc = coocsubmatrix.get(ng1, ng2)
+            cooc = submatrix.get(ng1, ng2)
             occ1 = self.corpus['edges']['NGram'][ng1]
             occ2 = self.corpus['edges']['NGram'][ng2]
             prox = (( cooc / occ1 )**self.alpha) * (( cooc / occ2 )**(1/self.alpha))
-            submatrix.set( ng1, ng2, value=prox )
+            submatrix.set( ng1, ng2, value=prox, overwrite=True )
         return submatrix
 
     def diagonal( self, matrix_reducer ):

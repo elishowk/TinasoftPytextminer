@@ -74,7 +74,7 @@ class GenerateGraph(TinaAppTests):
         """ExportGraph : exports a gexf graph, after cooccurrences processing"""
         print self.tinasoft.generate_graph(
             self.datasetId,
-            ["2"],
+            self.periods,
             whitelistpath=self.extracted_whitelist,
             outpath='test_graph',
             ngramgraphconfig={

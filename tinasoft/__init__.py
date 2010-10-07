@@ -39,7 +39,7 @@ from tinasoft.data import Engine, _factory, _check_protocol
 from tinasoft.data import Reader
 from tinasoft.data import Writer
 from tinasoft.data import whitelist as whitelistdata
-from tinasoft.pytextminer import corpora
+from tinasoft.pytextminer import corpora, document, ngram
 from tinasoft.pytextminer import PyTextMiner
 from tinasoft.pytextminer import extractor
 from tinasoft.pytextminer import whitelist
@@ -471,7 +471,7 @@ class TinaApp(object):
         self.logger.debug("loading Document nodes into graph data")
         GEXFWriter.load_documents( doc_matrix_reducer, documentgraphconfig = documentgraphconfig)
         self.logger.debug("loading Document edges into storage")
-        rows = doc_matrix_reducer.extract_semiupper_matrix(documentgraphconfig['edgethreshold'][0], documentgraphconfig['edgethreshold'][1])
+        rows = doc_matrix_reducer.extract_matrix(documentgraphconfig['edgethreshold'][0], documentgraphconfig['edgethreshold'][1])
         try:
             while 1:
                 id, row = rows.next()
@@ -491,9 +491,6 @@ class TinaApp(object):
 
         #self.logger.debug("wait for jobs to finish")
         #job_server.wait()
-
-        self.logger.debug( "finalizing graph" )
-        return GEXFWriter.finalize()
 
     def export_cooc(self,
             dataset,
