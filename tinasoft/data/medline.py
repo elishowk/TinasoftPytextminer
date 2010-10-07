@@ -20,7 +20,6 @@ __author__="elishowk@nonutc.fr"
 
 from tinasoft.data import Importer
 from tinasoft.pytextminer import document, corpus
-import codecs
 
 import logging
 _logger = logging.getLogger('TinaAppLogger')
@@ -215,10 +214,10 @@ class Importer(Importer):
             try:
                 # next line
                 line = handle.next()
-            except StopIteration:
+            except StopIteration, si:
                 return
             except Exception, exc:
-                _logger.error("medline error reading FIRST line : %s"%exc)
+                _logger.error("medline error reading line : %s"%exc)
                 continue
             else:
                 # cleans line and jump to next iteration
