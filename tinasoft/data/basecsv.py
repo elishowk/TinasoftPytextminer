@@ -82,6 +82,7 @@ class SafeCsvDictReader():
 
 class Importer (Importer):
     """importer class for a csv file"""
+    # defaults
     options = {
         'encoding': 'utf-8',
         'delimiter': ',',
@@ -132,6 +133,12 @@ class Importer (Importer):
 class Exporter (Handler):
     """home-made exporter class for a csv file"""
 
+    # defaults
+    options = {
+        'encoding': 'utf-8',
+        'delimiter': ',',
+        'quotechar': '"',
+    }
     def __init__(self,
             filepath,
             delimiter = ',',
