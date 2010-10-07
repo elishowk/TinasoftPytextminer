@@ -48,8 +48,6 @@ from tinasoft.pytextminer import indexer
 from tinasoft.pytextminer import adjacency
 from tinasoft.pytextminer import stemmer
 
-import pp
-
 LEVELS = {
     'debug': logging.DEBUG,
     'info': logging.INFO,
