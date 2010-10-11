@@ -182,15 +182,25 @@ class TreeBankWordTokenizer(RegexpTokenizer):
         for i in range(len(content)):
             for n in range(minSize, maxSize + 1):
                 if len(content) >= i + n:
-                    # new NGram instance
-                    ng = ngram.NGram(stemmedcontent[i:n+i], label=" ".join(content[i:n+i]), occs=1, postag=tags[i:n + i])
-                    if ng['id'] in ngrams:
+                    # new NGram instance only if it doesn't exist
+                    id = ngram.NGram.getNormId(stemmedcontent[i:n+i])
+                    if id in ngrams:
+                        label = PyTextMiner.form_label( content[i:n+i] )
+                        postag = PyTextMiner.form_label( tags[i:n+i] )
+                        edges = { 'label': { label: 1 }, 'postag': { postag: 1 } }
                         # already exists in document : increments occs and updates edges
-                        ngrams[ng['id']]['occs'] += 1
-                        ngrams[ng['id']] = PyTextMiner.updateEdges( ng, ngrams[ng['id']] )
+                        ngrams[id]['occs'] += 1
+                        ngrams[id] = PyTextMiner.updateEdges( edges, ngrams[id] )
                     else:
+                        ng = ngram.NGram(
+                            stemmedcontent[i:n+i],
+                            id = id,
+                            label=PyTextMiner.form_label(content[i:n+i]),
+                            occs=1,
+                            postag=tags[i:n + i]
+                        )
                         # first stopwords filters, then content and postag filtering
                         if stopwords is None or stopwords.contains(ng) is False:
                             if filtering.apply_filters(ng, filters) is True:
-                                ngrams[ng['id']] = ng
+                                ngrams[id] = ng
         return ngrams

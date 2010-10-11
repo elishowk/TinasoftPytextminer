@@ -69,6 +69,10 @@ class PyTextMiner(object):
         self.edges = defaultedges
 
     @staticmethod
+    def form_label( tokens ):
+        return " ".join(tokens)
+
+    @staticmethod
     def getId(content):
         """
         Common staticmethod constructing an ID str for all PyTextMiner objects
@@ -76,7 +80,7 @@ class PyTextMiner(object):
         """
         if type(content) == list:
             try:
-                convert = " ".join(content)
+                convert = PyTextMiner.form_label(content)
                 return sha256( convert ).hexdigest()
             except UnicodeDecodeError, uni:
                 _logger.error("impossible to create sha256 node ID : %s"%str(uni))
@@ -91,10 +95,18 @@ class PyTextMiner(object):
         return self.label
 
     @staticmethod
-    def updateEdges(canditate, toupdate):
-        """updates an object's edges with the candidate object's edges"""
+    def updateObjectEdges(canditate, toupdate):
+        """increments an object's edges with the candidate object's edges"""
         for targettype in canditate['edges'].iterkeys():
             for id, weight in canditate['edges'][targettype].iteritems():
+                res = toupdate.addEdge( targettype, id, weight )
+        return toupdate
+
+    @staticmethod
+    def updateEdges(updateedges, toupdate):
+        """increments an object's edges with the candidate object's edges"""
+        for targettype in updateedges.iterkeys():
+            for id, weight in updateedges[targettype].iteritems():
                 res = toupdate.addEdge( targettype, id, weight )
         return toupdate
 

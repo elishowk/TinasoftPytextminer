@@ -140,14 +140,12 @@ class Extractor():
             while 1:
                 ### gets the next document
                 document, corpusNum = fileGenerator.next()
-
                 document.addEdge( 'Corpus', corpusNum, 1 )
                 ### updates Corpora and Corpus objects edges
                 self.corpora.addEdge( 'Corpus', corpusNum, 1 )
                 self.reader.corpusDict[ corpusNum ].addEdge( 'Corpora', self.corpora['id'], 1)
                 ### adds Corpus-Doc edge if possible
                 self.reader.corpusDict[ corpusNum ].addEdge( 'Document', document['id'], 1)
-                #document.addEdge('Corpus', corpusNum, 1)
                 ### extract and filter ngrams
                 docngrams = tokenizer.TreeBankWordTokenizer.extract(
                     document,

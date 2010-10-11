@@ -18,7 +18,6 @@ __author__="elishowk@nonutc.fr"
 
 #from tinasoft import threadpool
 from tinasoft.data import Handler
-
 from tinasoft.pytextminer import graph, PyTextMiner, ngram, document
 
 
@@ -89,50 +88,49 @@ class Exporter(Exporter):
         """
         uses numpy array to write a NGram subgraph to the graph object
         """
-        #TODO write and filter edges
         self.graph['nodes']['NGram'] = {}
-        for key in ngrammatrix.reverseindex.keys():
-            weight = ngrammatrix.get(key, key)
-            if weight <= ngramgraphconfig['nodethreshold'][1] and weight >= ngramgraphconfig['nodethreshold'][0]:
-                self.graph['nodes']['NGram'][key] = ngrammatrix.get(key, key)
         if storeedges is True:
             _logger.debug("loading NGram edges into storage")
             rows = ngrammatrix.extract_matrix(ngramgraphconfig['edgethreshold'][0], ngramgraphconfig['edgethreshold'][1])
             try:
                 while 1:
                     id, row = rows.next()
-                    edges = { 'NGram' : row }
                     obj = self.storage.load( id, 'NGram' )
+                    if obj is None:
+                        continue
+                    weight = ngrammatrix.get(id, id)
+                    if weight <= ngramgraphconfig['nodethreshold'][1] and weight >= ngramgraphconfig['nodethreshold'][0]:
+                        self.graph['nodes']['NGram'][id] = ngrammatrix.get(id, id)
+                    edges = { 'NGram' : row }
                     self.storage.insertNGram(
-                        PyTextMiner.updateEdges( ngram.NGram( [], id=id, label="", edges=edges), obj )
+                        PyTextMiner.updateEdges( edges, obj )
                     )
-
             except StopIteration, si:
-                return
+                pass
 
     def load_documents(self, docmatrix, documentgraphconfig=None, storeedges=True, exportedges=False):
         """
         uses a numpy array to add a Document subgraph to the global graph object
         """
-        #TODO write and filter edges
         self.graph['nodes']['Document'] = {}
-        for key in docmatrix.reverseindex.keys():
-            weight = docmatrix.get(key, key)
-            if weight <= documentgraphconfig['nodethreshold'][1] and weight >= documentgraphconfig['nodethreshold'][0]:
-                self.graph['nodes']['Document'][key] = docmatrix.get(key, key)
         if storeedges is True:
             _logger.debug("loading Document edges into storage")
             rows = docmatrix.extract_matrix(documentgraphconfig['edgethreshold'][0], documentgraphconfig['edgethreshold'][1])
             try:
                 while 1:
                     id, row = rows.next()
-                    edges = { 'Document' : row }
                     obj = self.storage.load( id, 'Document' )
+                    if obj is None:
+                        continue
+                    weight = docmatrix.get(id, id)
+                    if weight <= documentgraphconfig['nodethreshold'][1] and weight >= documentgraphconfig['nodethreshold'][0]:
+                        self.graph['nodes']['Document'][id] = docmatrix.get(id, id)
+                    edges = { 'Document' : row }
                     self.storage.insertDocument(
-                        PyTextMiner.updateEdges( document.Document( [], id, "", edges=edges), obj )
+                        PyTextMiner.updateEdges( edges, obj )
                     )
             except StopIteration, si:
-                return
+                pass
 
     def finalize(self):
         """

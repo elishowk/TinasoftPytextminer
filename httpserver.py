@@ -163,13 +163,13 @@ class TinaAppPOST():
         """ import whitelist """
         return TinaApp.import_whitelist(*args, **kwargs)
 
-    def cooccurrences(self, *args, **kwargs):
+    #def cooccurrences(self, *args, **kwargs):
         """ process_cooc """
-        return self.tinaappinstance.process_cooc(*args, **kwargs)
+    #    return self.tinaappinstance.process_cooc(*args, **kwargs)
 
     def graph(self, *args, **kwargs):
-        """ export_graph """
-        return self.tinaappinstance.export_graph(*args, **kwargs)
+        """ generate_graph """
+        return self.tinaappinstance.generate_graph(*args, **kwargs)
 
     def dataset(self, corporaobj):
         """ insert """

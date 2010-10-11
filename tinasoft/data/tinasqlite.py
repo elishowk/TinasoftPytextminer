@@ -362,7 +362,7 @@ class Engine(Backend):
             return
         stored = self.loadWhitelist( whitelistObj['id'] )
         if stored is not None:
-            whitelistObj = PyTextMiner.updateEdges( whitelistObj, stored )
+            whitelistObj = PyTextMiner.updateObjectEdges( whitelistObj, stored )
         self.insertWhitelist( whitelistObj, overwrite=True )
 
     def updateCluster( self, obj, overwrite ):
@@ -372,7 +372,7 @@ class Engine(Backend):
             return
         stored = self.loadCluster( obj['id'] )
         if stored is not None:
-            obj = PyTextMiner.updateEdges( obj, stored )
+            obj = PyTextMiner.updateObjectEdges( obj, stored )
         self.insertCluster( obj, overwrite=True )
 
 
@@ -383,7 +383,7 @@ class Engine(Backend):
             return
         storedCorpora = self.loadCorpora( corporaObj['id'] )
         if storedCorpora is not None:
-            corporaObj = PyTextMiner.updateEdges( corporaObj, storedCorpora )
+            corporaObj = PyTextMiner.updateObjectEdges( corporaObj, storedCorpora )
         self.insertCorpora( corporaObj, overwrite=True )
 
     def updateCorpus( self, corpusObj, overwrite ):
@@ -393,7 +393,7 @@ class Engine(Backend):
             return
         storedCorpus = self.loadCorpus( corpusObj['id'] )
         if storedCorpus is not None:
-            corpusObj = PyTextMiner.updateEdges( corpusObj, storedCorpus )
+            corpusObj = PyTextMiner.updateObjectEdges( corpusObj, storedCorpus )
         self.insertCorpus( corpusObj, overwrite=True )
 
     def updateDocument( self, documentObj, overwrite ):
@@ -403,7 +403,7 @@ class Engine(Backend):
             return
         storedDocument = self.loadDocument( documentObj['id'] )
         if storedDocument is not None:
-            documentObj = PyTextMiner.updateEdges( documentObj, storedDocument )
+            documentObj = PyTextMiner.updateObjectEdges( documentObj, storedDocument )
         self.insertDocument( documentObj, overwrite=True )
         # returns a duplicate information
         if storedDocument is not None:
@@ -455,7 +455,7 @@ class Engine(Backend):
                 if  docId is not None and docId in storedNGram['edges']['Document']:
                     del storedNGram['edges']['Document'][docId]
             # anyway, updates all edges
-            ngObj = PyTextMiner.updateEdges( ngObj, storedNGram )
+            ngObj = PyTextMiner.updateObjectEdges( ngObj, storedNGram )
         # adds to the queue
         return self._ngramQueue( ngObj['id'], ngObj )
 

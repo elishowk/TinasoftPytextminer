@@ -473,7 +473,7 @@ class TinaApp(object):
         GEXFWriter.load_documents( doc_matrix_reducer, documentgraphconfig = documentgraphconfig)
         del doc_matrix_reducer
 
-        GEXFWriter.finalize()
+        return abspath(GEXFWriter.finalize())
         # abandonned parallelization with pp.Server()
         #self.logger.debug("wait for jobs to finish")
         #job_server.wait()

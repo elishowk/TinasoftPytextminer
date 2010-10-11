@@ -28,11 +28,9 @@ class NGram(PyTextMiner):
         initiate the object
         normalize must be local value for pickling reasons
         """
-
         # default creates label
         if label is None:
-            label = " ".join(tokenlist)
-
+            label = PyTextMiner.form_label(tokenlist)
         # normlist is the normalized list of tokens
         normalized_tokens = []
         for word in tokenlist:
@@ -41,9 +39,8 @@ class NGram(PyTextMiner):
         postag_label = None
         # prepares postag
         if postag is not None:
-            postag_label = " ".join(postag)
+            postag_label = PyTextMiner.form_label(postag)
             metas["postag"] = postag
-
         # default emtpy edges
         if edges is None:
             edges = { 'label': {}, 'postag' : {} }
@@ -56,7 +53,7 @@ class NGram(PyTextMiner):
         The NGram object accepts only one edge write to a Document object
         All the ohter edges are multiples
         """
-        if type == 'Document':
+        if type in ["Document","NGram"]:
             return self._addUniqueEdge( type, key, value )
         else:
             return self._addEdge( type, key, value )
@@ -97,7 +94,7 @@ class NGram(PyTextMiner):
         if len(ordered_forms) > 0:
             return ordered_forms[0]
         else:
-            return None
+            return self.label
 
     def getPostag(self):
         """
@@ -107,4 +104,4 @@ class NGram(PyTextMiner):
         if len(ordered_forms) > 0:
             return ordered_forms[0]
         else:
-            return None
+            return self.postag
