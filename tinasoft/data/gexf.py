@@ -19,7 +19,7 @@ __author__="elishowk@nonutc.fr"
 #from tinasoft import threadpool
 from tinasoft.data import Handler
 
-from tinasoft.pytextminer import graph
+from tinasoft.pytextminer import graph, PyTextMiner, ngram, document
 
 
 # Tenjin, the fastest template engine in the world !
@@ -67,17 +67,17 @@ class Exporter(Exporter):
     def new_graph(
             self,
             path,
-            db,
+            storage,
             #periods,
             #whitelist,
             meta
         ):
         self.path = path
-        self.db = db
+        self.storage = storage
         # init graph object
         self.graph = {
             'nodes' : {},
-            'storage': db,
+            'storage': storage,
         }
         self.graph.update(meta)
 
@@ -85,7 +85,7 @@ class Exporter(Exporter):
         if count % 100 == 0:
             _logger.debug( "%d graph nodes processed"%count )
 
-    def load_ngrams(self, ngrammatrix, ngramgraphconfig=None):
+    def load_ngrams(self, ngrammatrix, ngramgraphconfig=None, storeedges=True, exportedges=False):
         """
         uses numpy array to write a NGram subgraph to the graph object
         """
@@ -95,8 +95,22 @@ class Exporter(Exporter):
             weight = ngrammatrix.get(key, key)
             if weight <= ngramgraphconfig['nodethreshold'][1] and weight >= ngramgraphconfig['nodethreshold'][0]:
                 self.graph['nodes']['NGram'][key] = ngrammatrix.get(key, key)
+        if storeedges is True:
+            _logger.debug("loading NGram edges into storage")
+            rows = ngrammatrix.extract_matrix(ngramgraphconfig['edgethreshold'][0], ngramgraphconfig['edgethreshold'][1])
+            try:
+                while 1:
+                    id, row = rows.next()
+                    edges = { 'NGram' : row }
+                    obj = self.storage.load( id, 'NGram' )
+                    self.storage.insertNGram(
+                        PyTextMiner.updateEdges( ngram.NGram( [], id=id, label="", edges=edges), obj )
+                    )
 
-    def load_documents(self, docmatrix, documentgraphconfig=None):
+            except StopIteration, si:
+                return
+
+    def load_documents(self, docmatrix, documentgraphconfig=None, storeedges=True, exportedges=False):
         """
         uses a numpy array to add a Document subgraph to the global graph object
         """
@@ -106,7 +120,19 @@ class Exporter(Exporter):
             weight = docmatrix.get(key, key)
             if weight <= documentgraphconfig['nodethreshold'][1] and weight >= documentgraphconfig['nodethreshold'][0]:
                 self.graph['nodes']['Document'][key] = docmatrix.get(key, key)
-
+        if storeedges is True:
+            _logger.debug("loading Document edges into storage")
+            rows = docmatrix.extract_matrix(documentgraphconfig['edgethreshold'][0], documentgraphconfig['edgethreshold'][1])
+            try:
+                while 1:
+                    id, row = rows.next()
+                    edges = { 'Document' : row }
+                    obj = self.storage.load( id, 'Document' )
+                    self.storage.insertDocument(
+                        PyTextMiner.updateEdges( document.Document( [], id, "", edges=edges), obj )
+                    )
+            except StopIteration, si:
+                return
 
     def finalize(self):
         """

@@ -20,7 +20,7 @@ __author__="elishowk@nonutc.fr"
 
 __all__ = [
     "corpora", "corpus", "document", "ngram", "whitelist"
-    "filtering", "tokenizer", "tagger", "adjacency", "clustering",
+    "filtering", "tokenizer", "tagger", "clustering",
     "stopwords", "extractor", "stemmer", "graph", "indexer"
 ]
 
@@ -63,7 +63,7 @@ class PyTextMiner(object):
         """
         used only by __init__
         """
-        defaultedges = { 'Document' : {}, 'NGram' : {}, 'Corpus': {}, 'Corpora': {}, 'Whitelist': {} }
+        defaultedges = { 'Document' : {}, 'NGram' : {}, 'Corpus': {}, 'Corpora': {}, 'Whitelist': {}, 'Cluster': {} }
         if edges is not None:
             defaultedges.update(edges)
         self.edges = defaultedges
@@ -79,7 +79,7 @@ class PyTextMiner(object):
                 convert = " ".join(content)
                 return sha256( convert ).hexdigest()
             except UnicodeDecodeError, uni:
-                print "invalid"
+                _logger.error("impossible to create sha256 node ID : %s"%str(uni))
                 return "invalid"
         else:
             return uuid4().hex
@@ -91,11 +91,11 @@ class PyTextMiner(object):
         return self.label
 
     @staticmethod
-    def updateEdges(canditate, toupdate, types):
+    def updateEdges(canditate, toupdate):
         """updates an object's edges with the candidate object's edges"""
-        for targets in types:
-            for targetsId, targetWeight in canditate['edges'][targets].iteritems():
-                res = toupdate.addEdge( targets, targetsId, targetWeight )
+        for targettype in canditate['edges'].iterkeys():
+            for id, weight in canditate['edges'][targettype].iteritems():
+                res = toupdate.addEdge( targettype, id, weight )
         return toupdate
 
     def _addUniqueEdge( self, type, key, value ):

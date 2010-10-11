@@ -39,13 +39,12 @@ from tinasoft.data import Engine, _factory, _check_protocol
 from tinasoft.data import Reader
 from tinasoft.data import Writer
 from tinasoft.data import whitelist as whitelistdata
-from tinasoft.pytextminer import corpora, document, ngram
-from tinasoft.pytextminer import PyTextMiner
+from tinasoft.pytextminer import corpora
 from tinasoft.pytextminer import extractor
 from tinasoft.pytextminer import whitelist
 from tinasoft.pytextminer import stopwords
 from tinasoft.pytextminer import indexer
-from tinasoft.pytextminer import adjacency
+from tinasoft.pytextminer import graph
 from tinasoft.pytextminer import stemmer
 
 LEVELS = {
@@ -412,14 +411,16 @@ class TinaApp(object):
             else:
                 self.logger.debug('Period %s not found in database, skipping it from generate_graph'%str(period))
 
+        # TODO here's the key to replace actuel Matrix index handling
         doc_index = list(doc_index)
         doc_index.sort()
         ngram_index = list(ngram_index)
         ngram_index.sort()
 
+        # abandonned parallelization with pp.Server()
         #jobs=[]
         #job_server = pp.Server()
-        #depmodules=('math','logging','cPickle','os','sqlite3','itertools','numpy','tinasoft','tinasoft.pytextminer.adjacency')
+        #depmodules=('math','logging','cPickle','os','sqlite3','itertools','numpy','tinasoft','tinasoft.pytextminer.graph')
         #depfunctions=(get_storage, Engine, _factory, _check_protocol)
 
         # updates default config with parameters
@@ -428,37 +429,37 @@ class TinaApp(object):
         ngramgraphconfig = self.config['datamining']['NGramGraph']
         documentgraphconfig = self.config['datamining']['DocumentGraph']
 
-        ngram_matrix_reducer = adjacency.MatrixReducer( ngram_index )
+        ngram_matrix_reducer = graph.MatrixReducer( ngram_index )
 
         for process_period in periods_to_process:
             ngram_args = ( self.config, self.storage, process_period, ngramgraphconfig, ngram_index, whitelist )
-            adj = adjacency.NgramAdjacency( *ngram_args )
+            adj = graph.NgramAdjacency( *ngram_args )
             adj.diagonal(ngram_matrix_reducer)
             try:
-                ngram_adj_gen = adjacency.ngram_submatrix_task( *ngram_args )
+                ngram_adj_gen = graph.ngram_submatrix_task( *ngram_args )
                 while 1:
                     ngram_matrix_reducer.add( ngram_adj_gen.next() )
             except StopIteration, si:
                 self.logger.debug("NGram matrix reduced for period %s"%process_period)
 
 
-        self.logger.debug("loading Ngram nodes into graph data")
+        self.logger.debug("loading Ngram nodes and edges into graph data")
         GEXFWriter.load_ngrams( ngram_matrix_reducer, ngramgraphconfig = ngramgraphconfig)
         del ngram_matrix_reducer
 
-        doc_matrix_reducer = adjacency.MatrixReducer( doc_index )
-
+        doc_matrix_reducer = graph.MatrixReducer( doc_index )
         for process_period in periods_to_process:
             doc_args = ( self.config, self.storage, process_period, documentgraphconfig, doc_index, whitelist )
-            adj = adjacency.DocAdjacency( *doc_args )
+            adj = graph.DocAdjacency( *doc_args )
             adj.diagonal(doc_matrix_reducer)
             try:
-                doc_adj_gen = adjacency.document_submatrix_task( *doc_args )
+                doc_adj_gen = graph.document_submatrix_task( *doc_args )
                 while 1:
                     doc_matrix_reducer.add( doc_adj_gen.next() )
             except StopIteration, si:
                 self.logger.debug("Document matrix reduced for period %s"%process_period)
 
+            # abandonned parallelization with pp.Server()
             #jobs += [job_server.submit(
             #    ngram_adj_task,
             #    args=ngram_args,
@@ -468,27 +469,12 @@ class TinaApp(object):
             #    globals=globals()
             #)]
 
-        self.logger.debug("loading Document nodes into graph data")
+        self.logger.debug("loading Document nodes and edges into graph data")
         GEXFWriter.load_documents( doc_matrix_reducer, documentgraphconfig = documentgraphconfig)
-        self.logger.debug("loading Document edges into storage")
-        rows = doc_matrix_reducer.extract_matrix(documentgraphconfig['edgethreshold'][0], documentgraphconfig['edgethreshold'][1])
-        try:
-            while 1:
-                id, row = rows.next()
-                edges = { 'Document' : row }
-                obj = self.storage.load( id, 'Document' )
-                PyTextMiner.updateEdges( document.Document( [], id, "", row), obj, obj['edges'].keys() )
-                self.storage.insertDocument(
-                    PyTextMiner.updateEdges(
-                        document.Document( [], id, "", edges),
-                        obj,
-                        obj['edges'].keys()
-                    )
-                )
-                print self.storage.loadDocument(id)
-        except StopIteration, si:
-            del doc_matrix_reducer
+        del doc_matrix_reducer
 
+        GEXFWriter.finalize()
+        # abandonned parallelization with pp.Server()
         #self.logger.debug("wait for jobs to finish")
         #job_server.wait()
 
@@ -560,7 +546,7 @@ class TinaApp(object):
         return [stopwords.StopWordFilter( "file://%s" % path )]
 
     def _get_user_filepath(self, dataset, filetype, filename):
-        """returns a filename from the user directory"""
+        """returns a relative filename into the user directory"""
         path = join( self.user, dataset, filetype )
         now = "".join(str(datetime.now())[:10].split("-"))
         # standard separator in filenames

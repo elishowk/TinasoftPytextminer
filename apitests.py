@@ -16,14 +16,12 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 __author__="elishowk@nonutc.fr"
-__date__ ="$Jan, 21 2010 5:29:16 PM$"
 
 # core modules
 import unittest
 import sys
 
 from tinasoft import TinaApp
-
 
 class TinaAppTests(unittest.TestCase):
     def setUp(self):
@@ -36,7 +34,7 @@ class TinaAppTests(unittest.TestCase):
 
 class ExtractFile(TinaAppTests):
     def runTest(self):
-        """ExtractFile : testing extract_file"""
+        """ExtractFile : extract a source file's word vectors"""
         print self.tinasoft.extract_file(
                 self.path,
                 self.datasetId,
@@ -48,7 +46,7 @@ class ExtractFile(TinaAppTests):
 
 class IndexFile(TinaAppTests):
     def runTest(self):
-        """IndexFile : testing index_file"""
+        """IndexFile : index a whitelist against a source file and its network in the db"""
         self.failIfEqual( self.tinasoft.index_file(
                 self.path,
                 self.datasetId,
@@ -59,19 +57,9 @@ class IndexFile(TinaAppTests):
         )
 
 
-
-class ProcessCooc(TinaAppTests):
-    def runTest(self):
-        """ProcessCooc : processes and stores the cooccurrence matrix"""
-        print self.tinasoft.process_cooc(
-            self.datasetId,
-            self.periods
-        )
-        self.tinasoft.logger.debug( "processCooc test finished " )
-
 class GenerateGraph(TinaAppTests):
     def runTest(self):
-        """ExportGraph : exports a gexf graph, after cooccurrences processing"""
+        """ExportGraph : processes a graph, and exports a gexf graph,"""
         print self.tinasoft.generate_graph(
             self.datasetId,
             self.periods,
@@ -107,27 +95,27 @@ class IndexArchive(TinaAppTests):
                 minCooc=10
             )
 
-class ImportFile(TinaAppTests):
-    def runTest(self):
+#class ImportFile(TinaAppTests):
+#    def runTest(self):
         """OBSOLETE ImportFile : testing import_file"""
-        return
-        self.failIfEqual( self.tinasoft.import_file(
-                path=self.path,
-                dataset=self.datasetId,
-                format=self.format
-            ), TinaApp.STATUS_ERROR
-        )
+#        return
+#        self.failIfEqual( self.tinasoft.import_file(
+#                path=self.path,
+#                dataset=self.datasetId,
+#                format=self.format
+#            ), TinaApp.STATUS_ERROR
+#        )
 
-class ExportWhitelist(TinaAppTests):
-    def runTest(self):
+#class ExportWhitelist(TinaAppTests):
+#    def runTest(self):
         """OBSOLETE ExportWhitelist : Exports a whitelist file"""
-        return
-        print self.tinasoft.export_whitelist(
-            self.periods,
-            self.datasetId,
-            'test export whitelist',
-            'tinaapptests-export_whitelist.csv'
-        )
+#        return
+#        print self.tinasoft.export_whitelist(
+#            self.periods,
+#            self.datasetId,
+#            'test export whitelist',
+#            'tinaapptests-export_whitelist.csv'
+#        )
 
 def usage():
     print "USAGE : python tests.py TestClass configuration_file_path source_filename file_format"

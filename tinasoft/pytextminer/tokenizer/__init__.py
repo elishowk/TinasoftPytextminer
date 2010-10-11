@@ -187,7 +187,7 @@ class TreeBankWordTokenizer(RegexpTokenizer):
                     if ng['id'] in ngrams:
                         # already exists in document : increments occs and updates edges
                         ngrams[ng['id']]['occs'] += 1
-                        ngrams[ng['id']] = PyTextMiner.updateEdges( ng, ngrams[ng['id']], ['label','postag'] )
+                        ngrams[ng['id']] = PyTextMiner.updateEdges( ng, ngrams[ng['id']] )
                     else:
                         # first stopwords filters, then content and postag filtering
                         if stopwords is None or stopwords.contains(ng) is False:
