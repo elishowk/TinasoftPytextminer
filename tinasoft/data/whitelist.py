@@ -202,14 +202,19 @@ class Exporter(basecsv.Exporter):
             while 1:
                 ngid, ng = ngramgenerator.next()
                 # filters ngram from the whitelist based on min occs
+                occs=0
                 if ngid in newwl['edges']['StopNGram']:
                     occs = newwl['edges']['StopNGram'][ngid]
                     ng['status'] = self.filemodel.refuse
                     if not occs >= minOccs: continue
                 elif ngid in newwl['edges']['NGram']:
+                    # empty the status columns before exporting to the file
                     ng['status'] = ""
                     occs = newwl['edges']['NGram'][ngid]
                     if not occs >= minOccs: continue
+                if occs == 0:
+                    _logger.warning("NGram %s is neither a whitelisted NGrams nor a StopNGram"%ngid)
+                    continue
                 totalexported += 1
                 occsn = occs**len(ng['content'])
                 # TODO update NGram in db after adding new scores
