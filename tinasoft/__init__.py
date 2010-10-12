@@ -411,6 +411,8 @@ class TinaApp(object):
             else:
                 self.logger.debug('Period %s not found in database, skipping it from generate_graph'%str(period))
 
+        if len(ngram_index) == 0
+
         # TODO here's the key to replace actuel Matrix index handling
         doc_index = list(doc_index)
         doc_index.sort()
@@ -429,50 +431,53 @@ class TinaApp(object):
         ngramgraphconfig = self.config['datamining']['NGramGraph']
         documentgraphconfig = self.config['datamining']['DocumentGraph']
 
-        ngram_matrix_reducer = graph.MatrixReducer( ngram_index )
+        if len(ngram_index) != 0:
+            ngram_matrix_reducer = graph.MatrixReducer( ngram_index )
+            for process_period in periods_to_process:
+                ngram_args = ( self.config, self.storage, process_period, ngramgraphconfig, ngram_index, whitelist )
+                adj = graph.NgramAdjacency( *ngram_args )
+                adj.diagonal(ngram_matrix_reducer)
+                try:
+                    ngram_adj_gen = graph.ngram_submatrix_task( *ngram_args )
+                    while 1:
+                        ngram_matrix_reducer.add( ngram_adj_gen.next() )
+                except StopIteration, si:
+                    self.logger.debug("NGram matrix reduced for period %s"%process_period)
 
-        for process_period in periods_to_process:
-            ngram_args = ( self.config, self.storage, process_period, ngramgraphconfig, ngram_index, whitelist )
-            adj = graph.NgramAdjacency( *ngram_args )
-            adj.diagonal(ngram_matrix_reducer)
-            try:
-                ngram_adj_gen = graph.ngram_submatrix_task( *ngram_args )
-                while 1:
-                    ngram_matrix_reducer.add( ngram_adj_gen.next() )
-            except StopIteration, si:
-                self.logger.debug("NGram matrix reduced for period %s"%process_period)
 
+            self.logger.debug("loading Ngram nodes and edges into graph data")
+            GEXFWriter.load_ngrams( ngram_matrix_reducer, ngramgraphconfig = ngramgraphconfig)
+            del ngram_matrix_reducer
+        else:
+            self.logger.warning("NGram graph not generated because there was no NGrams")
+        if len(doc_index) != 0:
+            doc_matrix_reducer = graph.MatrixReducer( doc_index )
+            for process_period in periods_to_process:
+                doc_args = ( self.config, self.storage, process_period, documentgraphconfig, doc_index, whitelist )
+                adj = graph.DocAdjacency( *doc_args )
+                adj.diagonal(doc_matrix_reducer)
+                try:
+                    doc_adj_gen = graph.document_submatrix_task( *doc_args )
+                    while 1:
+                        doc_matrix_reducer.add( doc_adj_gen.next() )
+                except StopIteration, si:
+                    self.logger.debug("Document matrix reduced for period %s"%process_period)
 
-        self.logger.debug("loading Ngram nodes and edges into graph data")
-        GEXFWriter.load_ngrams( ngram_matrix_reducer, ngramgraphconfig = ngramgraphconfig)
-        del ngram_matrix_reducer
+                # abandonned parallelization with pp.Server()
+                #jobs += [job_server.submit(
+                #    ngram_adj_task,
+                #    args=ngram_args,
+                #    callback=ngram_matrix_reducer,
+                #    modules=depmodules,
+                #    depfuncs=depfunctions,
+                #    globals=globals()
+                #)]
 
-        doc_matrix_reducer = graph.MatrixReducer( doc_index )
-        for process_period in periods_to_process:
-            doc_args = ( self.config, self.storage, process_period, documentgraphconfig, doc_index, whitelist )
-            adj = graph.DocAdjacency( *doc_args )
-            adj.diagonal(doc_matrix_reducer)
-            try:
-                doc_adj_gen = graph.document_submatrix_task( *doc_args )
-                while 1:
-                    doc_matrix_reducer.add( doc_adj_gen.next() )
-            except StopIteration, si:
-                self.logger.debug("Document matrix reduced for period %s"%process_period)
-
-            # abandonned parallelization with pp.Server()
-            #jobs += [job_server.submit(
-            #    ngram_adj_task,
-            #    args=ngram_args,
-            #    callback=ngram_matrix_reducer,
-            #    modules=depmodules,
-            #    depfuncs=depfunctions,
-            #    globals=globals()
-            #)]
-
-        self.logger.debug("loading Document nodes and edges into graph data")
-        GEXFWriter.load_documents( doc_matrix_reducer, documentgraphconfig = documentgraphconfig)
-        del doc_matrix_reducer
-
+            self.logger.debug("loading Document nodes and edges into graph data")
+            GEXFWriter.load_documents( doc_matrix_reducer, documentgraphconfig = documentgraphconfig)
+            del doc_matrix_reducer
+        else:
+            self.logger.warning("Document graph not generated because there was no Documents")
         return abspath(GEXFWriter.finalize())
         # abandonned parallelization with pp.Server()
         #self.logger.debug("wait for jobs to finish")
@@ -638,78 +643,6 @@ class TinaApp(object):
         except ImportError, exc:
             raise Exception("couldn't load module %s: %s"%(name,exc))
 
-    def import_file(self,
-            path,
-            dataset,
-            format='tinacsv',
-            overwrite=False,
-        ):
-        """
-        OBSOLETE
-        tinasoft common csv file import controler
-        """
-        path = self._get_sourcefile_path(path)
-        corporaObj = corpora.Corpora(dataset)
-        if self.set_storage( dataset ) == self.STATUS_ERROR:
-            return self.STATUS_ERROR
-        # instanciate stopwords and extractor class
-        stopwds = stopwords.StopWords(
-            "file://%s"%join(self.config['general']['basedirectory'],
-            self.config['general']['shared'],
-            self.config['general']['stopwords'])
-        )
-        stemmer = self._import_module( self.config['datasets']['stemmer'])
-        extract = extractor.Extractor(
-            self.storage,
-            self.config['datasets'],
-            corporaObj,
-            stopwds,
-            stemmer=stemmer.Nltk()
-        )
-        if extract.import_file(
-            path,
-            format,
-            overwrite
-        ) is True:
-            return extract.duplicate
-        else:
-            return self.STATUS_ERROR
-
-
-    def export_whitelist( self,
-            periods,
-            dataset,
-            whitelistlabel,
-            outpath=None,
-            whitelistpath=None,
-            userstopwords=None,
-            minoccs=1,
-            **kwargs
-        ):
-        """
-        OBSOLETE
-        Public access to tinasoft.data.ngram.export_whitelist()
-        """
-        # creating default outpath
-        if outpath is None:
-            outpath = self._get_user_filepath(
-                dataset,
-                'whitelist',
-                "%s-export_whitelist.csv"%whitelistlabel
-            )
-        if self.set_storage( dataset ) == self.STATUS_ERROR:
-            return self.STATUS_ERROR
-        userstopwords = self.import_userstopwords(userstopwords)
-        whitelist = self.import_whitelist(whitelistpath, userstopwords)
-        exporter = Writer('whitelist://'+outpath, **kwargs)
-        return abspath(exporter.export_whitelist(
-            self.storage,
-            periods,
-            whitelistlabel,
-            userstopwords,
-            whitelist,
-            minoccs
-        ))
 
 #def get_storage(dataset, config):
     # type and name of the main database

@@ -274,6 +274,9 @@ class Extractor():
             return False
 
     def _update_Document(self, overwrite, corpusNum, document):
-        """doc's storage : updates and returns duplicates"""
+        """
+        OBSOLETE
+        doc's storage : updates and returns duplicates
+        """
         self.duplicate += self.storage.updateDocument( document, overwrite )
         return True
