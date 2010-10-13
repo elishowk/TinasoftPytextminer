@@ -4,7 +4,7 @@ general:
     # where all path and following file are located
     basedirectory: '.'
     locale: 'en_US.UTF-8'
-    # all the following directories or files a under "basedirectory"
+    # following directories or files a under "basedirectory"
     index: 'index'
     dbenv: 'db'
     log: 'log'

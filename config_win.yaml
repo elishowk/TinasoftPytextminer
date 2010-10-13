@@ -4,6 +4,7 @@ general:
     # where all path and following file are located
     basedirectory: '.'
     locale: ''
+    # following directories or files a under "basedirectory"
     index: 'index'
     dbenv: 'db'
     log: 'log'
@@ -11,9 +12,9 @@ general:
     user: 'user'
     shared: 'shared'
     source_file_directory: 'source_files'
+    userstopwords: 'user_stopwords.csv'
     # stopwords are under share
     stopwords: 'stopwords\en.txt'
-    userstopwords: 'user_stopwords.csv'
 # extraction settings
 datasets:
     # tina csv columns declaration
@@ -34,22 +35,21 @@ datasets:
         # csv reader params
         delimiter: ','
         quotechar: '"'
-        locale: ''
+        encoding: 'utf-8'
     medline:
         period_size: 4
-        locale: ''
+        encoding: 'ascii'
     # extraction params
     ngramMin: 1
     ngramMax: 4
     # tagger learning on 2 x training_tagger_size sentences of tagged nltk corpus
     training_tagger_size: 8000
-    stemmer: 'tinasoft.pytextminer.stemmer'
     # under "basedirectory" directory, delete this file to regenerate a new one on next starting
     tagger: 'shared_tagger.pickle'
     postag_valid: '^((VB.?,|CD.?,|JJ.?,|\?,){0,2}?(NN.?,|\?,))+?((PREP.?|DET.?,|IN.?,|CC.?,|\?,)((VB.?,|CD.?,|JJ.?,|\?,){0,2}?(NN.?,|\?,))+?)*?$'
     #postag_valid: '^((VB.?,|JJ.?,|\?,){0,2}?(NN.?,|\?,))+?((IN.?,|CC.?,|\?,)((VB.?,|JJ.?,|\?,){0,2}?(NN.?,|\?,))+?)*?$'
 datamining:
-    template: 'shared\gexf\gexf.template'
+    template: 'shared\gexf\gexf.array.template'
     DocumentGraph:
         edgethreshold:
             - 0.0
@@ -57,7 +57,7 @@ datamining:
         nodethreshold:
             - 1
             - 'inf'
-        proximity: 'DocumentGraph.logJaccard'
+        proximity: 'logJaccard'
     NGramGraph:
         edgethreshold:
             - 0.0
@@ -66,4 +66,4 @@ datamining:
             - 1
             - 'inf'
         alpha: 0.1
-        proximity: 'NGramGraph.pseudoInclusionProx'
+        proximity: 'pseudoInclusion'

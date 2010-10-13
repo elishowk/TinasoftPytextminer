@@ -118,7 +118,7 @@ class IndexArchive(TinaAppTests):
 #        )
 
 def usage():
-    print "USAGE : python tests.py TestClass configuration_file_path source_filename file_format"
+    print "USAGE : python apitests.py TestClass configuration_file_path source_filename file_format"
 
 if __name__ == '__main__':
     print sys.argv
