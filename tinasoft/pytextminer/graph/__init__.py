@@ -152,19 +152,23 @@ class MatrixReducer(Matrix):
         for key, idx in self.reverseindex.iteritems():
             id_index[idx] = key
         for i in range(self.array.shape[0]):
+            # node filter
+            if self.array[i,i] < float(config['nodethreshold'][0]) or self.array[i,i] > float(config['nodethreshold'][1]): continue
             nodei = id_index[i]
             row = {}
             for j in range(self.array.shape[0] - i):
-                cooc = self.array[i,i+j]
-                if cooc >= min:
+                if self.array[i+j,i+j] < float(config['nodethreshold'][0]) or self.array[i+j,i+j] > float(config['nodethreshold'][1]): continue
+
+                prox = self.array[i,i+j]
+                if prox >= float(config['edgethreshold'][0]):
                     if max is None:
                         count += 1
                         nodej = id_index[j]
-                        row[nodej] = cooc
-                    elif cooc <= max:
+                        row[nodej] = prox
+                    elif prox <= float(config['edgethreshold'][1]):
                         count += 1
                         nodej = id_index[j]
-                        row[nodej] = cooc
+                        row[nodej] = prox
             if len(row.keys()) > 0:
                 yield (nodei, row)
         _logger.debug("found %d valid proximity values"%count)
@@ -377,7 +381,7 @@ class DocAdjacency(Adjacency):
             if self.maxngrams < len(self.documentngrams[doc]):
                 self.maxngrams = len(self.documentngrams[doc])
 
-    def sharedNgrams( self, document ):
+    def sharedNGrams( self, document ):
         """
         number of ngram shared by 2 documents dividedby the max over the period
         """

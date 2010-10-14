@@ -27,7 +27,7 @@ class TinaAppTests(unittest.TestCase):
     def setUp(self):
         self.tinasoft = tinasoftSingleton
         self.datasetId = "test_data_set"
-        self.periods = ['1','pubmed1','2']
+        self.periods = ['1','pubmed1','2','FET']
         self.path = sourceFile
         self.format = sourceFormat
         self.extracted_whitelist = 'date-test_whitelist-extract_file.csv'
@@ -66,15 +66,15 @@ class GenerateGraph(TinaAppTests):
             whitelistpath=self.extracted_whitelist,
             outpath='test_graph',
             ngramgraphconfig={
-                'edgethreshold': [0.0,'inf'],
-                'nodethreshold': [1,'inf'],
-                'alpha': 0.1,
-                'proximity': 'cooccurrences'
+            #    'edgethreshold': [0.0,'inf'],
+            #    'nodethreshold': [1,'inf'],
+            #    'alpha': 0.1,
+                'proximity': 'pseudoInclusion'
             },
             documentgraphconfig={
                 'edgethreshold': [0.0,'inf'],
-                'nodethreshold': [1,'inf'],
-                'proximity': 'logJaccard'
+            #    'nodethreshold': [1,'inf'],
+                'proximity': 'sharedNGrams'
             },
             exportedges=True
         )
@@ -113,7 +113,7 @@ class IndexArchive(TinaAppTests):
 #        return
 #        print self.tinasoft.export_whitelist(
 #            self.periods,
-#            self.datasetId,
+#            self.dataset   Id,
 #            'test export whitelist',
 #            'tinaapptests-export_whitelist.csv'
 #        )

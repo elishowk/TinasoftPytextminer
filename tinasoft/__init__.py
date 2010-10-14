@@ -303,53 +303,6 @@ class TinaApp(object):
         else:
             return self.STATUS_ERROR
 
-    def index_archive(self,
-            path,
-            dataset,
-            periods,
-            whitelistpath,
-            format,
-            outpath=None,
-            minCooc=1
-        ):
-        """
-        Index a whitelist against an archive of articles,
-        updates cooccurrences into storage,
-        optionally exporting cooccurrence matrix
-        """
-        try:
-            # path is an archive directory
-            path = self._get_sourcefile_path(path)
-        except IOError, ioe:
-            self.logger.error(ioe)
-            return self.STATUS_ERROR
-        if self.set_storage( dataset ) == self.STATUS_ERROR:
-            return self.STATUS_ERROR
-
-        corporaObj = corpora.Corpora(dataset)
-        whitelist = self.import_whitelist(whitelistpath)
-        # prepares extraction export path
-        if outpath is not None:
-            outpath = self._get_user_filepath(
-                dataset,
-                'cooccurrences',
-                "%s_%s-index_archive.csv"%("+".join(periods),whitelist['label'])
-            )
-            exporter = Writer("coocmatrix://"+outpath)
-        else:
-            exporter = None
-        archive = Reader( format + "://" + path )
-        archive_walker = archive.walkArchive(periods)
-        try:
-            period_gen, period = archive_walker.next()
-            sc = indexer.ArchiveCounter(self.storage)
-            if not sc.walkCorpus(whitelist, period_gen, period, exporter, minCooc):
-                return self.STATUS_ERROR
-            elif not sc.writeMatrix(period, True, minCooc):
-                return self.STATUS_ERROR
-        except StopIteration, si:
-            return self.STATUS_OK
-
     def generate_graph(self,
             dataset,
             periods,
@@ -366,6 +319,9 @@ class TinaApp(object):
 
         @return relative path to the gexf file
         """
+        if not documentgraphconfig: documentgraphconfig={}
+        if not ngramgraphconfig: ngramgraphconfig={}
+
         if self.set_storage( dataset ) == self.STATUS_ERROR:
             return self.STATUS_ERROR
 
@@ -377,7 +333,6 @@ class TinaApp(object):
         else:
             outpath = self._get_user_filepath(dataset, 'gexf', params_string + "_%s"%outpath)
         outpath = outpath + ".gexf"
-        # import whitelist
         whitelist = self.import_whitelist(whitelistpath)
         # creates the GEXF exporter
         GEXFWriter = Writer('gexf://', **self.config['datamining'])
@@ -434,8 +389,12 @@ class TinaApp(object):
 
         if len(ngram_index) != 0:
             # hack
+            if ngramgraphconfig['proximity']=='cooccurrences':
+                ngram_matrix_reducer = graph.MatrixReducer( ngram_index )
+            if ngramgraphconfig['proximity']=='pseudoInclusion':
+                ngram_matrix_reducer = graph.PseudoInclusionMatrix( ngram_index )
+            # hack
             ngramgraphconfig['proximity']='cooccurrences'
-            ngram_matrix_reducer = graph.PseudoInclusionMatrix( ngram_index )
             for process_period in periods_to_process:
                 ngram_args = ( self.config, self.storage, process_period, ngramgraphconfig, ngram_index, whitelist )
                 adj = graph.NgramAdjacency( *ngram_args )
@@ -483,6 +442,53 @@ class TinaApp(object):
         # abandonned parallelization with pp.Server()
         #self.logger.debug("wait for jobs to finish")
         #job_server.wait()
+
+    def index_archive(self,
+            path,
+            dataset,
+            periods,
+            whitelistpath,
+            format,
+            outpath=None,
+            minCooc=1
+        ):
+        """
+        Index a whitelist against an archive of articles,
+        updates cooccurrences into storage,
+        optionally exporting cooccurrence matrix
+        """
+        try:
+            # path is an archive directory
+            path = self._get_sourcefile_path(path)
+        except IOError, ioe:
+            self.logger.error(ioe)
+            return self.STATUS_ERROR
+        if self.set_storage( dataset ) == self.STATUS_ERROR:
+            return self.STATUS_ERROR
+
+        corporaObj = corpora.Corpora(dataset)
+        whitelist = self.import_whitelist(whitelistpath)
+        # prepares extraction export path
+        if outpath is not None:
+            outpath = self._get_user_filepath(
+                dataset,
+                'cooccurrences',
+                "%s_%s-index_archive.csv"%("+".join(periods),whitelist['label'])
+            )
+            exporter = Writer("coocmatrix://"+outpath)
+        else:
+            exporter = None
+        archive = Reader( format + "://" + path )
+        archive_walker = archive.walkArchive(periods)
+        try:
+            period_gen, period = archive_walker.next()
+            sc = indexer.ArchiveCounter(self.storage)
+            if not sc.walkCorpus(whitelist, period_gen, period, exporter, minCooc):
+                return self.STATUS_ERROR
+            elif not sc.writeMatrix(period, True, minCooc):
+                return self.STATUS_ERROR
+        except StopIteration, si:
+            return self.STATUS_OK
 
     def export_cooc(self,
             dataset,

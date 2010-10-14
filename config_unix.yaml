@@ -64,7 +64,7 @@ datamining:
     NGramGraph:
         edgethreshold:
             - 0.0
-            - 1.0
+            - 'inf'
         nodethreshold:
             - 1
             - 'inf'

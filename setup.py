@@ -18,7 +18,7 @@
 __version__="1.0alpha6"
 __url__="http://tinasoft.eu"
 __longdescr__="A text-mining python module producing thematic field graphs"
-__license__="GNU General Public License"
+__license__="GNU General Public License v3"
 __keywords__="nlp,textmining,graph"
 __author__="elias showk"
 __author_email__="elishowk@nonutc.fr"
@@ -36,20 +36,22 @@ DEPS = glob(os.path.dirname(os.path.abspath(__file__)) + "/deps/*")
 
 data_files = [
     ('tinasoft/shared', glob(r'shared/*.*')),
-    ('tinasoft', glob(r'tinasoft/config.yaml')),
+    ('tinasoft', glob(r'config_unix.yaml')),
+    ('tinasoft', glob(r'config_win.yaml')),
     ('tinasoft',glob(r'README')),
-    ('tinasoft',glob(r'LICENSE'))
+    ('tinasoft',glob(r'LICENSE')),
+    ('tinasoft',glob(r'GNU-GPL.txt'))
 ]
 
 setup (
     name = 'TinasoftPytextminer',
     packages = find_packages(),
     #package_dir={'tinasoft': 'tinasoft'},
-    package_data={'tinasoft': ['tinasoft/config.yaml']},
+    #package_data={'tinasoft': ['tinasoft/config.yaml']},
     data_files = data_files,
     include_package_data = True,
     # Declare your packages' dependencies here, for eg:
-    install_requires = ['numpy','pyyaml','nltk','jsonpickle','tenjin','twisted','simplejson','threadpool'],
+    install_requires = ['numpy','pyyaml','nltk','jsonpickle','tenjin','twisted','simplejson'],
     dependency_links = DEPS,
     scripts = ['httpserver.py'],
     #package_data = {'tinasoft': ['shared', 'config.yaml', 'README', 'LICENSE']},
