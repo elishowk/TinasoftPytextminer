@@ -55,7 +55,6 @@ class Extractor():
             training_corpus_size=self.config['training_tagger_size'],
             trained_pickle=self.config['tagger']
         )
-        #self.__insert_threads = []
 
     def _openFile(self, path, format ):
         """
@@ -157,7 +156,7 @@ class Extractor():
                     self.tagger,
                     self.stemmer
                 )
-                #### inserts/updates document, corpus and corpora
+                #### inserts/updates NGram and update document obj
                 self._insert_NGrams(docngrams, document, corpusNum, overwrite)
                 # creates or OVERWRITES document into storage
                 del document['content']
@@ -187,96 +186,25 @@ class Extractor():
             del ng['occs']
             # updates NGram-Corpus edges
             storedDoc = self.storage.loadDocument( document['id'] )
+            ### document is not in the database
             if storedDoc is None:
                 ng.addEdge( 'Corpus', corpusNum, 1 )
                 self.reader.corpusDict[ corpusNum ].addEdge( 'NGram', ngid, 1 )
-            elif corpusNum not in storedDoc['edges']['Corpus']:
-                ng.addEdge( 'Corpus', corpusNum, 1 )
-                self.reader.corpusDict[ corpusNum ].addEdge( 'NGram', ngid, 1 )
-            elif ngid not in storedDoc['edges']['NGram']:
-                ng.addEdge( 'Corpus', corpusNum, 1 )
-                self.reader.corpusDict[ corpusNum ].addEdge( 'NGram', ngid, 1 )
+            else:
+                ### document exist but not attached to the current period
+                if corpusNum not in storedDoc['edges']['Corpus']:
+                    ng.addEdge( 'Corpus', corpusNum, 1 )
+                    self.reader.corpusDict[ corpusNum ].addEdge( 'NGram', ngid, 1 )
+                ### document exist but does not contains the current ngram
+                if ngid not in storedDoc['edges']['NGram']:
+                    ng.addEdge( 'Corpus', corpusNum, 1 )
+                    self.reader.corpusDict[ corpusNum ].addEdge( 'NGram', ngid, 1 )
+            ### anyway attach document and ngram
             ng.addEdge( 'Document', document['id'], docOccs )
             # updates Doc-NGram edges
             document.addEdge( 'NGram', ng['id'], docOccs )
-            # queue the update of the ngram
+            # queue the storage/update of the ngram
             self.storage.updateNGram( ng, overwrite, document['id'], corpusNum )
+        # at the end of a document it's safe to flush the storage insert/update queue
         self.storage.flushNGramQueue()
 
-    def import_file(self, path, format, overwrite=False):
-        """
-        OBSOLETE
-        """
-        # opens and starts walking a file
-        fileGenerator = self._walkFile( path, format )
-        # 1st part = ngram extraction
-        doccount = 0
-        try:
-            while 1:
-                # document parsing, doc-corpus edge is written
-                document, corpusNum = fileGenerator.next()
-                document.addEdge( 'Corpus', corpusNum, 1 )
-
-                # add Corpora-Corpus edges if possible
-                self.corpora.addEdge( 'Corpus', corpusNum, 1 )
-                self.reader.corpusDict[ corpusNum ].addEdge( 'Corpora', self.corpora['id'], 1)
-
-                # adds Corpus-Doc edge if possible
-                self.reader.corpusDict[ corpusNum ].addEdge( 'Document', document['id'], 1)
-
-                doccount += 1
-                if doccount % 10 == 0:
-                    _logger.debug("%d documents parsed"%doccount)
-
-                # inserts/updates corpus and corpora
-                # TODO test removing self.reader.corpusDict from memory, use the DB !!
-                self.storage.updateCorpora( self.corpora, overwrite )
-                for corpusObj in self.reader.corpusDict.values():
-                    self.storage.updateCorpus( corpusObj, overwrite )
-                if self._update_Document(overwrite, corpusNum, document) is False:
-                    continue
-                # HUM, VERY UNSAFE
-                #insertargs = (
-                #    document,
-                #    corpusNum,
-                #    self.config['ngramMin'],
-                #    self.config['ngramMax'],
-                #    overwrite
-                #)
-                #t = Thread(target=self._insert_NGrams, args=insertargs)
-                #t.start()
-                #self.__insert_threads += [t]
-
-                # document's ngrams extraction
-                docngrams = tokenizer.TreeBankWordTokenizer.extract( \
-                    document,\
-                    self.stopwords, \
-                    ngramMin, \
-                    ngramMax, \
-                    self.filters, \
-                    self.tagger,
-                    self.stemmer
-                )
-                self._insert_NGrams(
-                    docngrams,
-                    document,
-                    corpusNum,
-                    overwrite
-                )
-        # Second part of file parsing = document graph updating
-        except StopIteration:
-            # commit changes to indexer
-            if self.index is not None:
-                self.writer.commit()
-            return True
-        except Exception:
-            _logger.error( traceback.format_exc() )
-            return False
-
-    def _update_Document(self, overwrite, corpusNum, document):
-        """
-        OBSOLETE
-        doc's storage : updates and returns duplicates
-        """
-        self.duplicate += self.storage.updateDocument( document, overwrite )
-        return True

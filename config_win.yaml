@@ -49,7 +49,7 @@ datasets:
     postag_valid: '^((VB.?,|CD.?,|JJ.?,|\?,){0,2}?(NN.?,|\?,))+?((PREP.?|DET.?,|IN.?,|CC.?,|\?,)((VB.?,|CD.?,|JJ.?,|\?,){0,2}?(NN.?,|\?,))+?)*?$'
     #postag_valid: '^((VB.?,|JJ.?,|\?,){0,2}?(NN.?,|\?,))+?((IN.?,|CC.?,|\?,)((VB.?,|JJ.?,|\?,){0,2}?(NN.?,|\?,))+?)*?$'
 datamining:
-    template: 'shared\gexf\gexf.array.template'
+    template: 'shared\gexf\gexf.default.template'
     DocumentGraph:
         edgethreshold:
             - 0.0

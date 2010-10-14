@@ -356,7 +356,8 @@ class TinaApp(object):
             whitelistpath,
             outpath=None,
             ngramgraphconfig=None,
-            documentgraphconfig=None
+            documentgraphconfig=None,
+            exportedges=False
         ):
         """
         Generates the proximity numpy matrix from indexed NGrams/Document/Corpus
@@ -398,7 +399,7 @@ class TinaApp(object):
         GEXFWriter.new_graph( outpath, self.storage, graphmeta )
 
         periods_to_process = []
-        ngram_index = set( whitelist['edges']['NGram'].keys() )
+        ngram_index = set([])
         doc_index = set([])
 
         # checks periods and construct nodes' indices
@@ -406,13 +407,13 @@ class TinaApp(object):
             corpus = self.storage.loadCorpus( period )
             if corpus is not None:
                 periods_to_process += [period]
+                # unions
                 ngram_index |= set( corpus['edges']['NGram'].keys() )
                 doc_index |= set( corpus['edges']['Document'].keys() )
             else:
                 self.logger.debug('Period %s not found in database, skipping it from generate_graph'%str(period))
-
-        if len(ngram_index) == 0
-
+        # intersection with the whitelist
+        ngram_index &= set( whitelist['edges']['NGram'].keys() )
         # TODO here's the key to replace actuel Matrix index handling
         doc_index = list(doc_index)
         doc_index.sort()
@@ -432,7 +433,9 @@ class TinaApp(object):
         documentgraphconfig = self.config['datamining']['DocumentGraph']
 
         if len(ngram_index) != 0:
-            ngram_matrix_reducer = graph.MatrixReducer( ngram_index )
+            # hack
+            ngramgraphconfig['proximity']='cooccurrences'
+            ngram_matrix_reducer = graph.PseudoInclusionMatrix( ngram_index )
             for process_period in periods_to_process:
                 ngram_args = ( self.config, self.storage, process_period, ngramgraphconfig, ngram_index, whitelist )
                 adj = graph.NgramAdjacency( *ngram_args )
@@ -444,12 +447,11 @@ class TinaApp(object):
                 except StopIteration, si:
                     self.logger.debug("NGram matrix reduced for period %s"%process_period)
 
-
-            self.logger.debug("loading Ngram nodes and edges into graph data")
-            GEXFWriter.load_ngrams( ngram_matrix_reducer, ngramgraphconfig = ngramgraphconfig)
+            GEXFWriter.load_subgraph( 'NGram', ngram_matrix_reducer, subgraphconfig = ngramgraphconfig)
             del ngram_matrix_reducer
         else:
             self.logger.warning("NGram graph not generated because there was no NGrams")
+
         if len(doc_index) != 0:
             doc_matrix_reducer = graph.MatrixReducer( doc_index )
             for process_period in periods_to_process:
@@ -473,12 +475,11 @@ class TinaApp(object):
                 #    globals=globals()
                 #)]
 
-            self.logger.debug("loading Document nodes and edges into graph data")
-            GEXFWriter.load_documents( doc_matrix_reducer, documentgraphconfig = documentgraphconfig)
+            GEXFWriter.load_subgraph( 'Document',  doc_matrix_reducer, subgraphconfig = documentgraphconfig)
             del doc_matrix_reducer
         else:
             self.logger.warning("Document graph not generated because there was no Documents")
-        return abspath(GEXFWriter.finalize())
+        return abspath(GEXFWriter.finalize(exportedges=exportedges))
         # abandonned parallelization with pp.Server()
         #self.logger.debug("wait for jobs to finish")
         #job_server.wait()

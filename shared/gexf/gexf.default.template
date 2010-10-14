@@ -1,0 +1,64 @@
+<?py # -*- coding: utf-8 -*- ?>
+<?xml version="1.0" encoding="UTF-8"?>
+<gexf xmlns="http://www.gexf.net/1.1draft" xmlns:viz="http://www.gephi.org/gexf/viz" version="1.1">
+<meta lastmodifieddate="#{date}">
+    <description>${description}</description>
+<?py for creator in creators: ?>
+    <creator>${creator}</creator>
+<?py #end ?>
+    <parameters>
+<?py for param,value in parameters.iteritems(): ?>
+    <param key="${param}" value="${value}"/>
+<?py #end ?>
+    </parameters>
+</meta>
+<graph type="static">
+    <attributes class="node" type="static">
+        <attribute id="0" title="weight" type="double">
+        </attribute>
+    </attributes>
+    <nodes>
+<?py categories = [] ?>
+<?py for category, nodedict in nodes.iteritems(): ?>
+    <?py categories += [category] ?>
+    <?py for id in nodedict.keys(): ?>
+        <?py weight = nodedict[id] ?>
+        <?py nodedict[id] = storage.load(id, category) ?>
+        <?py graphid = category + "::" + id ?>
+        <node id="${graphid}" label="${ nodedict[id].getLabel() }">
+            <attvalues>
+        <?py weight = "%.2f"%round(weight,2) ?>
+                <attvalue for="0" value="${weight}" />
+            </attvalues>
+        </node>
+    <?py #endfor ?>
+<?py #endfor ?>
+    </nodes>
+    <edges>
+<?py if exportedges is True: ?>
+    <?py i = 0 ?>
+    <?py for sourcecategory, nodedict in nodes.iteritems(): ?>
+        <?py if sourcecategory in categories: ?>
+            <?py for source in nodedict.keys(): ?>
+                <?py for targetcategory in nodedict[source]['edges'].keys(): ?>
+                    <?py if targetcategory in categories: ?>
+                        <?py for target, weight in nodedict[source]['edges'][targetcategory].iteritems(): ?>
+                            <?py if target is None: ?>
+                                <?py print nodedict[source]['edges'][targetcategory] ?>
+                            <?py #endif ?>
+                            <?py weight = "%.6f"%round(weight,6) ?>
+                            <?py sourcegraphid = sourcecategory + "::" + source ?>
+                            <?py targetgraphid = targetcategory + "::" + target ?>
+            <edge id="#{i}" source="#{sourcegraphid}" target="#{targetgraphid}" type="directed" weight="${weight}"></edge>
+                            <?py i += 1 ?>
+                        <?py #endfor ?>
+                    <?py #endif ?>
+                <?py #endfor ?>
+                <?py del nodedict[source] ?>
+            <?py #endfor ?>
+        <?py #endif ?>
+    <?py #endfor ?>
+<?py #endif ?>
+    </edges>
+</graph>
+</gexf>

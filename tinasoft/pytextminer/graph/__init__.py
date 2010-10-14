@@ -47,7 +47,7 @@ def document_submatrix_task( config, storage, period, documentgraphconfig, matri
     except StopIteration, si:
         _logger.debug("DocAdjacency on period %s is finished"%period)
 
-class Matrix():
+class Matrix(object):
     """
     Matrix class to build adjacency matrix using numpy
     Manages external IDs with an auto-incremented internal index
@@ -142,7 +142,7 @@ class MatrixReducer(Matrix):
             for (external1, external2) in itertools.permutations( submatrix.reverseindex.keys(), 2):
                 self.set(external1, external2, value=submatrix.get( external1, external2 ), overwrite=False)
 
-    def extract_semiupper_matrix(self, min=1, max=None):
+    def extract_semiupper_matrix(self, config):
         """
         yields all values of the upper part of the matrix
         associating ngrams with theirs tinasoft's id
@@ -154,11 +154,14 @@ class MatrixReducer(Matrix):
         for i in range(self.array.shape[0]):
             nodei = id_index[i]
             row = {}
-            proxline = self.array[i,:]
             for j in range(self.array.shape[0] - i):
-                cooc = proxline[i+j]
+                cooc = self.array[i,i+j]
                 if cooc >= min:
-                    if max is not None and cooc <= max:
+                    if max is None:
+                        count += 1
+                        nodej = id_index[j]
+                        row[nodej] = cooc
+                    elif cooc <= max:
                         count += 1
                         nodej = id_index[j]
                         row[nodej] = cooc
@@ -166,7 +169,7 @@ class MatrixReducer(Matrix):
                 yield (nodei, row)
         _logger.debug("found %d valid proximity values"%count)
 
-    def extract_matrix(self, min=1, max=None):
+    def extract_matrix(self, config):
         """
         yields all values of the matrix
         associating ngrams with theirs tinasoft's id
@@ -178,18 +181,63 @@ class MatrixReducer(Matrix):
 
         for i in range(self.array.shape[0]):
             nodei = id_index[i]
+            # node filter
+            if self.array[i,i] < float(config['nodethreshold'][0]) or self.array[i,i] > float(config['nodethreshold'][1]): continue
             row = {}
-            arrayline = self.array[i,:]
             for j in range(self.array.shape[0]):
-                prox = arrayline[j]
-                if prox >= min:
-                    if max is not None and prox <= max:
+                if i == j : continue
+                # node filter
+                if self.array[j,j] < float(config['nodethreshold'][0]) or self.array[j,j] > float(config['nodethreshold'][1]): continue
+                prox = self.array[i,j]
+                # edge filter
+                if prox >= float(config['edgethreshold'][0]):
+                    if max is None:
+                        count += 1
+                        nodej = id_index[j]
+                        row[nodej] = prox
+                    elif prox <= float(config['edgethreshold'][1]):
                         count += 1
                         nodej = id_index[j]
                         row[nodej] = prox
             if len(row.keys()) > 0:
                 yield (nodei, row)
         _logger.debug("found %d valid proximity values"%count)
+
+    def export(self, path, index):
+        fh = open(path, 'w+')
+        fh.write(",".join(index))
+        savetxt( fh, self.array, "%.2f", ",")
+
+
+class PseudoInclusionMatrix(MatrixReducer):
+    """
+    Matrix Reducer used to store cooccurrence matrix,
+    then extract pseudo-inclusion on the fly
+    """
+
+    def extract_matrix( self, config ):
+        alpha = config['alpha']
+        coocmatrix = super(PseudoInclusionMatrix, self).extract_matrix( config )
+        try:
+            count = 0
+            while 1:
+                ni, coocrow = coocmatrix.next()
+                pirow = {}
+                occi = self.get(ni, ni)
+                for nj, cooc in coocrow.iteritems():
+                    occj = self.get(nj, nj)
+                    pi = (( cooc / occi )**alpha) * (( cooc / occj )**(1/alpha))
+                    if pi >= float(config['edgethreshold'][0]):
+                        if max is None:
+                            count += 1
+                            pirow[nj] = pi
+                        elif pi <= float(config['edgethreshold'][1]):
+                            count += 1
+                            pirow[nj] = pi
+                if len(pirow.keys()) > 0:
+                    yield ni, pirow
+        except StopIteration:
+            _logger.debug("found %d valid pseudo-inclusion values"%count)
 
 class Adjacency(object):
     """
@@ -229,7 +277,7 @@ class Adjacency(object):
 
     def _loadOptions(self, opts, defaults):
         """
-        First laods default options
+        First loads the default options
         Then overwrites with eventual user options
         """
         self._loadDefaults(defaults)
@@ -295,23 +343,6 @@ class NgramAdjacency(Adjacency):
             submatrix.set( ngj, ngi, 1 )
         return submatrix
 
-    def pseudoInclusion( self, document ):
-        """
-        uses cooccurrences matrix to process pseudo-inclusion proximities
-        """
-        docngrams = document['edges']['NGram'].keys()
-        submatrix = self.cooccurrences( document )
-        valid_keys = set(docngrams) & self.periodngrams
-
-        for (ng1, ng2) in itertools.permutations(valid_keys, 2):
-            # permutations => ng1 != ng2
-            cooc = submatrix.get(ng1, ng2)
-            occ1 = self.corpus['edges']['NGram'][ng1]
-            occ2 = self.corpus['edges']['NGram'][ng2]
-            prox = (( cooc / occ1 )**self.alpha) * (( cooc / occ2 )**(1/self.alpha))
-            submatrix.set( ng1, ng2, value=prox, overwrite=True )
-        return submatrix
-
     def diagonal( self, matrix_reducer ):
         # global index
         for ng in self.periodngrams:
@@ -336,7 +367,9 @@ class DocAdjacency(Adjacency):
     """
     def __init__(self, config, storage, corpusid, opts, index, whitelist ):
         Adjacency.__init__(self, config, storage, corpusid, opts, 'DocumentGraph', index, whitelist )
+        # docngrams cache
         self.documentngrams = {}
+        # pre-calculed maximum ngrams in documents
         self.maxngrams = 0
         for doc in self.corpus['edges']['Document'].keys():
             documentobj = self.storage.loadDocument(doc)
