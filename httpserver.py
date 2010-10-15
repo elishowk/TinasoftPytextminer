@@ -27,6 +27,8 @@ from twisted.web.static import File
 from twisted.web.resource import NoResource, ErrorPage
 
 # json encoder to communicate with the outer world
+#import json
+import numpy
 import jsonpickle
 # traceback to print error traces
 import traceback
@@ -159,9 +161,9 @@ class TinaAppPOST():
         """ index file """
         return self.tinaappinstance.index_file(*args, **kwargs)
 
-    def whitelist(self, *args, **kwargs):
+    #def whitelist(self, *args, **kwargs):
         """ import whitelist """
-        return TinaApp.import_whitelist(*args, **kwargs)
+    #    return TinaApp.import_whitelist(*args, **kwargs)
 
     #def cooccurrences(self, *args, **kwargs):
         """ process_cooc """
@@ -171,25 +173,25 @@ class TinaAppPOST():
         """ generate_graph """
         return self.tinaappinstance.generate_graph(*args, **kwargs)
 
-    def dataset(self, corporaobj):
+    #def dataset(self, corporaobj):
         """ insert """
-        self.tinaappinstance.set_storage( corporaobj['id'] )
-        return self.tinaappinstance.storage.insertCorpora(corporaobj)
+        #self.tinaappinstance.set_storage( corporaobj['id'] )
+        #return self.tinaappinstance.storage.insertCorpora(corporaobj)
 
-    def corpus(self, dataset, corpusobj):
+    #def corpus(self, dataset, corpusobj):
         """ insert """
-        self.tinaappinstance.set_storage( dataset )
-        return self.tinaappinstance.storage.insertCorpus(corpusobj)
+        #self.tinaappinstance.set_storage( dataset )
+        #return self.tinaappinstance.storage.insertCorpus(corpusobj)
 
-    def document(self, dataset, documentobj):
+    #def document(self, dataset, documentobj):
         """ insert """
-        self.tinaappinstance.set_storage( dataset )
-        return self.tinaappinstance.storage.insertDocument(documentobj)
+        #self.tinaappinstance.set_storage( dataset )
+        #return self.tinaappinstance.storage.insertDocument(documentobj)
 
-    def ngram(self, dataset, ngramobj):
+    #def ngram(self, dataset, ngramobj):
         """ insert """
-        self.tinaappinstance.set_storage( dataset )
-        return self.tinaappinstance.storage.insertNgram(ngramobj)
+        #self.tinaappinstance.set_storage( dataset )
+        #return self.tinaappinstance.storage.insertNgram(ngramobj)
 
 
 class TinaAppGET():
@@ -206,9 +208,9 @@ class TinaAppGET():
         """
         return self.tinaappinstance.extract_file(*args, **kwargs)
 
-    def whitelist(self, *args, **kwargs):
+    #def whitelist(self, *args, **kwargs):
         """exports a whitelist csv file for a given dataset, periods, and whitelist"""
-        return self.tinaappinstance.export_whitelist(*args, **kwargs)
+    #    return self.tinaappinstance.export_whitelist(*args, **kwargs)
 
     def cooccurrences(self, *args, **kwargs):
         """exports a cooc matrix for a given datasset, periods, and whitelist"""
@@ -225,7 +227,6 @@ class TinaAppGET():
         ### if argument is empty, return the list of all datasets
         if dataset is None:
             return self.tinaappinstance.walk_datasets()
-
         elif self.tinaappinstance.set_storage(dataset, create=False) == self.tinaappinstance.STATUS_OK:
             return self.tinaappinstance.storage.loadCorpora(dataset)
         else:
@@ -271,6 +272,16 @@ class TinaAppGET():
         decoded = urllib.unquote_plus(fileurl)
         return browser.open(decoded.replace("%5C","\\").replace("%2F","/").replace("%3A",":"))
 
+class NumpyFloatHandler(jsonpickle.handlers.BaseHandler):
+    def flatten(self, obj, data):
+        """
+        Casts and round to float an encod
+        """
+        return round(obj,6)
+
+jsonpickle.handlers.registry.register(numpy.float, NumpyFloatHandler)
+jsonpickle.handlers.registry.register(numpy.float32, NumpyFloatHandler)
+jsonpickle.handlers.registry.register(numpy.float64, NumpyFloatHandler)
 
 class TinaServerCallback():
     """
@@ -288,7 +299,7 @@ class TinaServerCallback():
         """
         Decoder for the host's application messages
         """
-        return jsonpickle.decode(str)
+        return jsonpickle.encode(str)
 
     def call(self, returnValue=None):
         #_observerProxy.notifyObservers(None, msg, jsonpickle.encode( returnValue ))
