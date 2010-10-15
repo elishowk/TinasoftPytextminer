@@ -128,7 +128,6 @@ class SymmetricMatrix(Matrix):
             self.array[ indices[0], indices[1] ] = value
 
 
-
 class MatrixReducer(Matrix):
     """
     Generic matrix additioner
@@ -182,7 +181,6 @@ class MatrixReducer(Matrix):
         id_index = {}
         for key, idx in self.reverseindex.iteritems():
             id_index[idx] = key
-
         for i in range(self.array.shape[0]):
             nodei = id_index[i]
             # node filter
@@ -294,7 +292,7 @@ class Adjacency(object):
                 # string eval to method
                 _logger.debug("setting up proximity from paramater to %s"%opts['proximity'])
                 self.proximity = getattr(self, opts['proximity'])
-                #del opts['proximity']
+
         except Exception, exc:
             _logger.error("impossible to load %s"%opts['proximity'])
             self.proximity = None
@@ -320,6 +318,7 @@ class Adjacency(object):
                 self.notify( doccount, totaldocs )
             else:
                 _logger.warning("document %s not found in database"%doc_id)
+        return
 
     def notify(self, doccount, totaldocs):
         if doccount % 50 == 0:
@@ -361,7 +360,7 @@ class NgramAdjacency(Adjacency):
         try:
             while 1:
                 document = generator.next()
-                yield self.proximity( generator.next() )
+                yield self.proximity( document )
         except StopIteration, si:
             return
 
@@ -374,12 +373,12 @@ class DocAdjacency(Adjacency):
         # docngrams cache
         self.documentngrams = {}
         # pre-calculed maximum ngrams in documents
-        self.maxngrams = 0
+        #self.maxngrams = 0
         for doc in self.corpus['edges']['Document'].keys():
             documentobj = self.storage.loadDocument(doc)
             self.documentngrams[doc] = set(documentobj['edges']['NGram'].keys()) & self.periodngrams
-            if self.maxngrams < len(self.documentngrams[doc]):
-                self.maxngrams = len(self.documentngrams[doc])
+            #if self.maxngrams < len(self.documentngrams[doc]):
+            #    self.maxngrams = len(self.documentngrams[doc])
 
     def sharedNGrams( self, document ):
         """
@@ -387,11 +386,15 @@ class DocAdjacency(Adjacency):
         """
         submatrix = Matrix( self.corpus['edges']['Document'].keys(), valuesize=float32 )
         doc1ngrams = self.documentngrams[document['id']]
+
         for docid in self.documentngrams.keys():
             if docid != document['id']:
                 doc2ngrams = self.documentngrams[docid]
-                prox = len( doc1ngrams & doc2ngrams ) / self.maxngrams
+                #prox = len( doc1ngrams & doc2ngrams ) / self.maxngrams
+                prox = len( doc1ngrams & doc2ngrams )
                 submatrix.set( document['id'], docid, value=prox, overwrite=True )
+                submatrix.set( docid, document['id'], value=prox, overwrite=True )
+
         return submatrix
 
 
@@ -416,6 +419,7 @@ class DocAdjacency(Adjacency):
             if denominator > 0:
                 weight = numerator / denominator
             submatrix.set(document['id'], docid, value=weight, overwrite=True)
+            submatrix.set(docid, document['id'], value=weight, overwrite=True)
         return submatrix
 
     def diagonal( self, matrix_reducer ):
@@ -430,8 +434,8 @@ class DocAdjacency(Adjacency):
         try:
             while 1:
                 document = generator.next()
-                yield self.proximity( generator.next() )
-                # limit calculations to half a matrix
+                yield self.proximity( document )
+                #### CAUTION : this limits calculations to half a matrix
                 del self.documentngrams[document['id']]
         except StopIteration, si:
             return

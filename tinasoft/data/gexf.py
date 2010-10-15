@@ -18,7 +18,7 @@ __author__="elishowk@nonutc.fr"
 
 #from tinasoft import threadpool
 from tinasoft.data import Handler
-from tinasoft.pytextminer import graph, PyTextMiner, ngram, document
+from tinasoft.pytextminer import PyTextMiner
 
 
 # Tenjin, the fastest template engine in the world !
@@ -29,7 +29,6 @@ from tenjin.helpers import *
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
-
 class GEXFHandler(Handler):
     """
     A generic GEXF handler
@@ -37,7 +36,7 @@ class GEXFHandler(Handler):
     options = {
         'locale'     : 'en_US.UTF-8',
         'compression': None,
-        'template'   : 'shared/gexf/gexf.template',
+        'template'   : 'shared/gexf/gexf.default.template',
     }
 
     def __init__(self, path, **opts):
@@ -75,6 +74,10 @@ class Exporter(Exporter):
         self.graph = {
             'nodes' : {},
             'storage': storage,
+            'attrnodes': {
+                'weight': 'double'
+            },
+            'attredges': {},
         }
         self.graph.update(meta)
 
@@ -99,6 +102,7 @@ class Exporter(Exporter):
                 weight = matrix.get(id, id)
                 self.graph['nodes'][category][id] = matrix.get(id, id)
                 edges = { category : row }
+                new = PyTextMiner.updateEdges( edges, obj )
                 self.storage.insert( PyTextMiner.updateEdges( edges, obj ), category )
                 nodecount += 1
                 self.notify(nodecount)

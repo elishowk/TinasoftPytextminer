@@ -405,7 +405,6 @@ class TinaApp(object):
                         ngram_matrix_reducer.add( ngram_adj_gen.next() )
                 except StopIteration, si:
                     self.logger.debug("NGram matrix reduced for period %s"%process_period)
-
             GEXFWriter.load_subgraph( 'NGram', ngram_matrix_reducer, subgraphconfig = ngramgraphconfig)
             del ngram_matrix_reducer
         else:
@@ -433,11 +432,11 @@ class TinaApp(object):
                 #    depfuncs=depfunctions,
                 #    globals=globals()
                 #)]
-
             GEXFWriter.load_subgraph( 'Document',  doc_matrix_reducer, subgraphconfig = documentgraphconfig)
             del doc_matrix_reducer
         else:
             self.logger.warning("Document graph not generated because there was no Documents")
+        # finalize
         return abspath(GEXFWriter.finalize(exportedges=exportedges))
         # abandonned parallelization with pp.Server()
         #self.logger.debug("wait for jobs to finish")

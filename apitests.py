@@ -40,7 +40,7 @@ class ExtractFile(TinaAppTests):
                 self.datasetId,
                 outpath=self.extracted_whitelist,
                 format=self.format,
-                minoccs=5,
+                minoccs=1,
         )
         self.failIfEqual(self.extracted_whitelist, TinaApp.STATUS_ERROR)
 
@@ -66,13 +66,13 @@ class GenerateGraph(TinaAppTests):
             whitelistpath=self.extracted_whitelist,
             outpath='test_graph',
             ngramgraphconfig={
-            #    'edgethreshold': [0.0,'inf'],
+            #    'edgethreshold': [1.0,'inf'],
             #    'nodethreshold': [1,'inf'],
             #    'alpha': 0.1,
-                'proximity': 'pseudoInclusion'
+                'proximity': 'cooccurrences'
             },
             documentgraphconfig={
-                'edgethreshold': [0.0,'inf'],
+                #'edgethreshold': [1.0,'inf'],
             #    'nodethreshold': [1,'inf'],
                 'proximity': 'sharedNGrams'
             },
