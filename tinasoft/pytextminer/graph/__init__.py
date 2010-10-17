@@ -400,26 +400,29 @@ class DocAdjacency(Adjacency):
 
     def logJaccard( self, document ):
         """
-        Jaccard-like distance
+        Jaccard-like similarity distance
         """
         submatrix = Matrix( self.corpus['edges']['Document'].keys(), valuesize=float32 )
         doc1ngrams = self.documentngrams[document['id']]
 
         for docid in self.documentngrams.keys():
-            doc2ngrams = self.documentngrams[docid]
-            ngramsintersection = doc1ngrams & doc2ngrams
-            ngramsunion = (doc1ngrams | doc2ngrams)
-            weight = 0
-            numerator = 0
-            for ngi in ngramsintersection:
-                numerator += 1/(math.log( 1 + self.corpus['edges']['NGram'][ngi] ))
-            denominator = 0
-            for ngi in ngramsunion:
-                denominator += 1/(math.log( 1 + self.corpus['edges']['NGram'][ngi] ))
-            if denominator > 0:
-                weight = numerator / denominator
-            submatrix.set(document['id'], docid, value=weight, overwrite=True)
-            submatrix.set(docid, document['id'], value=weight, overwrite=True)
+            if docid != document['id']:
+                doc2ngrams = self.documentngrams[docid]
+                ngramsintersection = doc1ngrams & doc2ngrams
+                ngramsunion = (doc1ngrams | doc2ngrams)
+                weight = 0
+                numerator = 0
+                for ngi in ngramsintersection:
+                    #print "intersection :", document['id'], docid, ngi, self.corpus['edges']['NGram'][ngi]
+                    numerator += 1/(math.log( 1 + self.corpus['edges']['NGram'][ngi] ))
+                denominator = 0
+                for ngi in ngramsunion:
+                    #print "union :", document['id'], docid, ngi, self.corpus['edges']['NGram'][ngi]
+                    denominator += 1/(math.log( 1 + self.corpus['edges']['NGram'][ngi] ))
+                if denominator > 0:
+                    weight = numerator / denominator
+                submatrix.set(document['id'], docid, value=weight, overwrite=True)
+                submatrix.set(docid, document['id'], value=weight, overwrite=True)
         return submatrix
 
     def diagonal( self, matrix_reducer ):

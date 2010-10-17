@@ -68,4 +68,4 @@ datamining:
             - 0.0
             - 'inf'
         alpha: 0.1
-        proximity: 'cooccurrences'
+        proximity: 'pseudoInclusion'

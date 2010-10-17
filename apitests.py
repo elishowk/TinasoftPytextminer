@@ -69,20 +69,17 @@ class GenerateGraph(TinaAppTests):
             #    'edgethreshold': [1.0,'inf'],
             #    'nodethreshold': [1,'inf'],
             #    'alpha': 0.1,
-                'proximity': 'cooccurrences'
+                'proximity': 'pseudoInclusion'
             },
             documentgraphconfig={
-                #'edgethreshold': [1.0,'inf'],
+            #    'edgethreshold': [1.0,'inf'],
             #    'nodethreshold': [1,'inf'],
-                'proximity': 'sharedNGrams'
+                'proximity': 'logJaccard'
             },
             exportedges=True
         )
 
-class ExportCoocMatrix(TinaAppTests):
-    def runTest(self):
-        """testF_ExportCoocMatrix"""
-        print self.tinasoft.export_cooc(self.datasetId, "Pubmed_1980[dp]")
+
 
 class IndexArchive(TinaAppTests):
     def runTest(self):
@@ -95,6 +92,11 @@ class IndexArchive(TinaAppTests):
                 outpath=True,
                 minCooc=10
             )
+
+class ExportCoocMatrix(TinaAppTests):
+    def runTest(self):
+        """testF_ExportCoocMatrix"""
+        print self.tinasoft.export_cooc(self.datasetId, "Pubmed_1980[dp]")
 
 #class ImportFile(TinaAppTests):
 #    def runTest(self):
