@@ -159,7 +159,7 @@ class Extractor():
                 #### inserts/updates NGram and update document obj
                 self._insert_NGrams(docngrams, document, corpusNum, overwrite)
                 # creates or OVERWRITES document into storage
-                del document['content']
+                #del document['content']
                 self.duplicate += self.storage.updateDocument( document, overwrite )
                 doccount += 1
                 if doccount % 10 == 0:
