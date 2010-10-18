@@ -153,14 +153,13 @@ class Backend(Handler):
         try:
             cur = self._db.cursor()
             cur.execute("select id, pickle from %s"%tabname)
-
             next_val = cur.fetchone()
             while next_val is not None:
                 yield next_val
                 next_val = cur.fetchone()
             return
         except Exception, readrange_exc:
-            _logger.error( "saferead exception : %s"%readrange_exc )
+            _logger.error( "safereadrange exception : %s"%readrange_exc )
             return
 
     def safewrite( self, tabname, list_of_tuples ):
@@ -234,17 +233,6 @@ class Engine(Backend):
 
     def loadCorpus(self, id, raw=False ):
         return self.load(id, 'Corpus', raw)
-
-    def loadManyDocument(self):
-        """
-        gets a generator of the whole table
-        yields filtered rows based on a list of id
-        """
-        readmany = self.load('Document')
-        try:
-            record = readmany.next()
-        except StopIteration, si:
-            return
 
     def loadDocument(self, id, raw=False ):
         return self.load(id, 'Document', raw)
