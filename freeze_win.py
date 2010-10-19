@@ -15,7 +15,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-__version__="1.0alpha6"
+__version__="1.0alpha7"
 __url__="http://tinasoft.eu"
 __longdescr__="A text-mining python module producing thematic field graphs"
 __license__="GNU General Public License"
@@ -31,10 +31,10 @@ from cx_Freeze import setup, Executable
 
 data_files = [
 #    ('Microsoft.VC90.CRT',glob(join('Microsoft.VC90.CRT','*.*'))),
-    'README',
-    'LICENSE',
-    'config_win.yaml',
-    join('shared','gexf','gexf.template'),
+#   'README',
+#   'LICENSE',
+#    'config_win.yaml',
+#    join('shared','gexf','gexf.template'),
 #    (join('shared','gexf'),join('shared','gexf','gexf.template')),
 #    (join('shared','stopwords'),glob(join('shared','stopwords','*.txt'))),
 #    (join('shared','nltk_data','corpora','brown'), join('shared','nltk_data','corpora','brown','*.*')),
@@ -42,12 +42,12 @@ data_files = [
 #    (join('shared','nltk_data','tokenizers','punkt'), glob(join('shared','nltk_data','tokenizers','punkt','*.*')))
 ]
 data_files += glob(join('Microsoft.VC90.CRT','*.*'))
-data_files += glob(join('shared','stopwords','*.txt'))
-data_files += glob(join('shared','nltk_data','corpora','brown','*'))
-data_files += glob(join('shared','nltk_data','corpora','conll2000','*'))
-data_files += glob(join('shared','nltk_data','tokenizers','punkt','*'))
+#data_files += glob(join('shared','stopwords','*.txt'))
+#data_files += glob(join('shared','nltk_data','corpora','brown','*'))
+#data_files += glob(join('shared','nltk_data','corpora','conll2000','*'))
+#data_files += glob(join('shared','nltk_data','tokenizers','punkt','*'))
 
-print data_files
+#print data_files
 # for win32, see: http://wiki.wxpython.org/cx_freeze
 
 includes = [
@@ -63,7 +63,7 @@ includes = [
 excludes = ['_gtkagg', '_tkagg', 'curses', 'email', 'pywin.debugger',
             'pywin.debugger.dbgcon', 'pywin.dialogs', 'tcl',
             'Tkconstants', 'Tkinter','bsddb3','tinasoft.data.tinabsddb']
-packages = ['nltk', 'numpy', 'twisted', 'twisted.web','twisted.internet','encodings','zope.interface']
+packages = ['nltk','numpy','twisted','twisted.web','twisted.internet','encodings','zope.interface']
 setup(
         name = "tinasoft",
         version = __version__,
