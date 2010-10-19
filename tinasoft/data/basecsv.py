@@ -40,9 +40,9 @@ class SafeCsvReader(object):
             while 1:
                 read = self.file.next()
                 try:
-                    line = unicode( read, self.encoding, 'ignore' )
+                    line = unicode( read, self.encoding, 'replace' )
                     deccsv = csv.reader( [line], *self.args, **self.kwargs ).next()
-                    yield [ unicode( value, self.encoding, 'ignore' ) for value in deccsv]
+                    yield [ unicode( value, self.encoding, 'replace' ) for value in deccsv]
                 except Exception, csverr:
                     _logger.error("in SafeCsvReader: %s"%str(csverr))
                     continue
@@ -67,10 +67,10 @@ class SafeCsvDictReader():
             while 1:
                 read = self.file.next()
                 try:
-                    line = unicode( read, self.encoding, 'ignore' )
+                    line = unicode( read, self.encoding, 'replace' )
                     deccsv = csv.DictReader( [line], self.fieldnames, *self.args, **self.kwargs ).next()
                     for key, value in deccsv.iteritems():
-                        deccsv[key] = unicode( value, self.encoding, 'ignore' )
+                        deccsv[key] = unicode( value, self.encoding, 'replace' )
                     yield deccsv
                 except Exception, csverr:
                     _logger.error("in SafeCsvDictReader: %s"%str(csverr))

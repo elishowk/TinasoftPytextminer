@@ -310,7 +310,7 @@ class TinaApp(object):
             outpath=None,
             ngramgraphconfig=None,
             documentgraphconfig=None,
-            exportedges=False
+            exportedges=True
         ):
         """
         Generates the proximity numpy matrix from indexed NGrams/Document/Corpus
@@ -336,6 +336,8 @@ class TinaApp(object):
         whitelist = self.import_whitelist(whitelistpath)
         # creates the GEXF exporter
         GEXFWriter = Writer('gexf://', **self.config['datamining'])
+        if exportedges is True:
+            gexftinaweb = Writer('gexf://', **self.config['datamining'])
         # adds meta to the futur gexf file
         graphmeta = {
             'parameters': {
@@ -352,7 +354,8 @@ class TinaApp(object):
             'date': "%s"%datetime.now().strftime("%Y-%m-%d"),
         }
         GEXFWriter.new_graph( outpath, self.storage, graphmeta )
-
+        if exportedges is True:
+            gexftinaweb.new_graph( "current.gexf", self.storage, graphmeta )
         periods_to_process = []
         ngram_index = set([])
         doc_index = set([])
@@ -406,6 +409,8 @@ class TinaApp(object):
                 except StopIteration, si:
                     self.logger.debug("NGram matrix reduced for period %s"%process_period)
             GEXFWriter.load_subgraph( 'NGram', ngram_matrix_reducer, subgraphconfig = ngramgraphconfig)
+            if exportedges is True:
+                gexftinaweb.load_subgraph( 'NGram', ngram_matrix_reducer, subgraphconfig = ngramgraphconfig)
             del ngram_matrix_reducer
         else:
             self.logger.warning("NGram graph not generated because there was no NGrams")
@@ -433,11 +438,15 @@ class TinaApp(object):
                 #    globals=globals()
                 #)]
             GEXFWriter.load_subgraph( 'Document',  doc_matrix_reducer, subgraphconfig = documentgraphconfig)
+            if exportedges is True:
+                gexftinaweb.load_subgraph( 'Document',  doc_matrix_reducer, subgraphconfig = documentgraphconfig)
             del doc_matrix_reducer
         else:
             self.logger.warning("Document graph not generated because there was no Documents")
-        # finalize
-        return abspath(GEXFWriter.finalize(exportedges=exportedges))
+        if exportedges is True:
+            gexftinaweb.finalize(exportedges=True)
+        gen_graph_path = abspath(GEXFWriter.finalize(exportedges=False))
+        return gen_graph_path
         # abandonned parallelization with pp.Server()
         #self.logger.debug("wait for jobs to finish")
         #job_server.wait()

@@ -28,9 +28,9 @@ datasets:
             corpusNumberField: 'corp_id'
             docNumberField: 'doc_id'
             # next fields are optional
-            index1Field: 'doc_index_1'
-            index2Field: 'doc_index_2'
-            dateField: 'doc_date'
+            #index1Field: 'doc_index_1'
+            #index2Field: 'doc_index_2'
+            #dateField: 'doc_date'
             keywordsField: 'doc_keywords'
         # csv reader params
         delimiter: ','
@@ -54,18 +54,18 @@ datamining:
     # default values if no params are passed to gexf exporter
     DocumentGraph:
         edgethreshold:
-            - 0.0
+            - 0.01
             - 'inf'
         nodethreshold:
-            - 0.0
+            - 1.0
             - 'inf'
         proximity: 'logJaccard'
     NGramGraph:
         edgethreshold:
-            - 0.0
+            - 0.01
             - 'inf'
         nodethreshold:
-            - 0.0
+            - 1.0
             - 'inf'
         alpha: 0.1
-        proximity: 'pseudoInclusion'
+        proximity: 'cooccurrences'
