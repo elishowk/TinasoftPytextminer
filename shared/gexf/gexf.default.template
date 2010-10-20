@@ -13,23 +13,9 @@
     </parameters>
 </meta>
 <graph type="static">
-   <attributes class="node" type="static">
-<?py i = 0 ?>
-<?py for name,type in attrnodes.iteritems(): ?>
-    <?py if name not in ('label'): ?>
-        <attribute id="#{i}" title="${name}" type="#{type}"></attribute>
-        <?py attrnodes[name] = i ?>
-        <?py i += 1 ?>
-    <?py #endif ?>
-<?py #endfor ?>
-    </attributes>
-    <attributes class="edge" type="static">
-<?py i = 0 ?>
-<?py for name,type in attredges.iteritems(): ?>
-    <attribute id="#{i}" title="${name}" type="#{type}"></attribute>
-    <?py attredges[name] = { 'type' : type, 'id' : i } ?>
-    <?py i += 1 ?>
-<?py #endfor ?>
+    <attributes class="node" type="static">
+        <attribute id="0" title="weight" type="float">
+        </attribute>
     </attributes>
     <nodes>
 <?py categories = [] ?>
@@ -42,7 +28,7 @@
         <node id="${graphid}" label="${ nodedict[id].getLabel() }">
             <attvalues>
         <?py weight = "%.2f"%round(weight,2) ?>
-                <attvalue for="${attrnodes['weight']}" value="${weight}" />
+                <attvalue for="0" value="${weight}" />
             </attvalues>
         </node>
     <?py #endfor ?>
