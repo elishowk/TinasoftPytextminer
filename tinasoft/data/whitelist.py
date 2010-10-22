@@ -76,7 +76,7 @@ class Importer(basecsv.Importer):
         """Reads a whitelist file and returns the updated object"""
         stem = stemmer.Nltk()
         if self.whitelist is None: return False
-        for row in self.csv:
+        for row in self:
             try:
                 status = row[self.filemodel.columns[0][1]]
                 occs = int(row[self.filemodel.columns[3][1]])

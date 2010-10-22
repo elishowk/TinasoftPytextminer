@@ -48,7 +48,12 @@ class UnicodeDictReader(object):
 
     def next(self):
         row = self.reader.next()
-        unicoderow = dict([( k, unicode(s, "utf-8", errors='replace') ) for k,s in row.iteritems()])
+        unicoderow={}
+        for k,s in row.iteritems():
+            if type(s)==str:
+                unicoderow[k]= unicode(s, "utf-8", errors='replace')
+            else:
+                unicoderow[k]=s
         return unicoderow
 
     def __iter__(self):

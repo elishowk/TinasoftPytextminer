@@ -20,13 +20,12 @@ from tinasoft.data import Handler
 from tinasoft.pytextminer import PyTextMiner
 
 import sqlite3
-import os
+
 from os.path import exists
 from os.path import join
 from os import makedirs
 
 import cPickle as pickle
-#from time import sleep, time
 
 import logging
 _logger = logging.getLogger('TinaAppLogger')
@@ -37,10 +36,6 @@ sqlite3.enable_callback_tracebacks(True)
 class Backend(Handler):
 
     options = {
-        #'locale'        : 'en_US.UTF-8',
-        #'format'        : 'jsonpickle',
-        #'debug'         : False,
-        #'compression'   : None,
         'home'          : 'db',
         'prefix'        : {
             'Corpora':'Corpora::',
@@ -74,7 +69,7 @@ class Backend(Handler):
             # row factory provides named columns
             self._db.row_factory = sqlite3.Row
             cur = self._db.cursor()
-            sql = "PRAGMA SYNCHRONOUS=0"
+            sql = "PRAGMA SYNCHRONOUS=0;"
             cur.execute(sql)
             for tabname in self.tables:
                 sql = "CREATE TABLE IF NOT EXISTS %s (id VARCHAR(256) PRIMARY KEY, pickle BLOB)"%tabname
@@ -159,7 +154,7 @@ class Backend(Handler):
                 next_val = cur.fetchone()
             return
         except Exception, readrange_exc:
-            _logger.error( "safereadrange exception : %s"%readrange_exc )
+            _logger.error( "exception during safereadrange on table %s : %s"%(tabname,readrange_exc) )
             return
 
     def safewrite( self, tabname, list_of_tuples ):
@@ -167,13 +162,13 @@ class Backend(Handler):
         Pickles a list of tuples
         then execute many inserts of this transformed list of tuples
         """
-        pickled_list = [(str(key),self.pickle(obj)) for (key, obj) in list_of_tuples]
+        pickled_list = [(key,buffer(self.pickle(obj))) for (key, obj) in list_of_tuples]
         try:
             cur = self._db.cursor()
             cur.executemany("insert or replace into %s(id, pickle) values(?,?)"%tabname, pickled_list)
             self.commit()
         except Exception, insert_exc:
-            _logger.error( "safewrite exception : %s"%insert_exc )
+            _logger.error( "exception during safewrite on table %s : %s"%(tabname,insert_exc) )
             self.rollback()
 
     def safedelete(self, tabname, key):

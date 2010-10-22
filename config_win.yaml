@@ -33,9 +33,9 @@ datasets:
             #dateField: 'doc_date'
             keywordsField: 'doc_keywords'
         # csv reader params
-        delimiter: ','
-        quotechar: '"'
-        encoding: 'utf-8'
+        #delimiter: ','
+        #quotechar: '"'
+        #encoding: 'utf-8'
     medline:
         period_size: 4
         encoding: 'ascii'

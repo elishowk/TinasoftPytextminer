@@ -83,7 +83,7 @@ class PyTextMiner(object):
         if type(content) == list:
             #try:
             convert = PyTextMiner.form_label(content)
-            return sha256( convert.encode( 'ascii', 'replace' ) ).hexdigest()
+            return str(sha256( convert.encode( 'ascii', 'ignore' ) ).hexdigest())
             #except UnicodeError, uni:
             #    _logger.error("impossible to create sha256 node ID : %s"%str(uni))
             #    return "invalid"

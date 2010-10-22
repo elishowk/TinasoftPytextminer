@@ -27,7 +27,7 @@ class TinaAppTests(unittest.TestCase):
     def setUp(self):
         self.tinasoft = tinasoftSingleton
         self.datasetId = "test_data_set"
-        self.periods = ['1','pubmed1','2','FET']
+        self.periods = ['1','pubmed1','2','FET','Batch_10']
         self.path = sourceFile
         self.format = sourceFormat
         self.extracted_whitelist = 'date-test_whitelist-extract_file.csv'
@@ -69,7 +69,7 @@ class GenerateGraph(TinaAppTests):
             #    'edgethreshold': [1.0,'inf'],
             #    'nodethreshold': [1,'inf'],
             #    'alpha': 0.1,
-                'proximity': 'pseudoInclusion'
+                'proximity': 'cooccurrences'
             },
             documentgraphconfig={
             #    'edgethreshold': [1.0,'inf'],
