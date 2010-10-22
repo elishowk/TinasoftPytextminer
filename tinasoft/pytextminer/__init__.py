@@ -27,7 +27,6 @@ __all__ = [
 from hashlib import sha256
 from uuid import uuid4
 import codecs
-import unicodedata
 
 import logging
 _logger = logging.getLogger('TinaAppLogger')
@@ -70,7 +69,12 @@ class PyTextMiner(object):
 
     @staticmethod
     def form_label( tokens ):
-        return " ".join(tokens)
+        """
+        common method forming clean labels from unicode token list
+        """
+        label = " ".join(tokens).encode( 'ascii', 'replace' )
+        print label
+        return label
 
     @staticmethod
     def getId(content):
@@ -79,12 +83,12 @@ class PyTextMiner(object):
         @content must be a list of str
         """
         if type(content) == list:
-            try:
-                convert = PyTextMiner.form_label(content)
-                return sha256( convert ).hexdigest()
-            except UnicodeDecodeError, uni:
-                _logger.error("impossible to create sha256 node ID : %s"%str(uni))
-                return "invalid"
+            #try:
+            convert = PyTextMiner.form_label(content)
+            return sha256( convert ).hexdigest()
+            #except UnicodeError, uni:
+            #    _logger.error("impossible to create sha256 node ID : %s"%str(uni))
+            #    return "invalid"
         else:
             return uuid4().hex
 

@@ -90,7 +90,7 @@ class StopWords(object):
         Loads stopwords from a text file
         """
         for line in codecs.open("%s"%uri, "rU", self.encoding, errors='replace').readlines():
-            self.add( line.encode( self.encoding, 'replace' ).strip().split(" ") )
+            self.add( line.strip().split(" ") )
 
     def __list(self, lst):
         """

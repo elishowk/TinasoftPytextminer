@@ -18,120 +18,121 @@ from tinasoft.data import Importer, Handler, Exporter
 
 import codecs
 import csv
-from decimal import *
+import cStringIO
 
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
-class SafeCsvReader(object):
+class UTF8Recoder(object):
+    """
+    Iterator that reads an encoded stream and reencodes the input to UTF-8
+    """
+    def __init__(self, f, encoding):
+        self.reader = codecs.getreader(encoding)(f, 'replace')
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        return self.reader.next().encode("utf-8", 'replace')
+
+class UnicodeDictReader(object):
     """
     A CSV reader which will iterate over lines in the CSV file "f",
     which is encoded in the given encoding.
     """
 
-    def __init__(self, file, encoding, *args, **kwargs):
-        self.file = file
-        self.encoding = encoding
-        self.args = args
-        self.kwargs = kwargs
+    def __init__(self, f, fields, dialect='excel', encoding="utf-8", **kwds):
+        f = UTF8Recoder(f, encoding)
+        self.reader = csv.DictReader(f, fields, dialect=dialect, **kwds)
 
-    def decode(self):
-        try:
-            while 1:
-                read = self.file.next()
-                try:
-                    line = unicode( read, self.encoding, 'replace' )
-                    deccsv = csv.reader( [line], *self.args, **self.kwargs ).next()
-                    yield [ unicode( value, self.encoding, 'replace' ) for value in deccsv]
-                except Exception, csverr:
-                    _logger.error("in SafeCsvReader: %s"%str(csverr))
-                    continue
-        except StopIteration, si:
-            return
+    def next(self):
+        row = self.reader.next()
+        unicoderow = dict([( k, unicode(s, "utf-8", errors='replace') ) for k,s in row.iteritems()])
+        return unicoderow
 
-class SafeCsvDictReader():
-    """
-    A CSV reader which will iterate over lines in the CSV file "f",
-    which is encoded in the given encoding.
-    """
+    def __iter__(self):
+        return self
 
-    def __init__(self, file, encoding, fieldnames, *args, **kwargs):
-        self.file = file
-        self.fieldnames = fieldnames
-        self.encoding = encoding
-        self.args = args
-        self.kwargs = kwargs
+class Importer (Importer,UnicodeDictReader):
+    """home-made importer class for a csv file"""
 
-    def decode(self):
-        try:
-            while 1:
-                read = self.file.next()
-                try:
-                    line = unicode( read, self.encoding, 'replace' )
-                    deccsv = csv.DictReader( [line], self.fieldnames, *self.args, **self.kwargs ).next()
-                    for key, value in deccsv.iteritems():
-                        deccsv[key] = unicode( value, self.encoding, 'replace' )
-                    yield deccsv
-                except Exception, csverr:
-                    _logger.error("in SafeCsvDictReader: %s"%str(csverr))
-                    continue
-        except StopIteration, si:
-            return
-
-
-
-class Importer (Importer):
-    """importer class for a csv file"""
     # defaults
     options = {
         'encoding': 'utf-8',
-        'delimiter': ',',
-        'quotechar': '"',
+        'dialect': 'excel',
+        #'quotechar': '"',
+        #'delimiter': ','
     }
-
 
     def __init__(self,
             path,
-            delimiter=',',
-            quotechar='"',
             **kwargs
         ):
         self.path = path
         self.loadOptions( kwargs )
-        # CSV format
-        self.delimiter = delimiter
-        self.quotechar = quotechar
         # gets columns names
         f1 = self.open( self.path )
         if f1 is None:
             return
-        tmp = SafeCsvReader(
-            f1,
-            self.encoding,
-            delimiter=self.delimiter,
-            quotechar=self.quotechar
-        ).decode()
+        tmp = csv.reader( f1, dialect=self.dialect, quoting=csv.QUOTE_NONNUMERIC )
         self.fieldnames = tmp.next()
         del f1, tmp
         # open the file in a Dict mode
         self.file = self.open( self.path )
-        self.csv = SafeCsvDictReader(
+        UnicodeDictReader.__init__(
+            self,
             self.file,
-            self.encoding,
             self.fieldnames,
-            delimiter=self.delimiter,
-            quotechar=self.quotechar
-        ).decode()
+            dialect = self.dialect,
+            #quotechar = self.quotechar,
+            #delimiter = self.delimiter,
+            encoding = self.encoding,
+            quoting=csv.QUOTE_NONNUMERIC
+        )
         try:
-            self.csv.next()
+            for line in self:
+                break
         except Exception, exc:
-            _logger.error(str(exc))
+            _logger.error("error reading first csv line : %s"%(str(exc)))
 
     def open( self, path ):
-        return open(path, 'rU')
+        #return codecs.open( path, 'rU', encoding=self.encoding, errors='replace' )
+        return open( path, 'rb' )
+
+class UnicodeWriter(object):
+    """
+    A CSV writer which will write rows to CSV file "f",
+    which is encoded in the given encoding.
+    """
+
+    def __init__(self, f, dialect='excel', encoding="utf-8", **kwds):
+        # Redirect output to a queue
+        self.queue = cStringIO.StringIO()
+        self.writer = csv.writer(self.queue, dialect=dialect, **kwds)
+        self.stream = f
+        self.encoder = codecs.getincrementalencoder(encoding)()
+
+    def writerow(self, row):
+        self.writer.writerow([s.encode("utf-8", 'replace') for s in row])
+        # Fetch UTF-8 output from the queue ...
+        data = self.queue.getvalue()
+        data = data.decode("utf-8", 'replace')
+        # ... and reencode it into the target encoding
+        data = self.encoder.encode(data, 'replace')
+        # write to the target stream
+        self.stream.write(data)
+        # empty queue
+        self.queue.truncate(0)
+
+    def writerows(self, rows):
+        for row in rows:
+            self.writerow(row)
 
 class Exporter (Handler):
-    """home-made exporter class for a csv file"""
+    """
+    home-made exporter class for a csv file
+    """
 
     # defaults
     options = {
@@ -139,17 +140,10 @@ class Exporter (Handler):
         'delimiter': ',',
         'quotechar': '"',
     }
-    def __init__(self,
-            filepath,
-            delimiter = ',',
-            quotechar = '"',
-            **kwargs
-        ):
+    def __init__( self, filepath, **kwargs ):
         self.loadOptions(kwargs)
         self.filepath = filepath
-        self.delimiter = delimiter
-        self.quotechar = quotechar
-        self.file = codecs.open(self.filepath, "w+", encoding=self.encoding, errors='replace' )
+        self.file = codecs.open( self.filepath, "w+", encoding=self.encoding, errors='replace' )
 
     def writeRow( self, row ):
         """
