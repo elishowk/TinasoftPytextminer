@@ -72,9 +72,7 @@ class PyTextMiner(object):
         """
         common method forming clean labels from unicode token list
         """
-        label = " ".join(tokens).encode( 'ascii', 'replace' )
-        print label
-        return label
+        return " ".join(tokens)
 
     @staticmethod
     def getId(content):
@@ -85,7 +83,7 @@ class PyTextMiner(object):
         if type(content) == list:
             #try:
             convert = PyTextMiner.form_label(content)
-            return sha256( convert ).hexdigest()
+            return sha256( convert.encode( 'ascii', 'replace' ) ).hexdigest()
             #except UnicodeError, uni:
             #    _logger.error("impossible to create sha256 node ID : %s"%str(uni))
             #    return "invalid"
