@@ -69,7 +69,7 @@ class GenerateGraph(TinaAppTests):
             #    'edgethreshold': [1.0,'inf'],
             #    'nodethreshold': [1,'inf'],
             #    'alpha': 0.1,
-                'proximity': 'cooccurrences'
+                'proximity': 'equivalenceIndex'
             },
             documentgraphconfig={
             #    'edgethreshold': [1.0,'inf'],

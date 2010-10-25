@@ -92,7 +92,6 @@ class Matrix(object):
         else:
             self.array[ index1, index2 ] = value
 
-
 class SymmetricMatrix(Matrix):
     """
     OBSOLETE
@@ -141,7 +140,7 @@ class MatrixReducer(Matrix):
             for (external1, external2) in itertools.permutations( submatrix.reverseindex.keys(), 2):
                 self.set(external1, external2, value=submatrix.get( external1, external2 ), overwrite=False)
 
-    def extract_semiupper_matrix(self, config):
+    def extract_semiupper_matrix(self, config, **kwargs):
         """
         yields all values of the upper part of the matrix
         associating ngrams with theirs tinasoft's id
@@ -172,7 +171,7 @@ class MatrixReducer(Matrix):
                 yield (nodei, row)
         _logger.debug("found %d valid proximity values"%count)
 
-    def extract_matrix(self, config):
+    def extract_matrix(self, config, **kwargs):
         """
         yields all values of the matrix
         associating ngrams with theirs tinasoft's id
@@ -217,7 +216,7 @@ class PseudoInclusionMatrix(MatrixReducer):
     then extract pseudo-inclusion on the fly
     """
 
-    def extract_matrix( self, config ):
+    def extract_matrix( self, config, **kwargs ):
         alpha = config['alpha']
         coocmatrix = super(PseudoInclusionMatrix, self).extract_matrix( config )
         try:
@@ -240,6 +239,36 @@ class PseudoInclusionMatrix(MatrixReducer):
                     yield ni, pirow
         except StopIteration:
             _logger.debug("found %d valid pseudo-inclusion values"%count)
+
+class EquivalenceIndexMatrix(MatrixReducer):
+    """
+    """
+
+    def extract_matrix( self, config, **kwargs ):
+        nb_documents = config['nb_documents']
+        coocmatrix = super(EquivalenceIndexMatrix, self).extract_matrix( config )
+        try:
+            count = 0
+            while 1:
+                ni, coocrow = coocmatrix.next()
+                row = {}
+                occi = self.get(ni, ni)
+                for nj, cooc in coocrow.iteritems():
+                    occj = self.get(nj, nj)
+                    brut = float(cooc * nb_documents) / float(occi * occj)
+                    if brut <= float(0): continue
+                    prox = math.log( brut )
+                    if prox >= float(config['edgethreshold'][0]):
+                        if max is None:
+                            count += 1
+                            row[nj] = prox
+                        elif prox <= float(config['edgethreshold'][1]):
+                            count += 1
+                            row[nj] = prox
+                if len(row.keys()) > 0:
+                    yield ni, row
+        except StopIteration, si:
+            _logger.debug("found %d valid E-Index values"%count)
 
 class Adjacency(object):
     """

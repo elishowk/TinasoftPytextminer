@@ -395,6 +395,9 @@ class TinaApp(object):
                 ngram_matrix_reducer = graph.MatrixReducer( ngram_index )
             if ngramgraphconfig['proximity']=='pseudoInclusion':
                 ngram_matrix_reducer = graph.PseudoInclusionMatrix( ngram_index )
+            if ngramgraphconfig['proximity']=='equivalenceIndex':
+                ngramgraphconfig['nb_documents'] = len(doc_index)
+                ngram_matrix_reducer = graph.EquivalenceIndexMatrix( ngram_index )
             # hack
             ngramgraphconfig['proximity']='cooccurrences'
             for process_period in periods_to_process:
@@ -435,7 +438,6 @@ class TinaApp(object):
                 #    globals=globals()
                 #)]
             GEXFWriter.load_subgraph( 'Document',  doc_matrix_reducer, subgraphconfig = documentgraphconfig)
-
             del doc_matrix_reducer
         else:
             self.logger.warning("Document graph not generated because there was no Documents")
