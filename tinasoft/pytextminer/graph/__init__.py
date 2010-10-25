@@ -156,8 +156,8 @@ class MatrixReducer(Matrix):
             row = {}
             for j in range(self.array.shape[0] - i):
                 if self.array[i+j,i+j] < float(config['nodethreshold'][0]) or self.array[i+j,i+j] > float(config['nodethreshold'][1]): continue
-
                 prox = self.array[i,i+j]
+                if prox <= 0: continue
                 if prox >= float(config['edgethreshold'][0]):
                     if max is None:
                         count += 1
@@ -190,6 +190,7 @@ class MatrixReducer(Matrix):
                 # node filter
                 if self.array[j,j] < float(config['nodethreshold'][0]) or self.array[j,j] > float(config['nodethreshold'][1]): continue
                 prox = self.array[i,j]
+                if prox <= 0: continue
                 # edge filter
                 if prox >= float(config['edgethreshold'][0]):
                     if max is None:
