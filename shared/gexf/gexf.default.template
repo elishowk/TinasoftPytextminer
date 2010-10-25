@@ -14,23 +14,34 @@
 </meta>
 <graph type="static">
     <attributes class="node" type="static">
-        <attribute id="0" title="weight" type="float">
-        </attribute>
+        <attribute id="0" title="weight" type="float"></attribute>
+        <attribute id="1" title="category" type="string"></attribute>
+        <attribute id="2" title="content" type="string"></attribute>
+        <attribute id="3" title="keywords" type="string"></attribute>
     </attributes>
     <nodes>
 <?py categories = [] ?>
+<?py nodecache = {} ?>
 <?py for category, nodedict in nodes.iteritems(): ?>
     <?py categories += [category] ?>
     <?py for id in nodedict.keys(): ?>
         <?py weight = nodedict[id] ?>
-        <?py nodedict[id] = storage.load(id, category) ?>
+        <?py nodeobj = storage.load(id, category) ?>
         <?py graphid = category + "::" + id ?>
-        <node id="${graphid}" label="${ nodedict[id].getLabel() }">
+        <node id="${graphid}" label="${ nodeobj.getLabel() }">
             <attvalues>
         <?py weight = "%.2f"%round(weight,2) ?>
-                <attvalue for="0" value="${weight}" />
+                <attvalue for="0" value="${ weight }" />
+                <attvalue for="1" value="${ category }" />
+        <?py if category == 'Document': ?>
+                <attvalue for="2" value="${ nodeobj['content'] }" />
+            <?py if 'doc_keywords' in nodeobj: ?>
+                <attvalue for="3" value="${ nodeobj['doc_keywords'] }" />
+            <?py #endif ?>
+        <?py #endif ?>
             </attvalues>
         </node>
+        <?py nodecache[id] = nodeobj ?>
     <?py #endfor ?>
 <?py #endfor ?>
     </nodes>
@@ -40,12 +51,10 @@
     <?py for sourcecategory, nodedict in nodes.iteritems(): ?>
         <?py if sourcecategory in categories: ?>
             <?py for source in nodedict.keys(): ?>
-                <?py for targetcategory in nodedict[source]['edges'].keys(): ?>
+                <?py sourceobj = nodecache[source] ?>
+                <?py for targetcategory in sourceobj['edges'].keys(): ?>
                     <?py if targetcategory in categories: ?>
-                        <?py for target, weight in nodedict[source]['edges'][targetcategory].iteritems(): ?>
-                            <?py if target is None: ?>
-                                <?py print nodedict[source]['edges'][targetcategory] ?>
-                            <?py #endif ?>
+                        <?py for target, weight in sourceobj['edges'][targetcategory].iteritems(): ?>
                             <?py weight = "%.6f"%round(weight,6) ?>
                             <?py sourcegraphid = sourcecategory + "::" + source ?>
                             <?py targetgraphid = targetcategory + "::" + target ?>
@@ -54,7 +63,6 @@
                         <?py #endfor ?>
                     <?py #endif ?>
                 <?py #endfor ?>
-                <?py del nodedict[source] ?>
             <?py #endfor ?>
         <?py #endif ?>
     <?py #endfor ?>

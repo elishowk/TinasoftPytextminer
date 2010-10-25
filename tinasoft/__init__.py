@@ -336,8 +336,7 @@ class TinaApp(object):
         whitelist = self.import_whitelist(whitelistpath)
         # creates the GEXF exporter
         GEXFWriter = Writer('gexf://', **self.config['datamining'])
-        if exportedges is True:
-            gexftinaweb = Writer('gexf://', **self.config['datamining'])
+
         # adds meta to the futur gexf file
         graphmeta = {
             'parameters': {
@@ -353,9 +352,9 @@ class TinaApp(object):
             'creators': ["CREA Lab, CNRS/Ecole Polytechnique UMR 7656 (Fr)"],
             'date': "%s"%datetime.now().strftime("%Y-%m-%d"),
         }
-        GEXFWriter.new_graph( outpath, self.storage, graphmeta )
-        if exportedges is True:
-            gexftinaweb.new_graph( "current.gexf", self.storage, graphmeta )
+
+        GEXFWriter.new_graph( self.storage, graphmeta )
+
         periods_to_process = []
         ngram_index = set([])
         doc_index = set([])
@@ -369,7 +368,7 @@ class TinaApp(object):
                 ngram_index |= set( corpus['edges']['NGram'].keys() )
                 doc_index |= set( corpus['edges']['Document'].keys() )
             else:
-                self.logger.debug('Period %s not found in database, skipping it from generate_graph'%str(period))
+                self.logger.debug('Period %s not found in database, skipping'%str(period))
         # intersection with the whitelist
         ngram_index &= set( whitelist['edges']['NGram'].keys() )
         # TODO here's the key to replace actuel Matrix index handling
@@ -409,8 +408,6 @@ class TinaApp(object):
                 except StopIteration, si:
                     self.logger.debug("NGram matrix reduced for period %s"%process_period)
             GEXFWriter.load_subgraph( 'NGram', ngram_matrix_reducer, subgraphconfig = ngramgraphconfig)
-            if exportedges is True:
-                gexftinaweb.load_subgraph( 'NGram', ngram_matrix_reducer, subgraphconfig = ngramgraphconfig)
             del ngram_matrix_reducer
         else:
             self.logger.warning("NGram graph not generated because there was no NGrams")
@@ -438,15 +435,15 @@ class TinaApp(object):
                 #    globals=globals()
                 #)]
             GEXFWriter.load_subgraph( 'Document',  doc_matrix_reducer, subgraphconfig = documentgraphconfig)
-            if exportedges is True:
-                gexftinaweb.load_subgraph( 'Document',  doc_matrix_reducer, subgraphconfig = documentgraphconfig)
+
             del doc_matrix_reducer
         else:
             self.logger.warning("Document graph not generated because there was no Documents")
         if exportedges is True:
-            gexftinaweb.finalize(exportedges=True)
-        gen_graph_path = abspath(GEXFWriter.finalize(exportedges=False))
-        return gen_graph_path
+            self.logger.warning("exporting the full graph to current.gexf")
+            GEXFWriter.finalize("current.gexf", exportedges=True)
+        # rrturns the absolute path of outpath
+        return abspath(GEXFWriter.finalize(outpath, exportedges=False))
         # abandonned parallelization with pp.Server()
         #self.logger.debug("wait for jobs to finish")
         #job_server.wait()

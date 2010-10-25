@@ -29,48 +29,31 @@ from tenjin.helpers import *
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
-class GEXFHandler(Handler):
+class Exporter(Handler):
     """
-    A generic GEXF handler
+    A Gexf Exporter engine providing multipartite graph exports
     """
     options = {
-        'locale'     : 'en_US.UTF-8',
-        'compression': None,
+        'encoding'     : 'utf-8',
         'template'   : 'shared/gexf/gexf.default.template',
     }
 
     def __init__(self, path, **opts):
-        self.path = path
+        """
+        ignoring path but loading options and tenjin Engine
+        """
         self.loadOptions(opts)
-        self.lang,self.encoding = self.locale.split('.')
         self.engine = tenjin.Engine()
 
-    def render( self, gexf ):
-        return self.engine.render(self.template, gexf)
-
-class Exporter(GEXFHandler):
-    """
-    A Gexf Exporter engine providing various graph construction methods
-    """
-
-    def notify(self, count):
-        if count % 100 == 0:
-            _logger.debug( "%d graph nodes processed"%count )
-
-
-class Exporter(Exporter):
-    """
-    A Gexf Exporter engine providing various graph construction methods
-    """
     def new_graph(
             self,
-            path,
             storage,
             meta
         ):
-        self.path = path
+        """
+        initialize the graph object and a storage connector
+        """
         self.storage = storage
-        # init graph object
         self.graph = {
             'nodes' : {},
             'storage': storage,
@@ -109,12 +92,18 @@ class Exporter(Exporter):
         except StopIteration, si:
             pass
 
-    def finalize(self, exportedges=False):
+    def render( self, gexf ):
+        """
+        calls tenjin rendering method
+        """
+        return self.engine.render(self.template, gexf)
+
+    def finalize(self, path, exportedges=False):
         """
         final method compiling the graph and writing it to file
         """
         # arguments passed to tenjin, to optionally write edges into the gexf
         self.graph['exportedges'] = exportedges
-        open(self.path, 'w+b').write(self.render( self.graph ))
-        # returns relative path
-        return self.path
+        open(path, 'w+b').write(self.render( self.graph ))
+        # returns the same path
+        return path
