@@ -387,23 +387,23 @@ class TinaApp(object):
         # updates default config with parameters
         self.config['datamining']['NGramGraph'].update(ngramgraphconfig)
         self.config['datamining']['DocumentGraph'].update(documentgraphconfig)
-        ngramgraphconfig = self.config['datamining']['NGramGraph']
-        documentgraphconfig = self.config['datamining']['DocumentGraph']
+        ngramconfig = self.config['datamining']['NGramGraph']
+        documentconfig = self.config['datamining']['DocumentGraph']
 
         if len(ngram_index) != 0:
             # hack
-            if ngramgraphconfig['proximity']=='cooccurrences':
-                ngram_matrix_reducer = graph.MatrixReducer( ngram_index )
-            if ngramgraphconfig['proximity']=='pseudoInclusion':
+            if ngramconfig['proximity']=='cooccurrences':
+                ngram_matrix_reducer = graph.MatrixReducerFilter( ngram_index )
+            if ngramconfig['proximity']=='pseudoInclusion':
                 ngram_matrix_reducer = graph.PseudoInclusionMatrix( ngram_index )
-            if ngramgraphconfig['proximity']=='equivalenceIndex':
-                ngramgraphconfig['nb_documents'] = len(doc_index)
+            if ngramconfig['proximity']=='equivalenceIndex':
+                ngramconfig['nb_documents'] = len(doc_index)
                 ngram_matrix_reducer = graph.EquivalenceIndexMatrix( ngram_index )
             # hack
-            ngramgraphconfig['proximity']='cooccurrences'
+            ngramconfig['proximity']='cooccurrences'
             for process_period in periods_to_process:
-                ngram_args = ( self.config, self.storage, process_period, ngramgraphconfig, ngram_index, whitelist )
-                adj = graph.NgramAdjacency( *ngram_args )
+                ngram_args = ( self.config, self.storage, process_period, ngramconfig, ngram_index, whitelist )
+                adj = graph.NgramGraph( *ngram_args )
                 adj.diagonal(ngram_matrix_reducer)
                 try:
                     ngram_adj_gen = graph.ngram_submatrix_task( *ngram_args )
@@ -411,16 +411,16 @@ class TinaApp(object):
                         ngram_matrix_reducer.add( ngram_adj_gen.next() )
                 except StopIteration, si:
                     self.logger.debug("NGram matrix reduced for period %s"%process_period)
-            GEXFWriter.load_subgraph( 'NGram', ngram_matrix_reducer, subgraphconfig = ngramgraphconfig)
+            GEXFWriter.load_subgraph( 'NGram', ngram_matrix_reducer, subgraphconfig = ngramconfig)
             del ngram_matrix_reducer
         else:
             self.logger.warning("NGram graph not generated because there was no NGrams")
 
         if len(doc_index) != 0:
-            doc_matrix_reducer = graph.MatrixReducer( doc_index )
+            doc_matrix_reducer = graph.MatrixReducerFilter( doc_index )
             for process_period in periods_to_process:
-                doc_args = ( self.config, self.storage, process_period, documentgraphconfig, doc_index, whitelist )
-                adj = graph.DocAdjacency( *doc_args )
+                doc_args = ( self.config, self.storage, process_period, documentconfig, doc_index, whitelist )
+                adj = graph.DocGraph( *doc_args )
                 adj.diagonal(doc_matrix_reducer)
                 try:
                     doc_adj_gen = graph.document_submatrix_task( *doc_args )
@@ -438,7 +438,7 @@ class TinaApp(object):
                 #    depfuncs=depfunctions,
                 #    globals=globals()
                 #)]
-            GEXFWriter.load_subgraph( 'Document',  doc_matrix_reducer, subgraphconfig = documentgraphconfig)
+            GEXFWriter.load_subgraph( 'Document',  doc_matrix_reducer, subgraphconfig = documentconfig)
             del doc_matrix_reducer
         else:
             self.logger.warning("Document graph not generated because there was no Documents")

@@ -114,7 +114,7 @@ class PyTextMiner(object):
 
     def _addUniqueEdge( self, type, key, value ):
         """
-        low level method adding ONLY ONCE a weighted edge to a PyTextMiner object
+        low level method writing ONLY ONCE a weighted edge to a PyTextMiner object
         """
         if type not in self['edges']:
             self['edges'][type]={}
@@ -124,9 +124,18 @@ class PyTextMiner(object):
             self['edges'][type][key] = value
             return True
 
+
+    def _overwriteEdge(self, type, key, value):
+        """
+        low level method overwriting a weighted edge to a PyTextMiner object
+        """
+        if type not in self['edges']:
+            self['edges'][type]={}
+        self['edges'][type][key] = value
+
     def _addEdge(self, type, key, value):
         """
-        low level method adding or incrementing a weighted edge to a PyTextMiner object
+        low level method incrementing a weighted edge to a PyTextMiner object
         """
         if type not in self['edges']:
             self['edges'][type]={}

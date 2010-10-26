@@ -14,18 +14,18 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-__author__="elishowk@nonutc.fr"
+__author__ = "elishowk@nonutc.fr"
 
 import itertools
 from numpy import *
 import math
-
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
+
 def ngram_submatrix_task( config, storage, period, ngramgraphconfig, matrix_index, whitelist ):
     try:
-        adj = NgramAdjacency( config, storage, period, ngramgraphconfig, matrix_index, whitelist )
+        adj = NgramGraph( config, storage, period, ngramgraphconfig, matrix_index, whitelist )
         submatrix_gen = adj.generator()
         while 1:
             yield submatrix_gen.next()
@@ -33,11 +33,12 @@ def ngram_submatrix_task( config, storage, period, ngramgraphconfig, matrix_inde
         _logger.warning( str(warn) )
         return
     except StopIteration, si:
-        _logger.debug("NgramAdjancency on period %s is finished"%period)
+        _logger.debug("NgramGraph on period %s is finished"%period)
+
 
 def document_submatrix_task( config, storage, period, documentgraphconfig, matrix_index, whitelist ):
     try:
-        adj = DocAdjacency( config, storage, period, documentgraphconfig, matrix_index, whitelist )
+        adj = DocGraph( config, storage, period, documentgraphconfig, matrix_index, whitelist )
         submatrix_gen = adj.generator()
         while 1:
             yield submatrix_gen.next()
@@ -45,7 +46,8 @@ def document_submatrix_task( config, storage, period, documentgraphconfig, matri
         _logger.warning( str(warn) )
         return
     except StopIteration, si:
-        _logger.debug("DocAdjacency on period %s is finished"%period)
+        _logger.debug("DocGraph on period %s is finished"%period)
+
 
 class Matrix(object):
     """
@@ -92,6 +94,7 @@ class Matrix(object):
         else:
             self.array[ index1, index2 ] = value
 
+
 class SymmetricMatrix(Matrix):
     """
     OBSOLETE
@@ -130,6 +133,7 @@ class SymmetricMatrix(Matrix):
 class MatrixReducer(Matrix):
     """
     Generic matrix additioner
+    Must use at least MatrixReducerFilter to get filtered graphs
     """
     def __init__(self, index, valuesize=float32):
         Matrix.__init__(self, index, valuesize=valuesize)
@@ -173,43 +177,72 @@ class MatrixReducer(Matrix):
 
     def extract_matrix(self, config, **kwargs):
         """
-        yields all values of the matrix
-        associating ngrams with theirs tinasoft's id
+        yields all rows from the matrix in a dictionary form
+        filtering only nodes at this step (edges in a second step)
+        yielded IDs are real tinasoft storage IDs
         """
-        count = 0
+        minnode = float(config['nodethreshold'][0])
+        maxnode = float(config['nodethreshold'][1])
+
+        # reverses the matrix reverse index
         id_index = {}
         for key, idx in self.reverseindex.iteritems():
             id_index[idx] = key
+        # iterate over all rows and columns of the numpy matrix
         for i in range(self.array.shape[0]):
-            nodei = id_index[i]
             # node filter
-            if self.array[i,i] < float(config['nodethreshold'][0]) or self.array[i,i] > float(config['nodethreshold'][1]): continue
+            nodeiweight = float(self.array[i,i])
+            if nodeiweight < minnode or nodeiweight > maxnode:
+                del id_index[i]
+                continue
             row = {}
+            nodei = id_index[i]
             for j in range(self.array.shape[0]):
                 if i == j : continue
+                nodejweight = float(self.array[j,j])
                 # node filter
-                if self.array[j,j] < float(config['nodethreshold'][0]) or self.array[j,j] > float(config['nodethreshold'][1]): continue
-                prox = self.array[i,j]
-                if prox <= 0:
+                if nodejweight < minnode or nodejweight > maxnode:
+                    del id_index[j]
                     continue
-                # edge filter
-                if prox >= float(config['edgethreshold'][0]):
-                    if max is None:
-                        count += 1
-                        nodej = id_index[j]
-                        row[nodej] = prox
-                    elif prox <= float(config['edgethreshold'][1]):
-                        count += 1
-                        nodej = id_index[j]
-                        row[nodej] = prox
-            if len(row.keys()) > 0:
-                yield (nodei, row)
-        _logger.debug("found %d valid proximity values"%count)
+                # converts numpy.float32 to python float
+                prox = float(self.array[i,j])
+                #if prox <= 0:
+                #    continue
+                nodej = id_index[j]
+                row[nodej] = prox
+            #if len(row.keys()) > 0:
+            yield (nodei, row)
+        _logger.debug("found %d valid nodes "%len(id_index.keys()))
 
     def export(self, path, index):
         fh = open(path, 'w+')
         fh.write(",".join(index))
         savetxt( fh, self.array, "%.2f", ",")
+
+class MatrixReducerFilter(MatrixReducer):
+    """
+    Simple matrix reducer : use it if there's no second level promitiy calculation
+    Only filtering edges values from MatrixReducer
+    """
+    def extract_matrix( self, config, **kwargs ):
+        matrix = super(MatrixReducerFilter, self).extract_matrix( config )
+        minedges = float(config['edgethreshold'][0])
+        maxedges = float(config['edgethreshold'][1])
+        try:
+            count = 0
+            while 1:
+                nodei, row = matrix.next()
+                for nodej in row.keys():
+                    prox = row[nodej]
+                    if maxedges is None and prox < minedges:
+                        del row[nodej]
+                    elif prox > maxedges or prox < minedges:
+                        del row[nodej]
+                    # otherwise, DOES NOTHING !
+                count += len(row.keys())
+                yield (nodei, row)
+        except StopIteration, si:
+            _logger.debug("found %d valid proximity values"%count)
 
 
 class PseudoInclusionMatrix(MatrixReducer):
@@ -217,64 +250,73 @@ class PseudoInclusionMatrix(MatrixReducer):
     Matrix Reducer used to store cooccurrence matrix,
     then extract pseudo-inclusion on the fly
     """
-
     def extract_matrix( self, config, **kwargs ):
         alpha = config['alpha']
-        coocmatrix = super(PseudoInclusionMatrix, self).extract_matrix( config )
+        minedges = float(config['edgethreshold'][0])
+        maxedges = float(config['edgethreshold'][1])
+        matrix = super(PseudoInclusionMatrix, self).extract_matrix( config )
         try:
             count = 0
             while 1:
-                ni, coocrow = coocmatrix.next()
-                pirow = {}
-                occi = self.get(ni, ni)
-                for nj, cooc in coocrow.iteritems():
-                    occj = self.get(nj, nj)
-                    pi = (( cooc / occi )**alpha) * (( cooc / occj )**(1/alpha))
-                    if pi >= float(config['edgethreshold'][0]):
-                        if max is None:
-                            count += 1
-                            pirow[nj] = pi
-                        elif pi <= float(config['edgethreshold'][1]):
-                            count += 1
-                            pirow[nj] = pi
-                if len(pirow.keys()) > 0:
-                    yield ni, pirow
+                nodei, row = matrix.next()
+                occi = self.get(nodei, nodei)
+                for nodej in row.keys():
+                    cooc = row[nodej]
+                    occj = self.get(nodej, nodej)
+                    # calculates the pseudo-inclusion prox
+                    value = (( cooc / occi )**alpha) * (( cooc / occj )**(1/alpha))
+                    if maxedges is None and value < minedges:
+                        del row[nodej]
+                    elif value > maxedges or value < minedges:
+                        del row[nodej]
+                    else:
+                        row[nodej] = value
+                count += len(row.keys())
+                yield nodei, row
         except StopIteration:
             _logger.debug("found %d valid pseudo-inclusion values"%count)
 
+
 class EquivalenceIndexMatrix(MatrixReducer):
     """
+    Implements Equivalence Index distance between two NGram nodes
+    based on the mutual information of two NGrams
     """
     def extract_matrix( self, config, **kwargs ):
+        """
+        extract_matrix with an equivakence index proximity calculator
+        """
         nb_documents = config['nb_documents']
-        coocmatrix = super(EquivalenceIndexMatrix, self).extract_matrix( config )
+        minedges = float(config['edgethreshold'][0])
+        maxedges = float(config['edgethreshold'][1])
+        matrix = super(EquivalenceIndexMatrix, self).extract_matrix( config )
         try:
             count = 0
             while 1:
-                ni, coocrow = coocmatrix.next()
-                row = {}
-                occi = self.get(ni, ni)
-                for nj, cooc in coocrow.iteritems():
-                    occj = self.get(nj, nj)
+                nodei, row = matrix.next()
+                occi = self.get(nodei, nodei)
+                for nodej in row.keys():
+                    cooc = row[nodej]
+                    occj = self.get(nodej, nodej)
+                    # calculates the e-index
                     brut = float(cooc * nb_documents) / float(occi * occj)
-                    if brut <= float(0): continue
-                    prox = math.log( brut )
-                    if prox >= float(config['edgethreshold'][0]):
-                        if max is None:
-                            count += 1
-                            row[nj] = prox
-                        elif prox <= float(config['edgethreshold'][1]):
-                            count += 1
-                            row[nj] = prox
-                if len(row.keys()) > 0:
-                    yield ni, row
-        except StopIteration, si:
+                    if brut <= 0: continue
+                    value = math.log( brut )
+                    if maxedges is None and value < minedges:
+                        del row[nodej]
+                    elif value > maxedges or value < minedges:
+                        del row[nodej]
+                    else:
+                        row[nodej] = value
+                count += len(row.keys())
+                yield nodei, row
+        except StopIteration:
             _logger.debug("found %d valid E-Index values"%count)
 
-class Adjacency(object):
+class SubGraph(object):
     """
     Base class
-    A simple adjacency matrix processor
+    A simple subgraph proximity matrix processor
     """
     def __init__( self, config, storage, corpusid, opts, name, index, whitelist ):
         """
@@ -357,12 +399,12 @@ class Adjacency(object):
                     %(self.name, doccount,totaldocs,self.corpusid)
             )
 
-class NgramAdjacency(Adjacency):
+class NgramGraph(SubGraph):
     """
-    A NGram graph adjacency processor
+    A NGram graph subgraph processor
     """
     def __init__(self, config, storage, corpusid, opts, index, whitelist ):
-        Adjacency.__init__(self, config, storage, corpusid, opts, 'NGramGraph', index, whitelist )
+        SubGraph.__init__(self, config, storage, corpusid, opts, 'NGramGraph', index, whitelist )
 
     def cooccurrences( self, document ):
         """
@@ -394,12 +436,12 @@ class NgramAdjacency(Adjacency):
         except StopIteration, si:
             return
 
-class DocAdjacency(Adjacency):
+class DocGraph(SubGraph):
     """
-    A Document graph adjacency processor
+    A Document SubGraph adjacency processor
     """
     def __init__(self, config, storage, corpusid, opts, index, whitelist ):
-        Adjacency.__init__(self, config, storage, corpusid, opts, 'DocumentGraph', index, whitelist )
+        SubGraph.__init__(self, config, storage, corpusid, opts, 'DocumentGraph', index, whitelist )
         # docngrams cache
         self.documentngrams = {}
         # pre-calculed maximum ngrams in documents
@@ -461,7 +503,7 @@ class DocAdjacency(Adjacency):
 
     def generator(self):
         """
-        uses Adjacency.walkDocuments() to return processed proximities
+        uses SubGraph.walkDocuments() to return processed proximities
         """
         generator = self.walkDocuments()
         try:
