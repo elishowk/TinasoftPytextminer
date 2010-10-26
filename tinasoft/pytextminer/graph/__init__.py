@@ -228,7 +228,6 @@ class MatrixReducerFilter(MatrixReducer):
         matrix = super(MatrixReducerFilter, self).extract_matrix( config )
         minedges = float(config['edgethreshold'][0])
         maxedges = float(config['edgethreshold'][1])
-
         try:
             count = 0
             while 1:
@@ -239,7 +238,7 @@ class MatrixReducerFilter(MatrixReducer):
                         del row[nodej]
                     elif prox > maxedges or prox < minedges:
                         del row[nodej]
-                #if len(row.keys()) > 0:
+                    # otherwise, DOES NOTHING !
                 count += len(row.keys())
                 yield (nodei, row)
         except StopIteration, si:
@@ -270,7 +269,8 @@ class PseudoInclusionMatrix(MatrixReducer):
                         del row[nodej]
                     elif value > maxedges or value < minedges:
                         del row[nodej]
-                #if len(row.keys()) > 0:
+                    else:
+                        row[nodej] = value
                 count += len(row.keys())
                 yield nodei, row
         except StopIteration:
@@ -306,7 +306,8 @@ class EquivalenceIndexMatrix(MatrixReducer):
                         del row[nodej]
                     elif value > maxedges or value < minedges:
                         del row[nodej]
-                #if len(row.keys()) > 0:
+                    else:
+                        row[nodej] = value
                 count += len(row.keys())
                 yield nodei, row
         except StopIteration:

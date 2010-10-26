@@ -87,9 +87,9 @@ class Exporter(Handler):
                 # node weight in the diagonal of the matrix
                 self.graph['nodes'][category][nodeid] = matrix.get(nodeid, nodeid)
                 # temp edges row for the target category
-                obj['edges'][category] = row
+                temp = { category: row }
                 # overwrites the object
-                self.storage.insert( obj, category )
+                self.storage.insert( PyTextMiner.updateEdges(temp, obj), category )
                 nodecount += 1
                 self.notify(nodecount)
         except StopIteration, si:
