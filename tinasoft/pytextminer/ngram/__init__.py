@@ -53,8 +53,10 @@ class NGram(PyTextMiner):
         The NGram object accepts only one edge write to a Document object
         All the ohter edges are multiples
         """
-        if type in ["Document","NGram"]:
+        if type in ["Document"]:
             return self._addUniqueEdge( type, key, value )
+        elif type in ["NGram"]:
+            return self._overwriteEdge( type, key, value )
         else:
             return self._addEdge( type, key, value )
 

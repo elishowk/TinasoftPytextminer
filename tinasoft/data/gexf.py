@@ -70,7 +70,9 @@ class Exporter(Handler):
 
     def load_subgraph(self, category, matrix, subgraphconfig=None):
         """
-        uses a numpy array to add a Document subgraph to the global graph object
+        uses a Graph.MatrixReducer type object
+        to add a "category" subgraph to the global graph object
+        and updates the storage
         """
         self.graph['nodes'][category] = {}
         nodecount = 0
@@ -78,15 +80,16 @@ class Exporter(Handler):
         rows = matrix.extract_matrix( subgraphconfig )
         try:
             while 1:
-                id, row = rows.next()
-                obj = self.storage.load( id, category )
+                nodeid, row = rows.next()
+                obj = self.storage.load(nodeid, category)
                 if obj is None:
                     continue
-                weight = matrix.get(id, id)
-                self.graph['nodes'][category][id] = matrix.get(id, id)
-                edges = { category : row }
-                new = PyTextMiner.updateEdges( edges, obj )
-                self.storage.insert( PyTextMiner.updateEdges( edges, obj ), category )
+                # node weight in the diagonal of the matrix
+                self.graph['nodes'][category][nodeid] = matrix.get(nodeid, nodeid)
+                # temp edges row for the target category
+                obj['edges'][category] = row
+                # overwrites the object
+                self.storage.insert( obj, category )
                 nodecount += 1
                 self.notify(nodecount)
         except StopIteration, si:

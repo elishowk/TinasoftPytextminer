@@ -15,7 +15,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-__author__="elishowk@nonutc.fr"
+__author__ = "elishowk@nonutc.fr"
 
 # core modules
 import unittest
@@ -23,16 +23,21 @@ import sys
 
 from tinasoft import TinaApp
 
+
 class TinaAppTests(unittest.TestCase):
+
     def setUp(self):
+
         self.tinasoft = tinasoftSingleton
         self.datasetId = "test_data_set"
-        self.periods = ['1','pubmed1','2','FET','Batch_10']
+        self.periods = ['1', 'pubmed1', '2', 'FET', 'Batch_10']
         self.path = sourceFile
         self.format = sourceFormat
         self.extracted_whitelist = 'date-test_whitelist-extract_file.csv'
 
+
 class ExtractFile(TinaAppTests):
+
     def runTest(self):
         """ExtractFile : extract a source file's word vectors"""
         print self.tinasoft.extract_file(
@@ -44,10 +49,15 @@ class ExtractFile(TinaAppTests):
         )
         self.failIfEqual(self.extracted_whitelist, TinaApp.STATUS_ERROR)
 
+
 class IndexFile(TinaAppTests):
     def runTest(self):
-        """IndexFile : index a whitelist against a source file and its network in the db"""
-        self.failIfEqual( self.tinasoft.index_file(
+        """
+        IndexFile :
+        index a whitelist against a source file
+         and its network in the db
+        """
+        self.failIfEqual(self.tinasoft.index_file(
                 self.path,
                 self.datasetId,
                 self.extracted_whitelist,
@@ -80,9 +90,9 @@ class GenerateGraph(TinaAppTests):
         )
 
 
-
 class IndexArchive(TinaAppTests):
     def runTest(self):
+        """IndexArchive : process cooccurences on an archive datatype (see tinasoft/data/*archive.py)"""
         print self.tinasoft.index_archive(
                 self.path,
                 self.datasetId,
@@ -92,6 +102,7 @@ class IndexArchive(TinaAppTests):
                 outpath=True,
                 minCooc=10
             )
+
 
 class ExportCoocMatrix(TinaAppTests):
     def runTest(self):
@@ -120,8 +131,10 @@ class ExportCoocMatrix(TinaAppTests):
 #            'tinaapptests-export_whitelist.csv'
 #        )
 
+
 def usage():
-    print "USAGE : python apitests.py TestClass configuration_file_path source_filename file_format"
+    print "USAGE : python apitests.py TestClass configuration_file_path \
+        source_filename file_format"
 
 if __name__ == '__main__':
     print sys.argv
