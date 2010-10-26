@@ -313,11 +313,12 @@ class TinaApp(object):
             exportedges=True
         ):
         """
-        Generates the proximity numpy matrix from indexed NGrams/Document/Corpus
+        Generates the proximity matrices from indexed NGrams/Document/Corpus
         given a list of periods and a whitelist
-        Then export the corresponding graph
+        Then export the corresponding graph to storage and gexf
+        optionnaly export the complete graph to a gexf file for use in tinaweb
 
-        @return relative path to the gexf file
+        @return absolute path to the gexf file
         """
         if not documentgraphconfig: documentgraphconfig={}
         if not ngramgraphconfig: ngramgraphconfig={}
