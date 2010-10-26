@@ -54,7 +54,7 @@ datamining:
     # default values if no params are passed to gexf exporter
     DocumentGraph:
         edgethreshold:
-            - 0.2
+            - 0.0
             - 'inf'
         nodethreshold:
             - 1.0
