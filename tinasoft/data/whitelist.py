@@ -16,15 +16,17 @@
 
 __author__ = "elishowk@nonutc.fr"
 
-import os
 from tinasoft.data import basecsv, Handler
 from tinasoft.pytextminer import ngram, corpus, stemmer, filtering
 # tinasoft's logger
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
-class WhitelistFile():
 
+class WhitelistFile():
+    """
+    Model of a whitelist csv file
+    """
     columns = [
         ("status", "status"),
         ("label", "label"),
@@ -66,25 +68,37 @@ class Importer(basecsv.Importer):
         """
         self.whitelist.addEdge( 'StopNGram', dbid, occs )
 
+    def _coerce_unicode(self, cell):
+        """
+        checks a read value and eventually convert to type
+        """
+        if type(cell) == int or type(cell) == float:
+            cell = str(cell)
+        if type(cell) != unicode:
+            return unicode(cell, "utf-8", errors='replace')
+        else:
+            return cell
 
     def parse_file(self):
         """Reads a whitelist file and returns the updated object"""
         stem = stemmer.Nltk()
         if self.whitelist is None: return False
+        linenum = 0
         for row in self:
+            linenum += 1
             try:
-                status = row[self.filemodel.columns[0][1]]
-                label = row[self.filemodel.columns[1][1]]
-                occs = int(row[self.filemodel.columns[3][1]])
+                status = self._coerce_unicode( row[self.filemodel.columns[0][1]])
+                label = self._coerce_unicode( row[self.filemodel.columns[1][1]] )
+                occs = row[self.filemodel.columns[3][1]]
                 # gets forms tokens
-                forms_tokens = row[self.filemodel.columns[4][1]].split(self.filemodel.forms_separator)
+                forms_tokens = self._coerce_unicode( row[self.filemodel.columns[4][1]] ).split(self.filemodel.forms_separator)
                 # prepares forms ID to add them to the whitelist edges
                 forms_id = [ngram.NGram.getNormId(tokens.split(" ")) for tokens in forms_tokens]
                 # prepares forms label to add the to NGram objects in the whitelist
                 forms_label = dict().fromkeys( [tokens for tokens in forms_tokens] , 1 )
-                periods = row[self.filemodel.columns[11][1]].split(self.filemodel.forms_separator)
+                periods = self._coerce_unicode( row[self.filemodel.columns[11][1]] ).split(self.filemodel.forms_separator)
             except KeyError, keyexc:
-                _logger.error( "%s columns was not found, whitelist import failed"%keyexc )
+                _logger.error( "%s column (required) not found importing the whitelist at line %d, import failed"%(keyexc, linenum) )
                 continue
             # instanciate a NGram object
             edges = { 'Document' : {}, 'Corpus' : {}, 'label': forms_label, 'postag' : {}}
@@ -163,6 +177,7 @@ def load_from_storage(whitelist, storage, periods, filters=None, wlinstance=None
             else:
                 whitelist['content'][ngid] = ng['status']
         return whitelist
+
 
 class Exporter(basecsv.Exporter):
     """A class for csv exports of NGrams Whitelists"""
