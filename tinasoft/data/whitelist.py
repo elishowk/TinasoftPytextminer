@@ -14,16 +14,12 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-__author__="elishowk@nonutc.fr"
-# used for FS handling
-import os
+__author__ = "elishowk@nonutc.fr"
 
+import os
 from tinasoft.data import basecsv, Handler
 from tinasoft.pytextminer import ngram, corpus, stemmer, filtering
-
-from decimal import *
-
-# get tinasoft's logger
+# tinasoft's logger
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
@@ -41,8 +37,7 @@ class WhitelistFile():
         ("maxperiod", "max occs period id"),
         ("maxperiodoccsn", "max occs  ^ length per period"),
         ("maxperiodn", "max occs ^ length period id"),
-        ("forms", "ngram forms"),
-        ("corplist", "corp list"),
+        ("corplist", "period list"),
         ("dbid", "db ID")
     ]
     accept = "w"
@@ -51,7 +46,6 @@ class WhitelistFile():
 
     def __init__(self):
         return
-
 
 
 class Importer(basecsv.Importer):
@@ -83,12 +77,12 @@ class Importer(basecsv.Importer):
                 label = row[self.filemodel.columns[1][1]]
                 occs = int(row[self.filemodel.columns[3][1]])
                 # gets forms tokens
-                forms_tokens = str(row[self.filemodel.columns[4][1]]).split(self.filemodel.forms_separator)
+                forms_tokens = row[self.filemodel.columns[4][1]].split(self.filemodel.forms_separator)
                 # prepares forms ID to add them to the whitelist edges
                 forms_id = [ngram.NGram.getNormId(tokens.split(" ")) for tokens in forms_tokens]
                 # prepares forms label to add the to NGram objects in the whitelist
                 forms_label = dict().fromkeys( [tokens for tokens in forms_tokens] , 1 )
-                periods = str(row[self.filemodel.columns[11][1]]).split(self.filemodel.forms_separator)
+                periods = row[self.filemodel.columns[11][1]].split(self.filemodel.forms_separator)
             except KeyError, keyexc:
                 _logger.error( "%s columns was not found, whitelist import failed"%keyexc )
                 continue
@@ -220,20 +214,20 @@ class Exporter(basecsv.Exporter):
                 occsn = occs**len(ng['content'])
                 # TODO update NGram in db after adding new scores
                 #if 'MaxCorpus' not in ng['edges'] or 'MaxNormalizedCorpus' not in ng['edges']:
-                maxperiod = maxnormalizedperiod = lastmax = lastnormmax = Decimal(0)
+                maxperiod = maxnormalizedperiod = lastmax = lastnormmax = 0.0
                 maxperiodid = maxnormalizedperiodid = None
                 for periodid, totalperiod in ng['edges']['Corpus'].iteritems():
                     if periodid not in newwl['corpus']: continue
                     totaldocs =  len(newwl['corpus'][periodid]['edges']['Document'].keys())
                     if totaldocs == 0: continue
                     # updates both per period max occs
-                    lastmax = Decimal(totalperiod) / Decimal(totaldocs)
+                    lastmax = float(totalperiod) / float(totaldocs)
 
                     if lastmax >= maxperiod:
                         maxperiod = lastmax
                         maxperiodid = periodid
 
-                    lastnormmax = Decimal(totalperiod**len(ng['content'])) / Decimal(totaldocs)
+                    lastnormmax = float(totalperiod**len(ng['content'])) / float(totaldocs)
 
                     if lastnormmax >= maxnormalizedperiod:
                         maxnormalizedperiod = lastnormmax
@@ -250,19 +244,19 @@ class Exporter(basecsv.Exporter):
                 corp_list = self.filemodel.forms_separator.join([corpid for corpid in ng['edges']['Corpus'].keys() if corpid in newwl['corpus']])
                 # prepares the row
                 row = [
-                    ng['status'],
-                    label,
-                    tag,
-                    occs,
-                    forms,
+                    unicode(ng['status']),
+                    unicode(label),
+                    unicode(tag),
+                    int(occs),
+                    unicode(forms),
                     len(ng['content']),
-                    occsn,
-                    maxperiod,
-                    str(maxperiodid),
-                    maxnormalizedperiod,
-                    str(maxnormalizedperiodid),
-                    corp_list,
-                    str(ngid)
+                    int(occsn),
+                    float(maxperiod),
+                    unicode(maxperiodid),
+                    float(maxnormalizedperiod),
+                    unicode(maxnormalizedperiodid),
+                    unicode(corp_list),
+                    unicode(ngid)
                 ]
                 self.writeRow(row)
 

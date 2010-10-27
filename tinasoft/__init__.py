@@ -531,7 +531,7 @@ class TinaApp(object):
     def import_whitelist(
             self,
             whitelistpath,
-            userstopwords=None,
+            userstopwords = None,
             **kwargs
         ):
         """

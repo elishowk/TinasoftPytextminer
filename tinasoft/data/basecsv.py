@@ -60,14 +60,15 @@ class UnicodeDictReader(object):
         return self
 
 class Importer (Importer,UnicodeDictReader):
-    """home-made importer class for a csv file"""
+    """
+    importer class for a csv file using encoding and decoding following
+    the example from
+    """
 
     # defaults
     options = {
         'encoding': 'utf-8',
         'dialect': 'excel',
-        #'quotechar': '"',
-        #'delimiter': ','
     }
 
     def __init__(self,
@@ -90,10 +91,8 @@ class Importer (Importer,UnicodeDictReader):
             self.file,
             self.fieldnames,
             dialect = self.dialect,
-            #quotechar = self.quotechar,
-            #delimiter = self.delimiter,
             encoding = self.encoding,
-            quoting=csv.QUOTE_NONNUMERIC
+            quoting = csv.QUOTE_NONNUMERIC
         )
         try:
             for line in self:
@@ -102,37 +101,10 @@ class Importer (Importer,UnicodeDictReader):
             _logger.error("error reading first csv line : %s"%(str(exc)))
 
     def open( self, path ):
-        #return codecs.open( path, 'rU', encoding=self.encoding, errors='replace' )
+        """
+        read-only binary file handler
+        """
         return open( path, 'rb' )
-
-class UnicodeWriter(object):
-    """
-    A CSV writer which will write rows to CSV file "f",
-    which is encoded in the given encoding.
-    """
-
-    def __init__(self, f, dialect='excel', encoding="utf-8", **kwds):
-        # Redirect output to a queue
-        self.queue = cStringIO.StringIO()
-        self.writer = csv.writer(self.queue, dialect=dialect, **kwds)
-        self.stream = f
-        self.encoder = codecs.getincrementalencoder(encoding)()
-
-    def writerow(self, row):
-        self.writer.writerow([s.encode("utf-8", 'replace') for s in row])
-        # Fetch UTF-8 output from the queue ...
-        data = self.queue.getvalue()
-        data = data.decode("utf-8", 'replace')
-        # ... and reencode it into the target encoding
-        data = self.encoder.encode(data, 'replace')
-        # write to the target stream
-        self.stream.write(data)
-        # empty queue
-        self.queue.truncate(0)
-
-    def writerows(self, rows):
-        for row in rows:
-            self.writerow(row)
 
 class Exporter (Handler):
     """
@@ -158,6 +130,8 @@ class Exporter (Handler):
         for cell in row:
             if isinstance(cell, str) is True or isinstance(cell, unicode) is True:
                 line += ["".join([self.quotechar,cell.replace('"',"'"),self.quotechar])]
+            elif isinstance(cell, float) is True:
+                line += ["%.4f"%round(cell,4)]
             else:
                 line += [str(cell)]
         self.file.write( self.delimiter.join(line) + "\n" )
