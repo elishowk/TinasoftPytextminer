@@ -101,7 +101,10 @@ class TinaApp(object):
         if not exists(self.user):
             makedirs(self.user)
 
-        self.source_file_directory = join( self.config['general']['basedirectory'], self.config['general']['source_file_directory'] )
+        self.source_file_directory = join(
+            self.config['general']['basedirectory'],
+            self.config['general']['source_file_directory']
+        )
         if not exists(self.source_file_directory):
             makedirs(self.source_file_directory)
 
@@ -281,7 +284,8 @@ class TinaApp(object):
             return self.STATUS_ERROR
         # instanciate stopwords and extractor class
         stopwds = stopwords.StopWords(
-            "file://%s"%join(self.config['general']['basedirectory'],
+            "file://%s"%join(
+            self.config['general']['basedirectory'],
             self.config['general']['shared'],
             self.config['general']['stopwords'])
         )

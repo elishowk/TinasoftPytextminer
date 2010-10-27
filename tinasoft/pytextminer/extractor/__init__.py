@@ -31,17 +31,18 @@ class Extractor():
     """A source file importer = data set = corpora"""
     def __init__( self, storage, config, corpora, stopwds, filters=None, stemmer=None ):
         self.reader = None
-        self.config=config
+        self.config = config
         # load Stopwords object
         self.stopwords = stopwds
         #filtertag = filtering.PosTagFilter()
         #filterContent = filtering.Content()
         validTag = filtering.PosTagValid(
-            config= {
+            config = {
                 'rules': re.compile(self.config['postag_valid'])
             }
         )
         self.filters = [validTag]
+        #self.filters = []
         if filters is not None:
             self.filters += filters
         self.stemmer = stemmer
@@ -52,8 +53,8 @@ class Extractor():
         self.storage = storage
         # instanciate the tagger, takes times on learning
         self.tagger = tagger.TreeBankPosTagger(
-            training_corpus_size=self.config['training_tagger_size'],
-            trained_pickle=self.config['tagger']
+            training_corpus_size = self.config['training_tagger_size'],
+            trained_pickle = self.config['tagger']
         )
 
     def _openFile(self, path, format ):

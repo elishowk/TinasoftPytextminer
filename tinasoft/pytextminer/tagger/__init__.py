@@ -109,7 +109,8 @@ class TreeBankPosTagger():
     @staticmethod
     def posTag( tokens ):
         """
-        gives access to static default nltk pos tagger (slower but smarter)
+        ALTERNATE TAGGER
+        gives access to the default nltk pos tagger (slower but smarter)
         each tokens becomes ['token','TAG']
         """
         return map( list, pos_tag( tokens ) )

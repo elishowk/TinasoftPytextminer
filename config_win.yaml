@@ -46,8 +46,8 @@ datasets:
     training_tagger_size: 8000
     # under "basedirectory" directory, delete this file to regenerate a new one on next starting
     tagger: 'shared_tagger.pickle'
-    postag_valid: '^((VB.?,|CD.?,|JJ.?,|\?,){0,2}?(NN.?,|\?,))+?((PREP.?|DET.?,|IN.?,|CC.?,|\?,)((VB.?,|CD.?,|JJ.?,|\?,){0,2}?(NN.?,|\?,))+?)*?$'
-    #postag_valid: '^((VB.?,|JJ.?,|\?,){0,2}?(NN.?,|\?,))+?((IN.?,|CC.?,|\?,)((VB.?,|JJ.?,|\?,){0,2}?(NN.?,|\?,))+?)*?$'
+    postag_valid: '^((VB.?,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?((PREP.?|DET.?,|IN.?,|CC.?,|\?,)((VB.?,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?)*?$'
+    #postag_valid: '^((VB.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?((IN.?,|CC.?,|\?,)((VB.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?)*?$'
 datamining:
     template: 'shared\gexf\gexf.default.template'
     DocumentGraph:

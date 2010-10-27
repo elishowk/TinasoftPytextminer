@@ -34,6 +34,7 @@ class WhitelistFile():
         ("label", "label"),
         ("postag", "pos tag"),
         ("occs", "total occs"),
+        ("forms", "ngram forms"),
         ("length", "length"),
         ("occsn", "total occs ^ length"),
         ("maxperiodoccs", "max occs per period"),
@@ -79,15 +80,15 @@ class Importer(basecsv.Importer):
         for row in self:
             try:
                 status = row[self.filemodel.columns[0][1]]
-                occs = int(row[self.filemodel.columns[3][1]])
                 label = row[self.filemodel.columns[1][1]]
+                occs = int(row[self.filemodel.columns[3][1]])
                 # gets forms tokens
-                forms_tokens = row[self.filemodel.columns[10][1]].split(self.filemodel.forms_separator)
+                forms_tokens = str(row[self.filemodel.columns[4][1]]).split(self.filemodel.forms_separator)
                 # prepares forms ID to add them to the whitelist edges
                 forms_id = [ngram.NGram.getNormId(tokens.split(" ")) for tokens in forms_tokens]
                 # prepares forms label to add the to NGram objects in the whitelist
                 forms_label = dict().fromkeys( [tokens for tokens in forms_tokens] , 1 )
-                periods = row[self.filemodel.columns[11][1]].split(self.filemodel.forms_separator)
+                periods = str(row[self.filemodel.columns[11][1]]).split(self.filemodel.forms_separator)
             except KeyError, keyexc:
                 _logger.error( "%s columns was not found, whitelist import failed"%keyexc )
                 continue
@@ -253,13 +254,13 @@ class Exporter(basecsv.Exporter):
                     label,
                     tag,
                     occs,
+                    forms,
                     len(ng['content']),
                     occsn,
                     maxperiod,
                     str(maxperiodid),
                     maxnormalizedperiod,
                     str(maxnormalizedperiodid),
-                    forms,
                     corp_list,
                     str(ngid)
                 ]
