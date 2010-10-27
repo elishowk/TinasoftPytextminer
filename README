@@ -1,22 +1,26 @@
 Thanks for using Tinasoft Pytextminer
 
-Pytextminer is a part of a larger software : Tinasoft Desktop you can find it at http://github.com/jbilcke/tinasoft.desktop/
+Pytextminer is a part of a larger software : Tinasoft Desktop you can find it at http://github.com/moma/tinasoft.desktop/
 
-A text-mining python module producing bottom-up ngram detection and mapping. Using NLTK the natural language processing toolkit (http://www.nltk.org/), bsddb the Berkeley embeddable DB connector for storage (http://www.jcea.es/programacion/pybsddb_doc/), and whoosh the indexation engine (http://whoosh.ca), it provides :
-- document/corpus/ngram graphs database
-- part-of-speech tagging
-- nlp based tokenizer
-- multiple stopwords sources support
-- document text indexation
-- co-occurrences matrix processing
-- customizable graph generator (GEXF format)
-- and soon a stemmer and a lemmatizer
+A text-mining python 2.6 module producing bottom-up semantic network production.
+It uses :
+- NLTK, the natural language processing toolkit (http://www.nltk.org/),
+- SQLite3, the embedded database library (http://sqlite.org),
+- Twisted web server (http://twistedmatrix),
+- Numpy for n-dimensionnal arrays processing (http://numpy.scipy.org/),
+- pyTenjin for graph gexf files export (http://www.kuwata-lab.com/tenjin/)
 
-This work is part of TINA, an European Union FP7 project - FP7-ICT-2009-C : http://tinasoft.eu/
-The software implements scientific worksby David Chavalarias (CREA lab; CNRS/Ecole Polytechnique UMR 7656, http://chavalarias.com) and Jean-Philippe Cointet (INRA, http://jph.cointet.free.fr). You can read their publications here:
+Classical task are :
+- multiple sources parsing
+- extraction of key-phrases (ngrams) using various simple Natural Language Processing methods (stopwords, part-of-speech tagging, stemming, etc)
+- creation of document/corpus/ngram graphs databases
+- key-phrases cooccurrences calculation on a corpus basis
+- production of graphs of multiple entities and multiple relations (hybrid storage into GEXF files, http://gexf.net, and into sqlite database)
+- an httpserver exposing the API, sending json results
 
-http://arxiv.org/abs/0904.3154v1
-http://www.springerlink.com/content/v57686u275653nt4/
+This software is part of TINA, an European Union FP7 coordination action - FP7-ICT-2009-C :
+ - http://tinasoft.eu/
+The software implements scientific results by David Chavalarias (CREA lab; CNRS/Ecole Polytechnique UMR 7656, http://chavalarias.com) and Jean-Philippe Cointet (INRA SENS, http://jph.cointet.free.fr).
 
 COPYRIGHT AND LICENSE
 
@@ -37,14 +41,19 @@ Copyright (C) 2009-2011 CREA Lab, CNRS/Ecole Polytechnique UMR 7656 (Fr)
 SOURCE CODE REPOSITORY
 
     https://forge.iscpif.fr/projects/tinasoft-pytextminer
+    http://github.com/moma/TinasoftPytextminer
 
 AUTHORS
 
 - Researchers and engineers at CREA lab (UMR 7656, CNRS, Ecole Polytechnique, France)
+    julian bilcke <julian.bilcke (at) iscpif (dot) fr>
+    david chavalarias <david.chavalarias (at) polytechnique (dot) edu>
+    jean philippe cointet <jphcoi (at) yahoo (dot) fr>
+    elias showk <elishowk (at) nonutc (dot) fr>
 
-    david chavalarias <david.chavalarias@polytechnique.edu>
-    elias showk <elishowk@nonutc.fr>
-    julian bilcke <julian.bilcke@iscpif.fr>
+MAINTAINER
+
+    elias showk <elishowk (at) nonutc (dot) fr>
 
 DOCUMENTATION, SUPPORT AND FEEDBACK
 
@@ -53,7 +62,7 @@ DOCUMENTATION, SUPPORT AND FEEDBACK
 
 PYTEXTMINER AS A USER
 
-    DOWNLOAD standalone packages from http://tinasoft.eu
+    Download standalone packages from http://tinasoft.eu
 
     DEVELOPER DOCUMENTATION
 
@@ -150,7 +159,7 @@ SOURCE FILES DIRECTORY
     - these files are used during indexation and extraction steps of the workflow
     - given an existing file name in this directory, the software will be able to read it
 
-SUPPORTED OPERATING SYSTEMS
+TESTED OPERATING SYSTEMS
 
     Tinasoft Pytextminer was tested on the following platforms:
 
