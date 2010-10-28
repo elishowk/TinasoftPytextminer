@@ -69,18 +69,11 @@ class TinaApp(object):
     STATUS_ERROR = 666
     STATUS_OK = 1
 
-    @staticmethod
-    def notify( subject, msg, data ):
-        """
-        This method should be overwritten by a context-dependent notifier
-        """
-        pass
-
     def __init__(
             self,
             configFilePath,
             loc=None,
-            loglevel=logging.DEBUG
+            custom_logger=None
         ):
         """
         Init config, logger, locale, storage
@@ -119,6 +112,33 @@ class TinaApp(object):
                 )
             )
 
+        self.set_logger()
+        # tries support of the locale by the host system
+        try:
+            self.locale = self.config['general']['locale']
+            locale.setlocale(locale.LC_ALL, self.locale)
+        except:
+            self.locale = ''
+            self.logger.warning(
+                "configured locale not found, switching to default ='%s'"%self.locale
+            )
+            locale.setlocale(locale.LC_ALL, self.locale)
+
+        self.logger.debug("TinaApp started")
+
+    def __del__(self):
+        """resumes the storage transactions when destroying this object"""
+        if self.storage is not None:
+            del self.storage
+
+    def set_logger( self, logger=None):
+        """
+        sets a customized or a default logger
+        """
+        if logger is not None:
+            self.logger = logger
+            return
+        # here's the default logger
         if not exists(join(
                 self.config['general']['basedirectory'],
                 self.config['general']['log']
@@ -129,7 +149,6 @@ class TinaApp(object):
                 self.config['general']['log']
                 )
             )
-
         # Set up a specific logger with our desired output level
         self.LOG_FILENAME = join(
             self.config['general']['basedirectory'],
@@ -153,26 +172,6 @@ class TinaApp(object):
         )
         rotatingFileHandler.setFormatter(formatter)
         self.logger.addHandler(rotatingFileHandler)
-        # tries support of the locale by the host system
-        try:
-            if loc is None:
-                self.locale = self.config['general']['locale']
-            else:
-                self.locale = loc
-            locale.setlocale(locale.LC_ALL, self.locale)
-        except:
-            self.locale = ''
-            self.logger.warning(
-                "configured locale was not found, switching to default ='%s'"%self.locale
-            )
-            locale.setlocale(locale.LC_ALL, self.locale)
-
-        self.logger.debug("TinaApp started")
-
-    def __del__(self):
-        """resumes the storage transactions when destroying this object"""
-        if self.storage is not None:
-            del self.storage
 
     def set_storage( self, dataset_id, create=True, **options ):
         """
