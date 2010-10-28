@@ -42,6 +42,7 @@ import webbrowser
 # OS utilities
 from os.path import join, exists
 import sys
+import exceptions
 
 # MS windows trick to print to a file server's output to a file
 import platform
@@ -79,9 +80,10 @@ class TinaServerResource(resource.Resource):
         'nodethreshold': list,
         'edgethreshold': list,
     }
-    def __init__(self, method, back):
+    def __init__(self, method, back, logger):
         self.method = method
         self.back = back
+        self.logger = logger
         resource.Resource.__init__(self)
 
     def _parse_args(self, args):
@@ -119,11 +121,14 @@ class TinaServerResource(resource.Resource):
         try:
             returnValue = self.method(**parsed_args)
             if returnValue == TinaApp.STATUS_ERROR:
-                return ErrorPage(500, "tinasoft server error, please report it", traceback.format_exc() ).render(request)
+                return ErrorPage(500, "tinasoft server non-fatal error, please report it",
+                    traceback.format_exc() ).render(request)
             else:
                 return self.back.call( returnValue )
-        except Exception, e:
-            return ErrorPage(500, "tinasoft server error, please report it", traceback.format_exc() ).render(request)
+        except:
+            self.logger.error( traceback.format_exc() )
+            return ErrorPage(500, "tinasoft server fatal error, please report it",
+                traceback.format_exc() ).render(request)
 
 class TinaServer(resource.Resource):
     """
@@ -147,8 +152,7 @@ class TinaServer(resource.Resource):
         except:
             return NoResource()
         else:
-            return TinaServerResource(method, self.callback)
-
+            return TinaServerResource(method, self.callback, self.posthandler.tinaappinstance.logger)
 
 class TinaAppPOST():
     """
@@ -158,19 +162,11 @@ class TinaAppPOST():
         self.tinaappinstance = tinaappinstance
 
     def file(self, *args, **kwargs):
-        """ index file """
+        """ index a file given a whitelist into a dataset db"""
         return self.tinaappinstance.index_file(*args, **kwargs)
 
-    #def whitelist(self, *args, **kwargs):
-        """ import whitelist """
-    #    return TinaApp.import_whitelist(*args, **kwargs)
-
-    #def cooccurrences(self, *args, **kwargs):
-        """ process_cooc """
-    #    return self.tinaappinstance.process_cooc(*args, **kwargs)
-
     def graph(self, *args, **kwargs):
-        """ generate_graph """
+        """ generate a graph given a dataset db, a whitelist and some graph params"""
         return self.tinaappinstance.generate_graph(*args, **kwargs)
 
     #def dataset(self, corporaobj):
@@ -272,10 +268,14 @@ class TinaAppGET():
         decoded = urllib.unquote_plus(fileurl)
         return browser.open(decoded.replace("%5C","\\").replace("%2F","/").replace("%3A",":"))
 
+    def exit(self):
+        """exit"""
+        reactor.stop()
+
 class NumpyFloatHandler(jsonpickle.handlers.BaseHandler):
     def flatten(self, obj, data):
         """
-        Casts and round to float an encod
+        Converts and round to float an encod
         """
         return round(obj,6)
 
