@@ -71,8 +71,8 @@ PYTEXTMINER AS A USER
 PYTEXTMINER AS A DEVELOPER
 
 
-    * we provide a trying-to-be-RESTfull server providing a HTTP API
-    * alternatively, tests.py script provide examples to use the sofware API
+    * we provide a http server exposing the main API from the TinaApp class
+    * alternatively, the apitests.py script provides examples to properly use the TinaApp class methods
 
     - get the source code :
 

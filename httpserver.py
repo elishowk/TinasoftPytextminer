@@ -21,7 +21,7 @@ __author__="elishowk@nonutc.fr"
 from tinasoft import TinaApp
 
 from twisted.web import server, resource
-from twisted.internet import reactor
+from twisted.internet import reactor, threads
 from twisted.web.static import File
 # error handling
 from twisted.web.resource import NoResource, ErrorPage
@@ -116,16 +116,12 @@ class TinaServerResource(resource.Resource):
         # parameters parsing
         parsed_args = self._parse_args(request.args)
         print self.method, parsed_args
-
+        d = defer.Deferred()
         request.setHeader("content-type", "application/json")
         # sends the request through the callback
         try:
-            returnValue = self.method(**parsed_args)
-            if returnValue == TinaApp.STATUS_ERROR:
-                return ErrorPage(500, "tinasoft server non-fatal error, please report it",
-                    traceback.format_exc() ).render(request)
-            else:
-                return self.back.call( returnValue )
+            deferred = threads.deferToThread( self.method, None, **parsed_args)
+            deferred.addBoth( self.back.call )
         except:
             self.logger.error( traceback.format_exc() )
             return ErrorPage(500, "tinasoft server fatal error, please report it",
@@ -281,7 +277,12 @@ class TinaAppGET(object):
         """
         read last lines from the logger
         """
-        return self.loggerstream.getLastMessages()
+        lines = []
+        self.loggerstream.seek(0)
+        for line in self.loggerstream:
+            lines += [line]
+        self.loggerstream.truncate(0)
+        return lines
 
 
 class NumpyFloatHandler(jsonpickle.handlers.BaseHandler):
@@ -307,14 +308,18 @@ class TinaServerCallback(object):
         """
         return jsonpickle.encode(obj)
 
-    def deserialize(self, str):
+    def deserialize(self, serialized):
         """
         Decoder for the host's application messages
         """
-        return jsonpickle.encode(str)
+        return jsonpickle.encode(serialized)
 
     def call(self, returnValue=None):
         #_observerProxy.notifyObservers(None, msg, jsonpickle.encode( returnValue ))
+        if returnValue == TinaApp.STATUS_ERROR:
+            return ErrorPage(500, "tinasoft server non-fatal error, please report it",
+                traceback.format_exc() ).render(request)
+
         if returnValue == None:
             returnValue = self.default
         return self.serialize( returnValue )
@@ -328,23 +333,13 @@ class LoggerHandler(logging.StreamHandler):
         formatter = logging.Formatter("%(message)s")
         self.setFormatter(formatter)
 
-class LoggerStream(file):
-    """
-    a file object adding a read and empty file method
-    """
-    def getLastMessages(self):
-        lines = self.readlines()
-        self.truncate(0)
-        return lines
-
 def run(confFile):
     custom_logger = logging.getLogger('TinaAppLogger')
-    stream = LoggerStream(tempfile.mkstemp()[1], mode='w+b')
+    stream = open(tmp = tempfile.mkstemp()[1], mode='a+')
     custom_logger.addHandler(LoggerHandler( stream ))
 
     tinaappsingleton = TinaApp(confFile, custom_logger=custom_logger)
-    tinaappsingleton.logger.debug("test")
-    print stream.read()
+
     # specialized GET and POST handlers
     posthandler = TinaAppPOST(tinaappsingleton)
     gethandler = TinaAppGET(tinaappsingleton, stream)
@@ -362,7 +357,7 @@ def run(confFile):
     reactor.run()
 
 def usage():
-    print "USAGE : python httpserver.py configuration_file_path"
+    print "USAGE : python httpserver.py yaml_configuration_file_path"
 
 if __name__ == "__main__":
     import getopt
