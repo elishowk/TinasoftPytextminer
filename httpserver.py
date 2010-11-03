@@ -20,10 +20,11 @@ __author__="elishowk@nonutc.fr"
 
 from tinasoft import TinaApp
 
-from twisted.internet.task import deferLater
+from twisted.internet.task import cooperate
 from twisted.web import server, resource
 from twisted.internet import reactor
 from twisted.web.static import File
+from twisted.internet.protocol import Factory, Protocol
 # error handling
 from twisted.web.resource import NoResource, ErrorPage
 
@@ -57,31 +58,6 @@ class TinaServerResource(resource.Resource):
     """
     The request handler
     """
-    argument_types = {
-        'index' : bool,
-        'overwrite': bool,
-        'path': str,
-        'outpath': str,
-        'dataset': str,
-        'label':str,
-        'periods': list,
-        'threshold': list,
-        'whitelistpath': str,
-        'whitelistlabel': str,
-        'userstopwords': str,
-        'ngramlimit': int,
-        'minoccs' : int,
-        'id': str,
-        'format': str,
-        'filetype': str,
-        'fileurl': str,
-        'ngramgraphconfig': parse_qs,
-        'documentgraphconfig': parse_qs,
-        'proximity': str,
-        'alpha': float,
-        'nodethreshold': list,
-        'edgethreshold': list,
-    }
     def __init__(self, handler, method, callback, logger):
         """
         to be executed method on an object, its callback and a TinaApp logger connector
@@ -121,38 +97,107 @@ class TinaServerResource(resource.Resource):
         """
         Prepares arguments and call the method
         """
-        # parameters parsing
-        parsed_args = self._parse_args(request.args)
-        # some info logging...
         #self.logger.info( str(self.method) + " ---" + str(parsed_args) )
-        request.setHeader("content-type", "application/json")
-        # sends the request in e thread through the universal serializing callback
-        deferred = deferLater(reactor, 0, lambda: [request, parsed_args])
-        deferred.addBoth(self.wrapper)
+        d = CooperativeExecution()._method_wrapper(request, self.callback.success, self.handler, self.method)
+        d.addCallback(lambda ignored: request.finish())
+        d.addErrback(self._method_failed)
         return server.NOT_DONE_YET
 
-    def wrapper(self, *args, **kwargs):
+    def _method_failed(self, err):
+        self.logger.error( str(err) )
+
+class CooperativeExecution(object):
+    argument_types = {
+        'index' : bool,
+        'overwrite': bool,
+        'path': str,
+        'outpath': str,
+        'dataset': str,
+        'label':str,
+        'periods': list,
+        'threshold': list,
+        'whitelistpath': str,
+        'whitelistlabel': str,
+        'userstopwords': str,
+        'ngramlimit': int,
+        'minoccs' : int,
+        'id': str,
+        'format': str,
+        'filetype': str,
+        'fileurl': str,
+        'ngramgraphconfig': parse_qs,
+        'documentgraphconfig': parse_qs,
+        'proximity': str,
+        'alpha': float,
+        'nodethreshold': list,
+        'edgethreshold': list,
+    }
+
+    def _method_wrapper(self, request, serializer, handler, method):
+        self.request = request
+        self.serializer = serializer
+        self.handler = handler
+        self.method = method
+        self.request.registerProducer(self, True)
+        self._task = cooperate(self._call_method())
+        d = self._task.whenDone()
+        d.addBoth(self._unregister)
+        return d
+
+    def _call_method(self):
         """
         Wrapper of any API call to fit asynchronous server behaviour
         """
-        [request, parsed_args] = args[0]
+        parsed_args = self._parse_args(self.request.args)
         methodfunction = getattr(self.handler, self.method)
-        try:
-            value = methodfunction(**parsed_args)
-            request.write( self.callback.success( value ) )
-            request.finish()
-        except:
-            self.logger.error( traceback.format_exc() )
-            request.write( ErrorPage(500, "tinasoft server fatal error, please report it",
-                traceback.format_exc() ).render(request)
-            )
-            request.finish()
+        self.request.setHeader('content-type', 'application/json')
+        self.request.write( self.serializer( methodfunction(**parsed_args) ) )
+        yield None
+
+    def _parse_args(self, args):
+        """
+        Universal request arguments parsing and type convertions
+        """
+        parsed_args = {}
+        # parameters parsing
+        for key in args.iterkeys():
+            if key not in self.argument_types:
+                continue
+                continue
+            # empty args handling
+            if args[key][0] == '':
+                parsed_args[key] = None
+            # boolean args handling
+            elif self.argument_types[key] == bool:
+                if args[key][0] == 'True': parsed_args[key] = True
+                if args[key][0] == 'False': parsed_args[key] = False
+            # list args
+            elif self.argument_types[key] == list:
+                parsed_args[key] = self.argument_types[key](args[key])
+            elif self.argument_types[key] == parse_qs:
+                parsed_args[key] = self._parse_args( self.argument_types[key](args[key][0]) )
+            else:
+                parsed_args[key] = self.argument_types[key](args[key][0])
+        return parsed_args
+
+    def _unregister(self, passthrough):
+        self.request.unregisterProducer()
+        return passthrough
+
+    def pauseProducing(self):
+        self._task.pause()
+
+    def resumeProducing(self):
+        self._task.resume()
+
+    def stopProducing(self):
+        self._task.stop()
 
 
 class TinaServer(resource.Resource):
     """
-    Server main class
-    dynamically dispatching URL to TinaServerResource() class
+    Main Server class
+    dynamically dispatching URL to a TinaServerResource() class
     """
     def __init__(self, tinacallback, posthandler, gethandler):
         self.callback = tinacallback
@@ -175,9 +220,10 @@ class TinaServer(resource.Resource):
         else:
             return TinaServerResource(handler, name, self.callback, self.posthandler.tinaappinstance.logger)
 
+
 class TinaAppPOST(object):
     """
-    TinaApp mapping POST requests on an instance of TinaApp's
+    TinaApp mapping POST requests and TinaApp's methods
     """
     def __init__(self, tinaappinstance):
         self.tinaappinstance = tinaappinstance
@@ -213,10 +259,10 @@ class TinaAppPOST(object):
 
 class TinaAppGET(object):
     """
-    TinaApp mapping GET requests on an instance of TinaApp's
+    TinaApp mapping GET requests and TinaApp's methods
     """
-    def __init__(self, tinaappinstance, loggerstream):
-        self.loggerstream = loggerstream
+    def __init__(self, tinaappinstance, stream):
+        self.stream = stream
         self.tinaappinstance = tinaappinstance
 
     def file(self, *args, **kwargs):
@@ -226,7 +272,6 @@ class TinaAppGET(object):
         """
         return self.tinaappinstance.extract_file(*args, **kwargs)
 
-    #@asyncwrapper
     #def whitelist(self, *args, **kwargs):
         """
         exports a whitelist csv file
@@ -299,16 +344,12 @@ class TinaAppGET(object):
         reactor.stop()
 
     def log(self):
-        """
-        read last lines from the logger
-        """
         lines = []
-        self.loggerstream.seek(0)
-        for line in self.loggerstream:
-            lines += [line]
-        self.loggerstream.truncate(0)
+        self.stream.seek(0)
+        for line in self.stream:
+            lines += [line.strip("\n")]
+        self.stream.truncate(0)
         return lines
-
 
 class NumpyFloatHandler(jsonpickle.handlers.BaseHandler):
     """
@@ -321,9 +362,11 @@ class NumpyFloatHandler(jsonpickle.handlers.BaseHandler):
         """
         return round(obj,6)
 
+
 jsonpickle.handlers.registry.register(numpy.float, NumpyFloatHandler)
 jsonpickle.handlers.registry.register(numpy.float32, NumpyFloatHandler)
 jsonpickle.handlers.registry.register(numpy.float64, NumpyFloatHandler)
+
 
 class TinaServerCallback(object):
     """
@@ -354,14 +397,37 @@ class TinaServerCallback(object):
             response = self.default
         return self.serialize( response )
 
+
 class LoggerHandler(logging.StreamHandler):
     """
-    overwrites logging.StreamHandler behaviour
+    modified handler logging.StreamHandler
     """
     def __init__(self, *args, **kwargs):
         logging.StreamHandler.__init__(self, *args, **kwargs)
         formatter = logging.Formatter("%(message)s")
         self.setFormatter(formatter)
+
+
+#class LoggerServer(Protocol):
+
+#    def connectionMade(self):
+        """
+        read last lines from the logger
+        """
+#        self.factory.stream.seek(0)
+#        for line in self.factory.stream:
+#            self.transport.write( line+'\r\n' )
+#        self.factory.stream.truncate(0)
+#        self.transport.loseConnection()
+
+
+#class LoggerServerFactory(Factory):
+
+#    protocol = LoggerServer
+
+#    def __init__(self, stream):
+#        self.stream = stream
+
 
 def run(confFile):
     custom_logger = logging.getLogger('TinaAppLogger')
