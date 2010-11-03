@@ -84,7 +84,7 @@ class TinaServerResource(resource.Resource):
     }
     def __init__(self, handler, method, callback, logger):
         """
-        executed method, its callback and a TinaApp logger connector
+        to be executed method on an object, its callback and a TinaApp logger connector
         """
         self.handler = handler
         self.method = method
@@ -124,7 +124,7 @@ class TinaServerResource(resource.Resource):
         # parameters parsing
         parsed_args = self._parse_args(request.args)
         # some info logging...
-        self.logger.info( str(self.method) + " ---" + str(parsed_args) )
+        #self.logger.info( str(self.method) + " ---" + str(parsed_args) )
         request.setHeader("content-type", "application/json")
         # sends the request in e thread through the universal serializing callback
         deferred = deferLater(reactor, 0, lambda: [request, parsed_args])
@@ -164,8 +164,10 @@ class TinaServer(resource.Resource):
         try:
             if request.method == 'POST':
                 handler = self.posthandler
+                getattr(handler, name)
             elif request.method == 'GET':
                 handler = self.gethandler
+                getattr(handler, name)
             else:
                 raise Exception()
         except:
@@ -363,22 +365,22 @@ class LoggerHandler(logging.StreamHandler):
 
 def run(confFile):
     custom_logger = logging.getLogger('TinaAppLogger')
-    stream = open(tempfile.mkstemp()[1], mode='a+')
+    stream = open(tempfile.mkstemp()[1], mode='w+')
     custom_logger.addHandler(LoggerHandler( stream ))
     # unique tinaapp instance with the custom logger
     tinaappsingleton = TinaApp(confFile, custom_logger=custom_logger)
-    # specialized GET and POST handlers
-    posthandler = TinaAppPOST(tinaappsingleton)
-    gethandler = TinaAppGET(tinaappsingleton, stream)
-    # Callback class
-    callbacks = TinaServerCallback()
     # Main server instance
-    tinaserver = TinaServer(callbacks, posthandler, gethandler)
-    # generated file directory
+    tinaserver = TinaServer(
+        TinaServerCallback(),
+        TinaAppPOST(tinaappsingleton),
+        TinaAppGET(tinaappsingleton, stream)
+    )
+    # the user generated files directory is served as-is
     tinaserver.putChild("user", File(tinaappsingleton.user) )
-    # static website serving, if static directory exists
+    # optionally serves the "static" website directory
     if exists('static'):
         tinaserver.putChild("", File('static'))
+
     site = server.Site(tinaserver)
     reactor.listenTCP(8888, site)
     reactor.run()
