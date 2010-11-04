@@ -92,6 +92,7 @@ class Exporter(Handler):
                 self.storage.insert( PyTextMiner.updateEdges(temp, obj), category )
                 nodecount += 1
                 self.notify(nodecount)
+                yield nodecount
         except StopIteration, si:
             pass
 

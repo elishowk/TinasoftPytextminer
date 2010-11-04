@@ -58,7 +58,8 @@ LEVELS = {
 # type and name of the main database
 STORAGE_DSN = "tinasqlite://tinasoft.sqlite"
 
-class TinaApp(object):
+
+class PytextminerFlowApi(object):
     """
     Main application class
     should be used in conjunction with ThreadPool()
@@ -230,9 +231,9 @@ class TinaApp(object):
             path = self._get_sourcefile_path(path)
         except IOError, ioe:
             self.logger.error(ioe)
-            return self.STATUS_ERROR
+            return
         if self.set_storage( dataset ) == self.STATUS_ERROR:
-            return self.STATUS_ERROR
+            return
         # prepares extraction export path
         if outpath is None:
             if whitelistlabel is None:
@@ -251,7 +252,7 @@ class TinaApp(object):
             )
         )
 
-        userstopwords = self.import_userstopwords( userstopwords )
+        userstopwords = self._import_userstopwords( userstopwords )
         # instanciate extractor class
         extract = extractor.Extractor(
             self.storage,
@@ -261,11 +262,14 @@ class TinaApp(object):
             userstopwords,
             stemmer=stemmer.Nltk()
         )
-        outpath = extract.extract_file( path, format, outpath, whitelistlabel, minoccs )
-        if outpath is not False:
-            return abspath(outpath)
-        else:
-            return self.STATUS_ERROR
+        extratorGenerator = extract.extract_file( path, format, outpath, whitelistlabel, minoccs )
+        absolute_outpath = abspath(outpath)
+        try:
+            while 1:
+                extratorGenerator.next()
+                yield absolute_outpath
+        except StopIteration, si:
+            return
 
     def index_file(self,
             path,
@@ -281,11 +285,11 @@ class TinaApp(object):
             path = self._get_sourcefile_path(path)
         except IOError, ioe:
             self.logger.error(ioe)
-            return self.STATUS_ERROR
+            return
         corporaObj = corpora.Corpora(dataset)
-        whitelist = self.import_whitelist(whitelistpath)
+        whitelist = self._import_whitelist(whitelistpath)
         if self.set_storage( dataset ) == self.STATUS_ERROR:
-            return self.STATUS_ERROR
+            return
         # instanciate stopwords and extractor class
         stopwds = stopwords.StopWords(
             "file://%s"%join(
@@ -301,15 +305,18 @@ class TinaApp(object):
             stopwds,
             stemmer=stemmer.Nltk()
         )
-        if extract.index_file(
+        extractorGenerator = extract.index_file(
             path,
             format,
             whitelist,
             overwrite
-        ) is True:
-            return extract.duplicate
-        else:
-            return self.STATUS_ERROR
+        )
+        try:
+            while 1:
+                extractorGenerator.next()
+                yield extract.duplicate
+        except StopIteration, si:
+            return
 
     def generate_graph(self,
             dataset,
@@ -332,17 +339,17 @@ class TinaApp(object):
         if not ngramgraphconfig: ngramgraphconfig={}
 
         if self.set_storage( dataset ) == self.STATUS_ERROR:
-            return self.STATUS_ERROR
+            return
 
-        # prepares gexf out path
+        # outpath is an optional label but transformed to an absolute file path
         params_string = "%s_%s"%(self._get_filepath_id(whitelistpath),"+".join(periods))
-        # outpath is an optional label
         if outpath is None:
             outpath = self._get_user_filepath(dataset, 'gexf', params_string)
         else:
             outpath = self._get_user_filepath(dataset, 'gexf', params_string + "_%s"%outpath)
-        outpath = outpath + ".gexf"
-        whitelist = self.import_whitelist(whitelistpath)
+        outpath = abspath( outpath + ".gexf" )
+        # loads the whitelist
+        whitelist = self._import_whitelist(whitelistpath)
         # creates the GEXF exporter
         GEXFWriter = Writer('gexf://', **self.config['datamining'])
 
@@ -380,17 +387,12 @@ class TinaApp(object):
                 self.logger.debug('Period %s not found in database, skipping'%str(period))
         # intersection with the whitelist
         ngram_index &= set( whitelist['edges']['NGram'].keys() )
+
         # TODO here's the key to replace actuel Matrix index handling
         doc_index = list(doc_index)
         doc_index.sort()
         ngram_index = list(ngram_index)
         ngram_index.sort()
-
-        # abandonned parallelization with pp.Server()
-        #jobs=[]
-        #job_server = pp.Server()
-        #depmodules=('math','logging','cPickle','os','sqlite3','itertools','numpy','tinasoft','tinasoft.pytextminer.graph')
-        #depfunctions=(get_storage, Engine, _factory, _check_protocol)
 
         # updates default config with parameters
         self.config['datamining']['NGramGraph'].update(ngramgraphconfig)
@@ -417,12 +419,18 @@ class TinaApp(object):
                     ngram_adj_gen = graph.ngram_submatrix_task( *ngram_args )
                     while 1:
                         ngram_matrix_reducer.add( ngram_adj_gen.next() )
+                        yield None
                 except StopIteration, si:
                     self.logger.debug("NGram matrix reduced for period %s"%process_period)
-            GEXFWriter.load_subgraph( 'NGram', ngram_matrix_reducer, subgraphconfig = ngramconfig)
-            del ngram_matrix_reducer
+            load_subgraph_gen = GEXFWriter.load_subgraph( 'NGram', ngram_matrix_reducer, subgraphconfig = ngramconfig)
+            try:
+                while 1:
+                    load_subgraph_gen.next()
+                    yield outpath
+            except StopIteration, si:
+                del ngram_matrix_reducer
         else:
-            self.logger.warning("NGram graph not generated because there was no NGrams")
+            self.logger.warning("NGram sub-graph not generated because there was no NGrams")
 
         if len(doc_index) != 0:
             doc_matrix_reducer = graph.MatrixReducerFilter( doc_index )
@@ -434,30 +442,26 @@ class TinaApp(object):
                     doc_adj_gen = graph.document_submatrix_task( *doc_args )
                     while 1:
                         doc_matrix_reducer.add( doc_adj_gen.next() )
+                        yield None
                 except StopIteration, si:
                     self.logger.debug("Document matrix reduced for period %s"%process_period)
 
-                # abandonned parallelization with pp.Server()
-                #jobs += [job_server.submit(
-                #    ngram_adj_task,
-                #    args=ngram_args,
-                #    callback=ngram_matrix_reducer,
-                #    modules=depmodules,
-                #    depfuncs=depfunctions,
-                #    globals=globals()
-                #)]
-            GEXFWriter.load_subgraph( 'Document',  doc_matrix_reducer, subgraphconfig = documentconfig)
-            del doc_matrix_reducer
+            load_subgraph_gen = GEXFWriter.load_subgraph( 'Document',  doc_matrix_reducer, subgraphconfig = documentconfig)
+            try:
+                while 1:
+                    load_subgraph_gen.next()
+                    yield outpath
+            except StopIteration, si:
+                del doc_matrix_reducer
+
         else:
-            self.logger.warning("Document graph not generated because there was no Documents")
+            self.logger.warning("Document sub-graph not generated because there was no Documents")
         if exportedges is True:
             self.logger.warning("exporting the full graph to current.gexf")
             GEXFWriter.finalize("current.gexf", exportedges=True)
-        # rrturns the absolute path of outpath
-        return abspath(GEXFWriter.finalize(outpath, exportedges=False))
-        # abandonned parallelization with pp.Server()
-        #self.logger.debug("wait for jobs to finish")
-        #job_server.wait()
+        # returns the absolute path of outpath
+        GEXFWriter.finalize(outpath, exportedges=False)
+        return
 
     def index_archive(self,
             path,
@@ -483,7 +487,7 @@ class TinaApp(object):
             return self.STATUS_ERROR
 
         corporaObj = corpora.Corpora(dataset)
-        whitelist = self.import_whitelist(whitelistpath)
+        whitelist = self._import_whitelist(whitelistpath)
         # prepares extraction export path
         if outpath is not None:
             outpath = self._get_user_filepath(
@@ -527,12 +531,11 @@ class TinaApp(object):
             )
         whitelist = None
         if whitelistpath is not None:
-            whitelist = self.import_whitelist(whitelistpath)
+            whitelist = self._import_whitelist(whitelistpath)
         exporter = Writer('coocmatrix://'+outpath)
         return exporter.export_cooc( self.storage, periods, whitelist )
 
-
-    def import_whitelist(
+    def _import_whitelist(
             self,
             whitelistpath,
             userstopwords = None,
@@ -557,7 +560,7 @@ class TinaApp(object):
         # TODO stores the whitelist ?
         return new_wl
 
-    def import_userstopwords(
+    def _import_userstopwords(
             self,
             path=None
         ):
@@ -606,8 +609,8 @@ class TinaApp(object):
         """
         path = join( self.user, dataset, filetype )
         if not exists( path ):
-            return []
-        return [
+            yield []
+        yield [
             abspath(join( path, file ))
             for file in os.listdir( path )
             if not file.startswith("~") and not file.startswith(".")
@@ -622,11 +625,11 @@ class TinaApp(object):
         path = join( self.config['general']['basedirectory'], self.config['general']['dbenv'] )
         validation_filename = STORAGE_DSN.split("://")[1]
         if not exists( path ):
-            return dataset_list
+            yield dataset_list
         for file in os.listdir( path ):
             if exists(join(path, file, validation_filename)):
                 dataset_list += [file]
-        return dataset_list
+        yield dataset_list
 
     def walk_source_files(self):
         """
@@ -638,8 +641,8 @@ class TinaApp(object):
             self.config['general']['source_file_directory']
         )
         if not exists( path ):
-            return []
-        return os.listdir( path )
+            yield []
+        yield os.listdir( path )
 
     def _get_sourcefile_path(self, filename):
         path = join(
@@ -666,3 +669,22 @@ class TinaApp(object):
         except ImportError, exc:
             raise Exception("couldn't load module %s: %s"%(name,exc))
 
+class PytextminerApi(PytextminerFlowApi):
+    def _eraseFlow(self, generator):
+        """
+        Flattens all API generator for simpler scripting of PytextminerApi
+        """
+        try:
+            while 1:
+                lastValue = generator.next()
+        except StopIteration, si:
+            return lastValue
+
+    def extract_file(*arg, **kwargs):
+        generator = super(PytextminerFlowApi, self).extract_file(*arg, **kwargs)
+
+    def index_file(*arg, **kwargs):
+        generator = super(PytextminerFlowApi, self).index_file(*arg, **kwargs)
+
+    def generate_graph(*arg, **kwargs):
+        generator = super(PytextminerFlowApi, self).generate_graph(*arg, **kwargs)

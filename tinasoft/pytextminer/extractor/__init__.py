@@ -28,7 +28,9 @@ import logging
 _logger = logging.getLogger('TinaAppLogger')
 
 class Extractor():
-    """A source file importer = data set = corpora"""
+    """
+    A universal source file extractor/importer
+    """
     def __init__( self, storage, config, corpora, stopwds, filters=None, stemmer=None ):
         self.reader = None
         self.config = config
@@ -118,17 +120,18 @@ class Extractor():
                 doccount += 1
                 if doccount % 100 == 0:
                     _logger.debug("%d documents parsed"%doccount)
+                yield doccount
 
         except StopIteration:
             newwl.storage.flushNGramQueue()
             _logger.debug("Total documents extracted = %d"%doccount)
             self.storage.updateCorpora( self.corpora, False )
-            csvfile = Writer("whitelist://"+extract_path)
-            (outpath,newwl) = csvfile.write_whitelist(newwl, minoccs)
-            return outpath
+            whitelist_exporter = Writer("whitelist://"+extract_path)
+            newwl = whitelist_exporter.write_whitelist(newwl, minoccs)
+            return
         except Exception:
             _logger.error(traceback.format_exc())
-            return False
+            return
 
     def index_file(self, path, format, whitelist, overwrite=False):
         """given a white list, indexes a source file to storage"""
@@ -165,15 +168,16 @@ class Extractor():
                 doccount += 1
                 if doccount % 10 == 0:
                     _logger.debug("%d documents indexed"%doccount)
+                yield doccount
 
         except StopIteration:
             self.storage.updateCorpora( self.corpora, overwrite )
             for corpusObj in self.reader.corpusDict.values():
                 self.storage.updateCorpus( corpusObj, overwrite )
-            return True
+            return
         except Exception:
             _logger.error(traceback.format_exc())
-            return False
+            return
 
     def _insert_NGrams( self, docngrams, document, corpusNum, overwrite ):
         """
