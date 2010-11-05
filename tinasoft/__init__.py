@@ -86,7 +86,7 @@ class PytextminerFlowApi(object):
             self.config = yaml.safe_load( file( configFilePath, 'rU' ) )
         except yaml.YAMLError, exc:
             print exc
-            print "bad config yaml path passed to TinaApp : %s"%configFilePath
+            print "bad config yaml path passed to PytextminerFlowApi : %s"%configFilePath
             return self.STATUS_ERROR
         # creates applications directories
         self.user = join( self.config['general']['basedirectory'], self.config['general']['user'] )
@@ -123,7 +123,7 @@ class PytextminerFlowApi(object):
             )
             locale.setlocale(locale.LC_ALL, self.locale)
 
-        self.logger.debug("TinaApp started")
+        self.logger.debug("Pytextminer started")
 
     def __del__(self):
         """resumes the storage transactions when destroying this object"""
@@ -187,7 +187,7 @@ class PytextminerFlowApi(object):
         """
         if self.last_dataset_id is not None and self.last_dataset_id == dataset_id:
             # connection already opened
-            return TinaApp.STATUS_OK
+            return self.STATUS_OK
         if self.storage is not None:
             self.logger.debug("safely closing last storage connection")
             del self.storage
@@ -200,18 +200,18 @@ class PytextminerFlowApi(object):
             options['home'] = storagedir
             if not exists( storagedir ) and create is False:
                 raise Exception("dataset DB %s does not exists, won't create it"%dataset_id)
-                return TinaApp.STATUS_OK
+                return self.STATUS_OK
             else:
                 self.storage = Engine(STORAGE_DSN, **options)
                 self.last_dataset_id = dataset_id
                 self.logger.debug(
                     "new storage connection for data set %s at %s"%(dataset_id, storagedir)
                 )
-                return TinaApp.STATUS_OK
+                return self.STATUS_OK
         except Exception, exception:
             self.logger.error( exception )
             self.storage = self.last_dataset_id = None
-            return TinaApp.STATUS_ERROR
+            return self.STATUS_ERROR
 
     def extract_file(self,
             path,

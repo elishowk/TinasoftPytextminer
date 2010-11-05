@@ -21,7 +21,7 @@ __author__ = "elishowk@nonutc.fr"
 import unittest
 import sys
 
-from tinasoft import TinaApp
+from tinasoft import PytextminerApi
 
 
 class TinaAppTests(unittest.TestCase):
@@ -142,7 +142,7 @@ if __name__ == '__main__':
         confFile = sys.argv[2]
         sourceFile = sys.argv[3]
         sourceFormat = sys.argv[4]
-        tinasoftSingleton = TinaApp(confFile)
+        tinasoftSingleton = PytextminerApi(confFile)
         del sys.argv[2:]
     except:
         usage()

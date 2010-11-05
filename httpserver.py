@@ -1,5 +1,4 @@
 ﻿#!/usr/bin/python
-
 # -*- coding: utf-8 -*-
 #  Copyright (C) 2009-2011 CREA Lab, CNRS/Ecole Polytechnique UMR 7656 (Fr)
 #
@@ -224,7 +223,7 @@ class TinasoftServer(resource.Resource):
         except:
             return NoResource()
         else:
-            return TinasoftServerRequest(handler, name, self.callback, self.posthandler.tinaappinstance.logger)
+            return TinasoftServerRequest(handler, name, self.callback, self.posthandler.pytmapi.logger)
 
 
 def generator_wrapper(*args):
@@ -243,49 +242,49 @@ def generator_wrapper(*args):
 
 class POSTHandler(object):
     """
-    TinaApp mapping POST requests and TinaApp's methods
+    Pytextminer API mapping POST requests and Pytextminer API's methods
     """
-    def __init__(self, tinaappinstance):
-        self.tinaappinstance = tinaappinstance
+    def __init__(self, pytmapi):
+        self.pytmapi = pytmapi
 
     @generator_wrapper
     def file(self, *args, **kwargs):
         """ index a file given a whitelist into a dataset db"""
-        return self.tinaappinstance.index_file(*args, **kwargs)
+        return self.pytmapi.index_file(*args, **kwargs)
 
     @generator_wrapper
     def graph(self, *args, **kwargs):
         """ generate a graph given a dataset db, a whitelist and some graph params"""
-        return self.tinaappinstance.generate_graph(*args, **kwargs)
+        return self.pytmapi.generate_graph(*args, **kwargs)
 
     def dataset(self, corporaobj):
         """ insert or update """
-        self.tinaappinstance.set_storage( corporaobj['id'] )
-        return self.tinaappinstance.storage.insertCorpora(corporaobj)
+        self.pytmapi.set_storage( corporaobj['id'] )
+        return self.pytmapi.storage.insertCorpora(corporaobj)
 
     def corpus(self, dataset, corpusobj):
         """ insert or update """
-        self.tinaappinstance.set_storage( dataset )
-        return self.tinaappinstance.storage.insertCorpus(corpusobj)
+        self.pytmapi.set_storage( dataset )
+        return self.pytmapi.storage.insertCorpus(corpusobj)
 
     def document(self, dataset, documentobj):
         """ insert or update """
-        self.tinaappinstance.set_storage( dataset )
-        return self.tinaappinstance.storage.insertDocument(documentobj)
+        self.pytmapi.set_storage( dataset )
+        return self.pytmapi.storage.insertDocument(documentobj)
 
     def ngram(self, dataset, ngramobj):
         """ insert or update """
-        self.tinaappinstance.set_storage( dataset )
-        return self.tinaappinstance.storage.insertNgram(ngramobj)
+        self.pytmapi.set_storage( dataset )
+        return self.pytmapi.storage.insertNgram(ngramobj)
 
 
 class GETHandler(object):
     """
-    TinaApp mapping GET requests and TinaApp's methods
+    Pytextminer API mapping GET requests and Pytextminer API's methods
     """
-    def __init__(self, tinaappinstance, stream):
+    def __init__(self, pytmapi, stream):
         self.stream = stream
-        self.tinaappinstance = tinaappinstance
+        self.pytmapi = pytmapi
 
     @generator_wrapper
     def file(self, *args, **kwargs):
@@ -293,25 +292,25 @@ class GETHandler(object):
         runs an extraction process and exports
         a whitelist csv file for a given dataset and source file
         """
-        return self.tinaappinstance.extract_file(*args, **kwargs)
+        return self.pytmapi.extract_file(*args, **kwargs)
 
     def whitelist(self, *args, **kwargs):
         """
         exports a whitelist csv file
         for a given dataset, periods, and whitelist
         """
-    #    return self.tinaappinstance.export_whitelist(*args, **kwargs)
+    #    return self.pytmapi.export_whitelist(*args, **kwargs)
         return
 
     @generator_wrapper
     def cooccurrences(self, *args, **kwargs):
         """exports a cooc matrix for a given datasset, periods, and whitelist"""
-        return self.tinaappinstance.export_cooc(*args, **kwargs)
+        return self.pytmapi.export_cooc(*args, **kwargs)
 
     @generator_wrapper
     def graph(self, dataset):
         """list the existing graphs for a given dataset"""
-        return self.tinaappinstance.walk_user_path(dataset, 'gexf')
+        return self.pytmapi.walk_user_path(dataset, 'gexf')
 
     def dataset(self, dataset):
         """
@@ -319,9 +318,9 @@ class GETHandler(object):
         if argument is empty, returns the list of all datasets
         """
         if dataset is None:
-            return self.tinaappinstance.walk_datasets()
-        elif self.tinaappinstance.set_storage(dataset, create=False) == self.tinaappinstance.STATUS_OK:
-            return self.tinaappinstance.storage.loadCorpora(dataset)
+            return self.pytmapi.walk_datasets()
+        elif self.pytmapi.set_storage(dataset, create=False) == self.pytmapi.STATUS_OK:
+            return self.pytmapi.storage.loadCorpora(dataset)
         else:
             return None
 
@@ -329,8 +328,8 @@ class GETHandler(object):
         """
         returns a corpus json object from the database
         """
-        if self.tinaappinstance.set_storage(dataset, create=False) == self.tinaappinstance.STATUS_OK:
-            return self.tinaappinstance.storage.loadCorpus(id)
+        if self.pytmapi.set_storage(dataset, create=False) == self.pytmapi.STATUS_OK:
+            return self.pytmapi.storage.loadCorpus(id)
         else:
             return None
 
@@ -338,8 +337,8 @@ class GETHandler(object):
         """
         returns a document json object from the database
         """
-        if self.tinaappinstance.set_storage(dataset, create=False) == self.tinaappinstance.STATUS_OK:
-            return self.tinaappinstance.storage.loadDocument(id)
+        if self.pytmapi.set_storage(dataset, create=False) == self.pytmapi.STATUS_OK:
+            return self.pytmapi.storage.loadDocument(id)
         else:
             return None
 
@@ -347,20 +346,20 @@ class GETHandler(object):
         """
         returns a ngram json object from the database
         """
-        if self.tinaappinstance.set_storage(dataset, create=False) == self.tinaappinstance.STATUS_OK:
-            return self.tinaappinstance.storage.loadNGram(id)
+        if self.pytmapi.set_storage(dataset, create=False) == self.pytmapi.STATUS_OK:
+            return self.pytmapi.storage.loadNGram(id)
         else:
             return None
 
     @generator_wrapper
     def walk_user_path(self, dataset, filetype):
         """lists any existing fily for a given dataset and filetype"""
-        return self.tinaappinstance.walk_user_path(dataset, filetype)
+        return self.pytmapi.walk_user_path(dataset, filetype)
 
     @generator_wrapper
     def walk_source_files(self):
         """lists any existing fily for a given dataset and filetype"""
-        return self.tinaappinstance.walk_source_files()
+        return self.pytmapi.walk_source_files()
 
     @generator_wrapper
     def open_user_file(self, fileurl):
@@ -448,21 +447,20 @@ def run(confFile):
     stream = open(tempfile.mkstemp()[1], mode='w+')
     custom_logger.addHandler(LoggerHandler( stream ))
     # unique PytextminerFlowApi instance with the custom logger
-    singleton = PytextminerFlowApi(confFile, custom_logger=custom_logger)
+    pytmapi = PytextminerFlowApi(confFile, custom_logger=custom_logger)
     # Main server instance
     pytmserver = TinasoftServer(
         Serializer(),
-        POSTHandler(singleton),
-        GETHandler(singleton, stream)
+        POSTHandler(pytmapi),
+        GETHandler(pytmapi, stream)
     )
     # the user generated files directory is served as-is
-    pytmserver.putChild("user", File(singleton.user) )
+    pytmserver.putChild("user", File(pytmapi.user) )
     # optionally serves the "static" website directory
     if exists('static'):
         pytmserver.putChild("", File('static'))
 
-    site = server.Site(pytmserver)
-    reactor.listenTCP(8888, site)
+    reactor.listenTCP(8888, server.Site(pytmserver))
     reactor.run()
 
 def usage():
