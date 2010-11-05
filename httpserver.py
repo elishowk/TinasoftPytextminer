@@ -47,11 +47,8 @@ import exceptions
 
 import logging
 import tempfile
-# MS windows trick to print to a file server's output to a file
 import platform
-if platform.system() == 'Windows':
-    sys.stdout = open('stdout.log', 'a+b')
-    sys.stderr = open('stderr.log', 'a+b')
+
 
 
 class TinasoftServerRequest(resource.Resource):
@@ -100,11 +97,17 @@ class TinasoftServerRequest(resource.Resource):
         #self.logger.info( str(self.method) + " ---" + str(parsed_args) )
         d = CooperativeExecution()._method_wrapper(request, self.callback.success, self.handler, self.method, self.logger)
         d.addCallback(lambda ignored: request.finish())
-        d.addErrback(self._method_failed)
+        d.addErrback(self._method_failed, request)
         return server.NOT_DONE_YET
 
-    def _method_failed(self, err):
+    def _method_failed(self, err, request):
+        """
+        error handler
+        """
         self.logger.error( str(err) )
+        request.setResponseCode(500)
+        request.write(str(err))
+        request.finish()
 
 class CooperativeExecution(object):
     argument_types = {
@@ -356,7 +359,6 @@ class GETHandler(object):
         else:
             return None
 
-
     def walk_user_path(self, dataset, filetype):
         """lists any existing file for a given dataset and filetype"""
         return self.pytmapi.walk_user_path(dataset, filetype)
@@ -452,6 +454,10 @@ def run(confFile):
     custom_logger = logging.getLogger('TinaAppLogger')
     stream = open(tempfile.mkstemp()[1], mode='w+')
     custom_logger.addHandler(LoggerHandler( stream ))
+    # MS windows trick to print to a file server's output to a file
+    #if platform.system() == 'Windows':
+    sys.stdout = stream
+    sys.stderr = stream
     # unique PytextminerFlowApi instance with the custom logger
     pytmapi = PytextminerFlowApi(confFile, custom_logger=custom_logger)
     # Main server instance
@@ -468,6 +474,7 @@ def run(confFile):
 
     reactor.listenTCP(8888, server.Site(pytmserver))
     reactor.run()
+    print stream
 
 def usage():
     print "USAGE : python httpserver.py yaml_configuration_file_path"
