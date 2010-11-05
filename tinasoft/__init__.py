@@ -86,7 +86,7 @@ class PytextminerFlowApi(object):
             self.config = yaml.safe_load( file( configFilePath, 'rU' ) )
         except yaml.YAMLError, exc:
             print exc
-            print "bad config yaml path passed to PytextminerFlowApi : %s"%configFilePath
+            print "bad config file path passed to PytextminerFlowApi : %s"%configFilePath
             return self.STATUS_ERROR
         # creates applications directories
         self.user = join( self.config['general']['basedirectory'], self.config['general']['user'] )
@@ -267,8 +267,9 @@ class PytextminerFlowApi(object):
         try:
             while 1:
                 extratorGenerator.next()
-                yield absolute_outpath
+                yield self.STATUS_RUNNING
         except StopIteration, si:
+            yield absolute_outpath
             return
 
     def index_file(self,
@@ -314,8 +315,9 @@ class PytextminerFlowApi(object):
         try:
             while 1:
                 extractorGenerator.next()
-                yield extract.duplicate
+                yield self.STATUS_RUNNING
         except StopIteration, si:
+            yield extract.duplicate
             return
 
     def generate_graph(self,
@@ -419,14 +421,14 @@ class PytextminerFlowApi(object):
                     ngram_adj_gen = graph.ngram_submatrix_task( *ngram_args )
                     while 1:
                         ngram_matrix_reducer.add( ngram_adj_gen.next() )
-                        yield None
+                        yield self.STATUS_RUNNING
                 except StopIteration, si:
                     self.logger.debug("NGram matrix reduced for period %s"%process_period)
             load_subgraph_gen = GEXFWriter.load_subgraph( 'NGram', ngram_matrix_reducer, subgraphconfig = ngramconfig)
             try:
                 while 1:
                     load_subgraph_gen.next()
-                    yield outpath
+                    yield self.STATUS_RUNNING
             except StopIteration, si:
                 del ngram_matrix_reducer
         else:
@@ -442,7 +444,7 @@ class PytextminerFlowApi(object):
                     doc_adj_gen = graph.document_submatrix_task( *doc_args )
                     while 1:
                         doc_matrix_reducer.add( doc_adj_gen.next() )
-                        yield None
+                        yield self.STATUS_RUNNING
                 except StopIteration, si:
                     self.logger.debug("Document matrix reduced for period %s"%process_period)
 
@@ -450,7 +452,7 @@ class PytextminerFlowApi(object):
             try:
                 while 1:
                     load_subgraph_gen.next()
-                    yield outpath
+                    yield self.STATUS_RUNNING
             except StopIteration, si:
                 del doc_matrix_reducer
 
@@ -461,6 +463,7 @@ class PytextminerFlowApi(object):
             GEXFWriter.finalize("current.gexf", exportedges=True)
         # returns the absolute path of outpath
         GEXFWriter.finalize(outpath, exportedges=False)
+        yield outpath
         return
 
     def index_archive(self,
@@ -608,6 +611,7 @@ class PytextminerFlowApi(object):
         returns the list of files in the user directory tree
         """
         path = join( self.user, dataset, filetype )
+        print path
         if not exists( path ):
             yield []
         yield [

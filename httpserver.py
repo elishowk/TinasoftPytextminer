@@ -23,7 +23,8 @@ from twisted.internet.task import cooperate
 from twisted.web import server, resource
 from twisted.internet import reactor
 from twisted.web.static import File
-from twisted.internet.protocol import Factory, Protocol
+from twisted.python.failure import Failure
+
 # error handling
 from twisted.web.resource import NoResource, ErrorPage
 
@@ -97,7 +98,7 @@ class TinasoftServerRequest(resource.Resource):
         Prepares arguments and call the method
         """
         #self.logger.info( str(self.method) + " ---" + str(parsed_args) )
-        d = CooperativeExecution()._method_wrapper(request, self.callback.success, self.handler, self.method)
+        d = CooperativeExecution()._method_wrapper(request, self.callback.success, self.handler, self.method, self.logger)
         d.addCallback(lambda ignored: request.finish())
         d.addErrback(self._method_failed)
         return server.NOT_DONE_YET
@@ -132,11 +133,12 @@ class CooperativeExecution(object):
         'edgethreshold': list,
     }
 
-    def _method_wrapper(self, request, serializer, handler, method):
+    def _method_wrapper(self, request, serializer, handler, method, logger):
         self.request = request
         self.serializer = serializer
         self.handler = handler
         self.method = method
+        self.logger = logger
         self.request.registerProducer(self, True)
         self._task = cooperate(self._call_method())
         d = self._task.whenDone()
@@ -152,12 +154,12 @@ class CooperativeExecution(object):
         self.request.setHeader('content-type', 'application/json')
         processGenerator = methodfunction(**parsed_args)
         try:
+            lastValue = None
             while 1:
                 lastValue = processGenerator.next()
                 yield None
         except StopIteration, si:
-            self.request.write( self.serializer( methodfunction(**parsed_args) ) )
-            yield lastValue
+            self.request.write( self.serializer( lastValue ) )
 
     def _parse_args(self, args):
         """
@@ -187,6 +189,8 @@ class CooperativeExecution(object):
 
     def _unregister(self, passthrough):
         self.request.unregisterProducer()
+        #if isinstance(passthrough, Failure):
+        #    print passthrough
         return passthrough
 
     def pauseProducing(self):
@@ -226,18 +230,13 @@ class TinasoftServer(resource.Resource):
             return TinasoftServerRequest(handler, name, self.callback, self.posthandler.pytmapi.logger)
 
 
-def generator_wrapper(*args):
-    def _wrapper(func):
-        def wrapper(*args, **kwargs):
-            gen = func(*args, **kwargs)
-            try:
-                while 1:
-                    yield gen.next()
-            except StopIteration, si:
-                return
 
-        return wrapper
-    return _wrapper
+def value_to_gen(func):
+
+    def wrapper(*args, **kwargs):
+        yield func(*args, **kwargs)
+    return wrapper
+
 
 
 class POSTHandler(object):
@@ -247,31 +246,33 @@ class POSTHandler(object):
     def __init__(self, pytmapi):
         self.pytmapi = pytmapi
 
-    @generator_wrapper
     def file(self, *args, **kwargs):
         """ index a file given a whitelist into a dataset db"""
         return self.pytmapi.index_file(*args, **kwargs)
 
-    @generator_wrapper
     def graph(self, *args, **kwargs):
         """ generate a graph given a dataset db, a whitelist and some graph params"""
         return self.pytmapi.generate_graph(*args, **kwargs)
 
+    @value_to_gen
     def dataset(self, corporaobj):
         """ insert or update """
         self.pytmapi.set_storage( corporaobj['id'] )
         return self.pytmapi.storage.insertCorpora(corporaobj)
 
+    @value_to_gen
     def corpus(self, dataset, corpusobj):
         """ insert or update """
         self.pytmapi.set_storage( dataset )
         return self.pytmapi.storage.insertCorpus(corpusobj)
 
+    @value_to_gen
     def document(self, dataset, documentobj):
         """ insert or update """
         self.pytmapi.set_storage( dataset )
         return self.pytmapi.storage.insertDocument(documentobj)
 
+    @value_to_gen
     def ngram(self, dataset, ngramobj):
         """ insert or update """
         self.pytmapi.set_storage( dataset )
@@ -286,7 +287,6 @@ class GETHandler(object):
         self.stream = stream
         self.pytmapi = pytmapi
 
-    @generator_wrapper
     def file(self, *args, **kwargs):
         """
         runs an extraction process and exports
@@ -294,24 +294,26 @@ class GETHandler(object):
         """
         return self.pytmapi.extract_file(*args, **kwargs)
 
+    @value_to_gen
     def whitelist(self, *args, **kwargs):
         """
         exports a whitelist csv file
         for a given dataset, periods, and whitelist
         """
     #    return self.pytmapi.export_whitelist(*args, **kwargs)
-        return
+        return None
 
-    @generator_wrapper
+    @value_to_gen
     def cooccurrences(self, *args, **kwargs):
         """exports a cooc matrix for a given datasset, periods, and whitelist"""
         return self.pytmapi.export_cooc(*args, **kwargs)
 
-    @generator_wrapper
+    @value_to_gen
     def graph(self, dataset):
         """list the existing graphs for a given dataset"""
         return self.pytmapi.walk_user_path(dataset, 'gexf')
 
+    @value_to_gen
     def dataset(self, dataset):
         """
         returns a dataset json object from the database
@@ -324,6 +326,7 @@ class GETHandler(object):
         else:
             return None
 
+    @value_to_gen
     def corpus(self, dataset, id):
         """
         returns a corpus json object from the database
@@ -333,6 +336,7 @@ class GETHandler(object):
         else:
             return None
 
+    @value_to_gen
     def document(self, dataset, id):
         """
         returns a document json object from the database
@@ -342,6 +346,7 @@ class GETHandler(object):
         else:
             return None
 
+    @value_to_gen
     def ngram(self, dataset, id):
         """
         returns a ngram json object from the database
@@ -351,17 +356,17 @@ class GETHandler(object):
         else:
             return None
 
-    @generator_wrapper
+
     def walk_user_path(self, dataset, filetype):
-        """lists any existing fily for a given dataset and filetype"""
+        """lists any existing file for a given dataset and filetype"""
         return self.pytmapi.walk_user_path(dataset, filetype)
 
-    @generator_wrapper
+
     def walk_source_files(self):
-        """lists any existing fily for a given dataset and filetype"""
+        """lists any existing file for a given dataset and filetype"""
         return self.pytmapi.walk_source_files()
 
-    @generator_wrapper
+    @value_to_gen
     def open_user_file(self, fileurl):
         """commands the OS browser to open a "file://" URL"""
         browser  = webbrowser.get()
@@ -372,12 +377,13 @@ class GETHandler(object):
         """exits and breaks connections"""
         reactor.stop()
 
+    @value_to_gen
     def log(self):
         """logging request sending all lines from a file object then truncating it"""
         lines = []
         self.stream.seek(0)
         for line in self.stream:
-            lines += [line.strip("\n")]
+            lines += [line]
         self.stream.truncate(0)
         return lines
 
