@@ -17,7 +17,7 @@
 
 __author__="elishowk@nonutc.fr"
 
-from tinasoft import PytextminerFlowApi
+from tinasoft import PytextminerFlowApi, LOG_FILE
 
 from twisted.internet.task import cooperate
 from twisted.web import server, resource
@@ -26,7 +26,7 @@ from twisted.web.static import File
 from twisted.python.failure import Failure
 
 # error handling
-from twisted.web.resource import NoResource, ErrorPage
+from twisted.web.resource import NoResource
 
 # json encoder to communicate with the outer world
 import numpy
@@ -41,6 +41,7 @@ import urllib
 import webbrowser
 
 # OS utilities
+from os import fsync
 from os.path import join, exists
 import sys
 import exceptions
@@ -385,8 +386,11 @@ class GETHandler(object):
         lines = []
         self.stream.seek(0)
         for line in self.stream:
-            lines += [line]
+            lines += [line.strip("\n")]
         self.stream.truncate(0)
+        self.stream.seek(0)
+        self.stream.flush()
+        fsync(self.stream.fileno())
         return lines
 
 
@@ -446,18 +450,18 @@ class LoggerHandler(logging.StreamHandler):
         Overwrites StreamHandler with a formatting
         """
         logging.StreamHandler.__init__(self, *args, **kwargs)
-        formatter = logging.Formatter("%(message)s")
+        formatter = logging.Formatter("%(levelname)s - %(message)s")
         self.setFormatter(formatter)
 
 
 def run(confFile):
     custom_logger = logging.getLogger('TinaAppLogger')
-    stream = open(tempfile.mkstemp()[1], mode='w+')
+    stream = open(LOG_FILE, mode='w+')
     custom_logger.addHandler(LoggerHandler( stream ))
     # MS windows trick to print to a file server's output to a file
-    #if platform.system() == 'Windows':
-    sys.stdout = stream
-    sys.stderr = stream
+    if platform.system() == 'Windows':
+        sys.stdout = stream
+        sys.stderr = stream
     # unique PytextminerFlowApi instance with the custom logger
     pytmapi = PytextminerFlowApi(confFile, custom_logger=custom_logger)
     # Main server instance

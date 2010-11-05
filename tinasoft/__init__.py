@@ -57,7 +57,8 @@ LEVELS = {
 
 # type and name of the main database
 STORAGE_DSN = "tinasqlite://tinasoft.sqlite"
-
+# default log file
+LOG_FILE = "tinasoft-log.txt"
 
 class PytextminerFlowApi(object):
     """
@@ -134,23 +135,19 @@ class PytextminerFlowApi(object):
         """
         sets a customized or a default logger
         """
-        # here's the default logger
-        if not exists(join(
-                self.config['general']['basedirectory'],
-                self.config['general']['log']
-            )
-            ):
-            makedirs(join(
-                self.config['general']['basedirectory'],
-                self.config['general']['log']
-                )
-            )
+        # default log file location
+        #if not exists(join(
+        #        self.config['general']['basedirectory'],
+        #        self.config['general']['log']
+        #    )
+        #    ):
+        #    makedirs(join(
+        #        self.config['general']['basedirectory'],
+        #        self.config['general']['log']
+        #        )
+        #    )
         # Set up a specific logger with our desired output level
-        self.LOG_FILENAME = join(
-            self.config['general']['basedirectory'],
-            self.config['general']['log'],
-            'tinasoft.log'
-        )
+        self.LOG_FILE = LOG_FILE
         # set default level to DEBUG
         if 'loglevel' in self.config['general']:
             loglevel = LEVELS[self.config['general']['loglevel']]
@@ -167,11 +164,12 @@ class PytextminerFlowApi(object):
         logger.setLevel(loglevel)
         # sets default formatting and handler
         formatter = logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            #"%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            "%(asctime)s - %(levelname)s - %(message)s",
             '%Y-%m-%d %H:%M:%S'
         )
         rotatingFileHandler = logging.handlers.RotatingFileHandler(
-            filename = self.LOG_FILENAME,
+            filename = self.LOGGER_PATH,
             maxBytes = 1024000,
             backupCount = 3
         )
