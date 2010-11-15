@@ -24,8 +24,8 @@ datasets:
         fields:
             titleField: 'doc_titl'
             contentField: 'doc_abst'
-            corpusNumberField: 'corp_id'
-            docNumberField: 'doc_id'
+            corpusField: 'corp_id'
+            docField: 'doc_id'
             # next fields are optional
             #authorField: 'doc_acrnm'
             #index1Field: 'doc_index_1'

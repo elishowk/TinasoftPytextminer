@@ -10,9 +10,9 @@ general:
     log: 'log'
     loglevel: 'debug'
     user: 'user'
-    userstopwords: 'user_stopwords.csv'
     shared: 'shared'
     source_file_directory: 'source_files'
+    userstopwords: 'user_stopwords.csv'
     # stopwords are under share
     stopwords: 'stopwords/en.txt'
 # extraction settings
@@ -24,8 +24,8 @@ datasets:
         fields:
             titleField: 'doc_titl'
             contentField: 'doc_abst'
-            corpusNumberField: 'corp_id'
-            docNumberField: 'doc_id'
+            corpusField: 'corp_id'
+            docField: 'doc_id'
             # next fields are optional
             #authorField: 'doc_acrnm'
             #index1Field: 'doc_index_1'
