@@ -27,7 +27,6 @@ from twisted.web.static import File
 from twisted.web.resource import NoResource, ErrorPage
 
 # json encoder to communicate with the outer world
-#import json
 import numpy
 import jsonpickle
 # traceback to print error traces
@@ -42,12 +41,15 @@ import webbrowser
 # OS utilities
 from os.path import join, exists
 import sys
+import exceptions
 
+import logging
+import tempfile
 # MS windows trick to print to a file server's output to a file
 import platform
 if platform.system() == 'Windows':
-    sys.stdout = open('tmp_httpserver_stdout.log', 'a+b')
-    sys.stderr = open('tmp_httpserver_stderr.log', 'a+b')
+    sys.stdout = open('stdout.log', 'a+b')
+    sys.stderr = open('stderr.log', 'a+b')
 
 
 class TinaServerResource(resource.Resource):
@@ -79,9 +81,10 @@ class TinaServerResource(resource.Resource):
         'nodethreshold': list,
         'edgethreshold': list,
     }
-    def __init__(self, method, back):
+    def __init__(self, method, back, logger):
         self.method = method
         self.back = back
+        self.logger = logger
         resource.Resource.__init__(self)
 
     def _parse_args(self, args):
@@ -119,11 +122,14 @@ class TinaServerResource(resource.Resource):
         try:
             returnValue = self.method(**parsed_args)
             if returnValue == TinaApp.STATUS_ERROR:
-                return ErrorPage(500, "tinasoft server error, please report it", traceback.format_exc() ).render(request)
+                return ErrorPage(500, "tinasoft server non-fatal error, please report it",
+                    traceback.format_exc() ).render(request)
             else:
                 return self.back.call( returnValue )
-        except Exception, e:
-            return ErrorPage(500, "tinasoft server error, please report it", traceback.format_exc() ).render(request)
+        except:
+            self.logger.error( traceback.format_exc() )
+            return ErrorPage(500, "tinasoft server fatal error, please report it",
+                traceback.format_exc() ).render(request)
 
 class TinaServer(resource.Resource):
     """
@@ -147,10 +153,9 @@ class TinaServer(resource.Resource):
         except:
             return NoResource()
         else:
-            return TinaServerResource(method, self.callback)
+            return TinaServerResource(method, self.callback, self.posthandler.tinaappinstance.logger)
 
-
-class TinaAppPOST():
+class TinaAppPOST(object):
     """
     TinaApp mapping POST requests on an instance of TinaApp's
     """
@@ -158,19 +163,11 @@ class TinaAppPOST():
         self.tinaappinstance = tinaappinstance
 
     def file(self, *args, **kwargs):
-        """ index file """
+        """ index a file given a whitelist into a dataset db"""
         return self.tinaappinstance.index_file(*args, **kwargs)
 
-    #def whitelist(self, *args, **kwargs):
-        """ import whitelist """
-    #    return TinaApp.import_whitelist(*args, **kwargs)
-
-    #def cooccurrences(self, *args, **kwargs):
-        """ process_cooc """
-    #    return self.tinaappinstance.process_cooc(*args, **kwargs)
-
     def graph(self, *args, **kwargs):
-        """ generate_graph """
+        """ generate a graph given a dataset db, a whitelist and some graph params"""
         return self.tinaappinstance.generate_graph(*args, **kwargs)
 
     #def dataset(self, corporaobj):
@@ -194,11 +191,12 @@ class TinaAppPOST():
         #return self.tinaappinstance.storage.insertNgram(ngramobj)
 
 
-class TinaAppGET():
+class TinaAppGET(object):
     """
     TinaApp mapping GET requests on an instance of TinaApp's
     """
-    def __init__(self, tinaappinstance):
+    def __init__(self, tinaappinstance, loggerstream):
+        self.loggerstream = loggerstream
         self.tinaappinstance = tinaappinstance
 
     def file(self, *args, **kwargs):
@@ -209,7 +207,10 @@ class TinaAppGET():
         return self.tinaappinstance.extract_file(*args, **kwargs)
 
     #def whitelist(self, *args, **kwargs):
-        """exports a whitelist csv file for a given dataset, periods, and whitelist"""
+        """
+        exports a whitelist csv file
+        for a given dataset, periods, and whitelist
+        """
     #    return self.tinaappinstance.export_whitelist(*args, **kwargs)
 
     def cooccurrences(self, *args, **kwargs):
@@ -272,10 +273,21 @@ class TinaAppGET():
         decoded = urllib.unquote_plus(fileurl)
         return browser.open(decoded.replace("%5C","\\").replace("%2F","/").replace("%3A",":"))
 
+    def exit(self):
+        """exit"""
+        reactor.stop()
+
+    def log(self):
+        """
+        read last lines from the logger
+        """
+        return self.loggerstream.getLastMessages()
+
+
 class NumpyFloatHandler(jsonpickle.handlers.BaseHandler):
     def flatten(self, obj, data):
         """
-        Casts and round to float an encod
+        Converts and round to float an encod
         """
         return round(obj,6)
 
@@ -283,7 +295,7 @@ jsonpickle.handlers.registry.register(numpy.float, NumpyFloatHandler)
 jsonpickle.handlers.registry.register(numpy.float32, NumpyFloatHandler)
 jsonpickle.handlers.registry.register(numpy.float64, NumpyFloatHandler)
 
-class TinaServerCallback():
+class TinaServerCallback(object):
     """
     Tinaserver's callback class
     """
@@ -307,12 +319,35 @@ class TinaServerCallback():
             returnValue = self.default
         return self.serialize( returnValue )
 
+class LoggerHandler(logging.StreamHandler):
+    """
+    overwrites logging.StreamHandler behaviour
+    """
+    def __init__(self, *args, **kwargs):
+        logging.StreamHandler.__init__(self, *args, **kwargs)
+        formatter = logging.Formatter("%(message)s")
+        self.setFormatter(formatter)
+
+class LoggerStream(file):
+    """
+    a file object adding a read and empty file method
+    """
+    def getLastMessages(self):
+        lines = self.readlines()
+        self.truncate(0)
+        return lines
 
 def run(confFile):
-    tinaappsingleton = TinaApp(confFile)
+    custom_logger = logging.getLogger('TinaAppLogger')
+    stream = LoggerStream(tempfile.mkstemp()[1], mode='w+b')
+    custom_logger.addHandler(LoggerHandler( stream ))
+
+    tinaappsingleton = TinaApp(confFile, custom_logger=custom_logger)
+    tinaappsingleton.logger.debug("test")
+    print stream.read()
     # specialized GET and POST handlers
     posthandler = TinaAppPOST(tinaappsingleton)
-    gethandler = TinaAppGET(tinaappsingleton)
+    gethandler = TinaAppGET(tinaappsingleton, stream)
     # Callback class
     callbacks = TinaServerCallback()
     # Main server instance

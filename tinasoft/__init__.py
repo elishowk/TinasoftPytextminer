@@ -69,18 +69,10 @@ class TinaApp(object):
     STATUS_ERROR = 666
     STATUS_OK = 1
 
-    @staticmethod
-    def notify( subject, msg, data ):
-        """
-        This method should be overwritten by a context-dependent notifier
-        """
-        pass
-
     def __init__(
             self,
             configFilePath,
-            loc=None,
-            loglevel=logging.DEBUG
+            custom_logger=None
         ):
         """
         Init config, logger, locale, storage
@@ -93,8 +85,7 @@ class TinaApp(object):
             self.config = yaml.safe_load( file( configFilePath, 'rU' ) )
         except yaml.YAMLError, exc:
             print exc
-            print "bad config yaml path passed to TinaApp"
-            print configFilePath
+            print "bad config yaml path passed to TinaApp : %s"%configFilePath
             return self.STATUS_ERROR
         # creates applications directories
         self.user = join( self.config['general']['basedirectory'], self.config['general']['user'] )
@@ -119,6 +110,30 @@ class TinaApp(object):
                 )
             )
 
+        self.set_logger(custom_logger)
+        # tries support of the locale by the host system
+        try:
+            self.locale = self.config['general']['locale']
+            locale.setlocale(locale.LC_ALL, self.locale)
+        except:
+            self.locale = ''
+            self.logger.warning(
+                "configured locale not found, switching to default ='%s'"%self.locale
+            )
+            locale.setlocale(locale.LC_ALL, self.locale)
+
+        self.logger.debug("TinaApp started")
+
+    def __del__(self):
+        """resumes the storage transactions when destroying this object"""
+        if self.storage is not None:
+            del self.storage
+
+    def set_logger(self, custom_logger=None):
+        """
+        sets a customized or a default logger
+        """
+        # here's the default logger
         if not exists(join(
                 self.config['general']['basedirectory'],
                 self.config['general']['log']
@@ -129,7 +144,6 @@ class TinaApp(object):
                 self.config['general']['log']
                 )
             )
-
         # Set up a specific logger with our desired output level
         self.LOG_FILENAME = join(
             self.config['general']['basedirectory'],
@@ -139,9 +153,18 @@ class TinaApp(object):
         # set default level to DEBUG
         if 'loglevel' in self.config['general']:
             loglevel = LEVELS[self.config['general']['loglevel']]
-        # logger configuration
-        self.logger = logging.getLogger('TinaAppLogger')
-        self.logger.setLevel(loglevel)
+        else:
+            loglevel = LEVELS['debug']
+
+        # sets a custom_logger if given
+        if custom_logger is not None:
+            custom_logger.setLevel(loglevel)
+            self.logger = custom_logger
+            return
+        # default logger configuration
+        logger = logging.getLogger('TinaAppLogger')
+        logger.setLevel(loglevel)
+        # sets default formatting and handler
         formatter = logging.Formatter(
             "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
             '%Y-%m-%d %H:%M:%S'
@@ -152,27 +175,8 @@ class TinaApp(object):
             backupCount = 3
         )
         rotatingFileHandler.setFormatter(formatter)
-        self.logger.addHandler(rotatingFileHandler)
-        # tries support of the locale by the host system
-        try:
-            if loc is None:
-                self.locale = self.config['general']['locale']
-            else:
-                self.locale = loc
-            locale.setlocale(locale.LC_ALL, self.locale)
-        except:
-            self.locale = ''
-            self.logger.warning(
-                "configured locale was not found, switching to default ='%s'"%self.locale
-            )
-            locale.setlocale(locale.LC_ALL, self.locale)
-
-        self.logger.debug("TinaApp started")
-
-    def __del__(self):
-        """resumes the storage transactions when destroying this object"""
-        if self.storage is not None:
-            del self.storage
+        logger.addHandler(rotatingFileHandler)
+        self.logger= logger
 
     def set_storage( self, dataset_id, create=True, **options ):
         """
@@ -509,7 +513,7 @@ class TinaApp(object):
             outpath=None
         ):
         """
-        OBSOLETE
+        OBSOLETE : uses tinasqlite selectCorpusCooc
         returns a text file outpath containing the db cooc
         for a list of periods ans an ngrams whitelist
         """
@@ -661,19 +665,4 @@ class TinaApp(object):
             return sys.modules[name]
         except ImportError, exc:
             raise Exception("couldn't load module %s: %s"%(name,exc))
-
-
-#def get_storage(dataset, config):
-    # type and name of the main database
-#    STORAGE_DSN = "tinasqlite://tinasoft.sqlite"
-    # type and name of the main database
-#    storagedir = os.path.join(
-#        config['general']['basedirectory'],
-#        config['general']['dbenv'],
-#        dataset
-#    )
-#    options={}
-#    options['home'] = storagedir
-#    return Engine(STORAGE_DSN, **options)
-
 
