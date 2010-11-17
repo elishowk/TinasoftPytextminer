@@ -36,6 +36,7 @@ def _write_binary_file(filename, content):
     finally:
          if f:
             f.close()
+            import os
             os.rename(tmpfile, filename)
 tenjin._write_binary_file = _write_binary_file
 
