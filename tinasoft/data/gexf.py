@@ -25,6 +25,20 @@ from tinasoft.pytextminer import PyTextMiner
 import tenjin
 from tenjin.helpers import *
 
+# Patch for Tenjin (Windows error 183)
+def _write_binary_file(filename, content):
+    f = None
+    try:
+        import random
+        tmpfile = filename + str(random.random())[1:]
+        f = open(tmpfile, 'w+b')
+        f.write(content)
+    finally:
+         if f:
+            f.close()
+            os.rename(tmpfile, filename)
+tenjin._write_binary_file = _write_binary_file
+
 # tinasoft logger
 import logging
 _logger = logging.getLogger('TinaAppLogger')
