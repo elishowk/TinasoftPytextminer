@@ -169,7 +169,7 @@ class PytextminerFlowApi(object):
             '%Y-%m-%d %H:%M:%S'
         )
         rotatingFileHandler = logging.handlers.RotatingFileHandler(
-            filename = self.LOGGER_PATH,
+            filename = self.LOG_FILE,
             maxBytes = 1024000,
             backupCount = 3
         )
@@ -229,13 +229,15 @@ class PytextminerFlowApi(object):
             path = self._get_sourcefile_path(path)
         except IOError, ioe:
             self.logger.error(ioe)
+            self.STATUS_ERROR
             return
         if self.set_storage( dataset ) == self.STATUS_ERROR:
+            yield self.STATUS_ERROR
             return
         # prepares extraction export path
         if outpath is None:
             if whitelistlabel is None:
-                whitelistlabel=dataset
+                whitelistlabel = dataset
             outpath = self._get_user_filepath(
                 dataset,
                 'whitelist',
@@ -296,7 +298,7 @@ class PytextminerFlowApi(object):
             self.config['general']['shared'],
             self.config['general']['stopwords'])
         )
-        #stemmer = self._import_module( self.config['datasets']['stemmer'] )
+        #stemmer = import_module( self.config['datasets']['stemmer'] )
         extract = extractor.Extractor(
             self.storage,
             self.config['datasets'],
@@ -318,6 +320,7 @@ class PytextminerFlowApi(object):
             yield extract.duplicate
             return
 
+
     def generate_graph(self,
             dataset,
             periods,
@@ -335,8 +338,8 @@ class PytextminerFlowApi(object):
 
         @return absolute path to the gexf file
         """
-        if not documentgraphconfig: documentgraphconfig={}
-        if not ngramgraphconfig: ngramgraphconfig={}
+        if not documentgraphconfig: documentgraphconfig = {}
+        if not ngramgraphconfig: ngramgraphconfig = {}
 
         if self.set_storage( dataset ) == self.STATUS_ERROR:
             return
@@ -483,9 +486,11 @@ class PytextminerFlowApi(object):
             path = self._get_sourcefile_path(path)
         except IOError, ioe:
             self.logger.error(ioe)
-            return self.STATUS_ERROR
+            yield self.STATUS_ERROR
+            return
         if self.set_storage( dataset ) == self.STATUS_ERROR:
-            return self.STATUS_ERROR
+            yield self.STATUS_ERROR
+            return
 
         corporaObj = corpora.Corpora(dataset)
         whitelist = self._import_whitelist(whitelistpath)
@@ -504,12 +509,21 @@ class PytextminerFlowApi(object):
         try:
             period_gen, period = archive_walker.next()
             sc = indexer.ArchiveCounter(self.storage)
-            if not sc.walkCorpus(whitelist, period_gen, period, exporter, minCooc):
-                return self.STATUS_ERROR
-            elif not sc.writeMatrix(period, True, minCooc):
-                return self.STATUS_ERROR
+            walkCorpusGen = sc.walkCorpus(whitelist, period_gen, period, exporter, minCooc)
+            try:
+                while 1:
+                    yield walkCorpusGen.next()
+            except StopIteration:
+                pass
+            writeMatrixGen = sc.writeMatrix(period, True, minCooc)
+            try:
+                while 1:
+                    yield writeMatrixGen.next()
+            except StopIteration, si:
+                pass
         except StopIteration, si:
-            return self.STATUS_OK
+            yield self.STATUS_OK
+            return
 
     def export_cooc(self,
             dataset,
@@ -663,13 +677,7 @@ class PytextminerFlowApi(object):
             return None
         return path
 
-    def _import_module(self, name):
-        """returns a imported module given its string name"""
-        try:
-            module =  __import__(name)
-            return sys.modules[name]
-        except ImportError, exc:
-            raise Exception("couldn't load module %s: %s"%(name,exc))
+
 
 class PytextminerApi(PytextminerFlowApi):
     def _eraseFlow(self, generator):
@@ -682,11 +690,26 @@ class PytextminerApi(PytextminerFlowApi):
         except StopIteration, si:
             return lastValue
 
-    def extract_file(*arg, **kwargs):
-        generator = super(PytextminerFlowApi, self).extract_file(*arg, **kwargs)
+    def extract_file(self, *arg, **kwargs):
+        generator = super(PytextminerApi, self).extract_file(*arg, **kwargs)
+        return self._eraseFlow( generator )
 
-    def index_file(*arg, **kwargs):
-        generator = super(PytextminerFlowApi, self).index_file(*arg, **kwargs)
+    def index_file(self, *arg, **kwargs):
+        generator = super(PytextminerApi, self).index_file(*arg, **kwargs)
+        return self._eraseFlow( generator )
 
-    def generate_graph(*arg, **kwargs):
-        generator = super(PytextminerFlowApi, self).generate_graph(*arg, **kwargs)
+    def generate_graph(self, *arg, **kwargs):
+        generator = super(PytextminerApi, self).generate_graph(*arg, **kwargs)
+        return self._eraseFlow( generator )
+
+    def index_archive(self, *arg, **kwargs):
+        generator = super(PytextminerApi, self).index_archive(*arg, **kwargs)
+        return self._eraseFlow( generator )
+
+def import_module(name):
+    """returns a imported module given its string name"""
+    try:
+        module =  __import__(name)
+        return sys.modules[name]
+    except ImportError, exc:
+        raise Exception("couldn't load module %s: %s"%(name,exc))

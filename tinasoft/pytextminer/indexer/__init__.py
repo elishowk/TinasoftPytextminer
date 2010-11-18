@@ -125,6 +125,7 @@ class ArchiveCounter():
                 abstract, period = reader.next()
                 articleNumber += 1
                 self._notify(articleNumber)
+                yield articleNumber
                 # words list
                 wordSequence = tokenizer.RegexpTokenizer.tokenize(
                     tokenizer.TreeBankWordTokenizer.sanitize(abstract['content'])
@@ -138,9 +139,8 @@ class ArchiveCounter():
         except StopIteration, si:
             if exporter:
                 exporter.export_matrix(self.matrix, period, minCooc)
-            return True
-        except Exception, exc:
-            return False
+            yield articleNumber
+            return
 
 
     def _load_whitelist(self, whitelist):
@@ -229,12 +229,10 @@ class ArchiveCounter():
             while 1:
                 ngi, row = generator.next()
                 self.storage.updateCooc( key+ngi, row, overwrite )
+                yield None
         except StopIteration, si:
             self.storage.flushCoocQueue()
-            return True
-        except Exception, exc:
-            _logger.error( traceback.format_exc() )
-            return False
+            return
 
 
     def readMatrix(self, termList, period):

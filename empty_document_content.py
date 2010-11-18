@@ -18,7 +18,7 @@
 __author__="elishowk@nonutc.fr"
 
 import sys
-from tinasoft import TinaApp
+from tinasoft import PytextminerApi
 
 def usage():
     print "USAGE : python apitests.py TestClass configuration_file_path source_filename file_format"
@@ -28,7 +28,7 @@ if __name__ == '__main__':
     try:
         confFile = sys.argv[1]
         databaseName = sys.argv[2]
-        tinasoft = TinaApp(confFile)
+        tinasoft = PytextminerApi(confFile)
     except:
         usage()
         exit()
