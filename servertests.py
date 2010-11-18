@@ -22,6 +22,7 @@ import unittest
 import sys
 import httplib
 import urllib
+httplib.HTTPConnection.debuglevel = 1
 
 class ServerTest(unittest.TestCase):
     def setUp(self):
@@ -49,8 +50,8 @@ class ExtractFile(ServerTest):
         } )
         self.connection.request(
                 'GET',
-                'file' + params,
-                #headers=self.headers
+                '/file?' + params,
+                headers = self.headers
         )
         print self.connection.getresponse().read()
 
@@ -71,7 +72,7 @@ class IndexFile(ServerTest):
         } )
         self.connection.request(
             'POST',
-            'file',
+            '/file',
             body = params,
             headers=self.headers
         )
@@ -97,7 +98,7 @@ class GenerateGraph(ServerTest):
         } )
         self.connection.request(
             'POST',
-            'graph',
+            '/graph',
             body = params,
             headers=self.headers
         )
