@@ -112,7 +112,6 @@ class TinasoftServerRequest(resource.Resource):
 
 class CooperativeExecution(object):
     argument_types = {
-        'index' : bool,
         'overwrite': bool,
         'path': str,
         'outpath': str,
@@ -236,7 +235,9 @@ class TinasoftServer(resource.Resource):
 
 
 def value_to_gen(func):
-
+    """
+    forwards a generator
+    """
     def wrapper(*args, **kwargs):
         yield func(*args, **kwargs)
     return wrapper
@@ -478,7 +479,6 @@ def run(confFile):
 
     reactor.listenTCP(8888, server.Site(pytmserver))
     reactor.run()
-    print stream
 
 def usage():
     print "USAGE : python httpserver.py yaml_configuration_file_path"

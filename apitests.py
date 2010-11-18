@@ -107,7 +107,7 @@ class IndexArchive(PytextminerApiTest):
 class ExportCoocMatrix(PytextminerApiTest):
     def runTest(self):
         """testF_ExportCoocMatrix"""
-        print self.tinasoft.export_cooc(self.datasetId, "Pubmed_1980[dp]")
+        print self.tinasoft.export_cooc(self.datasetId, "Pubmed_2003[dp]")
 
 
 def usage():

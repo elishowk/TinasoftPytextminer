@@ -135,17 +135,6 @@ class PytextminerFlowApi(object):
         """
         sets a customized or a default logger
         """
-        # default log file location
-        #if not exists(join(
-        #        self.config['general']['basedirectory'],
-        #        self.config['general']['log']
-        #    )
-        #    ):
-        #    makedirs(join(
-        #        self.config['general']['basedirectory'],
-        #        self.config['general']['log']
-        #        )
-        #    )
         # Set up a specific logger with our desired output level
         self.LOG_FILE = LOG_FILE
         # set default level to DEBUG
@@ -217,7 +206,6 @@ class PytextminerFlowApi(object):
             whitelistlabel=None,
             outpath=None,
             format='tinacsv',
-            overwrite=False,
             minoccs=1,
             userstopwords=None
         ):
@@ -548,7 +536,7 @@ class PytextminerFlowApi(object):
         if whitelistpath is not None:
             whitelist = self._import_whitelist(whitelistpath)
         exporter = Writer('coocmatrix://'+outpath)
-        return exporter.export_cooc( self.storage, periods, whitelist )
+        return exporter.export_from_storage( self.storage, periods, whitelist )
 
     def _import_whitelist(
             self,
@@ -580,7 +568,7 @@ class PytextminerFlowApi(object):
             path=None
         ):
         """
-        imports a user defined stopword file (one ngram per line)
+        imports a user defined stopwords file (one ngram per line)
         returns a list of one StopWordFilter class instance
         to be used as input of other methods
         """
@@ -591,20 +579,25 @@ class PytextminerFlowApi(object):
             )
         return [stopwords.StopWordFilter( "file://%s" % path )]
 
-    def _get_user_filepath(self, dataset, filetype, filename):
-        """returns a relative filename into the user directory"""
+    def _get_user_filepath(self, dataset, filetype, label):
+        """
+        returns a new relative file path into the user directory
+        given a dataset, its type and a label
+        """
         path = join( self.user, dataset, filetype )
         now = "".join(str(datetime.now())[:10].split("-"))
         # standard separator in filenames
-        filename = now + "-" + filename
-        finalpath = join( path, filename )
+        filename = now + "-" + label
+        finalpath = join( path, label )
         if not exists(path):
             makedirs(path)
             return finalpath
         return finalpath
 
     def _get_filepath_id(self, path):
-        """returns the file identifier from a path"""
+        """
+        returns the file identifier given a path
+        """
         if path is None:
             return None
         if not os.path.isfile( path ):
@@ -661,6 +654,9 @@ class PytextminerFlowApi(object):
         yield os.listdir( path )
 
     def _get_sourcefile_path(self, filename):
+        """
+        Private method returning a source file path given its name
+        """
         path = join(
             self.config['general']['basedirectory'],
             self.config['general']['source_file_directory'],
