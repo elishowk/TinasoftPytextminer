@@ -17,7 +17,6 @@
 __author__="elishowk@nonutc.fr"
 
 from tinasoft.data import basecsv
-import codecs
 
 # get tinasoft's logger
 import logging
@@ -26,23 +25,10 @@ _logger = logging.getLogger('TinaAppLogger')
 
 class Exporter(basecsv.Exporter):
     """A class for space separated file exports of Cooccurrences matrix"""
-    def __init__(self,
-            filepath,
-            delimiter = '   ',
-            quotechar = '',
-            **kwargs
-        ):
-        basecsv.Exporter.__init__(
-            self,
-            filepath,
-            delimiter,
-            quotechar,
-            **kwargs
-        )
 
-    def export_cooc(self, storage, periods, whitelist=None, minCooc=1):
+    def export_from_storage(self, storage, periods, whitelist=None, minCooc=1):
         """exports a reconstitued cooc matrix from storage, applying whitelist filtering"""
-        countcooc=0
+        countcooc = 0
         for corpusid in periods:
             try:
                 generator = storage.selectCorpusCooc( corpusid )

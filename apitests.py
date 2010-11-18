@@ -21,22 +21,22 @@ __author__ = "elishowk@nonutc.fr"
 import unittest
 import sys
 
-from tinasoft import TinaApp
+from tinasoft import PytextminerApi
 
 
-class TinaAppTests(unittest.TestCase):
+class PytextminerApiTest(unittest.TestCase):
 
     def setUp(self):
 
         self.tinasoft = tinasoftSingleton
         self.datasetId = "test_data_set"
         self.periods = ['1', 'pubmed1', '2', 'FET', 'Batch_10']
-        self.path = sourceFile
+        self.path = sourcePath
         self.format = sourceFormat
         self.extracted_whitelist = 'date-test_whitelist-extract_file.csv'
 
 
-class ExtractFile(TinaAppTests):
+class ExtractFile(PytextminerApiTest):
 
     def runTest(self):
         """ExtractFile : extract a source file's word vectors"""
@@ -47,10 +47,10 @@ class ExtractFile(TinaAppTests):
                 format=self.format,
                 minoccs=1,
         )
-        self.failIfEqual(self.extracted_whitelist, TinaApp.STATUS_ERROR)
+        self.failIfEqual(self.extracted_whitelist, PytextminerApi.STATUS_ERROR)
 
 
-class IndexFile(TinaAppTests):
+class IndexFile(PytextminerApiTest):
     def runTest(self):
         """
         IndexFile :
@@ -63,11 +63,11 @@ class IndexFile(TinaAppTests):
                 self.extracted_whitelist,
                 format=self.format,
                 overwrite=False
-            ), TinaApp.STATUS_ERROR
+            ), PytextminerApi.STATUS_ERROR
         )
 
 
-class GenerateGraph(TinaAppTests):
+class GenerateGraph(PytextminerApiTest):
     def runTest(self):
         """ExportGraph : processes a graph, and exports a gexf graph,"""
         print self.tinasoft.generate_graph(
@@ -90,7 +90,7 @@ class GenerateGraph(TinaAppTests):
         )
 
 
-class IndexArchive(TinaAppTests):
+class IndexArchive(PytextminerApiTest):
     def runTest(self):
         """IndexArchive : process cooccurences on an archive datatype (see tinasoft/data/*archive.py)"""
         print self.tinasoft.index_archive(
@@ -104,32 +104,10 @@ class IndexArchive(TinaAppTests):
             )
 
 
-class ExportCoocMatrix(TinaAppTests):
+class ExportCoocMatrix(PytextminerApiTest):
     def runTest(self):
         """testF_ExportCoocMatrix"""
-        print self.tinasoft.export_cooc(self.datasetId, "Pubmed_1980[dp]")
-
-#class ImportFile(TinaAppTests):
-#    def runTest(self):
-        """OBSOLETE ImportFile : testing import_file"""
-#        return
-#        self.failIfEqual( self.tinasoft.import_file(
-#                path=self.path,
-#                dataset=self.datasetId,
-#                format=self.format
-#            ), TinaApp.STATUS_ERROR
-#        )
-
-#class ExportWhitelist(TinaAppTests):
-#    def runTest(self):
-        """OBSOLETE ExportWhitelist : Exports a whitelist file"""
-#        return
-#        print self.tinasoft.export_whitelist(
-#            self.periods,
-#            self.dataset   Id,
-#            'test export whitelist',
-#            'tinaapptests-export_whitelist.csv'
-#        )
+        print self.tinasoft.export_cooc(self.datasetId, "Pubmed_2003[dp]")
 
 
 def usage():
@@ -140,11 +118,12 @@ if __name__ == '__main__':
     print sys.argv
     try:
         confFile = sys.argv[2]
-        sourceFile = sys.argv[3]
+        sourcePath = sys.argv[3]
         sourceFormat = sys.argv[4]
-        tinasoftSingleton = TinaApp(confFile)
         del sys.argv[2:]
     except:
         usage()
         exit()
+    else:
+        tinasoftSingleton = PytextminerApi(confFile)
     unittest.main()

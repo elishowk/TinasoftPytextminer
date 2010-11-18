@@ -57,8 +57,10 @@ LEVELS = {
 
 # type and name of the main database
 STORAGE_DSN = "tinasqlite://tinasoft.sqlite"
+# default log file
+LOG_FILE = "tinasoft-log.txt"
 
-class TinaApp(object):
+class PytextminerFlowApi(object):
     """
     Main application class
     should be used in conjunction with ThreadPool()
@@ -85,7 +87,7 @@ class TinaApp(object):
             self.config = yaml.safe_load( file( configFilePath, 'rU' ) )
         except yaml.YAMLError, exc:
             print exc
-            print "bad config yaml path passed to TinaApp : %s"%configFilePath
+            print "bad config file path passed to PytextminerFlowApi : %s"%configFilePath
             return self.STATUS_ERROR
         # creates applications directories
         self.user = join( self.config['general']['basedirectory'], self.config['general']['user'] )
@@ -122,7 +124,7 @@ class TinaApp(object):
             )
             locale.setlocale(locale.LC_ALL, self.locale)
 
-        self.logger.debug("TinaApp started")
+        self.logger.debug("Pytextminer started")
 
     def __del__(self):
         """resumes the storage transactions when destroying this object"""
@@ -133,23 +135,8 @@ class TinaApp(object):
         """
         sets a customized or a default logger
         """
-        # here's the default logger
-        if not exists(join(
-                self.config['general']['basedirectory'],
-                self.config['general']['log']
-            )
-            ):
-            makedirs(join(
-                self.config['general']['basedirectory'],
-                self.config['general']['log']
-                )
-            )
         # Set up a specific logger with our desired output level
-        self.LOG_FILENAME = join(
-            self.config['general']['basedirectory'],
-            self.config['general']['log'],
-            'tinasoft.log'
-        )
+        self.LOG_FILE = LOG_FILE
         # set default level to DEBUG
         if 'loglevel' in self.config['general']:
             loglevel = LEVELS[self.config['general']['loglevel']]
@@ -166,11 +153,12 @@ class TinaApp(object):
         logger.setLevel(loglevel)
         # sets default formatting and handler
         formatter = logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            #"%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            "%(asctime)s - %(levelname)s - %(message)s",
             '%Y-%m-%d %H:%M:%S'
         )
         rotatingFileHandler = logging.handlers.RotatingFileHandler(
-            filename = self.LOG_FILENAME,
+            filename = self.LOG_FILE,
             maxBytes = 1024000,
             backupCount = 3
         )
@@ -186,7 +174,7 @@ class TinaApp(object):
         """
         if self.last_dataset_id is not None and self.last_dataset_id == dataset_id:
             # connection already opened
-            return TinaApp.STATUS_OK
+            return self.STATUS_OK
         if self.storage is not None:
             self.logger.debug("safely closing last storage connection")
             del self.storage
@@ -199,18 +187,18 @@ class TinaApp(object):
             options['home'] = storagedir
             if not exists( storagedir ) and create is False:
                 raise Exception("dataset DB %s does not exists, won't create it"%dataset_id)
-                return TinaApp.STATUS_OK
+                return self.STATUS_OK
             else:
                 self.storage = Engine(STORAGE_DSN, **options)
                 self.last_dataset_id = dataset_id
                 self.logger.debug(
                     "new storage connection for data set %s at %s"%(dataset_id, storagedir)
                 )
-                return TinaApp.STATUS_OK
+                return self.STATUS_OK
         except Exception, exception:
             self.logger.error( exception )
             self.storage = self.last_dataset_id = None
-            return TinaApp.STATUS_ERROR
+            return self.STATUS_ERROR
 
     def extract_file(self,
             path,
@@ -218,7 +206,6 @@ class TinaApp(object):
             whitelistlabel=None,
             outpath=None,
             format='tinacsv',
-            overwrite=False,
             minoccs=1,
             userstopwords=None
         ):
@@ -230,13 +217,15 @@ class TinaApp(object):
             path = self._get_sourcefile_path(path)
         except IOError, ioe:
             self.logger.error(ioe)
-            return self.STATUS_ERROR
+            self.STATUS_ERROR
+            return
         if self.set_storage( dataset ) == self.STATUS_ERROR:
-            return self.STATUS_ERROR
+            yield self.STATUS_ERROR
+            return
         # prepares extraction export path
         if outpath is None:
             if whitelistlabel is None:
-                whitelistlabel=dataset
+                whitelistlabel = dataset
             outpath = self._get_user_filepath(
                 dataset,
                 'whitelist',
@@ -251,7 +240,7 @@ class TinaApp(object):
             )
         )
 
-        userstopwords = self.import_userstopwords( userstopwords )
+        userstopwords = self._import_userstopwords( userstopwords )
         # instanciate extractor class
         extract = extractor.Extractor(
             self.storage,
@@ -261,11 +250,15 @@ class TinaApp(object):
             userstopwords,
             stemmer=stemmer.Nltk()
         )
-        outpath = extract.extract_file( path, format, outpath, whitelistlabel, minoccs )
-        if outpath is not False:
-            return abspath(outpath)
-        else:
-            return self.STATUS_ERROR
+        extratorGenerator = extract.extract_file( path, format, outpath, whitelistlabel, minoccs )
+        absolute_outpath = abspath(outpath)
+        try:
+            while 1:
+                extratorGenerator.next()
+                yield self.STATUS_RUNNING
+        except StopIteration, si:
+            yield absolute_outpath
+            return
 
     def index_file(self,
             path,
@@ -281,11 +274,11 @@ class TinaApp(object):
             path = self._get_sourcefile_path(path)
         except IOError, ioe:
             self.logger.error(ioe)
-            return self.STATUS_ERROR
+            return
         corporaObj = corpora.Corpora(dataset)
-        whitelist = self.import_whitelist(whitelistpath)
+        whitelist = self._import_whitelist(whitelistpath)
         if self.set_storage( dataset ) == self.STATUS_ERROR:
-            return self.STATUS_ERROR
+            return
         # instanciate stopwords and extractor class
         stopwds = stopwords.StopWords(
             "file://%s"%join(
@@ -293,7 +286,7 @@ class TinaApp(object):
             self.config['general']['shared'],
             self.config['general']['stopwords'])
         )
-        #stemmer = self._import_module( self.config['datasets']['stemmer'] )
+        #stemmer = import_module( self.config['datasets']['stemmer'] )
         extract = extractor.Extractor(
             self.storage,
             self.config['datasets'],
@@ -301,15 +294,20 @@ class TinaApp(object):
             stopwds,
             stemmer=stemmer.Nltk()
         )
-        if extract.index_file(
+        extractorGenerator = extract.index_file(
             path,
             format,
             whitelist,
             overwrite
-        ) is True:
-            return extract.duplicate
-        else:
-            return self.STATUS_ERROR
+        )
+        try:
+            while 1:
+                extractorGenerator.next()
+                yield self.STATUS_RUNNING
+        except StopIteration, si:
+            yield extract.duplicate
+            return
+
 
     def generate_graph(self,
             dataset,
@@ -328,21 +326,21 @@ class TinaApp(object):
 
         @return absolute path to the gexf file
         """
-        if not documentgraphconfig: documentgraphconfig={}
-        if not ngramgraphconfig: ngramgraphconfig={}
+        if not documentgraphconfig: documentgraphconfig = {}
+        if not ngramgraphconfig: ngramgraphconfig = {}
 
         if self.set_storage( dataset ) == self.STATUS_ERROR:
-            return self.STATUS_ERROR
+            return
 
-        # prepares gexf out path
+        # outpath is an optional label but transformed to an absolute file path
         params_string = "%s_%s"%(self._get_filepath_id(whitelistpath),"+".join(periods))
-        # outpath is an optional label
         if outpath is None:
             outpath = self._get_user_filepath(dataset, 'gexf', params_string)
         else:
             outpath = self._get_user_filepath(dataset, 'gexf', params_string + "_%s"%outpath)
-        outpath = outpath + ".gexf"
-        whitelist = self.import_whitelist(whitelistpath)
+        outpath = abspath( outpath + ".gexf" )
+        # loads the whitelist
+        whitelist = self._import_whitelist(whitelistpath)
         # creates the GEXF exporter
         GEXFWriter = Writer('gexf://', **self.config['datamining'])
 
@@ -380,17 +378,12 @@ class TinaApp(object):
                 self.logger.debug('Period %s not found in database, skipping'%str(period))
         # intersection with the whitelist
         ngram_index &= set( whitelist['edges']['NGram'].keys() )
+
         # TODO here's the key to replace actuel Matrix index handling
         doc_index = list(doc_index)
         doc_index.sort()
         ngram_index = list(ngram_index)
         ngram_index.sort()
-
-        # abandonned parallelization with pp.Server()
-        #jobs=[]
-        #job_server = pp.Server()
-        #depmodules=('math','logging','cPickle','os','sqlite3','itertools','numpy','tinasoft','tinasoft.pytextminer.graph')
-        #depfunctions=(get_storage, Engine, _factory, _check_protocol)
 
         # updates default config with parameters
         self.config['datamining']['NGramGraph'].update(ngramgraphconfig)
@@ -417,12 +410,18 @@ class TinaApp(object):
                     ngram_adj_gen = graph.ngram_submatrix_task( *ngram_args )
                     while 1:
                         ngram_matrix_reducer.add( ngram_adj_gen.next() )
+                        yield self.STATUS_RUNNING
                 except StopIteration, si:
                     self.logger.debug("NGram matrix reduced for period %s"%process_period)
-            GEXFWriter.load_subgraph( 'NGram', ngram_matrix_reducer, subgraphconfig = ngramconfig)
-            del ngram_matrix_reducer
+            load_subgraph_gen = GEXFWriter.load_subgraph( 'NGram', ngram_matrix_reducer, subgraphconfig = ngramconfig)
+            try:
+                while 1:
+                    load_subgraph_gen.next()
+                    yield self.STATUS_RUNNING
+            except StopIteration, si:
+                del ngram_matrix_reducer
         else:
-            self.logger.warning("NGram graph not generated because there was no NGrams")
+            self.logger.warning("NGram sub-graph not generated because there was no NGrams")
 
         if len(doc_index) != 0:
             doc_matrix_reducer = graph.MatrixReducerFilter( doc_index )
@@ -434,30 +433,27 @@ class TinaApp(object):
                     doc_adj_gen = graph.document_submatrix_task( *doc_args )
                     while 1:
                         doc_matrix_reducer.add( doc_adj_gen.next() )
+                        yield self.STATUS_RUNNING
                 except StopIteration, si:
                     self.logger.debug("Document matrix reduced for period %s"%process_period)
 
-                # abandonned parallelization with pp.Server()
-                #jobs += [job_server.submit(
-                #    ngram_adj_task,
-                #    args=ngram_args,
-                #    callback=ngram_matrix_reducer,
-                #    modules=depmodules,
-                #    depfuncs=depfunctions,
-                #    globals=globals()
-                #)]
-            GEXFWriter.load_subgraph( 'Document',  doc_matrix_reducer, subgraphconfig = documentconfig)
-            del doc_matrix_reducer
+            load_subgraph_gen = GEXFWriter.load_subgraph( 'Document',  doc_matrix_reducer, subgraphconfig = documentconfig)
+            try:
+                while 1:
+                    load_subgraph_gen.next()
+                    yield self.STATUS_RUNNING
+            except StopIteration, si:
+                del doc_matrix_reducer
+
         else:
-            self.logger.warning("Document graph not generated because there was no Documents")
+            self.logger.warning("Document sub-graph not generated because there was no Documents")
         if exportedges is True:
             self.logger.warning("exporting the full graph to current.gexf")
             GEXFWriter.finalize("current.gexf", exportedges=True)
-        # rrturns the absolute path of outpath
-        return abspath(GEXFWriter.finalize(outpath, exportedges=False))
-        # abandonned parallelization with pp.Server()
-        #self.logger.debug("wait for jobs to finish")
-        #job_server.wait()
+        # returns the absolute path of outpath
+        GEXFWriter.finalize(outpath, exportedges=False)
+        yield outpath
+        return
 
     def index_archive(self,
             path,
@@ -478,12 +474,14 @@ class TinaApp(object):
             path = self._get_sourcefile_path(path)
         except IOError, ioe:
             self.logger.error(ioe)
-            return self.STATUS_ERROR
+            yield self.STATUS_ERROR
+            return
         if self.set_storage( dataset ) == self.STATUS_ERROR:
-            return self.STATUS_ERROR
+            yield self.STATUS_ERROR
+            return
 
         corporaObj = corpora.Corpora(dataset)
-        whitelist = self.import_whitelist(whitelistpath)
+        whitelist = self._import_whitelist(whitelistpath)
         # prepares extraction export path
         if outpath is not None:
             outpath = self._get_user_filepath(
@@ -499,12 +497,21 @@ class TinaApp(object):
         try:
             period_gen, period = archive_walker.next()
             sc = indexer.ArchiveCounter(self.storage)
-            if not sc.walkCorpus(whitelist, period_gen, period, exporter, minCooc):
-                return self.STATUS_ERROR
-            elif not sc.writeMatrix(period, True, minCooc):
-                return self.STATUS_ERROR
+            walkCorpusGen = sc.walkCorpus(whitelist, period_gen, period, exporter, minCooc)
+            try:
+                while 1:
+                    yield walkCorpusGen.next()
+            except StopIteration:
+                pass
+            writeMatrixGen = sc.writeMatrix(period, True, minCooc)
+            try:
+                while 1:
+                    yield writeMatrixGen.next()
+            except StopIteration, si:
+                pass
         except StopIteration, si:
-            return self.STATUS_OK
+            yield self.STATUS_OK
+            return
 
     def export_cooc(self,
             dataset,
@@ -527,12 +534,11 @@ class TinaApp(object):
             )
         whitelist = None
         if whitelistpath is not None:
-            whitelist = self.import_whitelist(whitelistpath)
+            whitelist = self._import_whitelist(whitelistpath)
         exporter = Writer('coocmatrix://'+outpath)
-        return exporter.export_cooc( self.storage, periods, whitelist )
+        return exporter.export_from_storage( self.storage, periods, whitelist )
 
-
-    def import_whitelist(
+    def _import_whitelist(
             self,
             whitelistpath,
             userstopwords = None,
@@ -557,12 +563,12 @@ class TinaApp(object):
         # TODO stores the whitelist ?
         return new_wl
 
-    def import_userstopwords(
+    def _import_userstopwords(
             self,
             path=None
         ):
         """
-        imports a user defined stopword file (one ngram per line)
+        imports a user defined stopwords file (one ngram per line)
         returns a list of one StopWordFilter class instance
         to be used as input of other methods
         """
@@ -573,20 +579,25 @@ class TinaApp(object):
             )
         return [stopwords.StopWordFilter( "file://%s" % path )]
 
-    def _get_user_filepath(self, dataset, filetype, filename):
-        """returns a relative filename into the user directory"""
+    def _get_user_filepath(self, dataset, filetype, label):
+        """
+        returns a new relative file path into the user directory
+        given a dataset, its type and a label
+        """
         path = join( self.user, dataset, filetype )
         now = "".join(str(datetime.now())[:10].split("-"))
         # standard separator in filenames
-        filename = now + "-" + filename
-        finalpath = join( path, filename )
+        filename = now + "-" + label
+        finalpath = join( path, label )
         if not exists(path):
             makedirs(path)
             return finalpath
         return finalpath
 
     def _get_filepath_id(self, path):
-        """returns the file identifier from a path"""
+        """
+        returns the file identifier given a path
+        """
         if path is None:
             return None
         if not os.path.isfile( path ):
@@ -605,9 +616,10 @@ class TinaApp(object):
         returns the list of files in the user directory tree
         """
         path = join( self.user, dataset, filetype )
+        print path
         if not exists( path ):
-            return []
-        return [
+            yield []
+        yield [
             abspath(join( path, file ))
             for file in os.listdir( path )
             if not file.startswith("~") and not file.startswith(".")
@@ -622,11 +634,11 @@ class TinaApp(object):
         path = join( self.config['general']['basedirectory'], self.config['general']['dbenv'] )
         validation_filename = STORAGE_DSN.split("://")[1]
         if not exists( path ):
-            return dataset_list
+            yield dataset_list
         for file in os.listdir( path ):
             if exists(join(path, file, validation_filename)):
                 dataset_list += [file]
-        return dataset_list
+        yield dataset_list
 
     def walk_source_files(self):
         """
@@ -638,10 +650,13 @@ class TinaApp(object):
             self.config['general']['source_file_directory']
         )
         if not exists( path ):
-            return []
-        return os.listdir( path )
+            yield []
+        yield os.listdir( path )
 
     def _get_sourcefile_path(self, filename):
+        """
+        Private method returning a source file path given its name
+        """
         path = join(
             self.config['general']['basedirectory'],
             self.config['general']['source_file_directory'],
@@ -658,11 +673,39 @@ class TinaApp(object):
             return None
         return path
 
-    def _import_module(self, name):
-        """returns a imported module given its string name"""
-        try:
-            module =  __import__(name)
-            return sys.modules[name]
-        except ImportError, exc:
-            raise Exception("couldn't load module %s: %s"%(name,exc))
 
+
+class PytextminerApi(PytextminerFlowApi):
+    def _eraseFlow(self, generator):
+        """
+        Flattens all API generator for simpler scripting of PytextminerApi
+        """
+        try:
+            while 1:
+                lastValue = generator.next()
+        except StopIteration, si:
+            return lastValue
+
+    def extract_file(self, *arg, **kwargs):
+        generator = super(PytextminerApi, self).extract_file(*arg, **kwargs)
+        return self._eraseFlow( generator )
+
+    def index_file(self, *arg, **kwargs):
+        generator = super(PytextminerApi, self).index_file(*arg, **kwargs)
+        return self._eraseFlow( generator )
+
+    def generate_graph(self, *arg, **kwargs):
+        generator = super(PytextminerApi, self).generate_graph(*arg, **kwargs)
+        return self._eraseFlow( generator )
+
+    def index_archive(self, *arg, **kwargs):
+        generator = super(PytextminerApi, self).index_archive(*arg, **kwargs)
+        return self._eraseFlow( generator )
+
+def import_module(name):
+    """returns a imported module given its string name"""
+    try:
+        module =  __import__(name)
+        return sys.modules[name]
+    except ImportError, exc:
+        raise Exception("couldn't load module %s: %s"%(name,exc))
