@@ -84,7 +84,7 @@ class GenerateGraph(ServerTest):
     def runTest(self):
         """ExportGraph : processes a graph, and exports a gexf graph,"""
         params =  urllib.urlencode({
-            'id': self.datasetId,
+            'dataset': self.datasetId,
             'periods': self.periods,
             'whitelistpath': self.extracted_whitelist,
             'outpath': 'test_graph',
