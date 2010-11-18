@@ -66,7 +66,7 @@ class IndexFile(ServerTest):
         params = urllib.urlencode( {
             'path': self.path,
             'dataset': self.datasetId,
-            'outpath': self.extracted_whitelist,
+            'whitelistpath': self.extracted_whitelist,
             'format': self.format,
             'overwrite': False
         } )
