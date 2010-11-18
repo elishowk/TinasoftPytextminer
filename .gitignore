@@ -8,7 +8,7 @@ build/
 nbproject/
 db/
 index/
-log/
+tinasoft-log.txt*
 TinasoftPytextminer.egg-info/
 user/
 *.cache
@@ -17,4 +17,4 @@ scripts/
 *.log
 shared/nltk_data
 shared/tagger.pickle
-shared/gexf/gexf.template.cache
+shared/gexf/*.cache
