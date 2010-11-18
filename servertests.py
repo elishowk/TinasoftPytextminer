@@ -32,7 +32,7 @@ class ServerTest(unittest.TestCase):
         }
         self.connection = httplib.HTTPConnection("localhost", 8888)
         self.datasetId = "test_data_set"
-        self.periods = ['1', 'pubmed1', '2', 'FET', 'Batch_10']
+        self.periods = ['1', 'FET']
         self.path = sourcePath
         self.format = sourceFormat
         self.extracted_whitelist = 'date-test_whitelist-extract_file.csv'
@@ -74,7 +74,7 @@ class IndexFile(ServerTest):
             'POST',
             '/file',
             body = params,
-            headers=self.headers
+            headers = self.headers
         )
         print self.connection.getresponse().read()
 
@@ -85,22 +85,21 @@ class GenerateGraph(ServerTest):
         """ExportGraph : processes a graph, and exports a gexf graph,"""
         params =  urllib.urlencode({
             'dataset': self.datasetId,
-            'periods': self.periods,
+            'periods': self.periods[0],
             'whitelistpath': self.extracted_whitelist,
             'outpath': 'test_graph',
-            'ngramgraphconfig': {
-                'proximity': 'equivalenceIndex'
-            },
-            'documentgraphconfig': {
-                'proximity': 'logJaccard'
-            },
-            'exportedges': True
+            #'ngramgraphconfig': {
+            #    'proximity': 'equivalenceIndex'
+            #},
+            #'documentgraphconfig': {
+            #    'proximity': 'logJaccard'
+            #}
         } )
         self.connection.request(
             'POST',
             '/graph',
             body = params,
-            headers=self.headers
+            headers = self.headers
         )
         print self.connection.getresponse().read()
 
