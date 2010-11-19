@@ -217,7 +217,7 @@ class PytextminerFlowApi(object):
             path = self._get_sourcefile_path(path)
         except IOError, ioe:
             self.logger.error(ioe)
-            self.STATUS_ERROR
+            yield self.STATUS_ERROR
             return
         if self.set_storage( dataset ) == self.STATUS_ERROR:
             yield self.STATUS_ERROR
@@ -307,7 +307,6 @@ class PytextminerFlowApi(object):
         except StopIteration, si:
             yield extract.duplicate
             return
-
 
     def generate_graph(self,
             dataset,
@@ -608,7 +607,7 @@ class PytextminerFlowApi(object):
         filename_components = tail.split("-")
         if len(filename_components) == 1:
             return None
-        return filename_components[1]
+        return filename_components[0]
 
     def walk_user_path(self, dataset, filetype):
         """
