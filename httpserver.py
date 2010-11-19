@@ -50,8 +50,6 @@ import logging
 import tempfile
 import platform
 
-
-
 class TinasoftServerRequest(resource.Resource):
     """
     The request handler
@@ -109,6 +107,7 @@ class TinasoftServerRequest(resource.Resource):
         request.setResponseCode(500)
         request.write(str(err))
         request.finish()
+
 
 class CooperativeExecution(object):
     argument_types = {
@@ -243,7 +242,6 @@ def value_to_gen(func):
     return wrapper
 
 
-
 class POSTHandler(object):
     """
     Pytextminer API mapping POST requests and Pytextminer API's methods
@@ -288,8 +286,8 @@ class GETHandler(object):
     """
     Pytextminer API mapping GET requests and Pytextminer API's methods
     """
-    def __init__(self, pytmapi, stream):
-        self.stream = stream
+    def __init__(self, pytmapi, logstream):
+        self.logstream = logstream
         self.pytmapi = pytmapi
 
     def file(self, *args, **kwargs):
@@ -377,6 +375,7 @@ class GETHandler(object):
         decoded = urllib.unquote_plus(fileurl)
         return browser.open(decoded.replace("%5C","\\").replace("%2F","/").replace("%3A",":"))
 
+    @value_to_gen
     def exit(self):
         """exits and breaks connections"""
         reactor.stop()

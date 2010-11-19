@@ -634,11 +634,11 @@ class PytextminerFlowApi(object):
         path = join( self.config['general']['basedirectory'], self.config['general']['dbenv'] )
         validation_filename = STORAGE_DSN.split("://")[1]
         if not exists( path ):
-            yield dataset_list
+            return dataset_list
         for file in os.listdir( path ):
             if exists(join(path, file, validation_filename)):
                 dataset_list += [file]
-        yield dataset_list
+        return dataset_list
 
     def walk_source_files(self):
         """
