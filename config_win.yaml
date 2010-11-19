@@ -53,7 +53,7 @@ datamining:
     template: 'shared\gexf\gexf.default.template'
     DocumentGraph:
         edgethreshold:
-            - 0.0
+            - 0.0001
             - 'inf'
         nodethreshold:
             - 1.0
@@ -61,7 +61,7 @@ datamining:
         proximity: 'logJaccard'
     NGramGraph:
         edgethreshold:
-            - 0.0
+            - 0.0001
             - 'inf'
         nodethreshold:
             - 1.0

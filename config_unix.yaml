@@ -55,7 +55,7 @@ datamining:
     # default values if no params are passed to gexf exporter
     DocumentGraph:
         edgethreshold:
-            - 0.001
+            - 0.0001
             - 'inf'
         nodethreshold:
             - 1.0
@@ -63,7 +63,7 @@ datamining:
         proximity: 'logJaccard'
     NGramGraph:
         edgethreshold:
-            - 0.001
+            - 0.0001
             - 'inf'
         nodethreshold:
             - 1.0
