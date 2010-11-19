@@ -385,13 +385,13 @@ class GETHandler(object):
     def log(self):
         """logging request sending all lines from a file object then truncating it"""
         lines = []
-        self.stream.seek(0)
-        for line in self.stream:
+        self.logstream.seek(0)
+        for line in self.logstream:
             lines += [line.strip("\n")]
-        self.stream.truncate(0)
-        self.stream.seek(0)
-        self.stream.flush()
-        fsync(self.stream.fileno())
+        self.logstream.truncate(0)
+        self.logstream.seek(0)
+        self.logstream.flush()
+        fsync(self.logstream.fileno())
         return lines
 
 

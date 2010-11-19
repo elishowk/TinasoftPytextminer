@@ -20,7 +20,7 @@ __author__ = "elishowk@nonutc.fr"
 # core modules
 import unittest
 import sys
-
+from datetime import datetime
 from tinasoft import PytextminerApi
 
 
@@ -33,7 +33,7 @@ class PytextminerApiTest(unittest.TestCase):
         self.periods = ['1', 'pubmed1', '2', 'FET', 'Batch_10']
         self.path = sourcePath
         self.format = sourceFormat
-        self.extracted_whitelist = 'date-test_whitelist-extract_file.csv'
+        self.extracted_whitelist = '%s-test_whitelist-extract_file.csv'%datetime.now().strftime("%Y%m%d")
 
 
 class ExtractFile(PytextminerApiTest):

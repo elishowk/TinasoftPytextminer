@@ -20,6 +20,7 @@ __author__ = "elishowk@nonutc.fr"
 # core modules
 import unittest
 import sys
+from datetime import datetime
 import httplib
 import urllib
 httplib.HTTPConnection.debuglevel = 1
@@ -35,7 +36,7 @@ class ServerTest(unittest.TestCase):
         self.periods = ['1', 'FET']
         self.path = sourcePath
         self.format = sourceFormat
-        self.extracted_whitelist = 'date-test_whitelist-extract_file.csv'
+        self.extracted_whitelist = '%s-test_whitelist-extract_file.csv'%datetime.now().strftime("%Y%m%d")
 
 
 class ExtractFile(ServerTest):
