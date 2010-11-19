@@ -334,9 +334,9 @@ class PytextminerFlowApi(object):
         # outpath is an optional label but transformed to an absolute file path
         params_string = "%s_%s"%(self._get_filepath_id(whitelistpath),"+".join(periods))
         if outpath is None:
-            outpath = self._get_user_filepath(dataset, 'gexf', params_string)
+            outpath = self._get_user_filepath(dataset, 'gexf', "%s-graph"%params_string)
         else:
-            outpath = self._get_user_filepath(dataset, 'gexf', params_string + "_%s"%outpath)
+            outpath = self._get_user_filepath(dataset, 'gexf',  "%s_%s-graph"%(params_string, outpath) )
         outpath = abspath( outpath + ".gexf" )
         # loads the whitelist
         whitelist = self._import_whitelist(whitelistpath)
@@ -615,10 +615,9 @@ class PytextminerFlowApi(object):
         returns the list of files in the user directory tree
         """
         path = join( self.user, dataset, filetype )
-        print path
         if not exists( path ):
-            yield []
-        yield [
+            return []
+        return [
             abspath(join( path, file ))
             for file in os.listdir( path )
             if not file.startswith("~") and not file.startswith(".")
@@ -649,8 +648,8 @@ class PytextminerFlowApi(object):
             self.config['general']['source_file_directory']
         )
         if not exists( path ):
-            yield []
-        yield os.listdir( path )
+            return []
+        return os.listdir( path )
 
     def _get_sourcefile_path(self, filename):
         """

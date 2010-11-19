@@ -359,11 +359,12 @@ class GETHandler(object):
         else:
             return None
 
+    @value_to_gen
     def walk_user_path(self, dataset, filetype):
         """lists any existing file for a given dataset and filetype"""
         return self.pytmapi.walk_user_path(dataset, filetype)
 
-
+    @value_to_gen
     def walk_source_files(self):
         """lists any existing file for a given dataset and filetype"""
         return self.pytmapi.walk_source_files()
