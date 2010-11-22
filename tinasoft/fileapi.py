@@ -24,7 +24,7 @@ from os.path import split
 
 from os import makedirs
 from os import listdir
-from os import rmdir
+from shutil import rmtree
 
 from datetime import datetime
 
@@ -127,8 +127,8 @@ class PytextminerFileApi(object):
         Part of the File API
         remove a dataset db directory and suer directory
         """
-        rmdir(join( self.config['general']['basedirectory'], self.config['general']['dbenv'], dataset ))
-        rmdir(join( self.user, dataset ))
+        rmtree(join( self.config['general']['basedirectory'], self.config['general']['dbenv'], dataset ), True, lambda: True)
+        rmtree(join( self.user, dataset ), True, lambda: True)
         return dataset
 
     def walk_source_files(self):
