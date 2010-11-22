@@ -16,15 +16,14 @@
 
 __author__="elishowk@nonutc.fr"
 
-__all__ = ["pytextminer","data"]
+__all__ = ["pytextminer","data", "file"]
 
 # python utility modules
 import sys
-import os
+
 from os.path import exists
 from os.path import join
 from os.path import abspath
-from os import makedirs
 
 import yaml
 from datetime import datetime
@@ -34,7 +33,7 @@ import logging
 import logging.handlers
 
 # tinasoft core modules
-#from tinasoft.processpool import ProcessPool
+from tinasoft.fileapi import PytextminerFileApi
 from tinasoft.data import Engine, _factory, _check_protocol
 from tinasoft.data import Reader
 from tinasoft.data import Writer
@@ -55,12 +54,10 @@ LEVELS = {
     'critical': logging.CRITICAL
 }
 
-# type and name of the main database
-STORAGE_DSN = "tinasqlite://tinasoft.sqlite"
 # default log file
 LOG_FILE = "tinasoft-log.txt"
 
-class PytextminerFlowApi(object):
+class PytextminerFlowApi(PytextminerFileApi):
     """
     Main application class
     should be used in conjunction with ThreadPool()
@@ -79,7 +76,7 @@ class PytextminerFlowApi(object):
         """
         Init config, logger, locale, storage
         """
-        object.__init__(self)
+        #object.__init__(self)
         self.last_dataset_id = None
         self.storage = None
         # import config yaml to self.config
@@ -90,30 +87,12 @@ class PytextminerFlowApi(object):
             print "bad config file path passed to PytextminerFlowApi : %s"%configFilePath
             return self.STATUS_ERROR
         # creates applications directories
-        self.user = join( self.config['general']['basedirectory'], self.config['general']['user'] )
-        if not exists(self.user):
-            makedirs(self.user)
-
-        self.source_file_directory = join(
-            self.config['general']['basedirectory'],
-            self.config['general']['source_file_directory']
-        )
-        if not exists(self.source_file_directory):
-            makedirs(self.source_file_directory)
-
-        if not exists(join(
-                self.config['general']['basedirectory'],
-                self.config['general']['dbenv']
-            )
-            ):
-            makedirs(join(
-                self.config['general']['basedirectory'],
-                self.config['general']['dbenv']
-                )
-            )
+        self.user = self._init_user_directory()
+        self.source_file_directory = self._init_source_file_directory()
+        self._init_db_directory()
 
         self.set_logger(custom_logger)
-        # tries support of the locale by the host system
+        # tries to support the locale of the host system or empties it
         try:
             self.locale = self.config['general']['locale']
             locale.setlocale(locale.LC_ALL, self.locale)
@@ -153,7 +132,6 @@ class PytextminerFlowApi(object):
         logger.setLevel(loglevel)
         # sets default formatting and handler
         formatter = logging.Formatter(
-            #"%(asctime)s - %(name)s - %(levelname)s - %(message)s",
             "%(asctime)s - %(levelname)s - %(message)s",
             '%Y-%m-%d %H:%M:%S'
         )
@@ -164,7 +142,7 @@ class PytextminerFlowApi(object):
         )
         rotatingFileHandler.setFormatter(formatter)
         logger.addHandler(rotatingFileHandler)
-        self.logger= logger
+        self.logger = logger
 
     def set_storage( self, dataset_id, create=True, **options ):
         """
@@ -189,7 +167,7 @@ class PytextminerFlowApi(object):
                 raise Exception("dataset DB %s does not exists, won't create it"%dataset_id)
                 return self.STATUS_OK
             else:
-                self.storage = Engine(STORAGE_DSN, **options)
+                self.storage = Engine(self.STORAGE_DSN, **options)
                 self.last_dataset_id = dataset_id
                 self.logger.debug(
                     "new storage connection for data set %s at %s"%(dataset_id, storagedir)
@@ -578,99 +556,6 @@ class PytextminerFlowApi(object):
             )
         return [stopwords.StopWordFilter( "file://%s" % path )]
 
-    def _get_user_filepath(self, dataset, filetype, label):
-        """
-        returns a new relative file path into the user directory
-        given a dataset, its type and a label
-        """
-        path = join( self.user, dataset, filetype )
-        now = "".join(str(datetime.now())[:10].split("-"))
-        # standard separator in filenames
-        filename = now + "-" + label
-        finalpath = join( path, label )
-        if not exists(path):
-            makedirs(path)
-            return finalpath
-        return finalpath
-
-    def _get_filepath_id(self, path):
-        """
-        returns the file identifier given a path
-        """
-        if path is None:
-            return None
-        if not os.path.isfile( path ):
-            return None
-        (head, tail) = os.path.split(path)
-        if tail == "":
-            return None
-        filename_components = tail.split("-")
-        if len(filename_components) == 1:
-            return None
-        return filename_components[0]
-
-    def walk_user_path(self, dataset, filetype):
-        """
-        Part of the File API
-        returns the list of files in the user directory tree
-        """
-        path = join( self.user, dataset, filetype )
-        if not exists( path ):
-            return []
-        return [
-            abspath(join( path, file ))
-            for file in os.listdir( path )
-            if not file.startswith("~") and not file.startswith(".")
-        ]
-
-    def walk_datasets(self):
-        """
-        Part of the File API
-        returns the list of existing databases
-        """
-        dataset_list = []
-        path = join( self.config['general']['basedirectory'], self.config['general']['dbenv'] )
-        validation_filename = STORAGE_DSN.split("://")[1]
-        if not exists( path ):
-            return dataset_list
-        for file in os.listdir( path ):
-            if exists(join(path, file, validation_filename)):
-                dataset_list += [file]
-        return dataset_list
-
-    def walk_source_files(self):
-        """
-        Part of the File API
-        returns the list of files in "sources" directory
-        """
-        path = join(
-            self.config['general']['basedirectory'],
-            self.config['general']['source_file_directory']
-        )
-        if not exists( path ):
-            return []
-        return os.listdir( path )
-
-    def _get_sourcefile_path(self, filename):
-        """
-        Private method returning a source file path given its name
-        """
-        path = join(
-            self.config['general']['basedirectory'],
-            self.config['general']['source_file_directory'],
-            filename
-        )
-        if not exists( path ):
-            raise IOError("file named %s was not found in %s"%(
-                filename,
-                join(
-                    self.config['general']['basedirectory'],
-                    self.config['general']['source_file_directory'])
-                )
-            )
-            return None
-        return path
-
 
 
 class PytextminerApi(PytextminerFlowApi):
@@ -699,6 +584,7 @@ class PytextminerApi(PytextminerFlowApi):
     def index_archive(self, *arg, **kwargs):
         generator = super(PytextminerApi, self).index_archive(*arg, **kwargs)
         return self._eraseFlow( generator )
+
 
 def import_module(name):
     """returns a imported module given its string name"""
