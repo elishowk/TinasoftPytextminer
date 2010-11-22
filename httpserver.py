@@ -133,6 +133,7 @@ class CooperativeExecution(object):
         'alpha': float,
         'nodethreshold': list,
         'edgethreshold': list,
+        'exportedges': bool
     }
 
     def _method_wrapper(self, request, serializer, handler, method, logger):
