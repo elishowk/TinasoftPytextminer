@@ -223,7 +223,7 @@ class Exporter(basecsv.Exporter):
                     occs = newwl['edges']['NGram'][ngid]
                     if not occs >= minOccs: continue
                 if occs == 0:
-                    _logger.warning("NGram %s is neither a whitelisted NGrams nor a StopNGram"%ngid)
+                    _logger.warning("NGram %s is neither a whitelisted NGrams nor a StopNGram"%ng['label'])
                     continue
                 totalexported += 1
                 occsn = occs**len(ng['content'])
