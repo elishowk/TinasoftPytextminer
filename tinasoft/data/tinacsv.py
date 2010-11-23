@@ -47,10 +47,8 @@ class Importer (basecsv.Importer):
         parses a row to extract corpus meta-data
         updates corpus and corpora edges
         """
-        self.line = 0
         for doc in self:
             if doc is None: continue
-            self.line += 1
             tmpfields = dict(self.fields)
             # decoding & parsing TRY
             try:
@@ -59,7 +57,7 @@ class Importer (basecsv.Importer):
                 #if not isinstance( corpusID, unicode ) or not isinstance( corpusID, str ):
                 #    raise Exception("%s is not in string format"%corpusID)
             except Exception, exc:
-                _logger.error( "tinacsv error : corpus id missing at line %d"%self.line )
+                _logger.error( "tinacsv error : corpus id missing at line %d"%self.reader.line_num )
                 _logger.error( exc )
                 continue
             # TODO check if corpus already exists
@@ -90,7 +88,7 @@ class Importer (basecsv.Importer):
             #if not isinstance( docID, unicode ) or not isinstance( docID, str ):
             #    raise Exception("%s is not in string format"%docID)
         except Exception, exc:
-            _logger.error("error parsing document %s at line %d : skipping"%(docID,self.line))
+            _logger.error("error parsing document %s at line %d : skipping"%(docID,self.reader.line_num))
             _logger.error(exc)
             return None
         # parsing optional fields loop and TRY
@@ -98,7 +96,7 @@ class Importer (basecsv.Importer):
             try:
                 docArgs[ field ] = doc[ field ]
             except Exception, exc:
-                _logger.warning("missing a document's field %s at line %d"%(field,self.line))
+                _logger.warning("missing a document's field %s at line %d"%(field,self.reader.line_num))
 
         if 'dateField' in docArgs:
             datestamp = docArgs[ 'dateField' ]

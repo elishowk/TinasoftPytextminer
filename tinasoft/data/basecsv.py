@@ -47,14 +47,22 @@ class UnicodeDictReader(object):
         self.reader = csv.DictReader(f, fields, dialect=dialect, **kwds)
 
     def next(self):
-        row = self.reader.next()
-        unicoderow={}
-        for k,s in row.iteritems():
-            if type(s)==str:
-                unicoderow[k]= unicode(s, "utf-8", errors='replace')
-            else:
-                unicoderow[k]=s
-        return unicoderow
+        try:
+            row = self.reader.next()
+        except StopIteration, si:
+            raise StopIteration(si)
+        except Exception, ex:
+            _logger.error("basecsv reader error at line %d, reason : %s"%(self.reader.line_num, ex))
+            # returns None : child or using object should verify the returning value
+            return
+        else:
+            unicoderow={}
+            for k,s in row.iteritems():
+                if type(s)==str:
+                    unicoderow[k]= unicode(s, "utf-8", errors='replace')
+                else:
+                    unicoderow[k]=s
+            return unicoderow
 
     def __iter__(self):
         return self
@@ -127,14 +135,18 @@ class Exporter (Handler):
         writes a csv row to the file handler
         """
         line=[]
-        for cell in row:
-            if isinstance(cell, str) is True or isinstance(cell, unicode) is True:
-                line += ["".join([self.quotechar,cell.replace('"',"'"),self.quotechar])]
-            elif isinstance(cell, float) is True:
-                line += ["%.4f"%round(cell,4)]
-            else:
-                line += [str(cell)]
-        self.file.write( self.delimiter.join(line) + "\n" )
+        try:
+            for cell in row:
+                if isinstance(cell, str) is True or isinstance(cell, unicode) is True:
+                    line += ["".join([self.quotechar,cell.replace('"',"'"),self.quotechar])]
+                #elif isinstance(cell, float) is True:
+                #    line += ["%.4f"%round(cell,4)]
+                else:
+                    line += [str(cell)]
+
+            self.file.write( self.delimiter.join(line) + "\n" )
+        except Exception, ex:
+            _logger.error("error basecsv.Exporter : %s"%ex)
 
     def writeFile( self, columns, rows ):
         """

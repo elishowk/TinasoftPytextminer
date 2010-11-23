@@ -46,7 +46,7 @@ class PyTextMiner(object):
         if id is None:
             self.id = PyTextMiner.getId( content )
         else:
-            self.id = id
+            self.id = str(id)
         self.label = label
         self._loadEdges( edges )
         self._loadOptions( metas )

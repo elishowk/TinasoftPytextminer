@@ -44,7 +44,7 @@ class WhitelistFile():
     ]
     accept = "w"
     refuse = "s"
-    forms_separator = " _l_ "
+    forms_separator = " *** "
 
     def __init__(self):
         return
@@ -83,11 +83,12 @@ class Importer(basecsv.Importer):
         """Reads a whitelist file and returns the updated object"""
         stem = stemmer.Nltk()
         if self.whitelist is None: return False
-        linenum = 0
+
         for row in self:
-            linenum += 1
+            if row is None: continue
             try:
                 status = self._coerce_unicode( row[self.filemodel.columns[0][1]])
+                if status != self.filemodel.accept: continue
                 label = self._coerce_unicode( row[self.filemodel.columns[1][1]] )
                 occs = row[self.filemodel.columns[3][1]]
                 # gets forms tokens
@@ -95,10 +96,10 @@ class Importer(basecsv.Importer):
                 # prepares forms ID to add them to the whitelist edges
                 forms_id = [ngram.NGram.getNormId(tokens.split(" ")) for tokens in forms_tokens]
                 # prepares forms label to add the to NGram objects in the whitelist
-                forms_label = dict().fromkeys( [tokens for tokens in forms_tokens] , 1 )
+                forms_label = dict().fromkeys( [tokens for tokens in forms_tokens], 1 )
                 periods = self._coerce_unicode( row[self.filemodel.columns[11][1]] ).split(self.filemodel.forms_separator)
             except KeyError, keyexc:
-                _logger.error( "%s column (required) not found importing the whitelist at line %d, import failed"%(keyexc, linenum) )
+                _logger.error( "%s column (required) not found importing the whitelist at line %d, import failed"%(keyexc, self.reader.line_num) )
                 continue
             # instanciate a NGram object
             edges = { 'Document' : {}, 'Corpus' : {}, 'label': forms_label, 'postag' : {}}
