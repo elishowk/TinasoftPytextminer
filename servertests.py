@@ -89,12 +89,12 @@ class GenerateGraph(ServerTest):
             'periods': self.periods[0],
             'whitelistpath': self.extracted_whitelist,
             'outpath': 'test_graph',
-            #'ngramgraphconfig': {
-            #    'proximity': 'equivalenceIndex'
-            #},
-            #'documentgraphconfig': {
-            #    'proximity': 'logJaccard'
-            #}
+            'ngramgraphconfig': {
+                'proximity': sourcePath
+            },
+            'documentgraphconfig': {
+                'proximity': sourceFormat
+            }
         } )
         self.connection.request(
             'POST',
