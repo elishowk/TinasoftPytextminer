@@ -133,6 +133,7 @@ class CooperativeExecution(object):
         'alpha': float,
         'nodethreshold': list,
         'edgethreshold': list,
+        'exportedges': bool
     }
 
     def _method_wrapper(self, request, serializer, handler, method, logger):
@@ -210,10 +211,11 @@ class TinasoftServer(resource.Resource):
     Main Server class
     dynamically dispatching URL to a TinaServerResquest class
     """
-    def __init__(self, tinacallback, posthandler, gethandler):
+    def __init__(self, tinacallback, posthandler, gethandler, deletehandler):
         self.callback = tinacallback
         self.posthandler = posthandler
         self.gethandler = gethandler
+        self.deletehandler = deletehandler
         resource.Resource.__init__(self)
 
     def getChild(self, name, request):
@@ -223,6 +225,9 @@ class TinasoftServer(resource.Resource):
                 getattr(handler, name)
             elif request.method == 'GET':
                 handler = self.gethandler
+                getattr(handler, name)
+            elif request.method == 'DELETE':
+                handler = self.deletehandler
                 getattr(handler, name)
             else:
                 raise Exception()
@@ -235,7 +240,8 @@ class TinasoftServer(resource.Resource):
 
 def value_to_gen(func):
     """
-    forwards a generator
+    wrapper to be used for any method not returning a generator
+    transforms a value to a generator
     """
     def wrapper(*args, **kwargs):
         yield func(*args, **kwargs)
@@ -394,6 +400,17 @@ class GETHandler(object):
         fsync(self.logstream.fileno())
         return lines
 
+class DELETEHandler(object):
+    """
+    Pytextminer API mapping DELETE requests and Pytextminer API's methods
+    """
+    def __init__(self, pytmapi):
+        self.pytmapi = pytmapi
+
+    @value_to_gen
+    def dataset(self, dataset):
+        """ deletes all the dataset's file """
+        return self.pytmapi.delete_dataset(dataset)
 
 class NumpyFloatHandler(jsonpickle.handlers.BaseHandler):
     """
@@ -469,7 +486,8 @@ def run(confFile):
     pytmserver = TinasoftServer(
         Serializer(),
         POSTHandler(pytmapi),
-        GETHandler(pytmapi, stream)
+        GETHandler(pytmapi, stream),
+        DELETEHandler(pytmapi)
     )
     # the user generated files directory is served as-is
     pytmserver.putChild("user", File(pytmapi.user) )
