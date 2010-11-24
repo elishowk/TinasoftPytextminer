@@ -133,17 +133,21 @@ class TreeBankWordTokenizer(RegexpTokenizer):
             yield tagger.tag(nltk_treebank_tokenizer.tokenize(sent))
 
     @staticmethod
-    def extract(doc, stopwords, ngramMin, ngramMax, filters, tagger, stemmer):
+    def extract(doc, stopwords, config, filters, tagger, stemmer):
         """
         sanitizes content and label texts
         tokenizes it
         POS tags the tokens
         constructs the resulting NGram objects
         """
+        ngramMin = config['ngramMin']
+        ngramMax = config['ngramMax']
+        try:
+            customContent = " . ".join([ doc[field] for field in config['doc_extraction'] ])
+        except KeyError, ke:
+            _logger.error("bad field for document content extraction %s"%ke)
         sentenceTaggedTokens = TreeBankWordTokenizer.tokenize(
-            TreeBankWordTokenizer.sanitize(
-                doc['content'] +" . "+ doc['label']
-            ),
+            TreeBankWordTokenizer.sanitize(customContent),
             tagger
         )
         ngrams = {}

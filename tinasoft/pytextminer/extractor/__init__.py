@@ -48,8 +48,6 @@ class Extractor():
         if filters is not None:
             self.filters += filters
         self.stemmer = stemmer
-        # keep duplicate document objects
-        self.duplicate = []
         # params from the controler
         self.corpora = corpora
         self.storage = storage
@@ -104,8 +102,7 @@ class Extractor():
                 docngrams = tokenizer.TreeBankWordTokenizer.extract(
                     document,
                     self.stopwords,
-                    self.config['ngramMin'],
-                    self.config['ngramMax'],
+                    self.config,
                     self.filters,
                     self.tagger,
                     self.stemmer
@@ -135,9 +132,10 @@ class Extractor():
 
     def index_file(self, path, format, whitelist, overwrite=False):
         """given a white list, indexes a source file to storage"""
-        ### adds whitelist as an additional filter
+        # adds whitelist as an additional filter
         self.filters += [whitelist]
-        ### starts the parsing
+        self.duplicate = []
+        # starts the parsing
         fileGenerator = self._walkFile( path, format )
         doccount = 0
         try:
@@ -154,13 +152,12 @@ class Extractor():
                 docngrams = tokenizer.TreeBankWordTokenizer.extract(
                     document,
                     self.stopwords,
-                    self.config['ngramMin'],
-                    self.config['ngramMax'],
+                    self.config,
                     self.filters,
                     self.tagger,
                     self.stemmer
                 )
-                #### inserts/updates NGram and update document obj
+                # inserts/updates NGram and update document obj
                 self._insert_NGrams(docngrams, document, corpusNum, overwrite)
                 # creates or OVERWRITES document into storage
                 #del document['content']

@@ -110,7 +110,8 @@ class Importer(basecsv.Importer):
             # calculates db ID from the label, does not trust the file's db id
             for corpid in periods:
                 # increments all the Corpus edges
-                self.whitelist.addEdge( 'Corpus', str(corpid), 1 )
+                #self.whitelist.addEdge( 'Corpus', str(corpid), 1 )
+                self.whitelist.addEdge( 'Corpus', corpid, 1 )
                 #ng.addEdge( 'Corpus', str(corpid), 1)
                 # keeps a corpus object into whitelist object
                 if corpid not in self.whitelist['corpus']:

@@ -17,25 +17,22 @@ general:
     stopwords: 'stopwords/en.txt'
 # extraction settings
 datasets:
-    extract:
-        - 'doc_titl'
-        - 'doc_abst'
-    doc_label: 'doc_acrnm'
+    doc_extraction:
+        - 'content'
+        - 'title'
     # tina csv columns declaration
     # will ignore undeclared fields
     # and warn not found optional fields
     tinacsv:
         fields:
-            titleField: 'doc_titl'
-            contentField: 'doc_abst'
-            corpusField: 'corp_id'
-            docField: 'doc_id'
-            # next fields are optional
-            #authorField: 'doc_acrnm'
-            #index1Field: 'doc_index_1'
-            #index2Field: 'doc_index_2'
-            #dateField: 'doc_date'
-            keywordsField: 'doc_keywords'
+            # required fileds
+            doc_title: 'doc_titl'
+            doc_content: 'doc_abst'
+            corpus_id: 'corp_id'
+            doc_id: 'doc_id'
+            # optionnal fields
+            doc_short_title: 'doc_id'
+            #doc_author: 'doc_acrnm'
         # csv reader params
         #delimiter: ','
         #quotechar: '"'
@@ -45,10 +42,10 @@ datasets:
         period_size: 4
         encoding: 'ascii'
         fields:
-            titleField: 'TI'
-            contentField: 'AB'
-            corpusField: 'DP'
-            docField: 'PMID'
+            doc_title: 'TI'
+            doc_content: 'AB'
+            corpus_id: 'DP'
+            doc_id: 'PMID'
     # extraction size
     ngramMin: 1
     ngramMax: 4
@@ -56,7 +53,7 @@ datasets:
     training_tagger_size: 8000
     # under "basedirectory" directory, delete this file to regenerate a new one on next starting
     tagger: 'shared/tagger.pickle'
-    postag_valid: '^((VB,|VBD,|VBG,|VBN,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?((PREP.?|DET.?,|IN.?,|CC.?,|\?,)((VB,|VBD,|VBG,|VBN,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?)*?$'
+    postag_valid: '^((VB,|VBD,|VBG,|VBN,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,)(CD.,)?)+?((PREP.?|DET.?,|IN.?,|CC.?,|\?,)((VB,|VBD,|VBG,|VBN,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?)*?$'
     #postag_valid: '^((VB.?,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?((PREP.?|DET.?,|IN.?,|CC.?,|\?,)((VB.?,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?)*?$'
     #postag_valid: '^((VB.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?((IN.?,|CC.?,|\?,)((VB.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?)*?$'
 datamining:

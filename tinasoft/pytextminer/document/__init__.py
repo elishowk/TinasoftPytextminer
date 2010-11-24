@@ -11,31 +11,11 @@ class Document(PyTextMiner):
             self,
             content,
             id,
-            title,
+            label,
             edges=None,
-            datestamp=None,
-            author=None,
-            ngramMin=1,
-            ngramMax=3,
-            forbChars="[^a-zA-Z\s\@ÂÆÇÈÉÊÎÛÙàâæçèéêîĨôÔùûü\,\.\;\:\!\?\"\'\[\]\{\}\(\)\<\>]",
-            ngramSep= u"[\s]+",
-            ngramEmpty = " ",
             **metas
         ):
-
-        PyTextMiner.__init__(self, content, id, title, edges, **metas)
-        self.date = datestamp
-        self.author = author
-        # these are tokenization paramaters
-        self.ngramMin = ngramMin
-        self.ngramMax = ngramMax
-        self.forbChars = forbChars
-        self.ngramSep = ngramSep
-        self.ngramEmpty = ngramEmpty
-
-    #def getDate(self):
-    #    if self.date is not None:
-    #        return self.date.split('/')
+        PyTextMiner.__init__(self, content, id, label, edges, **metas)
 
     def addEdge(self, type, key, value):
         if type in ["NGram","Corpus"]:
