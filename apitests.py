@@ -27,14 +27,12 @@ from tinasoft import PytextminerApi
 class PytextminerApiTest(unittest.TestCase):
 
     def setUp(self):
-
         self.tinasoft = tinasoftSingleton
         self.datasetId = "test_data_set"
         self.periods = ['Batch_09']
         self.path = sourcePath
         self.format = sourceFormat
         self.extracted_whitelist = '%s-test_whitelist-extract_file.csv'%datetime.now().strftime("%Y%m%d")
-
 
 class ExtractFile(PytextminerApiTest):
 
@@ -92,10 +90,23 @@ class GenerateGraph(PytextminerApiTest):
 
 class IndexArchive(PytextminerApiTest):
     def runTest(self):
-        """IndexArchive : process cooccurences on an archive datatype (see tinasoft/data/*archive.py)"""
+        """
+        IndexArchive : process cooccurences on an archive datatype (see tinasoft/data/*archive.py)
+        example :
+        python apitests.py IndexArchive config_unix.yaml directory_name_of_archive_in_source_files medlinearchive
+        """
+        def getAllSubdirectories(source_dir):
+            from glob import glob
+            from os.path import join
+            allP=glob(join('source_files',source_dir,'*'))
+            filtered = [p.split("/")[-1] for p in allP]
+            return filtered
+
+        #print getAllSubdirectories(self.path)
         print self.tinasoft.index_archive(
                 self.path,
                 self.datasetId,
+                #getAllSubdirectories(self.path),
                 ["Pubmed_2003[dp]"],
                 self.extracted_whitelist,
                 self.format,
@@ -109,10 +120,8 @@ class ExportCoocMatrix(PytextminerApiTest):
         """testF_ExportCoocMatrix"""
         print self.tinasoft.export_cooc(self.datasetId, "Pubmed_2003[dp]")
 
-
 def usage():
-    print "USAGE : python apitests.py TestClass configuration_file_path \
-        source_filename file_format"
+    print "USAGE : python apitests.py TestClass configuration_file_path source_filename file_format"
 
 if __name__ == '__main__':
     print sys.argv
