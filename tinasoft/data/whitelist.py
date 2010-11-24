@@ -70,7 +70,7 @@ class Importer(basecsv.Importer):
 
     def _coerce_unicode(self, cell):
         """
-        checks a read value and eventually convert to type
+        checks a value and eventually convert to type
         """
         if type(cell) == int or type(cell) == float:
             cell = str(cell)
@@ -87,12 +87,12 @@ class Importer(basecsv.Importer):
         for row in self:
             if row is None: continue
             try:
-                status = self._coerce_unicode( row[self.filemodel.columns[0][1]])
+                status = self._coerce_unicode( row[self.filemodel.columns[0][1]] )
                 if status != self.filemodel.accept: continue
                 label = self._coerce_unicode( row[self.filemodel.columns[1][1]] )
                 occs = row[self.filemodel.columns[3][1]]
                 # gets forms tokens
-                forms_tokens = self._coerce_unicode( row[self.filemodel.columns[4][1]] ).split(self.filemodel.forms_separator)
+                forms_tokens = self._coerce_unicode( row[self.filemodel.columns[4][1]] ).split( self.filemodel.forms_separator )
                 # prepares forms ID to add them to the whitelist edges
                 forms_id = [ngram.NGram.getNormId(tokens.split(" ")) for tokens in forms_tokens]
                 # prepares forms label to add the to NGram objects in the whitelist

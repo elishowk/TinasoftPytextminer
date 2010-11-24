@@ -17,6 +17,10 @@ general:
     stopwords: 'stopwords/en.txt'
 # extraction settings
 datasets:
+    extract:
+        - 'doc_titl'
+        - 'doc_abst'
+    doc_label: 'doc_acrnm'
     # tina csv columns declaration
     # will ignore undeclared fields
     # and warn not found optional fields
@@ -40,16 +44,21 @@ datasets:
     medline:
         period_size: 4
         encoding: 'ascii'
+        fields:
+            titleField: 'TI'
+            contentField: 'AB'
+            corpusField: 'DP'
+            docField: 'PMID'
     # extraction size
     ngramMin: 1
     ngramMax: 4
     # tagger learning on 2 x training_tagger_size sentences of tagged nltk corpus
     training_tagger_size: 8000
-    #stemmer: 'WordNetLemmatizer'
     # under "basedirectory" directory, delete this file to regenerate a new one on next starting
     tagger: 'shared/tagger.pickle'
-    postag_valid: '^((VB.?,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?((PREP.?|DET.?,|IN.?,|CC.?,|\?,)((VB.?,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?)*?$'
-    #postag_valid: '^((VB.?,|JJ.?,|\?,){0,2}?(NN.?,|\?,))+?((IN.?,|CC.?,|\?,)((VB.?,|JJ.?,|\?,){0,2}?(NN.?,|\?,))+?)*?$'
+    postag_valid: '^((VB,|VBD,|VBG,|VBN,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?((PREP.?|DET.?,|IN.?,|CC.?,|\?,)((VB,|VBD,|VBG,|VBN,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?)*?$'
+    #postag_valid: '^((VB.?,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?((PREP.?|DET.?,|IN.?,|CC.?,|\?,)((VB.?,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?)*?$'
+    #postag_valid: '^((VB.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?((IN.?,|CC.?,|\?,)((VB.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?)*?$'
 datamining:
     template: 'shared/gexf/gexf.default.template'
     # default values if no params are passed to gexf exporter

@@ -30,7 +30,7 @@ class PytextminerApiTest(unittest.TestCase):
 
         self.tinasoft = tinasoftSingleton
         self.datasetId = "test_data_set"
-        self.periods = ['1', 'pubmed1', '2', 'FET', 'Batch_10']
+        self.periods = ['Batch_09']
         self.path = sourcePath
         self.format = sourceFormat
         self.extracted_whitelist = '%s-test_whitelist-extract_file.csv'%datetime.now().strftime("%Y%m%d")
@@ -73,18 +73,18 @@ class GenerateGraph(PytextminerApiTest):
         print self.tinasoft.generate_graph(
             self.datasetId,
             self.periods,
-            whitelistpath=self.extracted_whitelist,
-            outpath='test_graph',
+            whitelistpath = self.extracted_whitelist,
+            outpath = 'test_graph',
             ngramgraphconfig={
             #    'edgethreshold': [1.0,'inf'],
             #    'nodethreshold': [1,'inf'],
             #    'alpha': 0.1,
-                'proximity': 'equivalenceIndex'
+                'proximity': sourcePath
             },
             documentgraphconfig={
             #    'edgethreshold': [1.0,'inf'],
             #    'nodethreshold': [1,'inf'],
-                'proximity': 'logJaccard'
+                'proximity': sourceFormat
             },
             exportedges=True
         )
