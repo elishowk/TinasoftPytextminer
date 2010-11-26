@@ -469,7 +469,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             exporter = Writer("coocmatrix://"+outpath)
         else:
             exporter = None
-        archive = Reader( format + "://" + path )
+        archive = Reader( format + "://" + path, **self.config['datasets'] )
         archive_walker = archive.walkArchive(periods)
         try:
             period_gen, period = archive_walker.next()

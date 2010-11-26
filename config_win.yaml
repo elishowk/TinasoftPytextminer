@@ -17,10 +17,14 @@ general:
     stopwords: 'stopwords\en.txt'
 # extraction settings
 datasets:
+    extract:
+        - 'titleField'
+        - 'contentField'
     # tina csv columns declaration
     # will ignore undeclared fields
     # and warn not found optional fields
     tinacsv:
+        doc_label: 'docField'
         fields:
             titleField: 'doc_titl'
             contentField: 'doc_abst'
@@ -37,9 +41,24 @@ datasets:
         #quotechar: '"'
         encoding: 'utf-8'
         dialect: 'excel'
+    # pubmed.gov "medline" file export
+    # same behaviour as tinacsv
+    # period_size = number first characters of pub date field "corpusField"
     medline:
+        doc_label: 'titleField'
         period_size: 4
         encoding: 'ascii'
+        fields:
+            titleField: 'TI'
+            contentField: 'AB'
+            corpusField: 'DP'
+            docField: 'PMID'
+    # archive of pubmed.gov "medline" files, organized like this
+    # Medline/
+    #    period1/period1.txt
+    #    period2/period2.txt
+    #medlinearchive:
+        # nothing yet
     # extraction params
     ngramMin: 1
     ngramMax: 4
@@ -52,6 +71,7 @@ datasets:
     #postag_valid: '^((VB.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?((IN.?,|CC.?,|\?,)((VB.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?)*?$'
 datamining:
     template: 'shared\gexf\gexf.default.template'
+    # default values if no params are passed to gexf exporter
     DocumentGraph:
         edgethreshold:
             - 0.0001

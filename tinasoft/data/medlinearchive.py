@@ -27,8 +27,10 @@ class Importer(Handler):
     """
     Medline archive handler
     """
-    def __init__(self, path, **options):
-        self.loadOptions(options)
+    def __init__(self, path, **config):
+        if 'medlinearchive' in config:
+            self.loadOptions(config['medlinearchive'])
+        self.fileconfig = config['medline']
         self.path = path
 
     def walkArchive(self, periods):
@@ -38,6 +40,6 @@ class Importer(Handler):
         """
         for id in periods:
             abstractFilePath = join(self.path, id, id + '.txt')
-            reader = medline.Importer( abstractFilePath )
+            reader = medline.Importer( abstractFilePath, **self.fileconfig )
             reader_gen = reader.parseFile()
             yield reader_gen, id

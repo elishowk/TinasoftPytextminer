@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
 #  Copyright (C) 2009-2011 CREA Lab, CNRS/Ecole Polytechnique UMR 7656 (Fr)
 #
 #  This program is free software: you can redistribute it and/or modify
@@ -179,9 +177,9 @@ class Importer(Importer):
         self.line_num = 0
 
     def parsePeriod(self, record):
-        if 'DP' not in record:
+        if self.fields['corpusField'] not in record:
             return None
-        return str(record['DP'][:self.period_size])
+        return str( record[self.fields['corpusField']][ : self.period_size] )
 
     def get_record(self):
         # These keys point to string values
@@ -247,15 +245,17 @@ class Importer(Importer):
         recordGenerator = self.get_record()
         countRecords = 0
         countSkipped = 0
+        print self.doc_label
         try:
             while 1:
+                tmpfields = dict(self.fields)
                 record = recordGenerator.next()
                 corpusid = self.parsePeriod(record)
                 if corpusid is not None:
                     if corpusid not in self.corpusDict:
                         # creates a new corpus and adds it to the global dict
                         self.corpusDict[ corpusid ] = corpus.Corpus( corpusid )
-                    newdoc = self.parseDocument( record, corpusid )
+                    newdoc = self.parseDocument( record, corpusid, tmpfields )
                     if newdoc is not None:
                         countRecords+=1;
                         yield newdoc, corpusid
@@ -268,19 +268,29 @@ class Importer(Importer):
             return
 
 
-    def parseDocument(self, record, corpusid):
+    def parseDocument(self, record, corpusid, tmpfields):
         try:
-            content = "%s . %s"%(record['AB'],record['TI'])
-            title = record['TI']
-            pubdate = record['DP']
-            docid = record['PMID']
-            del record['PMID']
-            del record['DP']
-            del record['TI']
-            del record['AB']
+            content = record[tmpfields['contentField']]
+            title = record[ tmpfields[self.doc_label] ]
+            docid = record[tmpfields['docField']]
+            del record[tmpfields['docField']]
+            del record[ tmpfields[self.doc_label] ]
+            del record[tmpfields['contentField']]
+            del tmpfields['contentField']
+            del tmpfields['docField']
+            del tmpfields[self.doc_label]
         except KeyError, ke:
             _logger.error( "medline : skipping incomplete document, missing %s"%ke )
             return None
+        # parsing optional fields loop and TRY
+        docOpt = {}
+        for field in tmpfields.itervalues():
+            try:
+                docOpt[ field ] = record[ field ]
+                del record[ field ]
+            except Exception, exc:
+                _logger.warning("missing an optional field %s at line %d"%(field,self.line_num))
+        record.update(docOpt)
         # document instance
         newdoc = document.Document(
             content,
