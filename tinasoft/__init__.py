@@ -343,6 +343,8 @@ class PytextminerFlowApi(PytextminerFileApi):
         ngram_index = set([])
         doc_index = set([])
 
+        if type(periods) == 'str':
+            periods = [periods]
         # checks periods and construct nodes' indices
         for period in periods:
             corpus = self.storage.loadCorpus( period )
@@ -361,7 +363,7 @@ class PytextminerFlowApi(PytextminerFileApi):
         doc_index.sort()
         ngram_index = list(ngram_index)
         ngram_index.sort()
-
+        print doc_index
         # updates default config with parameters
         self.config['datamining']['NGramGraph'].update(ngramgraphconfig)
         self.config['datamining']['DocumentGraph'].update(documentgraphconfig)
@@ -464,7 +466,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             outpath = self._get_user_filepath(
                 dataset,
                 'cooccurrences',
-                "%s_%s-index_archive.csv"%("+".join(periods),whitelist['label'])
+                "%s-index_archive.csv"%(whitelist['label'])
             )
             exporter = Writer("coocmatrix://"+outpath)
         else:
@@ -538,8 +540,14 @@ class PytextminerFlowApi(PytextminerFileApi):
             self.logger.debug("loading whitelist %s from storage"%whitelist_id)
             new_wl = whitelist.Whitelist( whitelist_id, whitelist_id )
             new_wl = whitelistdata.load_from_storage(new_wl, dataset, periods, userstopwords)
+        elif exists(whitelistpath):
+            whitelist_id = dataset
+            self.logger.debug("loading whitelist from %s (%s)"%(whitelistpath, whitelist_id))
+            wlimport = Reader('whitelist://'+whitelistpath, **kwargs)
+            wlimport.whitelist = whitelist.Whitelist( whitelist_id, whitelist_id )
+            new_wl = wlimport.parse_file()
         else:
-            raise Exception("unable to load a whitelist")
+            raise Exception("unable to find a whitelist at %s"%whitelistpath)
             return None
         # TODO stores the whitelist ?
         return new_wl
