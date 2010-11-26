@@ -245,7 +245,6 @@ class Importer(Importer):
         recordGenerator = self.get_record()
         countRecords = 0
         countSkipped = 0
-        print self.doc_label
         try:
             while 1:
                 tmpfields = dict(self.fields)
