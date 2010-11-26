@@ -176,6 +176,7 @@ class Importer(Importer):
         self.loadOptions(options)
         self.path = path
         self.file = self.open(path)
+        self.line_num = 0
 
     def parsePeriod(self, record):
         if 'DP' not in record:
@@ -189,9 +190,11 @@ class Importer(Importer):
                     "STAT", "DCOM", "PUBM", "DEP", "PL", "JID", "SB", "PMC",
                     "EDAT", "MHDA", "PST", "AB", "AD", "EA", "TI", "JT")
         handle = iter(self.file)
+        self.line_num = 0
          # Skip blank lines at the beginning
         try:
             for line in handle:
+                self.line_num+=1;
                 line = line.rstrip()
                 if line:
                     break
@@ -215,10 +218,11 @@ class Importer(Importer):
             try:
                 # next line
                 line = handle.next()
+                self.line_num+=1;
             except StopIteration, si:
                 return
             except Exception, exc:
-                _logger.error("medline error reading line : %s"%exc)
+                _logger.error("medline error reading line %d : %s"%(self.line_num, exc))
                 continue
             else:
                 # cleans line and jump to next iteration
@@ -241,6 +245,8 @@ class Importer(Importer):
 
         """
         recordGenerator = self.get_record()
+        countRecords = 0
+        countSkipped = 0
         try:
             while 1:
                 record = recordGenerator.next()
@@ -251,21 +257,27 @@ class Importer(Importer):
                         self.corpusDict[ corpusid ] = corpus.Corpus( corpusid )
                     newdoc = self.parseDocument( record, corpusid )
                     if newdoc is not None:
+                        countRecords+=1;
                         yield newdoc, corpusid
+                    else:
+                        countSkipped+=1
+                        _logger.error( "medline : skipping incomplete document at line %d"%self.line_num )
         except StopIteration:
+            _logger.debug( "finished parsing %d pubmed articles"%countRecords )
+            _logger.debug( "skipped %d pubmed articles"%countSkipped )
             return
 
 
-    def parseDocument(self, model, corpusid):
+    def parseDocument(self, record, corpusid):
         try:
-            content = "%s . %s"%(model['AB'],model['TI'])
-            title = model['TI']
-            pubdate = model['DP']
-            docid = model['PMID']
-            del model['PMID']
-            del model['DP']
-            del model['TI']
-            del model['AB']
+            content = "%s . %s"%(record['AB'],record['TI'])
+            title = record['TI']
+            pubdate = record['DP']
+            docid = record['PMID']
+            del record['PMID']
+            del record['DP']
+            del record['TI']
+            del record['AB']
         except KeyError, ke:
             _logger.error( "medline : skipping incomplete document, missing %s"%ke )
             return None
@@ -274,8 +286,7 @@ class Importer(Importer):
             content,
             docid,
             title,
-            datestamp = pubdate,
-            **model
+            **record
         )
         return newdoc
 

@@ -518,6 +518,7 @@ class PytextminerFlowApi(PytextminerFileApi):
     def _import_whitelist(
             self,
             whitelistpath,
+            dataset = None,
             userstopwords = None,
             **kwargs
         ):
@@ -527,16 +528,19 @@ class PytextminerFlowApi(PytextminerFileApi):
         """
         whitelist_id = self._get_filepath_id(whitelistpath)
         if whitelist_id is not None:
-            # whitelist_path EXIST
+            # whitelistpath EXISTS
             self.logger.debug("loading whitelist from %s (%s)"%(whitelistpath, whitelist_id))
             wlimport = Reader('whitelist://'+whitelistpath, **kwargs)
             wlimport.whitelist = whitelist.Whitelist( whitelist_id, whitelist_id )
             new_wl = wlimport.parse_file()
-        else:
-            # whitelist_id is a whitelist label into storage
+        elif dataset is not None:
+            # whitelistpath is a whitelist label into storage
             self.logger.debug("loading whitelist %s from storage"%whitelist_id)
             new_wl = whitelist.Whitelist( whitelist_id, whitelist_id )
             new_wl = whitelistdata.load_from_storage(new_wl, dataset, periods, userstopwords)
+        else:
+            raise Exception("unable to load a whitelist")
+            return None
         # TODO stores the whitelist ?
         return new_wl
 
