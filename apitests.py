@@ -107,7 +107,7 @@ class IndexArchive(PytextminerApiTest):
                 self.path,
                 self.datasetId,
                 #getAllSubdirectories(self.path),
-                ["Pubmed_2003[dp]"],
+                ["Pubmed_2006[dp]"],
                 self.extracted_whitelist,
                 self.format,
                 outpath=True,
@@ -121,7 +121,11 @@ class ExportCoocMatrix(PytextminerApiTest):
         print self.tinasoft.export_cooc(self.datasetId, "Pubmed_2003[dp]")
 
 def usage():
-    print "USAGE : python apitests.py TestClass configuration_file_path source_filename file_format"
+    print " apitests.py USAGE :\n"
+    print " python apitests.py ExtractFile configuration_file_path source_filename file_format\n"
+    print " python apitests.py IndexFile configuration_file_path source_filename file_format\n"
+    print " python apitests.py GenerateGraph configuration_file_path ngram_proximity_name document_proximity_name\n"
+    print " python apitests.py IndexArchive configuration_file_path archive_directory_name archive_format_name\n"
 
 if __name__ == '__main__':
     print sys.argv

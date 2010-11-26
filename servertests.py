@@ -105,7 +105,12 @@ class GenerateGraph(ServerTest):
         print self.connection.getresponse().read()
 
 def usage():
-    print "USAGE : python servertests.py TestClass source_filename file_format"
+    print " servertests.py USAGE :\n"
+    print " first, launch the server : python httpserver.py configuration_file_path \n"
+    print " python servertests.py ExtractFile source_filename file_format\n"
+    print " python servertests.py IndexFile source_filename file_format\n"
+    print " python servertests.py GenerateGraph ngram_proximity_name document_proximity_name\n"
+
 
 if __name__ == '__main__':
     print sys.argv
