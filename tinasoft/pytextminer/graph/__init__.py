@@ -380,9 +380,9 @@ class SubGraph(object):
         """
         totaldocs = len(self.corpus['edges']['Document'].keys())
         doccount = 0
-        sorted = self.corpus['edges']['Document'].keys()
-        sorted.sort()
-        for doc_id in sorted:
+        sortednodes = self.corpus['edges']['Document'].keys()
+        sortednodes.sort()
+        for doc_id in sortednodes:
             obj = self.storage.loadDocument( doc_id )
             if obj is not None:
                 yield obj
