@@ -29,10 +29,11 @@ class PytextminerApiTest(unittest.TestCase):
     def setUp(self):
         self.tinasoft = tinasoftSingleton
         self.datasetId = argument3
-        self.periods = ['1', 'FET']
+        self.period = argument5
         self.whitelist = argument4
         self.argument1 = argument1
         self.argument2 = argument2
+
 
 class ExtractFile(PytextminerApiTest):
 
@@ -70,19 +71,19 @@ class GenerateGraph(PytextminerApiTest):
         """ExportGraph : processes a graph, and exports a gexf graph,"""
         print self.tinasoft.generate_graph(
             self.datasetId,
-            self.periods,
+            self.period,
             whitelistpath = self.whitelist,
             outpath = 'test_graph',
             ngramgraphconfig={
             #    'edgethreshold': [1.0,'inf'],
             #    'nodethreshold': [1,'inf'],
             #    'alpha': 0.1,
-                'proximity': argument1
+                'proximity': self.argument1
             },
             documentgraphconfig={
             #    'edgethreshold': [1.0,'inf'],
             #    'nodethreshold': [1,'inf'],
-                'proximity': argument2
+                'proximity': self.argument2
             },
             exportedges=True
         )
@@ -91,9 +92,7 @@ class GenerateGraph(PytextminerApiTest):
 class IndexArchive(PytextminerApiTest):
     def runTest(self):
         """
-        IndexArchive : process cooccurences on an archive datatype (see tinasoft/data/*archive.py)
-        example :
-        python apitests.py IndexArchive config_unix.yaml directory_name_of_archive_in_source_files medlinearchive
+        IndexArchive : process cooccurences on an archive data type (see tinasoft/data/*archive.py)
         """
         def getAllSubdirectories(source_dir):
             from glob import glob
@@ -102,12 +101,17 @@ class IndexArchive(PytextminerApiTest):
             filtered = [p.split("/")[-1] for p in allP]
             return filtered
 
-        #print getAllSubdirectories(self.path)
+        if self.period == "all":
+            self.period = getAllSubdirectories(self.argument1)
+        else:
+            self.period = [self.period]
+
+        print self.period
+
         print self.tinasoft.index_archive(
                 self.argument1,
                 self.datasetId,
-                #getAllSubdirectories(self.path),
-                ["Pubmed_2006[dp]"],
+                self.period,
                 self.whitelist,
                 self.argument2,
                 outpath=True,
@@ -124,8 +128,8 @@ def usage():
     print " apitests.py USAGE :\n"
     print " python apitests.py ExtractFile configuration_file_path source_filename source_file_format dataset_name whitelist_out_path\n"
     print " python apitests.py IndexFile configuration_file_path source_filename source_file_format dataset_name whitelist_path\n"
-    print " python apitests.py GenerateGraph configuration_file_path ngram_proximity_name document_proximity_name dataset_name whitelist_path\n"
-    print " python apitests.py IndexArchive configuration_file_path source_filename source_file_format dataset_name whitelist_path\n"
+    print " python apitests.py GenerateGraph configuration_file_path ngram_proximity_name document_proximity_name dataset_name whitelist_path period\n"
+    print " python apitests.py IndexArchive configuration_file_path source_filename source_file_format dataset_name whitelist_path period\n"
 
 if __name__ == '__main__':
     print sys.argv
@@ -133,13 +137,32 @@ if __name__ == '__main__':
     argument2 = None
     argument3 = None
     argument4 = None
-    if sys.argv[1] == 'ExtractFile' or sys.argv[1] == 'IndexFile' or sys.argv[1] == 'GenerateGraph' or sys.argv[1] == 'IndexArchive':
+    argument5 = None
+    try:
+        testclass = sys.argv[1]
+        confFile = sys.argv[2]
+    except Exception, e:
+        print e
+        usage()
+        exit()
+    if testclass in ['ExtractFile','IndexFile']:
         try:
-            confFile = sys.argv[2]
             argument1 = sys.argv[3]
             argument2 = sys.argv[4]
             argument3 = sys.argv[5]
             argument4 = sys.argv[6]
+            del sys.argv[2:]
+        except Exception, e:
+            print e
+            usage()
+            exit()
+    if testclass in ['GenerateGraph','IndexArchive']:
+        try:
+            argument1 = sys.argv[3]
+            argument2 = sys.argv[4]
+            argument3 = sys.argv[5]
+            argument4 = sys.argv[6]
+            argument5 = sys.argv[7]
             del sys.argv[2:]
         except Exception, e:
             print e
