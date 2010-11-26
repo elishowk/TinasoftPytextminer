@@ -28,24 +28,24 @@ class PytextminerApiTest(unittest.TestCase):
 
     def setUp(self):
         self.tinasoft = tinasoftSingleton
-        self.datasetId = "test_data_set"
-        self.periods = ['Batch_09']
-        self.path = sourcePath
-        self.format = sourceFormat
-        self.extracted_whitelist = '%s-test_whitelist-extract_file.csv'%datetime.now().strftime("%Y%m%d")
+        self.datasetId = argument3
+        self.periods = ['1', 'FET']
+        self.whitelist = argument4
+        self.argument1 = argument1
+        self.argument2 = argument2
 
 class ExtractFile(PytextminerApiTest):
 
     def runTest(self):
         """ExtractFile : extract a source file's word vectors"""
         print self.tinasoft.extract_file(
-                self.path,
+                self.argument1,
                 self.datasetId,
-                outpath=self.extracted_whitelist,
-                format=self.format,
+                outpath=self.whitelist,
+                format=self.argument2,
                 minoccs=1,
         )
-        self.failIfEqual(self.extracted_whitelist, PytextminerApi.STATUS_ERROR)
+        self.failIfEqual(self.whitelist, PytextminerApi.STATUS_ERROR)
 
 
 class IndexFile(PytextminerApiTest):
@@ -56,10 +56,10 @@ class IndexFile(PytextminerApiTest):
          and its network in the db
         """
         self.failIfEqual(self.tinasoft.index_file(
-                self.path,
+                self.argument1,
                 self.datasetId,
-                self.extracted_whitelist,
-                format=self.format,
+                self.whitelist,
+                format=self.argument2,
                 overwrite=False
             ), PytextminerApi.STATUS_ERROR
         )
@@ -71,18 +71,18 @@ class GenerateGraph(PytextminerApiTest):
         print self.tinasoft.generate_graph(
             self.datasetId,
             self.periods,
-            whitelistpath = self.extracted_whitelist,
+            whitelistpath = self.whitelist,
             outpath = 'test_graph',
             ngramgraphconfig={
             #    'edgethreshold': [1.0,'inf'],
             #    'nodethreshold': [1,'inf'],
             #    'alpha': 0.1,
-                'proximity': sourcePath
+                'proximity': argument1
             },
             documentgraphconfig={
             #    'edgethreshold': [1.0,'inf'],
             #    'nodethreshold': [1,'inf'],
-                'proximity': sourceFormat
+                'proximity': argument2
             },
             exportedges=True
         )
@@ -104,12 +104,12 @@ class IndexArchive(PytextminerApiTest):
 
         #print getAllSubdirectories(self.path)
         print self.tinasoft.index_archive(
-                self.path,
+                self.argument1,
                 self.datasetId,
                 #getAllSubdirectories(self.path),
                 ["Pubmed_2006[dp]"],
-                self.extracted_whitelist,
-                self.format,
+                self.whitelist,
+                self.argument2,
                 outpath=True,
                 minCooc=10
             )
@@ -122,21 +122,29 @@ class ExportCoocMatrix(PytextminerApiTest):
 
 def usage():
     print " apitests.py USAGE :\n"
-    print " python apitests.py ExtractFile configuration_file_path source_filename file_format\n"
-    print " python apitests.py IndexFile configuration_file_path source_filename file_format\n"
-    print " python apitests.py GenerateGraph configuration_file_path ngram_proximity_name document_proximity_name\n"
-    print " python apitests.py IndexArchive configuration_file_path archive_directory_name archive_format_name\n"
+    print " python apitests.py ExtractFile configuration_file_path source_filename source_file_format dataset_name whitelist_out_path\n"
+    print " python apitests.py IndexFile configuration_file_path source_filename source_file_format dataset_name whitelist_path\n"
+    print " python apitests.py GenerateGraph configuration_file_path ngram_proximity_name document_proximity_name dataset_name whitelist_path\n"
+    print " python apitests.py IndexArchive configuration_file_path source_filename source_file_format dataset_name whitelist_path\n"
 
 if __name__ == '__main__':
     print sys.argv
-    try:
-        confFile = sys.argv[2]
-        sourcePath = sys.argv[3]
-        sourceFormat = sys.argv[4]
-        del sys.argv[2:]
-    except:
-        usage()
-        exit()
-    else:
-        tinasoftSingleton = PytextminerApi(confFile)
+    argument1 = None
+    argument2 = None
+    argument3 = None
+    argument4 = None
+    if sys.argv[1] == 'ExtractFile' or sys.argv[1] == 'IndexFile' or sys.argv[1] == 'GenerateGraph' or sys.argv[1] == 'IndexArchive':
+        try:
+            confFile = sys.argv[2]
+            argument1 = sys.argv[3]
+            argument2 = sys.argv[4]
+            argument3 = sys.argv[5]
+            argument4 = sys.argv[6]
+            del sys.argv[2:]
+        except Exception, e:
+            print e
+            usage()
+            exit()
+
+    tinasoftSingleton = PytextminerApi(confFile)
     unittest.main()
