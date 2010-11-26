@@ -445,7 +445,7 @@ class Serializer(object):
         """
         Decoder for the host's application messages
         """
-        return jsonpickle.encode(serialized)
+        return jsonpickle.decode(serialized)
 
     def success(self, response):
         """
