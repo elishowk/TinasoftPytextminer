@@ -24,6 +24,7 @@ from datetime import datetime
 import httplib
 import urllib
 httplib.HTTPConnection.debuglevel = 1
+import jsonpickle
 
 class ServerTest(unittest.TestCase):
     def setUp(self):
@@ -32,21 +33,21 @@ class ServerTest(unittest.TestCase):
             "Accept": "application/json"
         }
         self.connection = httplib.HTTPConnection("localhost", 8888)
-        self.datasetId = "test_data_set"
-        self.periods = ['1', 'FET']
-        self.path = sourcePath
-        self.format = sourceFormat
-        self.extracted_whitelist = '%s-test_whitelist-extract_file.csv'%datetime.now().strftime("%Y%m%d")
+        self.datasetId = argument3
+        self.period = argument5
+        self.argument1 = argument1
+        self.argument2 = argument2
+        self.whitelist = argument4
 
 
 class ExtractFile(ServerTest):
     def runTest(self):
         """ExtractFile : extract a source file's word vectors"""
         params = urllib.urlencode( {
-            'path': self.path,
+            'path': self.argument1,
             'dataset': self.datasetId,
-            'outpath': self.extracted_whitelist,
-            'format': self.format,
+            'outpath': self.whitelist,
+            'format': self.argument2,
             'minoccs': 1
         } )
         self.connection.request(
@@ -65,10 +66,10 @@ class IndexFile(ServerTest):
          and its network in the db
         """
         params = urllib.urlencode( {
-            'path': self.path,
+            'path': self.argument1,
             'dataset': self.datasetId,
-            'whitelistpath': self.extracted_whitelist,
-            'format': self.format,
+            'whitelistpath': self.whitelist,
+            'format': self.argument2,
             'overwrite': False
         } )
         self.connection.request(
@@ -80,20 +81,19 @@ class IndexFile(ServerTest):
         print self.connection.getresponse().read()
 
 
-
 class GenerateGraph(ServerTest):
     def runTest(self):
         """ExportGraph : processes a graph, and exports a gexf graph,"""
         params =  urllib.urlencode({
             'dataset': self.datasetId,
-            'periods': self.periods[0],
-            'whitelistpath': self.extracted_whitelist,
+            'periods': self.period,
+            'whitelistpath': self.whitelist,
             'outpath': 'test_graph',
             'ngramgraphconfig': {
-                'proximity': sourcePath
+                'proximity': self.argument1
             },
             'documentgraphconfig': {
-                'proximity': sourceFormat
+                'proximity': self.argument2
             }
         } )
         self.connection.request(
@@ -104,21 +104,104 @@ class GenerateGraph(ServerTest):
         )
         print self.connection.getresponse().read()
 
+
+class GetNodes(ServerTest):
+    def runTest(self):
+        """GetNodes : gets nodes from database after having generated a graph"""
+        params =  urllib.urlencode({
+            'dataset': self.datasetId,
+            'id': self.period
+        })
+        self.connection.request(
+            'GET',
+            '/corpus',
+            body = params,
+            headers = self.headers
+        )
+        data = self.connection.getresponse().read()
+        print "DATA = %s"%data
+        corpus = jsonpickle.decode( data )
+        print corpus
+        for ngid in corpus['edges']['NGram'].iterkeys():
+            params =  urllib.urlencode({
+            'dataset': self.datasetId,
+            'id': ngid
+            })
+            self.connection.request(
+                'GET',
+                '/ngram',
+                body = params,
+                headers = self.headers
+            )
+            data = self.connection.getresponse().read()
+            ngram = jsonpickle.decode( data )
+            print ngram
+        for docid in corpus['edges']['Document'].iterkeys():
+            params =  urllib.urlencode({
+            'dataset': self.datasetId,
+            'id': docid
+            })
+            self.connection.request(
+                'GET',
+                '/document',
+                body = params,
+                headers = self.headers
+            )
+            data = self.connection.getresponse().read()
+            document = jsonpickle.decode( data )
+            print document
+
 def usage():
     print " servertests.py USAGE :\n"
     print " first, launch the server : python httpserver.py configuration_file_path \n"
-    print " python servertests.py ExtractFile source_filename file_format\n"
-    print " python servertests.py IndexFile source_filename file_format\n"
-    print " python servertests.py GenerateGraph ngram_proximity_name document_proximity_name\n"
+    print " python servertests.py ExtractFile source_filename source_file_format dataset_name whitelist_out_path\n"
+    print " python servertests.py IndexFile source_filename source_file_format dataset_name whitelist_path\n"
+    print " python servertests.py GenerateGraph ngram_proximity_name document_proximity_name dataset_name whitelist_path period\n"
+    print " python servertests.py GetNodes dataset_name period\n"
 
 
 if __name__ == '__main__':
     print sys.argv
+    argument1 = None
+    argument2 = None
+    argument3 = None
+    argument4 = None
+    argument5 = None
     try:
-        sourcePath = sys.argv[2]
-        sourceFormat = sys.argv[3]
-        del sys.argv[2:]
-    except:
+        testclass = sys.argv[1]
+    except Exception, e:
+        print e
         usage()
         exit()
+    if testclass in ['ExtractFile','IndexFile']:
+        try:
+            argument1 = sys.argv[2]
+            argument2 = sys.argv[3]
+            argument3 = sys.argv[4]
+            argument4 = sys.argv[5]
+            del sys.argv[2:]
+        except:
+            usage()
+            exit()
+    elif testclass == 'GenerateGraph':
+        try:
+            argument1 = sys.argv[2]
+            argument2 = sys.argv[3]
+            argument3 = sys.argv[4]
+            argument4 = sys.argv[5]
+            argument5 = sys.argv[6]
+            del sys.argv[2:]
+        except:
+            usage()
+            exit()
+    elif testclass == 'GetNodes':
+        try:
+            argument3 = sys.argv[2]
+            argument5 = sys.argv[3]
+            del sys.argv[2:]
+        except:
+            usage()
+            exit()
+
     unittest.main()
+
