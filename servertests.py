@@ -89,12 +89,12 @@ class GenerateGraph(ServerTest):
             'periods': self.period,
             'whitelistpath': self.whitelist,
             'outpath': 'test_graph',
-            'ngramgraphconfig': {
-                'proximity': self.argument1
-            },
-            'documentgraphconfig': {
-                'proximity': self.argument2
-            }
+            #'ngramgraphconfig': {
+            #    'proximity': self.argument1
+            #},
+            #'documentgraphconfig': {
+            #    'proximity': self.argument2
+            #}
         } )
         self.connection.request(
             'POST',
@@ -114,22 +114,21 @@ class GetNodes(ServerTest):
         })
         self.connection.request(
             'GET',
-            '/corpus',
+            '/corpus?'+params,
             body = params,
             headers = self.headers
         )
         data = self.connection.getresponse().read()
-        print "DATA = %s"%data
         corpus = jsonpickle.decode( data )
         print corpus
         for ngid in corpus['edges']['NGram'].iterkeys():
             params =  urllib.urlencode({
-            'dataset': self.datasetId,
-            'id': ngid
+                'dataset': self.datasetId,
+                'id': ngid
             })
             self.connection.request(
                 'GET',
-                '/ngram',
+                '/ngram?'+params,
                 body = params,
                 headers = self.headers
             )
@@ -138,12 +137,12 @@ class GetNodes(ServerTest):
             print ngram
         for docid in corpus['edges']['Document'].iterkeys():
             params =  urllib.urlencode({
-            'dataset': self.datasetId,
-            'id': docid
+                'dataset': self.datasetId,
+                'id': docid
             })
             self.connection.request(
                 'GET',
-                '/document',
+                '/document?'+params,
                 body = params,
                 headers = self.headers
             )

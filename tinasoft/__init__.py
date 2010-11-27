@@ -363,13 +363,12 @@ class PytextminerFlowApi(PytextminerFileApi):
         doc_index.sort()
         ngram_index = list(ngram_index)
         ngram_index.sort()
-        print doc_index
+
         # updates default config with parameters
         self.config['datamining']['NGramGraph'].update(ngramgraphconfig)
         self.config['datamining']['DocumentGraph'].update(documentgraphconfig)
         ngramconfig = self.config['datamining']['NGramGraph']
         documentconfig = self.config['datamining']['DocumentGraph']
-
         if len(ngram_index) != 0:
             # hack
             if ngramconfig['proximity']=='cooccurrences':
