@@ -134,7 +134,7 @@ class GetNodes(ServerTest):
             )
             data = self.connection.getresponse().read()
             ngram = jsonpickle.decode( data )
-            print ngram
+            print ngram.edges
         for docid in corpus['edges']['Document'].iterkeys():
             params =  urllib.urlencode({
                 'dataset': self.datasetId,
@@ -155,7 +155,7 @@ def usage():
     print " first, launch the server : python httpserver.py configuration_file_path \n"
     print " python servertests.py ExtractFile source_filename source_file_format dataset_name whitelist_out_path\n"
     print " python servertests.py IndexFile source_filename source_file_format dataset_name whitelist_path\n"
-    print " python servertests.py GenerateGraph ngram_proximity_name document_proximity_name dataset_name whitelist_path period\n"
+    print " python servertests.py GenerateGraph dataset_name whitelist_path period\n"
     print " python servertests.py GetNodes dataset_name period\n"
 
 
@@ -184,11 +184,9 @@ if __name__ == '__main__':
             exit()
     elif testclass == 'GenerateGraph':
         try:
-            argument1 = sys.argv[2]
-            argument2 = sys.argv[3]
-            argument3 = sys.argv[4]
-            argument4 = sys.argv[5]
-            argument5 = sys.argv[6]
+            argument3 = sys.argv[2]
+            argument4 = sys.argv[3]
+            argument5 = sys.argv[4]
             del sys.argv[2:]
         except:
             usage()

@@ -36,8 +36,8 @@ sqlite3.enable_callback_tracebacks(True)
 class Backend(Handler):
 
     options = {
-        'home'          : 'db',
-        'prefix'        : {
+        'home' : 'db',
+        'prefix' : {
             'Corpora':'Corpora::',
             'Corpus':'Corpus::',
             'Document':'Document::',
@@ -110,14 +110,12 @@ class Backend(Handler):
         except Exception, e:
             self.rollback()
 
-
     def rollback(self):
         """
         rollbacks
         """
         self._db.rollback()
         _logger.warning("rolled back an sql statement")
-
 
     def pickle( self, obj ):
         return pickle.dumps(obj)

@@ -266,26 +266,34 @@ class POSTHandler(object):
     @value_to_gen
     def dataset(self, corporaobj):
         """ insert or update """
-        self.pytmapi.set_storage( corporaobj['id'] )
-        return self.pytmapi.storage.insertCorpora(corporaobj)
+        storage = self.pytmapi.get_storage( corporaobj['id'] )
+        if storage == self.pytmapi.STATUS_ERROR:
+            return self.pytmapi.STATUS_ERROR
+        return storage.insertCorpora(corporaobj)
 
     @value_to_gen
     def corpus(self, dataset, corpusobj):
         """ insert or update """
-        self.pytmapi.set_storage( dataset )
-        return self.pytmapi.storage.insertCorpus(corpusobj)
+        storage = self.pytmapi.get_storage( dataset )
+        if storage == self.pytmapi.STATUS_ERROR:
+            return self.pytmapi.STATUS_ERROR
+        return storage.insertCorpus(corpusobj)
 
     @value_to_gen
     def document(self, dataset, documentobj):
         """ insert or update """
-        self.pytmapi.set_storage( dataset )
-        return self.pytmapi.storage.insertDocument(documentobj)
+        storage = self.pytmapi.get_storage( dataset )
+        if storage == self.pytmapi.STATUS_ERROR:
+            return self.pytmapi.STATUS_ERROR
+        return storage.insertDocument(documentobj)
 
     @value_to_gen
     def ngram(self, dataset, ngramobj):
         """ insert or update """
-        self.pytmapi.set_storage( dataset )
-        return self.pytmapi.storage.insertNgram(ngramobj)
+        storage = self.pytmapi.get_storage( dataset )
+        if storage == self.pytmapi.STATUS_ERROR:
+            return self.pytmapi.STATUS_ERROR
+        return storage.insertNGram(ngramobj)
 
 
 class GETHandler(object):
@@ -302,15 +310,6 @@ class GETHandler(object):
         a whitelist csv file for a given dataset and source file
         """
         return self.pytmapi.extract_file(*args, **kwargs)
-
-    @value_to_gen
-    def whitelist(self, *args, **kwargs):
-        """
-        exports a whitelist csv file
-        for a given dataset, periods, and whitelist
-        """
-    #    return self.pytmapi.export_whitelist(*args, **kwargs)
-        return None
 
     @value_to_gen
     def cooccurrences(self, *args, **kwargs):
@@ -330,40 +329,44 @@ class GETHandler(object):
         """
         if dataset is None:
             return self.pytmapi.walk_datasets()
-        elif self.pytmapi.set_storage(dataset, create=False) == self.pytmapi.STATUS_OK:
-            return self.pytmapi.storage.loadCorpora(dataset)
-        else:
+        storage = self.pytmapi.get_storage( dataset )
+        if storage == self.pytmapi.STATUS_ERROR:
             return None
+        else:
+            return storage.loadCorpora(dataset)
 
     @value_to_gen
     def corpus(self, dataset, id):
         """
         returns a corpus json object from the database
         """
-        if self.pytmapi.set_storage(dataset, create=False) == self.pytmapi.STATUS_OK:
-            return self.pytmapi.storage.loadCorpus(id)
-        else:
+        storage = self.pytmapi.get_storage( dataset )
+        if storage == self.pytmapi.STATUS_ERROR:
             return None
+        else:
+            return storage.loadCorpus(id)
 
     @value_to_gen
     def document(self, dataset, id):
         """
         returns a document json object from the database
         """
-        if self.pytmapi.set_storage(dataset, create=False) == self.pytmapi.STATUS_OK:
-            return self.pytmapi.storage.loadDocument(id)
-        else:
+        storage = self.pytmapi.get_storage( dataset, create=False )
+        if storage == self.pytmapi.STATUS_ERROR:
             return None
+        else:
+            return storage.loadDocument(id)
 
     @value_to_gen
     def ngram(self, dataset, id):
         """
         returns a ngram json object from the database
         """
-        if self.pytmapi.set_storage(dataset, create=False) == self.pytmapi.STATUS_OK:
-            return self.pytmapi.storage.loadNGram(id)
-        else:
+        storage = self.pytmapi.get_storage( dataset, create=False )
+        if storage == self.pytmapi.STATUS_ERROR:
             return None
+        else:
+            return storage.loadNGram(id)
 
     @value_to_gen
     def walk_user_path(self, dataset, filetype):

@@ -76,9 +76,7 @@ class PytextminerFlowApi(PytextminerFileApi):
         """
         Init config, logger, locale, storage
         """
-        #object.__init__(self)
-        self.last_dataset_id = None
-        self.storage = None
+        self.opened_storage = {}
         # import config yaml to self.config
         try:
             self.config = yaml.safe_load( file( configFilePath, 'rU' ) )
@@ -107,8 +105,7 @@ class PytextminerFlowApi(PytextminerFileApi):
 
     def __del__(self):
         """resumes the storage transactions when destroying this object"""
-        if self.storage is not None:
-            del self.storage
+        del self.opened_storage
 
     def set_logger(self, custom_logger=None):
         """
@@ -144,18 +141,14 @@ class PytextminerFlowApi(PytextminerFileApi):
         logger.addHandler(rotatingFileHandler)
         self.logger = logger
 
-    def set_storage( self, dataset_id, create=True, **options ):
+    def get_storage( self, dataset_id, create=True, **options ):
         """
         unique DB connection handler
         one separate database per dataset=corpora
-        always check self.storage is not None before using it
+        always check storage is notad before using it
         """
-        if self.last_dataset_id is not None and self.last_dataset_id == dataset_id:
-            # connection already opened
-            return self.STATUS_OK
-        if self.storage is not None:
-            self.logger.debug("safely closing last storage connection")
-            del self.storage
+        if dataset_id in self.opened_storage:
+            return self.opened_storage[dataset_id]
         try:
             storagedir = join(
                 self.config['general']['basedirectory'],
@@ -165,17 +158,16 @@ class PytextminerFlowApi(PytextminerFileApi):
             options['home'] = storagedir
             if not exists( storagedir ) and create is False:
                 raise Exception("dataset DB %s does not exists, won't create it"%dataset_id)
-                return self.STATUS_OK
+                return self.STATUS_ERROR
             else:
-                self.storage = Engine(self.STORAGE_DSN, **options)
-                self.last_dataset_id = dataset_id
+                storage = Engine(self.STORAGE_DSN, **options)
+                self.opened_storage[dataset_id] = storage
                 self.logger.debug(
                     "new storage connection for data set %s at %s"%(dataset_id, storagedir)
                 )
-                return self.STATUS_OK
+                return storage
         except Exception, exception:
             self.logger.error( exception )
-            self.storage = self.last_dataset_id = None
             return self.STATUS_ERROR
 
     def extract_file(self,
@@ -197,7 +189,8 @@ class PytextminerFlowApi(PytextminerFileApi):
             self.logger.error(ioe)
             yield self.STATUS_ERROR
             return
-        if self.set_storage( dataset ) == self.STATUS_ERROR:
+        storage = self.get_storage( dataset )
+        if storage == self.STATUS_ERROR:
             yield self.STATUS_ERROR
             return
         # prepares extraction export path
@@ -221,7 +214,7 @@ class PytextminerFlowApi(PytextminerFileApi):
         userstopwords = self._import_userstopwords( userstopwords )
         # instanciate extractor class
         extract = extractor.Extractor(
-            self.storage,
+            storage,
             self.config['datasets'],
             corporaObj,
             stopwds,
@@ -255,7 +248,10 @@ class PytextminerFlowApi(PytextminerFileApi):
             return
         corporaObj = corpora.Corpora(dataset)
         whitelist = self._import_whitelist(whitelistpath)
-        if self.set_storage( dataset ) == self.STATUS_ERROR:
+
+        storage = self.get_storage( dataset )
+        if storage == self.STATUS_ERROR:
+            yield self.STATUS_ERROR
             return
         # instanciate stopwords and extractor class
         stopwds = stopwords.StopWords(
@@ -266,7 +262,7 @@ class PytextminerFlowApi(PytextminerFileApi):
         )
         #stemmer = import_module( self.config['datasets']['stemmer'] )
         extract = extractor.Extractor(
-            self.storage,
+            storage,
             self.config['datasets'],
             corporaObj,
             stopwds,
@@ -306,7 +302,9 @@ class PytextminerFlowApi(PytextminerFileApi):
         if not documentgraphconfig: documentgraphconfig = {}
         if not ngramgraphconfig: ngramgraphconfig = {}
 
-        if self.set_storage( dataset ) == self.STATUS_ERROR:
+        storage = self.get_storage( dataset )
+        if storage == self.STATUS_ERROR:
+            yield self.STATUS_ERROR
             return
 
         # outpath is an optional label but transformed to an absolute file path
@@ -337,7 +335,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             'date': "%s"%datetime.now().strftime("%Y-%m-%d"),
         }
 
-        GEXFWriter.new_graph( self.storage, graphmeta )
+        GEXFWriter.new_graph( storage, graphmeta )
 
         periods_to_process = []
         ngram_index = set([])
@@ -347,7 +345,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             periods = [periods]
         # checks periods and construct nodes' indices
         for period in periods:
-            corpus = self.storage.loadCorpus( period )
+            corpus = storage.loadCorpus( period )
             if corpus is not None:
                 periods_to_process += [period]
                 # unions
@@ -381,7 +379,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             # hack
             ngramconfig['proximity']='cooccurrences'
             for process_period in periods_to_process:
-                ngram_args = ( self.config, self.storage, process_period, ngramconfig, ngram_index, whitelist )
+                ngram_args = ( self.config, storage, process_period, ngramconfig, ngram_index, whitelist )
                 adj = graph.NgramGraph( *ngram_args )
                 adj.diagonal(ngram_matrix_reducer)
                 try:
@@ -404,7 +402,7 @@ class PytextminerFlowApi(PytextminerFileApi):
         if len(doc_index) != 0:
             doc_matrix_reducer = graph.MatrixReducerFilter( doc_index )
             for process_period in periods_to_process:
-                doc_args = ( self.config, self.storage, process_period, documentconfig, doc_index, whitelist )
+                doc_args = ( self.config, storage, process_period, documentconfig, doc_index, whitelist )
                 adj = graph.DocGraph( *doc_args )
                 adj.diagonal(doc_matrix_reducer)
                 try:
@@ -454,7 +452,8 @@ class PytextminerFlowApi(PytextminerFileApi):
             self.logger.error(ioe)
             yield self.STATUS_ERROR
             return
-        if self.set_storage( dataset ) == self.STATUS_ERROR:
+        storage = self.get_storage( dataset )
+        if storage == self.STATUS_ERROR:
             yield self.STATUS_ERROR
             return
 
@@ -474,7 +473,7 @@ class PytextminerFlowApi(PytextminerFileApi):
         archive_walker = archive.walkArchive(periods)
         try:
             period_gen, period = archive_walker.next()
-            sc = indexer.ArchiveCounter(self.storage)
+            sc = indexer.ArchiveCounter(storage)
             walkCorpusGen = sc.walkCorpus(whitelist, period_gen, period, exporter, minCooc)
             try:
                 while 1:
@@ -502,7 +501,8 @@ class PytextminerFlowApi(PytextminerFileApi):
         returns a text file outpath containing the db cooc
         for a list of periods ans an ngrams whitelist
         """
-        if self.set_storage( dataset ) == self.STATUS_ERROR:
+        storage = self.get_storage( dataset )
+        if storage == self.STATUS_ERROR:
             return self.STATUS_ERROR
         if outpath is None:
             outpath = self._get_user_filepath(
@@ -514,7 +514,7 @@ class PytextminerFlowApi(PytextminerFileApi):
         if whitelistpath is not None:
             whitelist = self._import_whitelist(whitelistpath)
         exporter = Writer('coocmatrix://'+outpath)
-        return exporter.export_from_storage( self.storage, periods, whitelist )
+        return exporter.export_from_storage( storage, periods, whitelist )
 
     def _import_whitelist(
             self,
