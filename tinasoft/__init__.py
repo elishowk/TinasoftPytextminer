@@ -20,7 +20,7 @@ __all__ = ["pytextminer","data", "file"]
 
 # python utility modules
 import sys
-
+import traceback
 from os.path import exists
 from os.path import join
 from os.path import abspath
@@ -230,6 +230,10 @@ class PytextminerFlowApi(PytextminerFileApi):
         except StopIteration, si:
             yield absolute_outpath
             return
+        except Exception, ex:
+            self.logger.error(traceback.format_exc())
+            yield self.STATUS_ERROR
+            return
 
     def index_file(self,
             path,
@@ -243,43 +247,47 @@ class PytextminerFlowApi(PytextminerFileApi):
         """
         try:
             path = self._get_sourcefile_path(path)
-        except IOError, ioe:
-            self.logger.error(ioe)
-            return
-        corporaObj = corpora.Corpora(dataset)
-        whitelist = self._import_whitelist(whitelistpath)
+            corporaObj = corpora.Corpora(dataset)
+            whitelist = self._import_whitelist(whitelistpath)
 
-        storage = self.get_storage( dataset )
-        if storage == self.STATUS_ERROR:
-            yield self.STATUS_ERROR
-            return
-        # instanciate stopwords and extractor class
-        stopwds = stopwords.StopWords(
-            "file://%s"%join(
-            self.config['general']['basedirectory'],
-            self.config['general']['shared'],
-            self.config['general']['stopwords'])
-        )
-        #stemmer = import_module( self.config['datasets']['stemmer'] )
-        extract = extractor.Extractor(
-            storage,
-            self.config['datasets'],
-            corporaObj,
-            stopwds,
-            stemmer=stemmer.Nltk()
-        )
-        extractorGenerator = extract.index_file(
-            path,
-            format,
-            whitelist,
-            overwrite
-        )
-        try:
+            storage = self.get_storage( dataset )
+            if storage == self.STATUS_ERROR:
+                yield self.STATUS_ERROR
+                return
+            # instanciate stopwords and extractor class
+            stopwds = stopwords.StopWords(
+                "file://%s"%join(
+                self.config['general']['basedirectory'],
+                self.config['general']['shared'],
+                self.config['general']['stopwords'])
+            )
+            #stemmer = import_module( self.config['datasets']['stemmer'] )
+            extract = extractor.Extractor(
+                storage,
+                self.config['datasets'],
+                corporaObj,
+                stopwds,
+                stemmer=stemmer.Nltk()
+            )
+            extractorGenerator = extract.index_file(
+                path,
+                format,
+                whitelist,
+                overwrite
+            )
             while 1:
                 extractorGenerator.next()
                 yield self.STATUS_RUNNING
+        except IOError, ioe:
+            self.logger.error(ioe)
+            return
         except StopIteration, si:
             yield extract.duplicate
+            return
+        except Exception, exc:
+            self.logger.error("%s"%exc)
+            self.logger.error(traceback.format_exc())
+            yield self.STATUS_ERROR
             return
 
     def generate_graph(self,
@@ -533,7 +541,8 @@ class PytextminerFlowApi(PytextminerFileApi):
             self.logger.debug("loading whitelist from %s (%s)"%(whitelistpath, whitelist_id))
             wlimport = Reader('whitelist://'+whitelistpath, **kwargs)
             wlimport.whitelist = whitelist.Whitelist( whitelist_id, whitelist_id )
-            new_wl = wlimport.parse_file()
+            new_wl = wlimport.parse_file(stemmer.Nltk())
+        # OBSOLETE : TO CHECK
         elif dataset is not None:
             # whitelistpath is a whitelist label into storage
             self.logger.debug("loading whitelist %s from storage"%whitelist_id)
@@ -544,10 +553,9 @@ class PytextminerFlowApi(PytextminerFileApi):
             self.logger.debug("loading whitelist from %s (%s)"%(whitelistpath, whitelist_id))
             wlimport = Reader('whitelist://'+whitelistpath, **kwargs)
             wlimport.whitelist = whitelist.Whitelist( whitelist_id, whitelist_id )
-            new_wl = wlimport.parse_file()
+            new_wl = wlimport.parse_file(stemmer.Nltk())
         else:
             raise Exception("unable to find a whitelist at %s"%whitelistpath)
-            return None
         # TODO stores the whitelist ?
         return new_wl
 

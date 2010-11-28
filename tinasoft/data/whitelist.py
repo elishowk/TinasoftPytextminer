@@ -56,11 +56,11 @@ class Importer(basecsv.Importer):
     filemodel = WhitelistFile()
     whitelist = None
 
-    def _add_whitelist(self, dbid, occs):
+    def _add_whitelist(self, ngid, occs):
         """
         adds a whitelisted ngram
         """
-        self.whitelist.addEdge( 'NGram', dbid, occs )
+        self.whitelist.addEdge( 'NGram', ngid, occs )
 
     def _add_stopword(self, dbid, occs):
         """
@@ -72,16 +72,15 @@ class Importer(basecsv.Importer):
         """
         checks a value and eventually convert to type
         """
-        if type(cell) == int or type(cell) == float:
-            cell = str(cell)
+        #if type(cell) == int or type(cell) == float:
+        #    cell = str(cell)
         if type(cell) != unicode:
             return unicode(cell, "utf-8", errors='replace')
         else:
             return cell
 
-    def parse_file(self):
+    def parse_file(self, stem):
         """Reads a whitelist file and returns the updated object"""
-        stem = stemmer.Nltk()
         if self.whitelist is None: return False
 
         for row in self:
@@ -90,41 +89,32 @@ class Importer(basecsv.Importer):
                 status = self._coerce_unicode( row[self.filemodel.columns[0][1]] )
                 if status != self.filemodel.accept: continue
                 label = self._coerce_unicode( row[self.filemodel.columns[1][1]] )
-                occs = row[self.filemodel.columns[3][1]]
                 # gets forms tokens
-                forms_tokens = self._coerce_unicode( row[self.filemodel.columns[4][1]] ).split( self.filemodel.forms_separator )
+                forms_tokens = dict().fromkeys(
+                    self._coerce_unicode( row[self.filemodel.columns[4][1]] ).split( self.filemodel.forms_separator ),
+                    1
+                )
                 # prepares forms ID to add them to the whitelist edges
-                forms_id = [ngram.NGram.getNormId(tokens.split(" ")) for tokens in forms_tokens]
-                # prepares forms label to add the to NGram objects in the whitelist
-                forms_label = dict().fromkeys( [tokens for tokens in forms_tokens], 1 )
-                periods = self._coerce_unicode( row[self.filemodel.columns[11][1]] ).split(self.filemodel.forms_separator)
+                forms_id = [ngram.NGram.getNormId(tokens.split(" ")) for tokens in forms_tokens.iterkeys()]
+                periods = self._coerce_unicode( row[self.filemodel.columns[11][1]] ).split( self.filemodel.forms_separator )
             except KeyError, keyexc:
                 _logger.error( "%s column (required) not found importing the whitelist at line %d, import failed"%(keyexc, self.reader.line_num) )
                 continue
-            # instanciate a NGram object
-            edges = { 'Document' : {}, 'Corpus' : {}, 'label': forms_label, 'postag' : {}}
-            stemmedtokens = []
-            for token in label.split(" "):
-                stemmedtokens += [stem.stem(token)]
+            # prepares a new NGram object
+            edges = { 'label': forms_tokens, 'postag' : {}}
+            stemmedtokens = [stem.stem(token) for token in label.split(" ")]
             ng = ngram.NGram(stemmedtokens, label=label, edges=edges)
-            # calculates db ID from the label, does not trust the file's db id
+            # links periods
             for corpid in periods:
-                # increments all the Corpus edges
-                self.whitelist.addEdge( 'Corpus', str(corpid), 1 )
-                #ng.addEdge( 'Corpus', str(corpid), 1)
+                # increments all edges with the corpus
+                self.whitelist.addEdge( 'Corpus', corpid, 1 )
+                ng.addEdge( 'Corpus', corpid, 1)
                 # keeps a corpus object into whitelist object
                 if corpid not in self.whitelist['corpus']:
                     self.whitelist['corpus'][corpid] = corpus.Corpus(corpid)
-            dbid = ng['id']
-            # increments the whitelist edges
-            if status == self.filemodel.accept:
-                # adds all forms to the whitelist
-                for form_id in forms_id:
-                    self._add_whitelist(dbid, 0)
-                self._add_whitelist(dbid, occs)
-                self.whitelist.addContent( ng )
-            elif status == self.filemodel.refuse:
-                self._add_stopword(dbid, occs)
+            # adds all forms to the whitelist
+            for form_id in forms_id:
+                self._add_whitelist( form_id, 1 )
         return self.whitelist
 
 def load_from_storage(whitelist, storage, periods, filters=None, wlinstance=None):
@@ -205,31 +195,19 @@ class Exporter(basecsv.Exporter):
         Writes a Whitelist object to a file
         """
         self.writeRow([x[1] for x in self.filemodel.columns])
-        # basic monitoring counters
         totalexported = 0
-        #_logger.debug( "Writing %d ngrams to whitelist at %s" % (ngramtotal, self.filepath) )
         ngramgenerator = newwl.getContent()
         try:
             while 1:
                 ngid, ng = ngramgenerator.next()
                 # filters ngram from the whitelist based on min occs
                 occs=0
-                if ngid in newwl['edges']['StopNGram']:
-                    occs = newwl['edges']['StopNGram'][ngid]
-                    ng['status'] = self.filemodel.refuse
-                    if not occs >= minOccs: continue
-                elif ngid in newwl['edges']['NGram']:
+                if ngid in newwl['edges']['NGram']:
                     # empty the status columns before exporting to the file
                     ng['status'] = ""
                     occs = newwl['edges']['NGram'][ngid]
                     if not occs >= minOccs: continue
-                if occs == 0:
-                    _logger.warning("NGram %s is neither a whitelisted NGrams nor a StopNGram"%ng['label'])
-                    continue
-                totalexported += 1
                 occsn = occs**len(ng['content'])
-                # TODO update NGram in db after adding new scores
-                #if 'MaxCorpus' not in ng['edges'] or 'MaxNormalizedCorpus' not in ng['edges']:
                 maxperiod = maxnormalizedperiod = lastmax = lastnormmax = 0.0
                 maxperiodid = maxnormalizedperiodid = None
                 for periodid, totalperiod in ng['edges']['Corpus'].iteritems():
@@ -248,16 +226,17 @@ class Exporter(basecsv.Exporter):
                     if lastnormmax >= maxnormalizedperiod:
                         maxnormalizedperiod = lastnormmax
                         maxnormalizedperiodid = periodid
-                # stores meta informations
-                ng.addEdge('MaxCorpus',maxperiodid,maxperiod)
-                ng.addEdge('MaxNormalizedCorpus',maxnormalizedperiodid,maxnormalizedperiod)
 
                 # gets major forms
                 label = ng.getLabel()
                 tag = ng.getPostag()
                 # get all forms and appropriate list of corpus to export
-                forms = self.filemodel.forms_separator.join(ng['edges']['label'].keys())
-                corp_list = self.filemodel.forms_separator.join([corpid for corpid in ng['edges']['Corpus'].keys() if corpid in newwl['corpus']])
+                forms = self.filemodel.forms_separator.join(
+                    ng['edges']['label'].keys()
+                )
+                corp_list = self.filemodel.forms_separator.join(
+                    [corpid for corpid in ng['edges']['Corpus'].keys()]
+                )
                 # prepares the row
                 row = [
                     unicode(ng['status']),
@@ -274,6 +253,7 @@ class Exporter(basecsv.Exporter):
                     unicode(corp_list),
                     unicode(ngid)
                 ]
+                totalexported += 1
                 self.writeRow(row)
 
         except StopIteration, si:

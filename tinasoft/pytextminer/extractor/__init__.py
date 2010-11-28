@@ -27,6 +27,8 @@ import traceback
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
+NUM_DOC_NOTIFY = 20
+
 class Extractor():
     """
     A universal source file extractor/importer
@@ -111,26 +113,25 @@ class Extractor():
                     self.stemmer
                 )
                 ### updates newwl to prepare export
-                # increments number of docs per period
+                # increments the number of docs per period
                 if  corpusNum not in newwl['corpus']:
                     newwl['corpus'][corpusNum] = corpus.Corpus(corpusNum)
                 newwl['corpus'][corpusNum].addEdge('Document', document['id'], 1)
                 for ng in docngrams.itervalues():
                     newwl.addContent( ng, corpusNum, document['id'] )
+                    newwl.addEdge( 'NGram', ng['id'], 1 )
                 doccount += 1
-                if doccount % 100 == 0:
+                if doccount % NUM_DOC_NOTIFY == 0:
                     _logger.debug("%d documents parsed"%doccount)
                 yield doccount
 
         except StopIteration:
+            #whitelist storage still unused
             newwl.storage.flushNGramQueue()
             _logger.debug("Total documents extracted = %d"%doccount)
             self.storage.updateCorpora( self.corpora, False )
             whitelist_exporter = Writer("whitelist://"+extract_path)
             newwl = whitelist_exporter.write_whitelist(newwl, minoccs)
-            return
-        except Exception:
-            _logger.error(traceback.format_exc())
             return
 
     def index_file(self, path, format, whitelist, overwrite=False):
@@ -166,7 +167,7 @@ class Extractor():
                 #del document['content']
                 self.duplicate += self.storage.updateDocument( document, overwrite )
                 doccount += 1
-                if doccount % 10 == 0:
+                if doccount % NUM_DOC_NOTIFY == 0:
                     _logger.debug("%d documents indexed"%doccount)
                 yield doccount
 
@@ -174,9 +175,6 @@ class Extractor():
             self.storage.updateCorpora( self.corpora, overwrite )
             for corpusObj in self.reader.corpusDict.values():
                 self.storage.updateCorpus( corpusObj, overwrite )
-            return
-        except Exception:
-            _logger.error(traceback.format_exc())
             return
 
     def _insert_NGrams( self, docngrams, document, corpusNum, overwrite ):

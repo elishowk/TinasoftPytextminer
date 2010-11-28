@@ -73,18 +73,19 @@ class Whitelist(PyTextMiner,whitelist.WhitelistFile):
         options = {'home':"."}
         return Engine("tinasqlite://%s"%tmp, **options)
 
-    def addContent(self, ngram, corpus_id=None, document_id=None, status=None):
+    def addContent(self, ngram, corpus_id=None, document_id=None):
         """
         inserts or updates a ngram into the whitelist content
         """
-        if status is None:
-            status = ""
-        ngram["status"] = status
-        ngram.addEdge( 'Corpus', corpus_id, 1 )
-        if self.storage.updateNGram( ngram, False, document_id, corpus_id ) >= self.storage.MAX_INSERT_QUEUE:
+        #if status is None:
+        #    status = ""
+        #ngram["status"] = status
+        if corpus_id is not None:
+            ngram.addEdge( 'Corpus', corpus_id, 1 )
+        if document_id is not None:
+            ngram.addEdge( 'Document', document_id, 1 )
+        if self.storage.updateNGram( ngram, False ) >= self.storage.MAX_INSERT_QUEUE:
             self.storage.flushNGramQueue()
-        # increments total occurences within the dataset
-        self.addEdge( 'NGram', ngram['id'], 1 )
 
     def getContent(self, id=None):
         """
