@@ -429,10 +429,10 @@ class Engine(Backend):
         if storedNGram is not None:
             # if overwriting and existing NGram yet NOT in the current index
             if overwrite is True and ngObj['id'] not in self.ngramindex:
-                # cleans current corpus edges
+                # cleans current corpus edges unless it won't change during overwrite
                 if corpId is not None and corpId in storedNGram['edges']['Corpus']:
                     del storedNGram['edges']['Corpus'][corpId]
-                # NOTE : document edges are protected
+                # cleans current document edges unless it won't change during overwrite
                 if  docId is not None and docId in storedNGram['edges']['Document']:
                     del storedNGram['edges']['Document'][docId]
             # anyway, updates all edges
