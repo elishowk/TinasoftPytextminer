@@ -264,7 +264,7 @@ class PytextminerFlowApi(PytextminerFileApi):
                 self.config['datasets'],
                 corporaObj,
                 filters=None,
-                stemmer=stemmer.Identity()
+                stemmer=stemmer.Nltk()
             )
             extractorGenerator = extract.index_file(
                 path,

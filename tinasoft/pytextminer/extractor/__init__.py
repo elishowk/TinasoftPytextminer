@@ -17,7 +17,7 @@
 __author__="elishowk@nonutc.fr"
 
 from tinasoft.pytextminer import PyTextMiner
-from tinasoft.pytextminer import corpus, tagger, stopwords, tokenizer, filtering, whitelist
+from tinasoft.pytextminer import corpus, tagger, stopwords, tokenizer, filtering, whitelist, stemmer
 from tinasoft.data import Engine, Reader, Writer
 
 import re
@@ -150,8 +150,9 @@ class Extractor():
                     self.config['ngramMax'],
                     self.filters,
                     self.tagger,
-                    self.stemmer
+                    stemmer.Identity()
                 )
+                nlemmas = tokenizer.TreeBankWordTokenizer.lemmatize(docngrams, self.stemmer)
                 #### inserts/updates NGram and update document obj
                 self._insert_NGrams(docngrams, document, corpusNum, overwrite)
                 # creates or OVERWRITES document into storage
