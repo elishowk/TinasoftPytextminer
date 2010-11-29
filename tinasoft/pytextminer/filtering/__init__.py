@@ -1,4 +1,5 @@
-#  Copyright (C) 2010 elishowk
+# -*- coding: utf-8 -*-
+#  Copyright (C) 2009-2011 CREA Lab, CNRS/Ecole Polytechnique UMR 7656 (Fr)
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -14,7 +15,6 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 __author__="elishowk"
-__date__ ="$19 mai 2010$"
 
 import re
 import logging
@@ -26,10 +26,13 @@ def apply_filters(ngram, filters=None):
     if filtering.apply_filters(ngram_class_instance, filterslist) is False:
         block the ngram
     """
+    #import pdb
+    #pdb.set_trace()
     passFilter = True
     if filters is not None:
         for filt in filters:
             passFilter &= filt.test(ngram)
+            if passFilter is False: return passFilter
     return passFilter
 
 
@@ -49,7 +52,6 @@ class Content():
 
     def __init__(self, config=None):
         """default rules based on english stopwords"""
-        #self.lang='en'
         if config is not None:
             if 'rules' in config:
                 self.rules = config['rules']
@@ -163,7 +165,7 @@ class PosTagValid(PosTagFilter):
     Regexp-based POS tag filteringvalidation
     """
     # default rules
-    rules = re.compile(r"^((VB.?,|JJ.?,|\?,){0,2}?(NN.?,|\?,))+?((IN.?,|CC.?,|\?,)((VB.?,|JJ.?,|\?,){0,2}?(NN.?,|\?,))+?)*?$")
+    rules = re.compile(r"^.*$")
 
     def _validate(self, ng):
         content = self.get_content(ng)

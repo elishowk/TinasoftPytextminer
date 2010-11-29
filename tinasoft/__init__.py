@@ -31,7 +31,7 @@ from datetime import datetime
 import locale
 import logging
 import logging.handlers
-
+import re
 # tinasoft core modules
 from tinasoft.fileapi import PytextminerFileApi
 from tinasoft.data import Engine, _factory, _check_protocol
@@ -45,6 +45,7 @@ from tinasoft.pytextminer import stopwords
 from tinasoft.pytextminer import indexer
 from tinasoft.pytextminer import graph
 from tinasoft.pytextminer import stemmer
+from tinasoft.pytextminer import filtering
 
 LEVELS = {
     'debug': logging.DEBUG,
@@ -203,22 +204,26 @@ class PytextminerFlowApi(PytextminerFileApi):
                 "%s-extract_dataset.csv"%whitelistlabel
             )
         corporaObj = corpora.Corpora(dataset)
-        stopwds = stopwords.StopWords(
+        filters = []
+        filters += [filtering.PosTagValid(
+            config = {
+                'rules': re.compile(self.config['datasets']['postag_valid'])
+            }
+        )]
+        filters += [stopwords.StopWords(
             "file://%s"%join(
                 self.config['general']['basedirectory'],
                 self.config['general']['shared'],
                 self.config['general']['stopwords']
             )
-        )
-
-        userstopwords = self._import_userstopwords( userstopwords )
+        )]
+        filters += self._import_userstopwords( userstopwords )
         # instanciate extractor class
         extract = extractor.Extractor(
             storage,
             self.config['datasets'],
             corporaObj,
-            stopwds,
-            userstopwords,
+            filters=filters,
             stemmer=stemmer.Nltk()
         )
         extratorGenerator = extract.extract_file( path, format, outpath, whitelistlabel, minoccs )
@@ -255,18 +260,18 @@ class PytextminerFlowApi(PytextminerFileApi):
                 yield self.STATUS_ERROR
                 return
             # instanciate stopwords and extractor class
-            stopwds = stopwords.StopWords(
-                "file://%s"%join(
-                self.config['general']['basedirectory'],
-                self.config['general']['shared'],
-                self.config['general']['stopwords'])
-            )
+            #stopwds = stopwords.StopWords(
+            #    "file://%s"%join(
+            #    self.config['general']['basedirectory'],
+            #    self.config['general']['shared'],
+            #    self.config['general']['stopwords'])
+            #)
             #stemmer = import_module( self.config['datasets']['stemmer'] )
             extract = extractor.Extractor(
                 storage,
                 self.config['datasets'],
                 corporaObj,
-                stopwds,
+                filters=None,
                 stemmer=stemmer.Nltk()
             )
             extractorGenerator = extract.index_file(
@@ -307,6 +312,8 @@ class PytextminerFlowApi(PytextminerFileApi):
 
         @return absolute path to the gexf file
         """
+        if type(periods) != 'list':
+            periods = [periods]
         if not documentgraphconfig: documentgraphconfig = {}
         if not ngramgraphconfig: ngramgraphconfig = {}
 
@@ -349,8 +356,6 @@ class PytextminerFlowApi(PytextminerFileApi):
         ngram_index = set([])
         doc_index = set([])
 
-        if type(periods) == 'str':
-            periods = [periods]
         # checks periods and construct nodes' indices
         for period in periods:
             corpus = storage.loadCorpus( period )

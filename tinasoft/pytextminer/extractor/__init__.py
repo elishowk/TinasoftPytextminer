@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#  Copyright (C) 2010 elishowk
+#  Copyright (C) 2009-2011 CREA Lab, CNRS/Ecole Polytechnique UMR 7656 (Fr)
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -33,22 +33,14 @@ class Extractor():
     """
     A universal source file extractor/importer
     """
-    def __init__( self, storage, config, corpora, stopwds, filters=None, stemmer=None ):
+    def __init__( self, storage, config, corpora, filters=None, stemmer=None ):
         self.reader = None
         self.config = config
         # load Stopwords object
-        self.stopwords = stopwds
-        #filtertag = filtering.PosTagFilter()
-        #filterContent = filtering.Content()
-        validTag = filtering.PosTagValid(
-            config = {
-                'rules': re.compile(self.config['postag_valid'])
-            }
-        )
-        self.filters = [validTag]
-        #self.filters = []
+        #self.stopwords = stopwds
+        self.filters = []
         if filters is not None:
-            self.filters += filters
+            self.filters = filters
         self.stemmer = stemmer
         # keep duplicate document objects
         self.duplicate = []
@@ -105,7 +97,7 @@ class Extractor():
                 # extract and filter ngrams
                 docngrams = tokenizer.TreeBankWordTokenizer.extract(
                     document,
-                    self.stopwords,
+                    #self.stopwords,
                     self.config['ngramMin'],
                     self.config['ngramMax'],
                     self.filters,
@@ -136,7 +128,7 @@ class Extractor():
     def index_file(self, path, format, whitelist, overwrite=False):
         """given a white list, indexes a source file to storage"""
         ### adds whitelist as an additional filter
-        self.filters += [whitelist]
+        self.filters = [whitelist]
         ### starts the parsing
         fileGenerator = self._walkFile( path, format )
         doccount = 0
@@ -153,7 +145,7 @@ class Extractor():
                 ### extract and filter ngrams
                 docngrams = tokenizer.TreeBankWordTokenizer.extract(
                     document,
-                    self.stopwords,
+                    #self.stopwords,
                     self.config['ngramMin'],
                     self.config['ngramMax'],
                     self.filters,

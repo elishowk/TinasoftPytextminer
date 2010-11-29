@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
 #  Copyright (C) 2009-2011 CREA Lab, CNRS/Ecole Polytechnique UMR 7656 (Fr)
 #
@@ -133,7 +132,7 @@ class TreeBankWordTokenizer(RegexpTokenizer):
             yield tagger.tag(nltk_treebank_tokenizer.tokenize(sent))
 
     @staticmethod
-    def extract(doc, stopwords, ngramMin, ngramMax, filters, tagger, stemmer):
+    def extract(doc, ngramMin, ngramMax, filters, tagger, stemmer):
         """
         sanitizes content and label texts
         tokenizes it
@@ -156,7 +155,6 @@ class TreeBankWordTokenizer(RegexpTokenizer):
                     minSize = ngramMin,
                     maxSize = ngramMax,
                     tagTokens = nextsent,
-                    stopwords = stopwords,
                     filters = filters,
                     stemmer = stemmer
                 )
@@ -164,7 +162,7 @@ class TreeBankWordTokenizer(RegexpTokenizer):
             return aggregated_ngrams
 
     @staticmethod
-    def ngramize(ngrams, minSize, maxSize, tagTokens, stopwords, filters, stemmer):
+    def ngramize(ngrams, minSize, maxSize, tagTokens, filters, stemmer):
         """
             common ngramizing method
             returns a dict of NGram instances
@@ -199,8 +197,7 @@ class TreeBankWordTokenizer(RegexpTokenizer):
                             occs=1,
                             postag=tags[i:n + i]
                         )
-                        # first stopwords filters, then content and postag filtering
-                        if stopwords is None or stopwords.contains(ng) is False:
-                            if filtering.apply_filters(ng, filters) is True:
-                                ngrams[id] = ng
+                        # application defined filtering
+                        if filtering.apply_filters(ng, filters) is True:
+                            ngrams[id] = ng
         return ngrams
