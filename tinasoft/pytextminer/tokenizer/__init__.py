@@ -147,10 +147,12 @@ class TreeBankWordTokenizer(RegexpTokenizer):
             tagger
         )
         try:
+            aggregated_ngrams = {}
             while 1:
                 nextsent = sentenceTaggedTokens.next()
                 # updates ngrams
-                ngrams = TreeBankWordTokenizer.ngramize(
+                aggregated_ngrams = TreeBankWordTokenizer.ngramize(
+                    aggregated_ngrams,
                     minSize = ngramMin,
                     maxSize = ngramMax,
                     tagTokens = nextsent,
@@ -159,10 +161,10 @@ class TreeBankWordTokenizer(RegexpTokenizer):
                     stemmer = stemmer
                 )
         except StopIteration, stopit:
-            return ngrams
+            return aggregated_ngrams
 
     @staticmethod
-    def ngramize(minSize, maxSize, tagTokens, stopwords, filters, stemmer):
+    def ngramize(ngrams, minSize, maxSize, tagTokens, stopwords, filters, stemmer):
         """
             common ngramizing method
             returns a dict of NGram instances
@@ -171,7 +173,6 @@ class TreeBankWordTokenizer(RegexpTokenizer):
             sentences = list of tuples = [(word,TAG_word), etc]
         """
         # content is the list of words from tagTokens
-        ngrams = {}
         content = tagger.TreeBankPosTagger.getContent(tagTokens)
         stemmedcontent = []
         for word in content:

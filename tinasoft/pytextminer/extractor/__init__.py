@@ -113,7 +113,6 @@ class Extractor():
                     self.stemmer
                 )
                 ### updates newwl to prepare export
-                # increments the number of docs per period
                 if  corpusNum not in newwl['corpus']:
                     newwl['corpus'][corpusNum] = corpus.Corpus(corpusNum)
                 newwl['corpus'][corpusNum].addEdge('Document', document['id'], 1)
