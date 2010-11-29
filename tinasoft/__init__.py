@@ -259,20 +259,12 @@ class PytextminerFlowApi(PytextminerFileApi):
             if storage == self.STATUS_ERROR:
                 yield self.STATUS_ERROR
                 return
-            # instanciate stopwords and extractor class
-            #stopwds = stopwords.StopWords(
-            #    "file://%s"%join(
-            #    self.config['general']['basedirectory'],
-            #    self.config['general']['shared'],
-            #    self.config['general']['stopwords'])
-            #)
-            #stemmer = import_module( self.config['datasets']['stemmer'] )
             extract = extractor.Extractor(
                 storage,
                 self.config['datasets'],
                 corporaObj,
                 filters=None,
-                stemmer=stemmer.Nltk()
+                stemmer=stemmer.Identity()
             )
             extractorGenerator = extract.index_file(
                 path,

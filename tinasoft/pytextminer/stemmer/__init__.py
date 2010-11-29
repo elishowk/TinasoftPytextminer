@@ -23,8 +23,15 @@ _logger = logging.getLogger('TinaAppLogger')
 import nltk
 from nltk import PorterStemmer, WordNetLemmatizer
 
+class Identity(object):
+    """
+    A do nothing stemmer
+    """
+    def stem( self, word ):
+        """returns the same @word"""
+        return word
 
-class Nltk():
+class Nltk(object):
     """
     Interface to nltk's Stemmers
     """

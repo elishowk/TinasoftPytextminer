@@ -80,9 +80,8 @@ class Importer(basecsv.Importer):
             return cell
 
     def parse_file(self, stem):
-        """Reads a whitelist file and returns the updated object"""
+        """Reads a whitelist file and returns a whitelist object"""
         if self.whitelist is None: return False
-
         for row in self:
             if row is None: continue
             try:
@@ -100,10 +99,11 @@ class Importer(basecsv.Importer):
             except KeyError, keyexc:
                 _logger.error( "%s column (required) not found importing the whitelist at line %d, import failed"%(keyexc, self.reader.line_num) )
                 continue
-            # prepares a new NGram object
+            # prepares and stores a new NGram object
             edges = { 'label': forms_tokens, 'postag' : {}}
             stemmedtokens = [stem.stem(token) for token in label.split(" ")]
             ng = ngram.NGram(stemmedtokens, label=label, edges=edges)
+            self.whitelist.addContent(ng)
             # links periods
             for corpid in periods:
                 # increments all edges with the corpus

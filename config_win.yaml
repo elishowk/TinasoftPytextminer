@@ -88,5 +88,5 @@ datamining:
             - 1.0
             - 'inf'
         alpha: 0.1
-        hapax: 1
+        #hapax: 1
         proximity: 'equivalenceIndex'
