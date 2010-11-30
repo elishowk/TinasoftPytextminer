@@ -304,7 +304,7 @@ class PytextminerFlowApi(PytextminerFileApi):
 
         @return absolute path to the gexf file
         """
-        if type(periods) != 'list':
+        if not isinstance(periods, list):
             periods = [periods]
         if not documentgraphconfig: documentgraphconfig = {}
         if not ngramgraphconfig: ngramgraphconfig = {}

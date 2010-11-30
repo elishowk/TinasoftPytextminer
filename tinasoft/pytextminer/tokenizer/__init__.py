@@ -213,9 +213,13 @@ class TreeBankWordTokenizer(RegexpTokenizer):
                 nlemmas[whitenlemmaid].addForm( whiteng['content'], whiteng['postag'], whiteng['occs'] )
                 nlemmas[whitenlemmaid]['occs'] += whiteng['occs']
             else:
-                nlemmas[whitenlemmaid] = whiteng
-                nlemmas[whitenlemmaid]['id'] = whitenlemmaid
-                nlemmas[whitenlemmaid]['label'] = ngrams[whitenlemmaid]['label']
-                nlemmas[whitenlemmaid]['content'] = ngrams[whitenlemmaid]['content']
-                nlemmas[whitenlemmaid]['postag'] = ngrams[whitenlemmaid]['postag']
+                try:
+                    nlemmas[whitenlemmaid] = whiteng
+                    nlemmas[whitenlemmaid]['id'] = whitenlemmaid
+                    nlemmas[whitenlemmaid]['label'] = ngrams[whitenlemmaid]['label']
+                    nlemmas[whitenlemmaid]['content'] = ngrams[whitenlemmaid]['content']
+                    nlemmas[whitenlemmaid]['postag'] = ngrams[whitenlemmaid]['postag']
+                except Exception, exc:
+                    _logger.error("unable to group ngram %s"%exc)
+                    continue
         return nlemmas
