@@ -28,7 +28,7 @@
         <?py weight = nodedict[id] ?>
         <?py nodeobj = storage.load(id, category) ?>
         <?py graphid = category + "::" + id ?>
-        <node id="${graphid}" label="${ nodeobj.getLabel() }">
+        <node id="${graphid}" label="${ nodeobj.label }">
             <attvalues>
         <?py weight = "%.2f"%round(weight,2) ?>
                 <attvalue for="0" value="${ weight }" />
