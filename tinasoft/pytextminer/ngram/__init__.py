@@ -106,5 +106,4 @@ class NGram(PyTextMiner):
         form_postag_label = PyTextMiner.form_label( form_postag )
         self.addEdge('label', form_label, form_occs)
         self.addEdge('postag', form_postag_label, form_occs)
-        #self.updateMajorForm()
 

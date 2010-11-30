@@ -56,11 +56,11 @@ class Importer(basecsv.Importer):
     filemodel = WhitelistFile()
     whitelist = None
 
-    def _add_whitelist(self, ngid, occs):
+    def _add_whitelist(self, ngid, nglabelid):
         """
         adds a whitelisted ngram
         """
-        self.whitelist.addEdge( 'NGram', ngid, occs )
+        self.whitelist.addEdge( 'NGram', ngid, nglabelid )
 
     def _add_stopword(self, dbid, occs):
         """
@@ -95,11 +95,11 @@ class Importer(basecsv.Importer):
                 continue
             ngid = ngram.NGram.getNormId(label.split(" "))
             [self._add_whitelist( ngram.NGram.getNormId(forms.split(" ")), ngid ) for forms in forms_tokens]
-            # prepares and stores a new NGram object
+            self.whitelist.addEdge( 'form_label', ngid, label )
+            # OBSOLETE stores a new NGram object
             #edges = { 'label': forms_id, 'postag': {} }
             #ng = ngram.NGram(label.split(" "), id=ngid, edges=edges)
             #self.whitelist.addContent(ng)
-            # adds all forms to the whitelist
         return self.whitelist
 
 def load_from_storage(whitelist, storage, periods, filters=None, wlinstance=None):
