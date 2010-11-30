@@ -37,8 +37,12 @@ def _write_binary_file(filename, content):
          if f:
             f.close()
             import os
-            os.remove(filename)
-            os.rename(tmpfile, filename)
+            try:
+                os.rename(tmpfile, filename)
+            except:
+                os.remove(filename)
+                os.rename(tmpfile, filename)
+
 tenjin._write_binary_file = _write_binary_file
 
 # tinasoft logger
