@@ -152,11 +152,10 @@ class Extractor():
                     self.tagger,
                     stemmer.Identity()
                 )
-                nlemmas = tokenizer.TreeBankWordTokenizer.lemmatize(docngrams, self.stemmer)
+                nlemmas = tokenizer.TreeBankWordTokenizer.group(docngrams, whitelist)
                 #### inserts/updates NGram and update document obj
-                self._insert_NGrams(docngrams, document, corpusNum, overwrite)
+                self._insert_NGrams(nlemmas, document, corpusNum, overwrite)
                 # creates or OVERWRITES document into storage
-                #del document['content']
                 self.duplicate += self.storage.updateDocument( document, overwrite )
                 doccount += 1
                 if doccount % NUM_DOC_NOTIFY == 0:
@@ -186,7 +185,7 @@ class Extractor():
                 ng.addEdge( 'Corpus', corpusNum, 1 )
                 self.reader.corpusDict[ corpusNum ].addEdge( 'NGram', ngid, 1 )
             else:
-                ### document exist but not attached to the current period
+                ### document exists but not attached to the current period
                 if corpusNum not in storedDoc['edges']['Corpus']:
                     ng.addEdge( 'Corpus', corpusNum, 1 )
                     self.reader.corpusDict[ corpusNum ].addEdge( 'NGram', ngid, 1 )
@@ -200,6 +199,4 @@ class Extractor():
             document.addEdge( 'NGram', ng['id'], docOccs )
             # queue the storage/update of the ngram
             self.storage.updateNGram( ng, overwrite, document['id'], corpusNum )
-        # at the end of a document it's safe to flush the storage insert/update queue
         self.storage.flushNGramQueue()
-

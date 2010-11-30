@@ -45,7 +45,10 @@ class Whitelist(PyTextMiner,whitelist.WhitelistFile):
         self.storage = self._get_storage()
 
     def addEdge(self, type, key, value):
-        return self._addEdge( type, key, value )
+        if type in ['NGram', 'StopNGram']:
+            return self._overwriteEdge( type, key, value )
+        else:
+            return self._addEdge( type, key, value )
 
     def test(self, ng):
         """

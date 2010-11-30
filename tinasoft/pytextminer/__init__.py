@@ -46,7 +46,9 @@ class PyTextMiner(object):
         if id is None:
             self.id = PyTextMiner.getId( content )
         else:
-            self.id = str(id)
+            self.id = id
+        if label is None:
+            label = PyTextMiner.form_label( content )
         self.label = label
         self._loadEdges( edges )
         self._loadOptions( metas )
@@ -68,11 +70,15 @@ class PyTextMiner(object):
         self.edges = defaultedges
 
     @staticmethod
-    def form_label( tokens ):
+    def form_label(tokens):
         """
         common method forming clean labels from unicode token list
         """
-        return " ".join(tokens)
+        label = " ".join(tokens)
+        if not isinstance(label, unicode ):
+            return unicode(label , "utf-8", errors='ignore')
+        else:
+            return label
 
     @staticmethod
     def getId(content):
@@ -81,12 +87,8 @@ class PyTextMiner(object):
         @content must be a list of str
         """
         if type(content) == list:
-            #try:
             convert = PyTextMiner.form_label(content)
-            return str(sha256( convert.encode( 'ascii', 'ignore' ) ).hexdigest())
-            #except UnicodeError, uni:
-            #    _logger.error("impossible to create sha256 node ID : %s"%str(uni))
-            #    return "invalid"
+            return sha256( convert.encode( 'ascii', 'replace' ) ).hexdigest()
         else:
             return uuid4().hex
 
@@ -100,16 +102,16 @@ class PyTextMiner(object):
     def updateObjectEdges(canditate, toupdate):
         """increments an object's edges with the candidate object's edges"""
         for targettype in canditate['edges'].iterkeys():
-            for id, weight in canditate['edges'][targettype].iteritems():
-                res = toupdate.addEdge( targettype, id, weight )
+            for targetid, weight in canditate['edges'][targettype].iteritems():
+                toupdate.addEdge( targettype, targetid, weight )
         return toupdate
 
     @staticmethod
     def updateEdges(updateedges, toupdate):
         """increments an object's edges with the candidate object's edges"""
         for targettype in updateedges.iterkeys():
-            for id, weight in updateedges[targettype].iteritems():
-                res = toupdate.addEdge( targettype, id, weight )
+            for targetid, weight in updateedges[targettype].iteritems():
+                toupdate.addEdge( targettype, targetid, weight )
         return toupdate
 
     def _addUniqueEdge( self, type, key, value ):

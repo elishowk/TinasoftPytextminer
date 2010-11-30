@@ -180,23 +180,20 @@ class TreeBankWordTokenizer(RegexpTokenizer):
         for i in range(len(content)):
             for n in range(minSize, maxSize + 1):
                 if len(content) >= i + n:
-                    # new NGram instance only if it doesn't exist
+                    # updates document's ngrams cache
                     ngid = ngram.NGram.getNormId(stemmedcontent[i:n+i])
-
                     if ngid in ngrams:
-                        label = PyTextMiner.form_label( content[i:n+i] )
-                        postag = PyTextMiner.form_label( tags[i:n+i] )
-                        edges = { 'label': { label: 1 }, 'postag': { postag: 1 } }
-                        # already exists in document : increments occs and updates edges
+                        ngrams[ngid].addForm( content[i:n+i], tags[i:n+i], 1 )
+                        ngrams[ngid].updateMajorForm()
                         ngrams[ngid]['occs'] += 1
-                        ngrams[ngid] = PyTextMiner.updateEdges( edges, ngrams[ngid] )
                     else:
+                        # id from stemmedcontent and label from the real tokens
                         ng = ngram.NGram(
                             stemmedcontent[i:n+i],
                             ngid = ngid,
-                            label=PyTextMiner.form_label(content[i:n+i]),
-                            occs=1,
-                            postag=tags[i:n + i]
+                            label = PyTextMiner.form_label(content[i:n+i]),
+                            occs = 1,
+                            postag = tags[i:n+i]
                         )
                         # application defined filtering
                         if filtering.apply_filters(ng, filters) is True:
@@ -204,20 +201,21 @@ class TreeBankWordTokenizer(RegexpTokenizer):
         return ngrams
 
     @staticmethod
-    def lemmatize(ngrams, stemmer):
+    def group(ngrams, whitelist):
         """
         Reduces ngrams to nlemmas, merging both contents
         """
-        nlemmas={}
-        for ngid, ng in ngrams.iteritems():
-            stems = [stemmer.stem(word) for word in ng['label']]
-            stemid = ngram.NGram.getNormId(stems)
-            if stemid in nlemmas:
-                nlemmas[stemid].updateMajorForm( ng['label'], sorted(ng['edges']['postag'].keys())[-1] )
-                nlemmas[stemid]['occs'] += 1
-                nlemmas[ngid] = PyTextMiner.updateEdges( ng['edges'], nlemmas[ngid] )
+        nlemmas = {}
+        for whiteid, whiteng in ngrams.iteritems():
+            if whiteid not in whitelist['edges']['NGram']: continue
+            whitenlemmaid = whitelist['edges']['NGram'][whiteid]
+            if whitenlemmaid in nlemmas:
+                nlemmas[whitenlemmaid].addForm( whiteng['content'], whiteng['postag'], whiteng['occs'] )
+                nlemmas[whitenlemmaid]['occs'] += whiteng['occs']
             else:
-                ng['id'] = stemid
-                nlemmas[stemid] = ng
-        _logger.debug("lemmatize reduced ngrams to %d nlemmas"%len(nlemmas.keys()))
+                nlemmas[whitenlemmaid] = whiteng
+                nlemmas[whitenlemmaid]['id'] = whitenlemmaid
+                nlemmas[whitenlemmaid]['label'] = ngrams[whitenlemmaid]['label']
+                nlemmas[whitenlemmaid]['content'] = ngrams[whitenlemmaid]['content']
+                nlemmas[whitenlemmaid]['postag'] = ngrams[whitenlemmaid]['postag']
         return nlemmas

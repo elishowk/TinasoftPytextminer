@@ -436,8 +436,8 @@ class Engine(Backend):
                 if  docId is not None and docId in storedNGram['edges']['Document']:
                     del storedNGram['edges']['Document'][docId]
             # anyway, updates all edges
-            ngObj = PyTextMiner.updateObjectEdges( ngObj, storedNGram )
-        # adds to the queue
+            ngObj = PyTextMiner.updateObjectEdges( storedNGram, ngObj )
+        # adds object to the INSERT the queue
         return self._ngramQueue( ngObj['id'], ngObj )
 
     def _coocQueue( self, id, obj, overwrite ):

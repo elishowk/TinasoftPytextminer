@@ -86,35 +86,20 @@ class Importer(basecsv.Importer):
             if row is None: continue
             try:
                 status = self._coerce_unicode( row[self.filemodel.columns[0][1]] )
+                ### breaks if not whitelisted
                 if status != self.filemodel.accept: continue
                 label = self._coerce_unicode( row[self.filemodel.columns[1][1]] )
-                # gets forms tokens
-                forms_tokens = dict().fromkeys(
-                    self._coerce_unicode( row[self.filemodel.columns[4][1]] ).split( self.filemodel.forms_separator ),
-                    1
-                )
-                # prepares forms ID to add them to the whitelist edges
-                forms_id = [ngram.NGram.getNormId(tokens.split(" ")) for tokens in forms_tokens.iterkeys()]
-                periods = self._coerce_unicode( row[self.filemodel.columns[11][1]] ).split( self.filemodel.forms_separator )
+                forms_tokens = self._coerce_unicode( row[self.filemodel.columns[4][1]] ).split( self.filemodel.forms_separator )
             except KeyError, keyexc:
                 _logger.error( "%s column (required) not found importing the whitelist at line %d, import failed"%(keyexc, self.reader.line_num) )
                 continue
+            ngid = ngram.NGram.getNormId(label.split(" "))
+            [self._add_whitelist( ngram.NGram.getNormId(forms.split(" ")), ngid ) for forms in forms_tokens]
             # prepares and stores a new NGram object
-            edges = { 'label': forms_tokens, 'postag' : {}}
-            stemmedtokens = [stem.stem(token) for token in label.split(" ")]
-            ng = ngram.NGram(stemmedtokens, label=label, edges=edges)
-            self.whitelist.addContent(ng)
-            # links periods
-            for corpid in periods:
-                # increments all edges with the corpus
-                self.whitelist.addEdge( 'Corpus', corpid, 1 )
-                ng.addEdge( 'Corpus', corpid, 1)
-                # keeps a corpus object into whitelist object
-                if corpid not in self.whitelist['corpus']:
-                    self.whitelist['corpus'][corpid] = corpus.Corpus(corpid)
+            #edges = { 'label': forms_id, 'postag': {} }
+            #ng = ngram.NGram(label.split(" "), id=ngid, edges=edges)
+            #self.whitelist.addContent(ng)
             # adds all forms to the whitelist
-            for form_id in forms_id:
-                self._add_whitelist( form_id, 1 )
         return self.whitelist
 
 def load_from_storage(whitelist, storage, periods, filters=None, wlinstance=None):
