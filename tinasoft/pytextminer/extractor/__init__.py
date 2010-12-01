@@ -16,13 +16,10 @@
 
 __author__="elishowk@nonutc.fr"
 
-from tinasoft.pytextminer import PyTextMiner
-from tinasoft.pytextminer import corpus, tagger, stopwords, tokenizer, filtering, whitelist, stemmer
-from tinasoft.data import Engine, Reader, Writer
+from tinasoft.pytextminer import corpus, tagger, tokenizer, whitelist, stemmer
+from tinasoft.data import Reader, Writer
 
 import re
-import os.path
-import traceback
 
 import logging
 _logger = logging.getLogger('TinaAppLogger')
@@ -36,8 +33,6 @@ class Extractor():
     def __init__( self, storage, config, corpora, filters=None, stemmer=None ):
         self.reader = None
         self.config = config
-        # load Stopwords object
-        #self.stopwords = stopwds
         self.filters = []
         if filters is not None:
             self.filters = filters
@@ -87,6 +82,8 @@ class Extractor():
         newwl = whitelist.Whitelist(whitelistlabel, whitelistlabel)
         # basic counter
         doccount = 0
+        import pdb
+        pdb.set_trace()
         try:
             while 1:
                 # gets the next document
@@ -123,6 +120,7 @@ class Extractor():
     def index_file(self, path, format, whitelist, overwrite=False):
         """given a white list, indexes a source file to storage"""
         ### adds whitelist as a unique filter
+        self.duplicate = []
         self.filters = [whitelist]
         fileGenerator = self._walkFile( path, format )
         doccount = 0
@@ -144,7 +142,6 @@ class Extractor():
                     self.tagger,
                     stemmer.Identity()
                 )
-
                 nlemmas = tokenizer.TreeBankWordTokenizer.group(docngrams, whitelist)
                 #### inserts/updates NGram and update document obj
                 self._insert_NGrams(nlemmas, document, corpusNum, overwrite)
