@@ -49,7 +49,7 @@ class NGram(PyTextMiner):
         """
         if type in ["Document"]:
             return self._addUniqueEdge( type, key, value )
-        elif type in ["NGram"]:
+        elif type in ["NGram", "postag"]:
             return self._overwriteEdge( type, key, value )
         else:
             return self._addEdge( type, key, value )
@@ -76,9 +76,10 @@ class NGram(PyTextMiner):
         updates major form of a nlemma
         """
         # updates major form label attr
-        self.postag = self.getPostag()
+        #self.postag = self.getPostag()
         self.label = self.getLabel()
         self.content = self.label.split(" ")
+        self.postag = self['edges']['postag'][self.label]
 
     def getLabel(self):
         """
@@ -90,20 +91,18 @@ class NGram(PyTextMiner):
         else:
             return self.label
 
-    def getPostag(self):
+    #def getPostag(self):
         """
         returns the major form POS tag or None
         """
-        ordered_forms = sorted(self['edges']['postag'])
-        if len(ordered_forms) > 0:
-            return ordered_forms[-1]
-        else:
-            return self.postag
+    #    ordered_forms = sorted(self['edges']['postag'])
+    #    if len(ordered_forms) > 0:
+    #        return ordered_forms[-1]
+    #    else:
+    #        return self.postag
 
     def addForm(self, form_tokens, form_postag, form_occs=1 ):
-        # updates edges
         form_label = PyTextMiner.form_label( form_tokens )
-        form_postag_label = PyTextMiner.form_label( form_postag )
         self.addEdge('label', form_label, form_occs)
-        self.addEdge('postag', form_postag_label, form_occs)
+        self.addEdge('postag', form_label, form_postag)
 

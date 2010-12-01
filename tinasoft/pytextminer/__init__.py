@@ -70,6 +70,23 @@ class PyTextMiner(object):
         self.edges = defaultedges
 
     @staticmethod
+    def updateObjectEdges(canditate, toupdate):
+        """increments an object's edges with the candidate object's edges"""
+        for targettype in canditate['edges'].iterkeys():
+            for targetid, weight in canditate['edges'][targettype].iteritems():
+                toupdate.addEdge( targettype, targetid, weight )
+        return toupdate
+
+    @staticmethod
+    def updateEdges(updateedges, toupdate):
+        """increments an object's edges with the candidate object's edges"""
+        for targettype in updateedges.iterkeys():
+            for targetid, weight in updateedges[targettype].iteritems():
+                toupdate.addEdge( targettype, targetid, weight )
+        return toupdate
+
+
+    @staticmethod
     def form_label(tokens):
         """
         common method forming clean labels from unicode token list
@@ -98,22 +115,6 @@ class PyTextMiner(object):
         """
         return self.label
 
-    @staticmethod
-    def updateObjectEdges(canditate, toupdate):
-        """increments an object's edges with the candidate object's edges"""
-        for targettype in canditate['edges'].iterkeys():
-            for targetid, weight in canditate['edges'][targettype].iteritems():
-                toupdate.addEdge( targettype, targetid, weight )
-        return toupdate
-
-    @staticmethod
-    def updateEdges(updateedges, toupdate):
-        """increments an object's edges with the candidate object's edges"""
-        for targettype in updateedges.iterkeys():
-            for targetid, weight in updateedges[targettype].iteritems():
-                toupdate.addEdge( targettype, targetid, weight )
-        return toupdate
-
     def _addUniqueEdge( self, type, key, value ):
         """
         low level method writing ONLY ONCE a weighted edge to a PyTextMiner object
@@ -125,7 +126,6 @@ class PyTextMiner(object):
         else:
             self['edges'][type][key] = value
             return True
-
 
     def _overwriteEdge(self, type, key, value):
         """

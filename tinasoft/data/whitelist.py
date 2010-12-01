@@ -68,17 +68,6 @@ class Importer(basecsv.Importer):
         """
         self.whitelist.addEdge( 'StopNGram', dbid, occs )
 
-    def _coerce_unicode(self, cell):
-        """
-        checks a value and eventually convert to type
-        """
-        #if type(cell) == int or type(cell) == float:
-        #    cell = str(cell)
-        if type(cell) != unicode:
-            return unicode(cell, "utf-8", errors='replace')
-        else:
-            return cell
-
     def parse_file(self, stem):
         """Reads a whitelist file and returns a whitelist object"""
         if self.whitelist is None: return False
@@ -186,13 +175,10 @@ class Exporter(basecsv.Exporter):
             while 1:
                 ngid, ng = ngramgenerator.next()
                 # filters ngram from the whitelist based on min occs
-                occs=0
-                if ngid in newwl['edges']['NGram']:
-                    # empty the status columns before exporting to the file
-                    ng['status'] = ""
-                    occs = newwl['edges']['NGram'][ngid]
-                    if not occs >= minOccs: continue
-                occsn = occs**len(ng['content'])
+                if not ng['occs'] >= minOccs: continue
+                ng.updateMajorForm()
+                ng['status'] = ""
+                occsn = ng['occs']**len(ng['content'])
                 maxperiod = maxnormalizedperiod = lastmax = lastnormmax = 0.0
                 maxperiodid = maxnormalizedperiodid = None
                 for periodid, totalperiod in ng['edges']['Corpus'].iteritems():
@@ -201,20 +187,14 @@ class Exporter(basecsv.Exporter):
                     if totaldocs == 0: continue
                     # updates both per period max occs
                     lastmax = float(totalperiod) / float(totaldocs)
-
                     if lastmax >= maxperiod:
                         maxperiod = lastmax
                         maxperiodid = periodid
 
                     lastnormmax = float(totalperiod**len(ng['content'])) / float(totaldocs)
-
                     if lastnormmax >= maxnormalizedperiod:
                         maxnormalizedperiod = lastnormmax
                         maxnormalizedperiodid = periodid
-
-                # gets major forms
-                label = ng.getLabel()
-                tag = ng.getPostag()
                 # get all forms and appropriate list of corpus to export
                 forms = self.filemodel.forms_separator.join(
                     ng['edges']['label'].keys()
@@ -222,12 +202,11 @@ class Exporter(basecsv.Exporter):
                 corp_list = self.filemodel.forms_separator.join(
                     [corpid for corpid in ng['edges']['Corpus'].keys()]
                 )
-                # prepares the row
                 row = [
                     unicode(ng['status']),
-                    unicode(label),
-                    unicode(tag),
-                    int(occs),
+                    unicode(ng.label),
+                    unicode(ng.postag),
+                    int(ng['occs']),
                     unicode(forms),
                     len(ng['content']),
                     int(occsn),

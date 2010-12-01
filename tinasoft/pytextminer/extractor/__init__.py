@@ -82,8 +82,6 @@ class Extractor():
         newwl = whitelist.Whitelist(whitelistlabel, whitelistlabel)
         # basic counter
         doccount = 0
-        import pdb
-        pdb.set_trace()
         try:
             while 1:
                 # gets the next document
@@ -103,7 +101,7 @@ class Extractor():
                 newwl['corpus'][corpusNum].addEdge('Document', document['id'], 1)
                 for ng in docngrams.itervalues():
                     newwl.addContent( ng, corpusNum, document['id'] )
-                    newwl.addEdge( 'NGram', ng['id'], 1 )
+                    #newwl.addEdge( 'NGram', ng['id'], 1 )
                 doccount += 1
                 if doccount % NUM_DOC_NOTIFY == 0:
                     _logger.debug("%d documents parsed"%doccount)

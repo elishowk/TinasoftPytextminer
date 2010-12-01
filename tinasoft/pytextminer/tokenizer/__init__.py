@@ -227,7 +227,6 @@ class TreeBankWordTokenizer(RegexpTokenizer):
                     nlemmas[whitenlemmaid]['id'] = whitenlemmaid
                     nlemmas[whitenlemmaid]['label'] = whitelist['edges']['form_label'][whitenlemmaid]
                     nlemmas[whitenlemmaid]['content'] = nlemmas[whitenlemmaid]['label'].split(" ")
-                    #nlemmas[whitenlemmaid]['postag'] = ngrams[whitenlemmaid]['postag']
                 except Exception, exc:
                     _logger.error("unable to group ngram %s"%exc)
                     continue
