@@ -30,18 +30,13 @@ class Importer (basecsv.Importer):
     tinaReader = Reader( "tinacsv://text_file_to_import.csv", config )
     config must contain a 'fields' dict, like :
     fields = {
-        titleField: 'doc_titl',
-        contentField: 'doc_abst',
-        authorField: 'doc_acrnm',
-        corpusField: 'corp_num',
-        docField: 'doc_num',
-        index1Field: 'index_1',
-        index2Field: 'index_2',
-        dateField: 'date',
-        keywordsField: 'doc_keywords',
+        doc_title: 'doc_titl',
+        doc_content: 'doc_abst',
+        corpus_id: 'corp_id',
+        doc_id 'doc_id',
+        doc_author: 'doc_acrnm',
     })
     """
-
     def parseFile(self):
         """
         parses a row to extract corpus meta-data
@@ -52,8 +47,8 @@ class Importer (basecsv.Importer):
             tmpfields = dict(self.fields)
             # decoding & parsing TRY
             try:
-                corpusID = doc[self.fields['corpusField']]
-                del tmpfields['corpusField']
+                corpusID = doc[self.fields['corpus_id']]
+                del tmpfields['corpus_id']
                 #if not isinstance( corpusID, unicode ) or not isinstance( corpusID, str ):
                 #    raise Exception("%s is not in string format"%corpusID)
             except Exception, exc:
@@ -61,7 +56,8 @@ class Importer (basecsv.Importer):
                 _logger.error( exc )
                 continue
             # TODO check if corpus already exists
-            newdoc = self._parse_document( doc, tmpfields, corpusID )
+            newdoc = self._parse_document( doc, tmpfields )
+            # if error parsing the document
             if newdoc is None: continue
             # if corpus DOES NOT already exist
             if corpusID not in self.corpusDict:
@@ -70,21 +66,19 @@ class Importer (basecsv.Importer):
             # sends the document and the corpus id
             yield newdoc, corpusID
 
-    def _parse_document( self, doc, tmpfields, corpusNum ):
+    def _parse_document( self, doc, tmpfields ):
         """
         parses a row to extract a document object
         with its edges
         """
-        docArgs = {}
-        # parsing TRY
         try:
             # get required fields
-            docID = doc[tmpfields['docField']]
-            content = doc[tmpfields['contentField']]
-            title  = doc[tmpfields['titleField']]
-            del tmpfields['docField']
-            del tmpfields['contentField']
-            del tmpfields['titleField']
+            docID = doc[tmpfields['doc_id']]
+            content = doc[tmpfields['doc_content']]
+            title  = doc[tmpfields['doc_title']]
+            del tmpfields['doc_id']
+            del tmpfields['doc_content']
+            del tmpfields['doc_title']
             #if not isinstance( docID, unicode ) or not isinstance( docID, str ):
             #    raise Exception("%s is not in string format"%docID)
         except Exception, exc:
@@ -92,22 +86,18 @@ class Importer (basecsv.Importer):
             _logger.error(exc)
             return None
         # parsing optional fields loop and TRY
+        docArgs = {}
         for field in tmpfields.itervalues():
             try:
                 docArgs[ field ] = doc[ field ]
             except Exception, exc:
                 _logger.warning("missing a document's field %s at line %d"%(field,self.reader.line_num))
 
-        if 'dateField' in docArgs:
-            datestamp = docArgs[ 'dateField' ]
-        else:
-            datestamp = None
         # new document
         newdoc = document.Document(
             content,
             docID,
             title,
-            datestamp=datestamp,
             **docArgs
         )
         return newdoc

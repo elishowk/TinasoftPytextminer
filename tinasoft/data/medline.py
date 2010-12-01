@@ -177,9 +177,9 @@ class Importer(Importer):
         self.line_num = 0
 
     def parsePeriod(self, record):
-        if self.fields['corpusField'] not in record:
+        if self.fields['corp_id'] not in record:
             return None
-        return str( record[self.fields['corpusField']][ : self.period_size] )
+        return str( record[self.fields['corp_id']][ : self.period_size] )
 
     def get_record(self):
         # These keys point to string values
@@ -269,14 +269,14 @@ class Importer(Importer):
 
     def parseDocument(self, record, corpusid, tmpfields):
         try:
-            content = record[tmpfields['contentField']]
+            content = record[tmpfields['doc_content']]
             title = record[ tmpfields[self.doc_label] ]
-            docid = record[tmpfields['docField']]
-            del record[tmpfields['docField']]
+            docid = record[tmpfields['doc_id']]
+            del record[tmpfields['doc_id']]
             del record[ tmpfields[self.doc_label] ]
-            del record[tmpfields['contentField']]
-            del tmpfields['contentField']
-            del tmpfields['docField']
+            del record[tmpfields['doc_content']]
+            del tmpfields['doc_content']
+            del tmpfields['doc_id']
             del tmpfields[self.doc_label]
         except KeyError, ke:
             _logger.error( "medline : skipping incomplete document, missing %s"%ke )

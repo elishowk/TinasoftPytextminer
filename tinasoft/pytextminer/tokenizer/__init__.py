@@ -132,17 +132,21 @@ class TreeBankWordTokenizer(RegexpTokenizer):
             yield tagger.tag(nltk_treebank_tokenizer.tokenize(sent))
 
     @staticmethod
-    def extract(doc, ngramMin, ngramMax, filters, tagger, stemmer):
+    def extract(doc, config, filters, tagger, stemmer):
         """
         sanitizes content and label texts
         tokenizes it
         POS tags the tokens
         constructs the resulting NGram objects
         """
+        ngramMin = config['ngramMin']
+        ngramMax = config['ngramMax']
+        try:
+            customContent = " . ".join([ doc[field] for field in config['doc_extraction'] ])
+        except KeyError, ke:
+            _logger.error("bad field for document content extraction %s"%ke)
         sentenceTaggedTokens = TreeBankWordTokenizer.tokenize(
-            TreeBankWordTokenizer.sanitize(
-                doc['content'] +" . "+ doc['label']
-            ),
+            TreeBankWordTokenizer.sanitize(customContent),
             tagger
         )
         try:
@@ -164,11 +168,11 @@ class TreeBankWordTokenizer(RegexpTokenizer):
     @staticmethod
     def ngramize(ngrams, minSize, maxSize, tagTokens, filters, stemmer):
         """
-            common ngramizing method
-            returns a dict of NGram instances
-            using the optional stopwords object to filter by ngram length
-            tokens = [[sentence1 tokens], [sentence2 tokens], etc]
-            sentences = list of tuples = [(word,TAG_word), etc]
+        common ngramizing method
+        returns a dict of NGram instances
+        using the optional stopwords object to filter by ngram length
+        tokens = [[sentence1 tokens], [sentence2 tokens], etc]
+        sentences = list of tuples = [(word,TAG_word), etc]
         """
         # content is the list of words from tagTokens
         content = tagger.TreeBankPosTagger.getContent(tagTokens)

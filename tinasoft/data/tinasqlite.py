@@ -299,8 +299,8 @@ class Engine(Backend):
         Yields tuples (ngramkey, cooc_matrix_line) from table Cooc
         for a given a corpus
         """
-        if isinstance(corpusId, str) is False:
-            corpusId = str(corpusId)
+        #if isinstance(corpusId, str) is False:
+        #    corpusId = str(corpusId)
         coocGen = self.select( 'Cooc', corpusId )
         try:
             record = coocGen.next()

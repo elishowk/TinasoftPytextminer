@@ -7,13 +7,12 @@ class Corpus(PyTextMiner):
     """a Corpus containing documents"""
     def __init__(self,
             id,
+            content=None,
             edges=None,
             **metas):
-        if edges is None:
-            edges = {}
-        if 'Document' not in edges:
-            edges['Document'] = {}
-        PyTextMiner.__init__(self, edges['Document'].keys(), id, id, edges, **metas)
+        if content is None:
+            content = id
+        PyTextMiner.__init__(self, content, id, id, edges, **metas)
 
     def addEdge(self, type, key, value):
         # Corpus can link only one time to Document
