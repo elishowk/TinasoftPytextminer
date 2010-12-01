@@ -86,6 +86,7 @@ class Extractor():
             while 1:
                 # gets the next document
                 document, corpusNum = fileGenerator.next()
+                print dir(document)
                 document.addEdge( 'Corpus', corpusNum, 1 )
                 # extract and filter ngrams
                 docngrams = tokenizer.TreeBankWordTokenizer.extract(
@@ -99,14 +100,17 @@ class Extractor():
                 if  corpusNum not in newwl['corpus']:
                     newwl['corpus'][corpusNum] = corpus.Corpus(corpusNum)
                 newwl['corpus'][corpusNum].addEdge('Document', document['id'], 1)
+
                 for ng in docngrams.itervalues():
                     newwl.addContent( ng, corpusNum, document['id'] )
-                    #newwl.addEdge( 'NGram', ng['id'], 1 )
+
                 doccount += 1
                 if doccount % NUM_DOC_NOTIFY == 0:
                     _logger.debug("%d documents parsed"%doccount)
                 yield doccount
+
                 newwl.storage.flushNGramQueue()
+
         except StopIteration:
             newwl.storage.flushNGramQueue()
             _logger.debug("Total documents extracted = %d"%doccount)

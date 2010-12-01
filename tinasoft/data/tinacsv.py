@@ -47,7 +47,7 @@ class Importer (basecsv.Importer):
             tmpfields = dict(self.fields)
             # decoding & parsing TRY
             try:
-                corpusID = doc[self.fields['corpus_id']]
+                corpusID = self._coerce_unicode( doc[self.fields['corpus_id']] )
                 del tmpfields['corpus_id']
             except Exception, exc:
                 _logger.error( "tinacsv error : corpus id missing at line %d"%self.reader.line_num )

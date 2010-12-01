@@ -141,13 +141,14 @@ class TreeBankWordTokenizer(RegexpTokenizer):
         """
         ngramMin = config['ngramMin']
         ngramMax = config['ngramMax']
-
         customContent = ""
         for field in config['doc_extraction']:
             try:
-                customContent += doc[ field ]
+                customContent += " " + doc[ field ]
             except Exception, exc:
                 _logger.error("bad field for document content extraction, error : %s"%exc)
+        if len(customContent)==0:
+            _logger.error("document %s content is empty"%doc['id'])
 
         sentenceTaggedTokens = TreeBankWordTokenizer.tokenize(
             TreeBankWordTokenizer.sanitize(customContent),
@@ -174,10 +175,10 @@ class TreeBankWordTokenizer(RegexpTokenizer):
     def ngramize(ngrams, minSize, maxSize, tagTokens, filters, stemmer):
         """
         common ngramizing method
-        returns a dict of NGram instances
+        returns a dict of filtered NGram instances
         using the optional stopwords object to filter by ngram length
-        tokens = [[sentence1 tokens], [sentence2 tokens], etc]
-        sentences = list of tuples = [(word,TAG_word), etc]
+
+        @tagTokens == [[word1 tokens], [word2 tokens], etc]
         """
         # content is the list of words from tagTokens
         content = tagger.TreeBankPosTagger.getContent(tagTokens)
@@ -196,10 +197,10 @@ class TreeBankWordTokenizer(RegexpTokenizer):
                         ngrams[ngid].updateMajorForm()
                         ngrams[ngid]['occs'] += 1
                     else:
-                        # id from stemmedcontent and label from the real tokens
+                        # id made from the stemmedcontent and label from the real tokens
                         ng = ngram.NGram(
-                            stemmedcontent[i:n+i],
-                            ngid = ngid,
+                            content[i:n+i],
+                            id = ngid,
                             label = PyTextMiner.form_label(content[i:n+i]),
                             occs = 1,
                             postag = tags[i:n+i]
@@ -230,5 +231,4 @@ class TreeBankWordTokenizer(RegexpTokenizer):
                 except Exception, exc:
                     _logger.error("unable to group ngram %s"%exc)
                     continue
-        print [lem['label'] for lem in nlemmas.itervalues()]
         return nlemmas

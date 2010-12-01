@@ -44,7 +44,7 @@ class WhitelistFile():
     ]
     accept = "w"
     refuse = "s"
-    forms_separator = " *** "
+    forms_separator = "***"
 
     def __init__(self):
         return
@@ -74,21 +74,17 @@ class Importer(basecsv.Importer):
         for row in self:
             if row is None: continue
             try:
-                status = self._coerce_unicode( row[self.filemodel.columns[0][1]] )
+                status = self._coerce_unicode( row[self.filemodel.columns[0][1]] ).strip()
                 ### breaks if not whitelisted
                 if status != self.filemodel.accept: continue
-                label = self._coerce_unicode( row[self.filemodel.columns[1][1]] )
-                forms_tokens = self._coerce_unicode( row[self.filemodel.columns[4][1]] ).split( self.filemodel.forms_separator )
+                label = self._coerce_unicode( row[self.filemodel.columns[1][1]] ).strip()
+                forms_tokens = [self._coerce_unicode( form ).strip() for form in row[self.filemodel.columns[4][1]].split( self.filemodel.forms_separator )]
             except KeyError, keyexc:
                 _logger.error( "%s column (required) not found importing the whitelist at line %d, import failed"%(keyexc, self.reader.line_num) )
                 continue
             ngid = ngram.NGram.getNormId(label.split(" "))
             [self._add_whitelist( ngram.NGram.getNormId(forms.split(" ")), ngid ) for forms in forms_tokens]
             self.whitelist.addEdge( 'form_label', ngid, label )
-            # OBSOLETE stores a new NGram object
-            #edges = { 'label': forms_id, 'postag': {} }
-            #ng = ngram.NGram(label.split(" "), id=ngid, edges=edges)
-            #self.whitelist.addContent(ng)
         return self.whitelist
 
 def load_from_storage(whitelist, storage, periods, filters=None, wlinstance=None):
@@ -175,10 +171,13 @@ class Exporter(basecsv.Exporter):
             while 1:
                 ngid, ng = ngramgenerator.next()
                 # filters ngram from the whitelist based on min occs
-                if not ng['occs'] >= minOccs: continue
+                occs = 0
+                for occ in ng['edges']['Corpus'].itervalues():
+                    occs += occ
+                if not occs >= minOccs: continue
                 ng.updateMajorForm()
                 ng['status'] = ""
-                occsn = ng['occs']**len(ng['content'])
+                occsn = occs**len(ng['content'])
                 maxperiod = maxnormalizedperiod = lastmax = lastnormmax = 0.0
                 maxperiodid = maxnormalizedperiodid = None
                 for periodid, totalperiod in ng['edges']['Corpus'].iteritems():
@@ -196,17 +195,18 @@ class Exporter(basecsv.Exporter):
                         maxnormalizedperiod = lastnormmax
                         maxnormalizedperiodid = periodid
                 # get all forms and appropriate list of corpus to export
-                forms = self.filemodel.forms_separator.join(
+                separator = " "+self.filemodel.forms_separator+" "
+                forms = separator.join(
                     ng['edges']['label'].keys()
                 )
-                corp_list = self.filemodel.forms_separator.join(
+                corp_list = separator.join(
                     [corpid for corpid in ng['edges']['Corpus'].keys()]
                 )
                 row = [
                     unicode(ng['status']),
                     unicode(ng.label),
                     unicode(ng.postag),
-                    int(ng['occs']),
+                    int(occs),
                     unicode(forms),
                     len(ng['content']),
                     int(occsn),

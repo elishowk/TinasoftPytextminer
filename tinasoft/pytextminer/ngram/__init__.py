@@ -45,7 +45,7 @@ class NGram(PyTextMiner):
     def addEdge(self, type, key, value):
         """
         The NGram object accepts only one edge write to a Document object
-        All the ohter edges are multiples
+        All other edges are multiples
         """
         if type in ["Document"]:
             return self._addUniqueEdge( type, key, value )
@@ -75,8 +75,6 @@ class NGram(PyTextMiner):
         """
         updates major form of a nlemma
         """
-        # updates major form label attr
-        #self.postag = self.getPostag()
         self.label = self.getLabel()
         self.content = self.label.split(" ")
         self.postag = self['edges']['postag'][self.label]
@@ -91,17 +89,10 @@ class NGram(PyTextMiner):
         else:
             return self.label
 
-    #def getPostag(self):
-        """
-        returns the major form POS tag or None
-        """
-    #    ordered_forms = sorted(self['edges']['postag'])
-    #    if len(ordered_forms) > 0:
-    #        return ordered_forms[-1]
-    #    else:
-    #        return self.postag
-
     def addForm(self, form_tokens, form_postag, form_occs=1 ):
+        """
+        increments form edges
+        """
         form_label = PyTextMiner.form_label( form_tokens )
         self.addEdge('label', form_label, form_occs)
         self.addEdge('postag', form_label, form_postag)
