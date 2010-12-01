@@ -114,6 +114,18 @@ class Importer (Importer,UnicodeDictReader):
         """
         return open( path, 'rb' )
 
+    def _coerce_unicode(self, cell):
+        """
+        checks a value and eventually convert to type
+        """
+        #if type(cell) == int or type(cell) == float:
+        #    cell = str(cell)
+        if type(cell) != unicode:
+            return unicode(cell, "utf-8", errors='replace')
+        else:
+            return cell
+
+
 class Exporter (Handler):
     """
     home-made exporter class for a csv file
@@ -138,9 +150,10 @@ class Exporter (Handler):
         try:
             for cell in row:
                 if isinstance(cell, str) is True or isinstance(cell, unicode) is True:
+                    # there should not be " in cells !!
                     line += ["".join([self.quotechar,cell.replace('"',"'"),self.quotechar])]
-                #elif isinstance(cell, float) is True:
-                #    line += ["%.4f"%round(cell,4)]
+                elif isinstance(cell, float) is True:
+                    line += ["%.4f"%round(cell,4)]
                 else:
                     line += [str(cell)]
 

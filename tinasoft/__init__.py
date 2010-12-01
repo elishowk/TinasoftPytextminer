@@ -194,18 +194,17 @@ class PytextminerFlowApi(PytextminerFileApi):
         if storage == self.STATUS_ERROR:
             yield self.STATUS_ERROR
             return
+        if whitelistlabel is None:
+            whitelistlabel = dataset
         # prepares extraction export path
         if outpath is None:
-            if whitelistlabel is None:
-                whitelistlabel = dataset
             outpath = self._get_user_filepath(
                 dataset,
                 'whitelist',
-                "%s-extract_dataset.csv"%whitelistlabel
+                "%s-keyphrases.csv"%whitelistlabel
             )
         corporaObj = corpora.Corpora(dataset)
-        filters = []
-        filters += [filtering.PosTagValid(
+        filters = [filtering.PosTagValid(
             config = {
                 'rules': re.compile(self.config['datasets']['postag_valid'])
             }

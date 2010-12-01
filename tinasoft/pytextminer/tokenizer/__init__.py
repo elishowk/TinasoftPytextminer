@@ -141,14 +141,19 @@ class TreeBankWordTokenizer(RegexpTokenizer):
         """
         ngramMin = config['ngramMin']
         ngramMax = config['ngramMax']
-        try:
-            customContent = " . ".join([ doc[field] for field in config['doc_extraction'] ])
-        except KeyError, ke:
-            _logger.error("bad field for document content extraction %s"%ke)
+
+        customContent = ""
+        for field in config['doc_extraction']:
+            try:
+                customContent += doc[ field ]
+            except Exception, exc:
+                _logger.error("bad field for document content extraction, error : %s"%exc)
+
         sentenceTaggedTokens = TreeBankWordTokenizer.tokenize(
             TreeBankWordTokenizer.sanitize(customContent),
             tagger
         )
+
         try:
             aggregated_ngrams = {}
             while 1:

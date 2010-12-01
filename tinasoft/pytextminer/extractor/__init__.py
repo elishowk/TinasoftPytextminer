@@ -73,7 +73,7 @@ class Extractor():
         except StopIteration:
             return
 
-    def extract_file(self, path, format, extract_path, whitelistlabel=None, minoccs=1):
+    def extract_file(self, path, format, extract_path, whitelistlabel, minoccs):
         """
         parses a source file,
         tokenizes and filters,
@@ -81,7 +81,7 @@ class Extractor():
         then produces a whitelist,
         and finally export to a file
         """
-        fileGenerator = self._walkFile( path, format )
+        fileGenerator = self._walkFile(path, format)
         if whitelistlabel is None:
             whitelistlabel = self.corpora['id']
         newwl = whitelist.Whitelist(whitelistlabel, whitelistlabel)
@@ -111,9 +111,8 @@ class Extractor():
                 if doccount % NUM_DOC_NOTIFY == 0:
                     _logger.debug("%d documents parsed"%doccount)
                 yield doccount
-
+                newwl.storage.flushNGramQueue()
         except StopIteration:
-            #whitelist storage still unused
             newwl.storage.flushNGramQueue()
             _logger.debug("Total documents extracted = %d"%doccount)
             self.storage.updateCorpora( self.corpora, False )

@@ -18,22 +18,22 @@ general:
 # extraction settings
 datasets:
     doc_extraction:
-        - 'doc_content'
-        - 'doc_title'
+        - 'content'
+        - 'title'
     # tina csv columns declaration
     # will ignore undeclared fields
     # and warn not found optional fields
     tinacsv:
-        doc_label: 'doc_id'
+        doc_label: 'author'
         fields:
             # required fileds
-            doc_title: 'doc_titl'
-            doc_content: 'doc_abst'
+            title: 'title'
+            doc_content: 'abstract'
             corpus_id: 'corp_id'
             doc_id: 'doc_id'
             # optionnal fields
             #doc_short_title: 'doc_id'
-            #doc_author: 'doc_acrnm'
+            author: 'acronym'
         # csv reader params
         #delimiter: ','
         #quotechar: '"'

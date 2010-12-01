@@ -270,10 +270,10 @@ class Importer(Importer):
     def parseDocument(self, record, corpusid, tmpfields):
         try:
             content = record[tmpfields['doc_content']]
-            title = record[ tmpfields[self.doc_label] ]
+            label = record[ tmpfields[self.doc_label] ]
             docid = record[tmpfields['doc_id']]
             del record[tmpfields['doc_id']]
-            del record[ tmpfields[self.doc_label] ]
+            del record[tmpfields[self.doc_label]]
             del record[tmpfields['doc_content']]
             del tmpfields['doc_content']
             del tmpfields['doc_id']
@@ -294,7 +294,7 @@ class Importer(Importer):
         newdoc = document.Document(
             content,
             docid,
-            title,
+            label,
             **record
         )
         return newdoc
