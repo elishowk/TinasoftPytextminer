@@ -69,6 +69,7 @@ class Importer (basecsv.Importer):
         parses a row to extract a document object
         with its edges
         """
+        print doc.keys()
         try:
             # get required fields
             docID = self._coerce_unicode( doc[tmpfields['doc_id']] )
