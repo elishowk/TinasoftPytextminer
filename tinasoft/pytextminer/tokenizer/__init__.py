@@ -144,7 +144,7 @@ class TreeBankWordTokenizer(RegexpTokenizer):
         customContent = ""
         for field in config['doc_extraction']:
             try:
-                customContent += " " + doc[ field ]
+                customContent += " . " + doc[ field ]
             except Exception, exc:
                 _logger.error("bad field for document content extraction, error : %s"%exc)
         if len(customContent)==0:

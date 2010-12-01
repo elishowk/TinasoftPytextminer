@@ -86,7 +86,7 @@ class Extractor():
             while 1:
                 # gets the next document
                 document, corpusNum = fileGenerator.next()
-                print dir(document)
+
                 document.addEdge( 'Corpus', corpusNum, 1 )
                 # extract and filter ngrams
                 docngrams = tokenizer.TreeBankWordTokenizer.extract(

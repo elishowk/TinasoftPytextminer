@@ -3,7 +3,7 @@
 general:
     # where all path and following file are located
     basedirectory: '.'
-    locale: ''
+    locale: 'en_US.UTF-8'
     # following directories or files a under "basedirectory"
     index: 'index'
     dbenv: 'db'
@@ -14,7 +14,7 @@ general:
     source_file_directory: 'source_files'
     userstopwords: 'user_stopwords.csv'
     # stopwords are under share
-    stopwords: 'stopwords\en.txt'
+    stopwords: 'stopwords/en.txt'
 # extraction settings
 datasets:
     doc_extraction:
@@ -60,18 +60,18 @@ datasets:
     #    period2/period2.txt
     #medlinearchive:
         # nothing yet
-    # extraction params
+    # extraction size
     ngramMin: 1
     ngramMax: 4
     # tagger learning on 2 x training_tagger_size sentences of tagged nltk corpus
     training_tagger_size: 8000
     # under "basedirectory" directory, delete this file to regenerate a new one on next starting
-    tagger: 'shared_tagger.pickle'
-    postag_valid: '^((VB,|VBD,|VBG,|VBN,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?((PREP.?|DET.?,|IN.?,|CC.?,|\?,)((VB,|VBD,|VBG,|VBN,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?)*?$'
+    tagger: 'shared/tagger.pickle'
+    postag_valid: '^((VB,|VBD,|VBG,|VBN,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,)(CD.,)?)+?((PREP.?|DET.?,|IN.?,|CC.?,|\?,)((VB,|VBD,|VBG,|VBN,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?)*?$'
     #postag_valid: '^((VB.?,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?((PREP.?|DET.?,|IN.?,|CC.?,|\?,)((VB.?,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?)*?$'
     #postag_valid: '^((VB.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?((IN.?,|CC.?,|\?,)((VB.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?)*?$'
 datamining:
-    template: 'shared\gexf\gexf.default.template'
+    template: 'shared/gexf/gexf.default.template'
     # default values if no params are passed to gexf exporter
     DocumentGraph:
         edgethreshold:

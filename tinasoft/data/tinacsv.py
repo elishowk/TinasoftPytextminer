@@ -48,7 +48,7 @@ class Importer (basecsv.Importer):
             # decoding & parsing TRY
             try:
                 corpusID = self._coerce_unicode( doc[self.fields['corpus_id']] )
-                del tmpfields['corpus_id']
+
             except Exception, exc:
                 _logger.error( "tinacsv error : corpus id missing at line %d"%self.reader.line_num )
                 _logger.error( exc )
@@ -69,16 +69,21 @@ class Importer (basecsv.Importer):
         parses a row to extract a document object
         with its edges
         """
-        print doc.keys()
+        try:
+            label = self._coerce_unicode( doc[ tmpfields[self.doc_label] ] )
+            #el tmpfields[self.doc_label]
+        except Exception, exc:
+            _logger.warning("unable to find custom label, using the title field : %s"%exc)
+            label = self._coerce_unicode( doc[tmpfields['label']] )
+            del tmpfields['label']
         try:
             # get required fields
-            docID = self._coerce_unicode( doc[tmpfields['doc_id']] )
-            content = self._coerce_unicode( doc[tmpfields['doc_content']] )
-            #title  = doc[tmpfields['doc_title']]
-            label = self._coerce_unicode( doc[tmpfields[self.doc_label]] )
-            del tmpfields['doc_id']
-            del tmpfields['doc_content']
-            del tmpfields[self.doc_label]
+            docID = self._coerce_unicode( doc[tmpfields['id']] )
+            content = self._coerce_unicode( doc[tmpfields['content']] )
+            # cleans all remaining fields
+            if 'corpus_id' in tmpfields: del tmpfields['corpus_id']
+            if 'content' in tmpfields: del tmpfields['content']
+            if 'id' in tmpfields: del tmpfields['id']
         except Exception, exc:
             _logger.error("error parsing document at line %d : skipping"%(self.reader.line_num))
             _logger.error(exc)
