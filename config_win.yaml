@@ -36,7 +36,7 @@ datasets:
             corpus_id: 'corp_id'
             id: 'doc_id'
             # optionnal fields
-            author: 'acronym'
+            #author: 'acronym'
         # csv reader params
         #delimiter: ','
         #quotechar: '"'
