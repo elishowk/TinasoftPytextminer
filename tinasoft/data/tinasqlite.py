@@ -80,6 +80,13 @@ class Backend(Handler):
             #self._db.execute("PRAGMA SYNCHRONOUS=0")
             # row factory provides named columns
             self._db.row_factory = sqlite3.Row
+            self.__open = True
+        except Exception, connect_exc:
+            _logger.error("_connect() error : %s"%connect_exc)
+            raise Exception(connect_exc)
+
+    def _create_tables(self):
+        try:
             cur = self._db.cursor()
             sql = "PRAGMA SYNCHRONOUS=0;"
             cur.execute(sql)
@@ -87,7 +94,6 @@ class Backend(Handler):
                 sql = "CREATE TABLE IF NOT EXISTS %s (id VARCHAR(256) PRIMARY KEY, pickle BLOB)"%tabname
                 cur.execute(sql)
             self._db.commit()
-            self.__open = True
         except Exception, connect_exc:
             _logger.error("_connect() error : %s"%connect_exc)
             raise Exception(connect_exc)
@@ -101,6 +107,7 @@ class Backend(Handler):
         self._connect()
         if self.drop_tables is True:
             self._drop_tables()
+        self._create_tables()
         if self.is_open() is False:
             raise Exception("Unable to open a tinasqlite database")
 
