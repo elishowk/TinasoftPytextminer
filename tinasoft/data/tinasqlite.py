@@ -106,6 +106,7 @@ class Backend(Handler):
             makedirs(self.home)
         self._connect()
         if self.drop_tables is True:
+            _logger.debug("will drop all tables")
             self._drop_tables()
         self._create_tables()
         if self.is_open() is False:
