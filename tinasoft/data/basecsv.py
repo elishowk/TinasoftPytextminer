@@ -153,7 +153,9 @@ class Exporter (Handler):
                     # there should not be " in cells !!
                     line += ["".join([self.quotechar,cell.replace('"',"'"),self.quotechar])]
                 elif isinstance(cell, float) is True:
-                    line += ["%.4f"%round(cell,4)]
+                    #line += ["".join([self.quotechar,"%.2f"%round(cell,2),self.quotechar])]
+                    # AVOID OPENOFFICE FLOAT TO DATE AUTO CONVERSION !!!!
+                    line += ["%.2f"%round(cell,2)]
                 else:
                     line += [str(cell)]
 

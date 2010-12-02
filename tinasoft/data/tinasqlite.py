@@ -37,6 +37,7 @@ class Backend(Handler):
 
     options = {
         'home' : 'db',
+        'drop_tables': False,
         'prefix' : {
             'Corpora':'Corpora::',
             'Corpus':'Corpus::',
@@ -60,6 +61,17 @@ class Backend(Handler):
 
     def is_open(self):
         return self.__open
+
+    def _drop_tables(self):
+        try:
+            cur = self._db.cursor()
+            for tabname in self.tables:
+                sql = "DROP TABLE IF EXISTS %s"%tabname
+                cur.execute(sql)
+            self._db.commit()
+        except Exception, exc:
+            _logger.error("_drop_tables() error : %s"%exc)
+            raise Exception(exc)
 
     def _connect(self):
         """connection method, need to have self.home directory created"""
@@ -87,6 +99,8 @@ class Backend(Handler):
         if not exists(self.home):
             makedirs(self.home)
         self._connect()
+        if self.drop_tables is True:
+            self._drop_tables()
         if self.is_open() is False:
             raise Exception("Unable to open a tinasqlite database")
 

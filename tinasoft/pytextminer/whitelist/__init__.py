@@ -73,7 +73,7 @@ class Whitelist(PyTextMiner,whitelist.WhitelistFile):
         _logger.debug(
             "new connection to a whitelist database at %s"%(tmp)
         )
-        options = {'home':"."}
+        options = {'home':".", 'drop_tables': True}
         return Engine("tinasqlite://%s"%tmp, **options)
 
     def addContent(self, ngram, corpus_id=None, document_id=None):
