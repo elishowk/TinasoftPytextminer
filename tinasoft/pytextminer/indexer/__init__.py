@@ -156,24 +156,24 @@ class ArchiveCounter():
         termDictList = []
         maxLength = 0
 
-        # walks through all ngram in the whitelist
-        whitelistcontent = whitelist.getContent()
-        try:
-            while 1:
-                ngid, ngobj = whitelistcontent.next()
-                # puts the major form into termNameList
-                termNameList.append(ngobj['label'])
-                if len(termDictList) < len(ngobj['content']):
-                    # auto-adjust termDictList size
-                    for i in range(len(termDictList),len(ngobj['content'])):
-                        termDictList.append({})
-                # insert terms and forms into termDictList
-                index = len(termNameList) - 1
-                termDictList[len(ngobj['content'])-1][ngobj['label']] = index
-                for label in ngobj['edges']['label'].iterkeys():
-                    termDictList[len(label.split(" "))-1][label] = index
-        except StopIteration, si:
-            termNameList.sort()
+        # walks through all ngram forms in the whitelist
+        for form_id, lemmaid in whitelist.edges['NGram'].iteritems():
+            ngobj = whitelist.storage.loadNGram( form_id )
+            if ngobj is None: continue
+            # puts the major form into termNameList
+            lemmalabel = whitelist.edges['form_label'][lemmaid]
+            termNameList.append(lemmalabel)
+            if len(termDictList) < len(ngobj['content']):
+                # auto-adjust termDictList size
+                for i in range(len(termDictList), len(ngobj['content'])):
+                    termDictList.append({})
+            # insert terms and forms into termDictList
+            index = len(termNameList) - 1
+            termDictList[len(ngobj['content'])-1][ngobj['label']] = index
+            for label in ngobj['edges']['label'].iterkeys():
+                termDictList[len(label.split(" "))-1][label] = index
+            
+        termNameList.sort()
         return termNameList, termDictList
 
     def _occurrences(self, termDictList, wordSequence, nDescriptors):

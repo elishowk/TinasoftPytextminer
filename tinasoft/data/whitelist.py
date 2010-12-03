@@ -17,7 +17,7 @@
 __author__ = "elishowk@nonutc.fr"
 
 from tinasoft.data import basecsv, Handler
-from tinasoft.pytextminer import ngram, corpus, stemmer, filtering
+from tinasoft.pytextminer import ngram, corpus, filtering
 # tinasoft's logger
 import logging
 _logger = logging.getLogger('TinaAppLogger')
@@ -66,7 +66,7 @@ class Importer(basecsv.Importer):
         """
         self.whitelist.addEdge( 'StopNGram', dbid, occs )
 
-    def parse_file(self, stem):
+    def parse_file(self):
         """Reads a whitelist file and returns a whitelist object"""
         if self.whitelist is None: return False
         for row in self:
@@ -81,8 +81,11 @@ class Importer(basecsv.Importer):
                 _logger.error( "%s column (required) not found importing the whitelist at line %d, import failed"%(keyexc, self.reader.line_num) )
                 continue
             ngid = ngram.NGram.getNormId(label.split(" "))
-            [self._add_whitelist( ngram.NGram.getNormId(forms.split(" ")), ngid ) for forms in forms_tokens]
+            forms_id = [ngram.NGram.getNormId(forms.split(" ")) for forms in forms_tokens]
+            [self._add_whitelist( formid, ngid ) for formid in forms_id]
             self.whitelist.addEdge( 'form_label', ngid, label )
+            # only used for the indexer module
+            self.whitelist.addContent( ngram.NGram(forms.split(" "), formid, forms) )
         self.file.close()
         return self.whitelist
 

@@ -367,18 +367,19 @@ class PytextminerFlowApi(PytextminerFileApi):
                 self.logger.debug('Period %s not found in database, skipping'%str(period))
         # intersection with the whitelist
         ngram_index &= set( whitelist['edges']['NGram'].values() )
-        print ngram_index
+
         # TODO here's the key to replace actuel Matrix index handling
-        doc_index = list(doc_index)
-        doc_index.sort()
-        ngram_index = list(ngram_index)
-        ngram_index.sort()
+        #doc_index = list(doc_index)
+        #doc_index.sort()
+        #ngram_index = list(ngram_index)
+        #ngram_index.sort()
 
         # updates default config with parameters
         self.config['datamining']['NGramGraph'].update(ngramgraphconfig)
         self.config['datamining']['DocumentGraph'].update(documentgraphconfig)
         ngramconfig = self.config['datamining']['NGramGraph']
         documentconfig = self.config['datamining']['DocumentGraph']
+        
         if len(ngram_index) != 0:
             # hack
             if ngramconfig['proximity']=='cooccurrences':
@@ -391,7 +392,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             # hack
             ngramconfig['proximity']='cooccurrences'
             for process_period in periods_to_process:
-                ngram_args = ( self.config, storage, process_period, ngramconfig, ngram_index, whitelist )
+                ngram_args = ( self.config, storage, process_period, ngramconfig, ngram_index )
                 adj = graph.NgramGraph( *ngram_args )
                 adj.diagonal(ngram_matrix_reducer)
                 try:
@@ -414,7 +415,7 @@ class PytextminerFlowApi(PytextminerFileApi):
         if len(doc_index) != 0:
             doc_matrix_reducer = graph.MatrixReducerFilter( doc_index )
             for process_period in periods_to_process:
-                doc_args = ( self.config, storage, process_period, documentconfig, doc_index, whitelist )
+                doc_args = ( self.config, storage, process_period, documentconfig, doc_index )
                 adj = graph.DocGraph( *doc_args )
                 adj.diagonal(doc_matrix_reducer)
                 try:
@@ -481,6 +482,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             exporter = Writer("coocmatrix://"+outpath)
         else:
             exporter = None
+            
         archive = Reader( format + "://" + path, **self.config['datasets'] )
         archive_walker = archive.walkArchive(periods)
         try:
@@ -545,7 +547,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             self.logger.debug("loading whitelist from %s (%s)"%(whitelistpath, whitelist_id))
             wlimport = Reader('whitelist://'+whitelistpath, **kwargs)
             wlimport.whitelist = whitelist.Whitelist( whitelist_id, whitelist_id )
-            new_wl = wlimport.parse_file(stemmer.Nltk())
+            new_wl = wlimport.parse_file()
         # OBSOLETE : TO CHECK
         elif dataset is not None:
             # whitelistpath is a whitelist label into storage
@@ -557,7 +559,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             self.logger.debug("loading whitelist from %s (%s)"%(whitelistpath, whitelist_id))
             wlimport = Reader('whitelist://'+whitelistpath, **kwargs)
             wlimport.whitelist = whitelist.Whitelist( whitelist_id, whitelist_id )
-            new_wl = wlimport.parse_file(stemmer.Nltk())
+            new_wl = wlimport.parse_file()
         else:
             raise Exception("unable to find a whitelist at %s"%whitelistpath)
         return new_wl

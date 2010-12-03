@@ -23,9 +23,9 @@ import logging
 _logger = logging.getLogger('TinaAppLogger')
 
 
-def ngram_submatrix_task( config, storage, period, ngramgraphconfig, matrix_index, whitelist ):
+def ngram_submatrix_task( config, storage, period, ngramgraphconfig, matrix_index ):
     try:
-        adj = NgramGraph( config, storage, period, ngramgraphconfig, matrix_index, whitelist )
+        adj = NgramGraph( config, storage, period, ngramgraphconfig, matrix_index )
         submatrix_gen = adj.generator()
         while 1:
             yield submatrix_gen.next()
@@ -36,9 +36,9 @@ def ngram_submatrix_task( config, storage, period, ngramgraphconfig, matrix_inde
         _logger.debug("NgramGraph on period %s is finished"%period)
 
 
-def document_submatrix_task( config, storage, period, documentgraphconfig, matrix_index, whitelist ):
+def document_submatrix_task( config, storage, period, documentgraphconfig, matrix_index ):
     try:
-        adj = DocGraph( config, storage, period, documentgraphconfig, matrix_index, whitelist )
+        adj = DocGraph( config, storage, period, documentgraphconfig, matrix_index )
         submatrix_gen = adj.generator()
         while 1:
             yield submatrix_gen.next()
@@ -237,6 +237,7 @@ class MatrixReducerFilter(MatrixReducer):
                     if maxedges is None and prox < minedges:
                         del row[nodej]
                     elif prox > maxedges or prox < minedges:
+                        _logger.debug("found invalid proximity value %d"%prox)
                         del row[nodej]
                     # otherwise, DOES NOTHING !
                 count += len(row.keys())
@@ -318,7 +319,7 @@ class SubGraph(object):
     Base class
     A simple subgraph proximity matrix processor
     """
-    def __init__( self, config, storage, corpusid, opts, name, index, whitelist ):
+    def __init__( self, config, storage, corpusid, opts, name, index ):
         """
         Attach storage, a corpus objects and init the Matrix
         """
@@ -333,7 +334,7 @@ class SubGraph(object):
         self.name = name
         self._loadOptions(opts, config)
         # sets intersection of ngrams from the whitelist and the corpus
-        self.periodngrams = set(whitelist['edges']['NGram'].keys()) & set(self.corpus['edges']['NGram'].keys())
+        self.periodngrams = index & set(self.corpus['edges']['NGram'].keys())
 
     def _loadDefaults(self, config):
         """
@@ -403,14 +404,16 @@ class NgramGraph(SubGraph):
     """
     A NGram graph subgraph processor
     """
-    def __init__(self, config, storage, corpusid, opts, index, whitelist ):
-        SubGraph.__init__(self, config, storage, corpusid, opts, 'NGramGraph', index, whitelist )
+    def __init__(self, config, storage, corpusid, opts, index ):
+        SubGraph.__init__(self, config, storage, corpusid, opts, 'NGramGraph', index )
 
     def cooccurrences( self, document ):
         """
         simple document cooccurrences matrix calculator
         """
+        print 
         valid_keys = set(document['edges']['NGram'].keys()) & self.periodngrams
+        print valid_keys
         submatrix = Matrix( list(valid_keys), valuesize=float32 )
         # only processes a half of the symmetric matrix
         for (ngi, ngj) in itertools.combinations(valid_keys, 2):
@@ -440,8 +443,8 @@ class DocGraph(SubGraph):
     """
     A Document SubGraph adjacency processor
     """
-    def __init__(self, config, storage, corpusid, opts, index, whitelist ):
-        SubGraph.__init__(self, config, storage, corpusid, opts, 'DocumentGraph', index, whitelist )
+    def __init__(self, config, storage, corpusid, opts, index ):
+        SubGraph.__init__(self, config, storage, corpusid, opts, 'DocumentGraph', index )
         # docngrams cache
         self.documentngrams = {}
         # pre-calculed maximum ngrams in documents
