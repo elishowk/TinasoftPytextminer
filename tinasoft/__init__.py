@@ -328,6 +328,7 @@ class PytextminerFlowApi(PytextminerFileApi):
         outpath = abspath( outpath + ".gexf" )
         # loads the whitelist
         whitelist = self._import_whitelist(whitelistpath)
+        
         # creates the GEXF exporter
         GEXFWriter = Writer('gexf://', **self.config['datamining'])
 
@@ -356,6 +357,7 @@ class PytextminerFlowApi(PytextminerFileApi):
         # checks periods and construct nodes' indices
         for period in periods:
             corpus = storage.loadCorpus( period )
+            yield self.STATUS_RUNNING
             if corpus is not None:
                 periods_to_process += [period]
                 # unions
@@ -364,8 +366,8 @@ class PytextminerFlowApi(PytextminerFileApi):
             else:
                 self.logger.debug('Period %s not found in database, skipping'%str(period))
         # intersection with the whitelist
-        ngram_index &= set( whitelist['edges']['NGram'].keys() )
-
+        ngram_index &= set( whitelist['edges']['NGram'].values() )
+        print ngram_index
         # TODO here's the key to replace actuel Matrix index handling
         doc_index = list(doc_index)
         doc_index.sort()
