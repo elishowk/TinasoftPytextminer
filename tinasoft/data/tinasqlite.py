@@ -68,7 +68,7 @@ class Backend(Handler):
             for tabname in self.tables:
                 sql = "DROP TABLE IF EXISTS %s"%tabname
                 cur.execute(sql)
-            self._db.commit()
+            self.commit()
         except Exception, exc:
             _logger.error("_drop_tables() error : %s"%exc)
             raise Exception(exc)
@@ -77,7 +77,6 @@ class Backend(Handler):
         """connection method, need to have self.home directory created"""
         try:
             self._db = sqlite3.connect(join(self.home,self.path))
-            #self._db.execute("PRAGMA SYNCHRONOUS=0")
             # row factory provides named columns
             self._db.row_factory = sqlite3.Row
             self.__open = True
@@ -93,7 +92,7 @@ class Backend(Handler):
             for tabname in self.tables:
                 sql = "CREATE TABLE IF NOT EXISTS %s (id VARCHAR(256) PRIMARY KEY, pickle BLOB)"%tabname
                 cur.execute(sql)
-            self._db.commit()
+            self.commit()
         except Exception, connect_exc:
             _logger.error("_connect() error : %s"%connect_exc)
             raise Exception(connect_exc)
@@ -112,16 +111,18 @@ class Backend(Handler):
         if self.is_open() is False:
             raise Exception("Unable to open a tinasqlite database")
 
-    def close(self, commit_pending_transaction=True):
+    def close(self):
         """
         Properly handles transactions explicitely (with parameter) or by default
 
         """
         if not self.is_open():
             return
-        self.__closing = True
         self._db.close()
         self.__open = False
+        
+    def __del__(self):
+        self.close()
 
     def commit(self):
         """

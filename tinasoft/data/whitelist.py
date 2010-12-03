@@ -23,7 +23,7 @@ import logging
 _logger = logging.getLogger('TinaAppLogger')
 
 
-class WhitelistFile():
+class WhitelistFile(object):
     """
     Model of a whitelist csv file
     """
@@ -46,8 +46,6 @@ class WhitelistFile():
     refuse = "s"
     forms_separator = "***"
 
-    def __init__(self):
-        return
 
 
 class Importer(basecsv.Importer):
@@ -85,6 +83,7 @@ class Importer(basecsv.Importer):
             ngid = ngram.NGram.getNormId(label.split(" "))
             [self._add_whitelist( ngram.NGram.getNormId(forms.split(" ")), ngid ) for forms in forms_tokens]
             self.whitelist.addEdge( 'form_label', ngid, label )
+        self.file.close()
         return self.whitelist
 
 def load_from_storage(whitelist, storage, periods, filters=None, wlinstance=None):
@@ -145,21 +144,6 @@ class Exporter(basecsv.Exporter):
 
     filemodel = WhitelistFile()
 
-    def export_whitelist(self, storage, periods, newwl, filters=None, compl_whitelist=None, minOccs=1):
-        """
-        Used only to export index NGrams from storage
-        creates a Whitelist Object given periods and optional filters, and another whitelist object to be merged
-        """
-        # loads whitelist object from storage
-        whitelist = load_from_storage(newwl, storage, periods, filters, compl_whitelist)
-        # exports to a file
-        (export_path, whitelist) = self.write_whitelist(whitelist, minOccs)
-        # cleans whitelist
-        whitelist['content'] = whitelist['corpus'] = {}
-        # updates whitelist into storage
-        storage.insertWhitelist(whitelist, self.whitelist['id'], overwrite=True)
-        return export_path
-
     def write_whitelist(self, newwl, minOccs=1):
         """
         Writes a Whitelist object to a file
@@ -170,6 +154,9 @@ class Exporter(basecsv.Exporter):
         try:
             while 1:
                 ngid, ng = ngramgenerator.next()
+                if ngid not in newwl['edges']['NGram']:
+                    _logger.error( "%s is not in the whitelist edges but in the db"%ng['label'])
+                    continue
                 # filters ngram from the whitelist based on min occs
                 occs = 0
                 for occ in ng['edges']['Corpus'].itervalues():
@@ -222,4 +209,20 @@ class Exporter(basecsv.Exporter):
 
         except StopIteration, si:
             _logger.debug( "%d ngrams exported after filtering" %totalexported )
+            self.file.close()
             return (self.filepath, newwl)
+
+    def export_whitelist(self, storage, periods, newwl, filters=None, compl_whitelist=None, minOccs=1):
+        """
+        Used only to export index NGrams from storage
+        creates a Whitelist Object given periods and optional filters, and another whitelist object to be merged
+        """
+        # loads whitelist object from storage
+        whitelist = load_from_storage(newwl, storage, periods, filters, compl_whitelist)
+        # exports to a file
+        (export_path, whitelist) = self.write_whitelist(whitelist, minOccs)
+        # cleans whitelist
+        whitelist['content'] = whitelist['corpus'] = {}
+        # updates whitelist into storage
+        storage.insertWhitelist(whitelist, self.whitelist['id'], overwrite=True)
+        return export_path

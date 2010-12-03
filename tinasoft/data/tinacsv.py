@@ -48,7 +48,6 @@ class Importer (basecsv.Importer):
             # decoding & parsing TRY
             try:
                 corpusID = self._coerce_unicode( doc[self.fields['corpus_id']] )
-
             except Exception, exc:
                 _logger.error( "tinacsv error : corpus id missing at line %d"%self.reader.line_num )
                 _logger.error( exc )
@@ -63,6 +62,8 @@ class Importer (basecsv.Importer):
                 self.corpusDict[ corpusID ] = corpus.Corpus( corpusID )
             # sends the document and the corpus id
             yield newdoc, corpusID
+        self.file.close()
+        return
 
     def _parse_document( self, doc, tmpfields ):
         """

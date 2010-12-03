@@ -238,6 +238,9 @@ class PytextminerFlowApi(PytextminerFileApi):
             self.logger.error(traceback.format_exc())
             yield self.STATUS_ERROR
             return
+        finally:
+            del self.opened_storage[dataset]
+            del extract
 
     def index_file(self,
             path,
@@ -285,6 +288,9 @@ class PytextminerFlowApi(PytextminerFileApi):
             self.logger.error(traceback.format_exc())
             yield self.STATUS_ERROR
             return
+        #finally:
+        #    del self.opened_storage[dataset]
+        #    del extract
 
     def generate_graph(self,
             dataset,
@@ -552,7 +558,6 @@ class PytextminerFlowApi(PytextminerFileApi):
             new_wl = wlimport.parse_file(stemmer.Nltk())
         else:
             raise Exception("unable to find a whitelist at %s"%whitelistpath)
-        # TODO stores the whitelist ?
         return new_wl
 
     def _import_userstopwords(

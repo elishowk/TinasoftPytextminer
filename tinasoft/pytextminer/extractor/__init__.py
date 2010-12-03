@@ -102,20 +102,23 @@ class Extractor():
 
                 for ng in docngrams.itervalues():
                     newwl.addContent( ng, corpusNum, document['id'] )
-
+                    newwl.addEdge("NGram", ng['id'], 1)
+                newwl.storage.flushNGramQueue()
+                
                 doccount += 1
                 if doccount % NUM_DOC_NOTIFY == 0:
                     _logger.debug("%d documents parsed"%doccount)
                 yield doccount
+                
 
-                newwl.storage.flushNGramQueue()
 
         except StopIteration:
             newwl.storage.flushNGramQueue()
             _logger.debug("Total documents extracted = %d"%doccount)
             self.storage.updateCorpora( self.corpora, False )
             whitelist_exporter = Writer("whitelist://"+extract_path)
-            newwl = whitelist_exporter.write_whitelist(newwl, minoccs)
+            (filepath, newwl) = whitelist_exporter.write_whitelist(newwl, minoccs)
+            del newwl
             return
 
     def index_file(self, path, format, whitelist, overwrite=False):

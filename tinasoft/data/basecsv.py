@@ -14,7 +14,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/gpl.html>.
 
-from tinasoft.data import Importer, Handler, Exporter
+from tinasoft.data import Importer, Handler
 
 import codecs
 import csv
@@ -67,7 +67,7 @@ class UnicodeDictReader(object):
     def __iter__(self):
         return self
 
-class Importer (Importer,UnicodeDictReader):
+class Importer(Importer, UnicodeDictReader):
     """
     importer class for a csv file using encoding and decoding following
     the example from
@@ -108,7 +108,10 @@ class Importer (Importer,UnicodeDictReader):
         except Exception, exc:
             _logger.error("error reading first csv line : %s"%(str(exc)))
 
-    def open( self, path ):
+    def __del__(self):
+        self.file.close()
+
+    def open(self, path):
         """
         read-only binary file handler
         """
@@ -130,17 +133,20 @@ class Exporter (Handler):
     """
     home-made exporter class for a csv file
     """
-
     # defaults
     options = {
         'encoding': 'utf-8',
         'delimiter': ',',
         'quotechar': '"',
     }
+
     def __init__( self, filepath, **kwargs ):
         self.loadOptions(kwargs)
         self.filepath = filepath
         self.file = codecs.open( self.filepath, "w+", encoding=self.encoding, errors='replace' )
+
+    def __del__(self):
+        self.file.close()
 
     def writeRow( self, row ):
         """

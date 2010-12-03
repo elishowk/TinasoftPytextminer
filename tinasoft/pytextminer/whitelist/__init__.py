@@ -43,6 +43,9 @@ class Whitelist(PyTextMiner,whitelist.WhitelistFile):
         whitelist.WhitelistFile.__init__(self)
         PyTextMiner.__init__(self, {}, id, label, edges, **metas)
         self.storage = self._get_storage()
+        
+    def __del__(self):
+        del self.storage
 
     def addEdge(self, type, key, value):
         if type in ['NGram', 'StopNGram']:
