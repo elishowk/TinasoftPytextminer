@@ -237,7 +237,6 @@ class MatrixReducerFilter(MatrixReducer):
                     if maxedges is None and prox < minedges:
                         del row[nodej]
                     elif prox > maxedges or prox < minedges:
-                        _logger.debug("found invalid proximity value %d"%prox)
                         del row[nodej]
                     # otherwise, DOES NOTHING !
                 count += len(row.keys())
@@ -410,10 +409,8 @@ class NgramGraph(SubGraph):
     def cooccurrences( self, document ):
         """
         simple document cooccurrences matrix calculator
-        """
-        print 
+        """ 
         valid_keys = set(document['edges']['NGram'].keys()) & self.periodngrams
-        print valid_keys
         submatrix = Matrix( list(valid_keys), valuesize=float32 )
         # only processes a half of the symmetric matrix
         for (ngi, ngj) in itertools.combinations(valid_keys, 2):
