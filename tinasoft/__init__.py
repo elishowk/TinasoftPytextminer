@@ -415,7 +415,7 @@ class PytextminerFlowApi(PytextminerFileApi):
         if len(doc_index) != 0:
             doc_matrix_reducer = graph.MatrixReducerFilter( doc_index )
             for process_period in periods_to_process:
-                doc_args = ( self.config, storage, process_period, documentconfig, doc_index )
+                doc_args = ( self.config, storage, process_period, documentconfig, ngram_index )
                 adj = graph.DocGraph( *doc_args )
                 adj.diagonal(doc_matrix_reducer)
                 try:
