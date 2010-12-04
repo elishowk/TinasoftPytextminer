@@ -238,9 +238,9 @@ class PytextminerFlowApi(PytextminerFileApi):
             self.logger.error(traceback.format_exc())
             yield self.STATUS_ERROR
             return
-        finally:
-            del self.opened_storage[dataset]
-            del extract
+        #finally:
+        #    del self.opened_storage[dataset]
+        #    del extract
 
     def index_file(self,
             path,

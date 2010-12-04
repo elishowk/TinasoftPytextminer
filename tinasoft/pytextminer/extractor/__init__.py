@@ -110,12 +110,10 @@ class Extractor():
                     _logger.debug("%d documents parsed"%doccount)
                 yield doccount
                 
-
-
         except StopIteration:
-            newwl.storage.flushNGramQueue()
             _logger.debug("Total documents extracted = %d"%doccount)
             self.storage.updateCorpora( self.corpora, False )
+            _logger.debug(self.storage.loadCorpora( self.corpora.id ).label)
             whitelist_exporter = Writer("whitelist://"+extract_path)
             (filepath, newwl) = whitelist_exporter.write_whitelist(newwl, minoccs)
             del newwl

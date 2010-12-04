@@ -105,9 +105,28 @@ class GenerateGraph(ServerTest):
         print self.connection.getresponse().read()
 
 
+def getCorpora(connection, headers, dataset_id):
+    """getCorpora : gets a corpora from database"""
+    params =  urllib.urlencode({
+        'dataset': dataset_id,
+    })
+    connection.request(
+        'GET',
+        '/dataset?'+params,
+        body = params,
+        headers = headers
+    )
+    data = connection.getresponse().read()
+    print "DATA RECEIVED - ", data
+    obj = jsonpickle.decode( data )
+    return obj
+
 class GetNodes(ServerTest):
     def runTest(self):
         """GetNodes : gets nodes from database after having generated a graph"""
+        Datasetlabel = getCorpora(self.connection, self.headers, self.datasetId)
+        print Datasetlabel
+        print "Verifying Dataset with Dataset named %s"%Datasetlabel
         params =  urllib.urlencode({
             'dataset': self.datasetId,
             'id': self.period
@@ -119,9 +138,11 @@ class GetNodes(ServerTest):
             headers = self.headers
         )
         data = self.connection.getresponse().read()
-        corpus = jsonpickle.decode( data )
-        print corpus
-        for ngid in corpus['edges']['NGram'].iterkeys():
+        print "DATA RECEIVED - ", data
+        corpusObj = jsonpickle.decode( data )
+        print corpusObj
+        
+        for ngid in corpusObj['edges']['NGram'].iterkeys():
             params =  urllib.urlencode({
                 'dataset': self.datasetId,
                 'id': ngid
@@ -133,9 +154,11 @@ class GetNodes(ServerTest):
                 headers = self.headers
             )
             data = self.connection.getresponse().read()
-            ngram = jsonpickle.decode( data )
-            print ngram.edges
-        for docid in corpus['edges']['Document'].iterkeys():
+            print "DATA RECEIVED - ", data
+            ngramObj = jsonpickle.decode( data )
+            print ngramObj.edges
+            
+        for docid in corpusObj['edges']['Document'].iterkeys():
             params =  urllib.urlencode({
                 'dataset': self.datasetId,
                 'id': docid
@@ -147,8 +170,9 @@ class GetNodes(ServerTest):
                 headers = self.headers
             )
             data = self.connection.getresponse().read()
-            document = jsonpickle.decode( data )
-            print document
+            print "DATA RECEIVED - ", data
+            documentObj = jsonpickle.decode( data )
+            print documentObj
 
 def usage():
     print " servertests.py USAGE :\n"

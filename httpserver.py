@@ -331,6 +331,7 @@ class GETHandler(object):
             return self.pytmapi.walk_datasets()
         storage = self.pytmapi.get_storage( dataset )
         if storage == self.pytmapi.STATUS_ERROR:
+            _logger.error("unable to connect to the database")
             return None
         else:
             return storage.loadCorpora(dataset)
@@ -342,6 +343,7 @@ class GETHandler(object):
         """
         storage = self.pytmapi.get_storage( dataset )
         if storage == self.pytmapi.STATUS_ERROR:
+            _logger.error("unable to connect to the database")
             return None
         else:
             return storage.loadCorpus(id)
@@ -353,6 +355,7 @@ class GETHandler(object):
         """
         storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
+            _logger.error("unable to connect to the database")
             return None
         else:
             return storage.loadDocument(id)
@@ -364,6 +367,7 @@ class GETHandler(object):
         """
         storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
+            _logger.error("unable to connect to the database")
             return None
         else:
             return storage.loadNGram(id)
