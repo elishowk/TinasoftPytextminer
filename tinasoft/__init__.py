@@ -292,6 +292,58 @@ class PytextminerFlowApi(PytextminerFileApi):
         #    del self.opened_storage[dataset]
         #    del extract
 
+    def _new_graph_writer(self, dataset, periods, whitelistid, storage=None):
+        """ creates the GEXF exporter """
+        graphwriter = Writer('gexf://', **self.config['datamining'])
+        # adds meta to the futur gexf file
+        graphmeta = {
+            'parameters': {
+                'periods' : "+".join(periods),
+                'whitelist': whitelistid,
+                'dataset': dataset,
+                'layout/algorithm': 'tinaforce',
+                'rendering/edge/shape': 'curve',
+                'data/source': 'browser'
+            },
+            'description': "a tinasoft graph",
+            'creators': ["CREA Lab, CNRS/Ecole Polytechnique UMR 7656 (Fr)"],
+            'date': "%s"%datetime.now().strftime("%Y-%m-%d"),
+        }
+        graphwriter.new_graph( storage, graphmeta )
+        return graphwriter
+
+    def ngram_subgraph(self,
+            dataset,
+            periods,
+            whitelist,
+            ngram_matrix_reducer,
+            ngramgraphconfig,
+            graphwriter,
+            storage
+        ):
+        """
+        Generates ngram graph matrices from indexed dataset
+        """
+        for process_period in periods:
+            ngram_args = ( self.config, storage, process_period, ngramconfig, ngram_index )
+            adj = graph.NgramGraph( *ngram_args )
+            adj.diagonal(ngram_matrix_reducer)
+            try:
+                ngram_adj_gen = graph.ngram_submatrix_task( *ngram_args )
+                while 1:
+                    ngram_matrix_reducer.add( ngram_adj_gen.next() )
+                    yield self.STATUS_RUNNING
+            except StopIteration, si:
+                self.logger.debug("NGram matrix reduced (%s) for period %s"%(ngram_matrix_reducer.__class__.__name__,process_period))
+        load_subgraph_gen = GEXFWriter.load_subgraph( 'NGram', ngram_matrix_reducer, subgraphconfig = ngramconfig)
+        try:
+            while 1:
+                load_subgraph_gen.next()
+                yield self.STATUS_RUNNING
+        except StopIteration, si:
+            yield ngram_matrix_reducer
+            return
+
     def generate_graph(self,
             dataset,
             periods,
@@ -303,9 +355,9 @@ class PytextminerFlowApi(PytextminerFileApi):
         ):
         """
         Generates the proximity matrices from indexed NGrams/Document/Corpus
-        given a list of periods and a whitelist
+        given a list of @periods and a @whitelistpath
         Then export the corresponding graph to storage and gexf
-        optionnaly export the complete graph to a gexf file for use in tinaweb
+        optionnaly exports the complete graph to a gexf file for use in tinaweb
 
         @return absolute path to the gexf file
         """
@@ -329,26 +381,7 @@ class PytextminerFlowApi(PytextminerFileApi):
         # loads the whitelist
         whitelist = self._import_whitelist(whitelistpath)
         
-        # creates the GEXF exporter
-        GEXFWriter = Writer('gexf://', **self.config['datamining'])
-
-        # adds meta to the futur gexf file
-        graphmeta = {
-            'parameters': {
-                'periods' : "+".join(periods),
-                'whitelist': self._get_filepath_id(whitelistpath),
-                'location': outpath,
-                'dataset': dataset,
-                'layout/algorithm': 'tinaforce',
-                'rendering/edge/shape': 'curve',
-                'data/source': 'browser'
-            },
-            'description': "a tinasoft graph",
-            'creators': ["CREA Lab, CNRS/Ecole Polytechnique UMR 7656 (Fr)"],
-            'date': "%s"%datetime.now().strftime("%Y-%m-%d"),
-        }
-
-        GEXFWriter.new_graph( storage, graphmeta )
+        GEXFWriter = self._new_graph_writer(dataset, periods, whitelist['id'], storage)
 
         periods_to_process = []
         ngram_index = set([])
@@ -368,19 +401,13 @@ class PytextminerFlowApi(PytextminerFileApi):
         # intersection with the whitelist
         ngram_index &= set( whitelist['edges']['NGram'].values() )
 
-        # TODO here's the key to replace actuel Matrix index handling
-        #doc_index = list(doc_index)
-        #doc_index.sort()
-        #ngram_index = list(ngram_index)
-        #ngram_index.sort()
-
         # updates default config with parameters
         self.config['datamining']['NGramGraph'].update(ngramgraphconfig)
         self.config['datamining']['DocumentGraph'].update(documentgraphconfig)
         ngramconfig = self.config['datamining']['NGramGraph']
         documentconfig = self.config['datamining']['DocumentGraph']
         
-        if len(ngram_index) != 0:
+        if len(ngram_index) == 0:
             # hack
             if ngramconfig['proximity']=='cooccurrences':
                 ngram_matrix_reducer = graph.MatrixReducerFilter( ngram_index )
@@ -390,25 +417,21 @@ class PytextminerFlowApi(PytextminerFileApi):
                 ngramconfig['nb_documents'] = len(doc_index)
                 ngram_matrix_reducer = graph.EquivalenceIndexMatrix( ngram_index )
             # hack
-            ngramconfig['proximity']='cooccurrences'
-            for process_period in periods_to_process:
-                ngram_args = ( self.config, storage, process_period, ngramconfig, ngram_index )
-                adj = graph.NgramGraph( *ngram_args )
-                adj.diagonal(ngram_matrix_reducer)
-                try:
-                    ngram_adj_gen = graph.ngram_submatrix_task( *ngram_args )
-                    while 1:
-                        ngram_matrix_reducer.add( ngram_adj_gen.next() )
-                        yield self.STATUS_RUNNING
-                except StopIteration, si:
-                    self.logger.debug("NGram matrix reduced for period %s"%process_period)
-            load_subgraph_gen = GEXFWriter.load_subgraph( 'NGram', ngram_matrix_reducer, subgraphconfig = ngramconfig)
+            ngramconfig['proximity']='storage'
+            ngramsubgraph_gen = self.ngram_subgraph(
+                dataset,
+                periods_to_process,
+                whitelist,
+                ngram_matrix_reducer,
+                ngramgraphconfig,
+                GEXFWriter,
+                storage
+            )
             try:
                 while 1:
-                    load_subgraph_gen.next()
-                    yield self.STATUS_RUNNING
-            except StopIteration, si:
-                del ngram_matrix_reducer
+                    yield ngramsubgraph_gen.next()
+            except StopIteration, stopi:
+                pass
         else:
             self.logger.warning("NGram sub-graph not generated because there was no NGrams")
 

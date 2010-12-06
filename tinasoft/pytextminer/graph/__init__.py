@@ -221,13 +221,15 @@ class MatrixReducer(Matrix):
 
 class MatrixReducerFilter(MatrixReducer):
     """
-    Simple matrix reducer : use it if there's no second level promitiy calculation
+    Simple matrix reducer : use it if there's no second level proximity calculation
     Only filtering edges values from MatrixReducer
     """
     def extract_matrix( self, config, **kwargs ):
         matrix = super(MatrixReducerFilter, self).extract_matrix( config )
         minedges = float(config['edgethreshold'][0])
         maxedges = float(config['edgethreshold'][1])
+        if 'hapax' in config:
+            minedges = float(config['hapax'])
         try:
             count = 0
             while 1:
@@ -416,6 +418,21 @@ class NgramGraph(SubGraph):
         for (ngi, ngj) in itertools.combinations(valid_keys, 2):
             submatrix.set( ngi, ngj, 1 )
             submatrix.set( ngj, ngi, 1 )
+        return submatrix
+    
+    def storage( self, document ):
+        """
+        sgets proximities from storage
+        """ 
+        valid_keys = set(document['edges']['NGram'].keys()) & self.periodngrams
+        submatrix = Matrix( list(valid_keys), valuesize=float32 )
+        ngramcache = []
+        for ngi in valid_keys, 2:
+            ngiobj = self.storage.loadNGram(ngi)
+            if ngiobj is None: continue
+            for ngj, stored_prox in ngiobj['edges']['NGram'].iteritems():
+                if ngj not in valid_keys: continue
+                submatrix.set( ngi, ngj, stored_prox )
         return submatrix
 
     def diagonal( self, matrix_reducer ):
