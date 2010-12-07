@@ -241,7 +241,7 @@ class ArchiveCounter():
         """
         matrix = SymmetricMatrix(termList)
         try:
-            generator = self.storage.selectCorpusCooc( period )
+            generator = self.storage.selectCorpusSimi(period, "Cooc")
             while 1:
                 ngi,row = generator.next()
                 for ngj in row.iterkeys():

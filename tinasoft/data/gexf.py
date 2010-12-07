@@ -56,6 +56,8 @@ class Exporter(Handler):
     options = {
         'encoding'     : 'utf-8',
         'template'   : 'shared/gexf/gexf.default.template',
+        'preprocess' : False,
+        'generate' : True
     }
 
     def __init__(self, path, **opts):
@@ -65,7 +67,7 @@ class Exporter(Handler):
         self.loadOptions(opts)
         self.engine = tenjin.Engine()
 
-    def new_graph(self, storage, meta):
+    def new_graph(self, storage, meta, periods, generate, preprocess):
         """
         initialize the graph object and a storage connector
         """
@@ -79,35 +81,50 @@ class Exporter(Handler):
             'attredges': {},
         }
         self.graph.update(meta)
+        self.periods = periods
+        self.generate = generate
+        self.preprocess = preprocess
 
     def notify(self, count):
         if count % 200 == 0:
             _logger.debug( "%d graph nodes processed"%count )
 
-    def load_subgraph(self, category, matrix, subgraphconfig=None):
+    def load_subgraph(self, category, matrix, subgraphconfig):
         """
         uses a Graph.MatrixReducer type object
-        to add a "category" subgraph to the global graph object
-        and updates the storage
+        to update the storage with new node edges
         """
         nodecount = 0
-        _logger.debug("loading %s edges into gexf"%category)
+        _logger.debug("loading %s edges into graph"%category)
         rows = matrix.extract_matrix( subgraphconfig )
         try:
             while 1:
                 nodeid, row = rows.next()
-                if self._update_subgraph_db(nodeid, row, category):
-                    # node weight in the diagonal of the matrix
+                if self.preprocess is True:
+                    self._update_preprocess_db(nodeid, row, category)
+                if self.generate is True:
+                    self._update_graph_db(nodeid, row, category)
+                    # adds node and its weight to the template var
                     self.graph['nodes'][category][nodeid] = matrix.get(nodeid, nodeid)
-                    nodecount += 1
-                    self.notify(nodecount)
-                    yield nodecount
+                nodecount += 1
+                self.notify(nodecount)
+                yield nodecount
         except StopIteration, si:
+            if self.storage is not None:
+                self.storage.flushQueues()
             return
 
-    def _update_subgraph_db(self, nodeid, row, category):
+    def _update_preprocess_db(self, nodeid, row, category):
         """
-        updates the storage with a graph matrix row
+        updates the storage with a matrix row
+        """
+        if self.storage is None: return True
+        for period in self.periods:
+            self.storage.updateGraphPreprocess(period, category, nodeid, row)    
+
+    def _update_graph_db(self, nodeid, row, category):
+        """
+        updates the network in storage with a matrix row
         """
         if self.storage is None: return True
         obj = self.storage.load(nodeid, category)
@@ -117,9 +134,8 @@ class Exporter(Handler):
         temp = { category: row }
         # overwrites the object
         self.storage.insert( PyTextMiner.updateEdges(temp, obj), category )
-        return True
 
-    def _render( self, gexf ):
+    def _render(self, gexf):
         """
         calls tenjin rendering method
         """

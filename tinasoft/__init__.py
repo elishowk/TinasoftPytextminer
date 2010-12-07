@@ -142,7 +142,7 @@ class PytextminerFlowApi(PytextminerFileApi):
         logger.addHandler(rotatingFileHandler)
         self.logger = logger
 
-    def get_storage( self, dataset_id, create=True, **options ):
+    def get_storage(self, dataset_id, create=True, drop_tables=False, **options):
         """
         unique DB connection handler
         one separate database per dataset=corpora
@@ -150,7 +150,9 @@ class PytextminerFlowApi(PytextminerFileApi):
         """
         if dataset_id in self.opened_storage:
             return self.opened_storage[dataset_id]
+            
         try:
+            options['drop_tables'] = drop_tables
             storagedir = join(
                 self.config['general']['basedirectory'],
                 self.config['general']['dbenv'],
@@ -190,7 +192,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             self.logger.error(ioe)
             yield self.STATUS_ERROR
             return
-        storage = self.get_storage( dataset )
+        storage = self.get_storage(dataset, create=True, drop_tables=False)
         if storage == self.STATUS_ERROR:
             yield self.STATUS_ERROR
             return
@@ -234,8 +236,8 @@ class PytextminerFlowApi(PytextminerFileApi):
         except StopIteration, si:
             yield absolute_outpath
             return
-        except Exception, ex:
-            self.logger.error(traceback.format_exc())
+        except Exception, excep:
+            self.logger.error("%s"%excep)
             yield self.STATUS_ERROR
             return
         #finally:
@@ -256,11 +258,22 @@ class PytextminerFlowApi(PytextminerFileApi):
             path = self._get_sourcefile_path(path)
             corporaObj = corpora.Corpora(dataset)
             whitelist = self._import_whitelist(whitelistpath)
-
-            storage = self.get_storage( dataset )
+            
+            storage = self.get_storage(dataset, create=True, drop_tables=False)
             if storage == self.STATUS_ERROR:
                 yield self.STATUS_ERROR
                 return
+            
+            previousdataset = storage.loadCorpora(dataset)
+            previousngrams = set([])
+
+            if previousdataset is not None:
+                allpreviousperiods = previousdataset.edges['Corpus'].keys()
+                for period in allpreviousperiods:
+                    previouscorpus = storage.loadCorpus( period )
+                    if previouscorpus is None: continue
+                    previousngrams |= set(previouscorpus.edges['NGram'].keys())       
+
             extract = extractor.Extractor(
                 storage,
                 self.config['datasets'],
@@ -278,22 +291,49 @@ class PytextminerFlowApi(PytextminerFileApi):
                 extractorGenerator.next()
                 yield self.STATUS_RUNNING
         except IOError, ioe:
-            self.logger.error(ioe)
+            self.logger.error("%s"%ioe)
             return
         except StopIteration, si:
+            storage.flushNGramQueue()
+            
+            self.logger.debug("preprocessing cooccurrences")
+            ### prepares parameters
+            ngram_index = previousngrams | set( whitelist['edges']['NGram'].values() )
+            periods = storage.loadCorpora(dataset).edges['Corpus'].keys()
+            ngram_matrix_reducer = graph.MatrixReducer( ngram_index )
+            cooc_writer = self._new_graph_writer(dataset, periods, whitelist['id'], storage, generate=False, preprocess=True)
+            ngramgraphconfig = self.config['datamining']['NGramGraph']
+            ngramgraphconfig['proximity'] = 'cooccurrences'
+            ### cooccurrences for each period
+            for period in periods:
+                if len(ngram_index) == 0: continue
+                ngramsubgraph_gen = graph.process_ngram_subgraph(
+                    self.config,
+                    dataset,
+                    [period],
+                    ngram_index,
+                    ngram_matrix_reducer,
+                    ngramgraphconfig,
+                    cooc_writer,
+                    storage
+                )
+                try:
+                    while 1:
+                        yield self.STATUS_RUNNING
+                        ngram_matrix_reducer_update = ngramsubgraph_gen.next()
+                except StopIteration, stopi:
+                    pass
+                    
+            ### end of preprocess
             yield extract.duplicate
             return
         except Exception, exc:
             self.logger.error("%s"%exc)
-            self.logger.error(traceback.format_exc())
             yield self.STATUS_ERROR
             return
-        #finally:
-        #    del self.opened_storage[dataset]
-        #    del extract
 
-    def _new_graph_writer(self, dataset, periods, whitelistid, storage=None):
-        """ creates the GEXF exporter """
+    def _new_graph_writer(self, dataset, periods, whitelistid, storage=None, generate=True, preprocess=False):
+        """ creates the Graph exporter """
         graphwriter = Writer('gexf://', **self.config['datamining'])
         # adds meta to the futur gexf file
         graphmeta = {
@@ -309,40 +349,8 @@ class PytextminerFlowApi(PytextminerFileApi):
             'creators': ["CREA Lab, CNRS/Ecole Polytechnique UMR 7656 (Fr)"],
             'date': "%s"%datetime.now().strftime("%Y-%m-%d"),
         }
-        graphwriter.new_graph( storage, graphmeta )
+        graphwriter.new_graph( storage, graphmeta, periods, generate, preprocess)
         return graphwriter
-
-    def ngram_subgraph(self,
-            dataset,
-            periods,
-            whitelist,
-            ngram_matrix_reducer,
-            ngramgraphconfig,
-            graphwriter,
-            storage
-        ):
-        """
-        Generates ngram graph matrices from indexed dataset
-        """
-        for process_period in periods:
-            ngram_args = ( self.config, storage, process_period, ngramconfig, ngram_index )
-            adj = graph.NgramGraph( *ngram_args )
-            adj.diagonal(ngram_matrix_reducer)
-            try:
-                ngram_adj_gen = graph.ngram_submatrix_task( *ngram_args )
-                while 1:
-                    ngram_matrix_reducer.add( ngram_adj_gen.next() )
-                    yield self.STATUS_RUNNING
-            except StopIteration, si:
-                self.logger.debug("NGram matrix reduced (%s) for period %s"%(ngram_matrix_reducer.__class__.__name__,process_period))
-        load_subgraph_gen = GEXFWriter.load_subgraph( 'NGram', ngram_matrix_reducer, subgraphconfig = ngramconfig)
-        try:
-            while 1:
-                load_subgraph_gen.next()
-                yield self.STATUS_RUNNING
-        except StopIteration, si:
-            yield ngram_matrix_reducer
-            return
 
     def generate_graph(self,
             dataset,
@@ -365,8 +373,13 @@ class PytextminerFlowApi(PytextminerFileApi):
             periods = [periods]
         if not documentgraphconfig: documentgraphconfig = {}
         if not ngramgraphconfig: ngramgraphconfig = {}
+        # updates default config with parameters
+        self.config['datamining']['NGramGraph'].update(ngramgraphconfig)
+        self.config['datamining']['DocumentGraph'].update(documentgraphconfig)
+        ngramconfig = self.config['datamining']['NGramGraph']
+        documentconfig = self.config['datamining']['DocumentGraph']
 
-        storage = self.get_storage( dataset )
+        storage = self.get_storage(dataset, create=False, drop_tables=False)
         if storage == self.STATUS_ERROR:
             yield self.STATUS_ERROR
             return
@@ -378,13 +391,15 @@ class PytextminerFlowApi(PytextminerFileApi):
         else:
             outpath = self._get_user_filepath(dataset, 'gexf',  "%s_%s-graph"%(params_string, outpath) )
         outpath = abspath( outpath + ".gexf" )
+        
         # loads the whitelist
         whitelist = self._import_whitelist(whitelistpath)
         
-        GEXFWriter = self._new_graph_writer(dataset, periods, whitelist['id'], storage)
+        GEXFWriter = self._new_graph_writer(dataset, periods, whitelist['id'], storage, generate=True, preprocess=False)
 
         periods_to_process = []
-        ngram_index = set([])
+        # intersection with the whitelist NGram edges values == N-Lemmas id
+        ngram_index = set( whitelist['edges']['NGram'].values() )
         doc_index = set([])
 
         # checks periods and construct nodes' indices
@@ -394,71 +409,57 @@ class PytextminerFlowApi(PytextminerFileApi):
             if corpus is not None:
                 periods_to_process += [period]
                 # unions
-                ngram_index |= set( corpus['edges']['NGram'].keys() )
+                ngram_index &= set( corpus['edges']['NGram'].keys() )
+                yield self.STATUS_RUNNING
                 doc_index |= set( corpus['edges']['Document'].keys() )
             else:
                 self.logger.debug('Period %s not found in database, skipping'%str(period))
-        # intersection with the whitelist
-        ngram_index &= set( whitelist['edges']['NGram'].values() )
 
-        # updates default config with parameters
-        self.config['datamining']['NGramGraph'].update(ngramgraphconfig)
-        self.config['datamining']['DocumentGraph'].update(documentgraphconfig)
-        ngramconfig = self.config['datamining']['NGramGraph']
-        documentconfig = self.config['datamining']['DocumentGraph']
+
+        if len(ngram_index) == 0 or len(doc_index) == 0:
+            yield self.STATUS_ERROR
+            _logger.warning( "Graph not generated because there was ZERO NGrams or Documents" )
+            return
+        # hack
+        if ngramconfig['proximity']=='cooccurrences':
+            ngram_matrix_reducer = graph.MatrixReducerFilter( ngram_index )
+        if ngramconfig['proximity']=='pseudoInclusion':
+            ngram_matrix_reducer = graph.PseudoInclusionMatrix( ngram_index )
+        if ngramconfig['proximity']=='equivalenceIndex':
+            ngramconfig['nb_documents'] = len(doc_index)
+            ngram_matrix_reducer = graph.EquivalenceIndexMatrix( ngram_index )
+        # graph prox is based on previously stored
+        ngramconfig['proximity'] = 'storage'
+        ngramsubgraph_gen = graph.process_ngram_subgraph(
+            self.config,
+            dataset,
+            periods_to_process,
+            ngram_index,
+            ngram_matrix_reducer,
+            ngramconfig,
+            GEXFWriter,
+            storage
+        )
+        doc_matrix_reducer = graph.MatrixReducerFilter( doc_index )
+        docsubgraph_gen = graph.process_document_subgraph(
+            self.config,
+            dataset,
+            periods_to_process,
+            ngram_index,
+            doc_matrix_reducer,
+            docconfig,
+            GEXFWriter,
+            storage
+        )
+        try:
+            while 1:
+                yield self.STATUS_RUNNING
+                ngram_matrix_reducer_update = ngramsubgraph_gen.next()
+                yield self.STATUS_RUNNING
+                doc_matrix_reducer_update = docsubgraph_gen.next()
+        except StopIteration, stopi:
+            pass
         
-        if len(ngram_index) == 0:
-            # hack
-            if ngramconfig['proximity']=='cooccurrences':
-                ngram_matrix_reducer = graph.MatrixReducerFilter( ngram_index )
-            if ngramconfig['proximity']=='pseudoInclusion':
-                ngram_matrix_reducer = graph.PseudoInclusionMatrix( ngram_index )
-            if ngramconfig['proximity']=='equivalenceIndex':
-                ngramconfig['nb_documents'] = len(doc_index)
-                ngram_matrix_reducer = graph.EquivalenceIndexMatrix( ngram_index )
-            # hack
-            ngramconfig['proximity']='storage'
-            ngramsubgraph_gen = self.ngram_subgraph(
-                dataset,
-                periods_to_process,
-                whitelist,
-                ngram_matrix_reducer,
-                ngramgraphconfig,
-                GEXFWriter,
-                storage
-            )
-            try:
-                while 1:
-                    yield ngramsubgraph_gen.next()
-            except StopIteration, stopi:
-                pass
-        else:
-            self.logger.warning("NGram sub-graph not generated because there was no NGrams")
-
-        if len(doc_index) != 0:
-            doc_matrix_reducer = graph.MatrixReducerFilter( doc_index )
-            for process_period in periods_to_process:
-                doc_args = ( self.config, storage, process_period, documentconfig, ngram_index )
-                adj = graph.DocGraph( *doc_args )
-                adj.diagonal(doc_matrix_reducer)
-                try:
-                    doc_adj_gen = graph.document_submatrix_task( *doc_args )
-                    while 1:
-                        doc_matrix_reducer.add( doc_adj_gen.next() )
-                        yield self.STATUS_RUNNING
-                except StopIteration, si:
-                    self.logger.debug("Document matrix reduced for period %s"%process_period)
-
-            load_subgraph_gen = GEXFWriter.load_subgraph( 'Document',  doc_matrix_reducer, subgraphconfig = documentconfig)
-            try:
-                while 1:
-                    load_subgraph_gen.next()
-                    yield self.STATUS_RUNNING
-            except StopIteration, si:
-                del doc_matrix_reducer
-
-        else:
-            self.logger.warning("Document sub-graph not generated because there was no Documents")
         if exportedges is True:
             self.logger.warning("exporting the full graph to current.gexf")
             GEXFWriter.finalize("current.gexf", exportedges=True)
@@ -488,7 +489,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             self.logger.error(ioe)
             yield self.STATUS_ERROR
             return
-        storage = self.get_storage( dataset )
+        storage = self.get_storage(dataset, create=True, drop_tables=False)
         if storage == self.STATUS_ERROR:
             yield self.STATUS_ERROR
             return
@@ -534,11 +535,10 @@ class PytextminerFlowApi(PytextminerFileApi):
             outpath=None
         ):
         """
-        OBSOLETE : uses tinasqlite selectCorpusCooc
         returns a text file outpath containing the db cooc
         for a list of periods ans an ngrams whitelist
         """
-        storage = self.get_storage( dataset )
+        storage = self.get_storage(dataset, create=True, drop_tables=False)
         if storage == self.STATUS_ERROR:
             return self.STATUS_ERROR
         if outpath is None:

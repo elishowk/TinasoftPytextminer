@@ -19,35 +19,97 @@ __author__ = "elishowk@nonutc.fr"
 import itertools
 from numpy import *
 import math
+
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
-
-def ngram_submatrix_task( config, storage, period, ngramgraphconfig, matrix_index ):
+def process_ngram_subgraph(
+        config,
+        dataset,
+        periods,
+        ngram_index,
+        ngram_matrix_reducer,
+        ngramgraphconfig,
+        graphwriter,
+        storage
+    ):
+    """
+    Generates ngram graph matrices from indexed dataset
+    """
+    for process_period in periods:
+        ngram_args = ( config, storage, process_period, ngramgraphconfig, ngram_index )
+        adj = NgramGraph( *ngram_args )
+        adj.diagonal(ngram_matrix_reducer)
+        try:
+            submatrix_gen = adj.generator()
+            doccount = 0
+            while 1:
+                ngram_matrix_reducer.add( submatrix_gen.next() )
+                doccount += 1
+                yield doccount
+        except Warning, warn:
+            _logger.warning( str(warn) )
+            return
+        except StopIteration, si:
+            _logger.debug("NGram sub-graph processed (%s) for period %s"%(
+                    ngram_matrix_reducer.__class__.__name__,
+                    process_period
+                )
+            )
+    _logger.debug("writing NGram subgraph to memory")
+    load_subgraph_gen = graphwriter.load_subgraph( 'NGram', ngram_matrix_reducer, subgraphconfig=ngramgraphconfig)
     try:
-        adj = NgramGraph( config, storage, period, ngramgraphconfig, matrix_index )
-        submatrix_gen = adj.generator()
         while 1:
-            yield submatrix_gen.next()
-    except Warning, warn:
-        _logger.warning( str(warn) )
-        return
+            # yields the updated node count
+            yield load_subgraph_gen.next()
     except StopIteration, si:
-        _logger.debug("NgramGraph on period %s is finished"%period)
+        # finally yields the matrix reducer
+        yield ngram_matrix_reducer
+        return
 
-
-def document_submatrix_task( config, storage, period, documentgraphconfig, matrix_index ):
+def process_doc_subgraph(
+        config,
+        dataset,
+        periods,
+        ngram_index,
+        doc_matrix_reducer,
+        docgraphconfig,
+        graphwriter,
+        storage
+    ):
+    """
+    Generates ngram graph matrices from indexed dataset
+    """
+    for process_period in periods:
+        ngram_args = ( config, storage, process_period, docgraphconfig, ngram_index )
+        adj = DocGraph( *ngram_args )
+        adj.diagonal(doc_matrix_reducer)
+        try:
+            submatrix_gen = adj.generator()
+            doccount = 0
+            while 1:
+                doc_matrix_reducer.add( submatrix_gen.next() )
+                doccount += 1
+                yield doccount
+        except Warning, warn:
+            _logger.warning( str(warn) )
+            return
+        except StopIteration, si:
+            _logger.debug("Document sub-graph processed (%s) for period %s"%(
+                doc_matrix_reducer.__class__.__name__,
+                process_period
+                )
+            )
+    _logger.debug("writing Document subgraph to memory")
+    load_subgraph_gen = graphwriter.load_subgraph( 'Document', doc_matrix_reducer, subgraphconfig = docgraphconfig)
     try:
-        adj = DocGraph( config, storage, period, documentgraphconfig, matrix_index )
-        submatrix_gen = adj.generator()
         while 1:
-            yield submatrix_gen.next()
-    except Warning, warn:
-        _logger.warning( str(warn) )
-        return
+            # yields the updated node count
+            yield load_subgraph_gen.next()
     except StopIteration, si:
-        _logger.debug("DocGraph on period %s is finished"%period)
-
+        # finally yields the matrix reducer
+        yield doc_matrix_reducer
+        return
 
 class Matrix(object):
     """
@@ -183,7 +245,6 @@ class MatrixReducer(Matrix):
         """
         minnode = float(config['nodethreshold'][0])
         maxnode = float(config['nodethreshold'][1])
-
         # reverses the matrix reverse index
         id_index = {}
         for key, idx in self.reverseindex.iteritems():
@@ -204,7 +265,7 @@ class MatrixReducer(Matrix):
                 if nodejweight < minnode or nodejweight > maxnode:
                     del id_index[j]
                     continue
-                # converts numpy.float32 to python float
+                # converts any numpy.float to python float
                 prox = float(self.array[i,j])
                 #if prox <= 0:
                 #    continue
@@ -219,6 +280,7 @@ class MatrixReducer(Matrix):
         fh.write(",".join(index))
         savetxt( fh, self.array, "%.2f", ",")
 
+
 class MatrixReducerFilter(MatrixReducer):
     """
     Simple matrix reducer : use it if there's no second level proximity calculation
@@ -228,8 +290,8 @@ class MatrixReducerFilter(MatrixReducer):
         matrix = super(MatrixReducerFilter, self).extract_matrix( config )
         minedges = float(config['edgethreshold'][0])
         maxedges = float(config['edgethreshold'][1])
-        if 'hapax' in config:
-            minedges = float(config['hapax'])
+        #if 'hapax' in config:
+        #    minedges = float(config['hapax'])
         try:
             count = 0
             while 1:
@@ -314,6 +376,7 @@ class EquivalenceIndexMatrix(MatrixReducer):
                 yield nodei, row
         except StopIteration:
             _logger.debug("found %d valid E-Index values"%count)
+
 
 class SubGraph(object):
     """
@@ -401,6 +464,7 @@ class SubGraph(object):
                     %(self.name, doccount,totaldocs,self.corpusid)
             )
 
+
 class NgramGraph(SubGraph):
     """
     A NGram graph subgraph processor
@@ -422,7 +486,7 @@ class NgramGraph(SubGraph):
     
     def storage( self, document ):
         """
-        sgets proximities from storage
+        gets proximities from storage
         """ 
         valid_keys = set(document['edges']['NGram'].keys()) & self.periodngrams
         submatrix = Matrix( list(valid_keys), valuesize=float32 )
@@ -453,6 +517,7 @@ class NgramGraph(SubGraph):
         except StopIteration, si:
             return
 
+
 class DocGraph(SubGraph):
     """
     A Document SubGraph adjacency processor
@@ -468,6 +533,23 @@ class DocGraph(SubGraph):
             self.documentngrams[doc] = set(documentobj['edges']['NGram'].keys()) & self.periodngrams
             #if self.maxngrams < len(self.documentngrams[doc]):
             #    self.maxngrams = len(self.documentngrams[doc])
+
+    def intersection( self, document ):
+        """
+        number of ngram shared by 2 documents dividedby the max over the period
+        """
+        submatrix = Matrix( self.corpus['edges']['Document'].keys(), valuesize=float32 )
+        doc1ngrams = self.documentngrams[document['id']]
+
+        for docid in self.documentngrams.keys():
+            if docid != document['id']:
+                doc2ngrams = self.documentngrams[docid]
+                #prox = len( doc1ngrams & doc2ngrams ) / self.maxngrams
+                prox = len( doc1ngrams & doc2ngrams )
+                submatrix.set( document['id'], docid, value=prox, overwrite=True )
+                submatrix.set( docid, document['id'], value=prox, overwrite=True )
+
+        return submatrix
 
     def sharedNGrams( self, document ):
         """
