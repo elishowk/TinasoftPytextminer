@@ -20,6 +20,8 @@ import itertools
 from numpy import *
 import math
 
+from tinasoft.pytextminer import PyTextMiner
+
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
@@ -28,6 +30,7 @@ def process_ngram_subgraph(
         dataset,
         periods,
         ngram_index,
+        doc_index,
         ngram_matrix_reducer,
         ngramgraphconfig,
         graphwriter,
@@ -37,7 +40,7 @@ def process_ngram_subgraph(
     Generates ngram graph matrices from indexed dataset
     """
     for process_period in periods:
-        ngram_args = ( config, storage, process_period, ngramgraphconfig, ngram_index )
+        ngram_args = ( config, storage, process_period, ngramgraphconfig, ngram_index, doc_index )
         adj = NgramGraph( *ngram_args )
         adj.diagonal(ngram_matrix_reducer)
         try:
@@ -72,6 +75,7 @@ def process_doc_subgraph(
         dataset,
         periods,
         ngram_index,
+        doc_index,
         doc_matrix_reducer,
         docgraphconfig,
         graphwriter,
@@ -80,26 +84,29 @@ def process_doc_subgraph(
     """
     Generates ngram graph matrices from indexed dataset
     """
+    metacorpus = corpus.Corpus("meta")
     for process_period in periods:
-        ngram_args = ( config, storage, process_period, docgraphconfig, ngram_index )
-        adj = DocGraph( *ngram_args )
-        adj.diagonal(doc_matrix_reducer)
-        try:
-            submatrix_gen = adj.generator()
-            doccount = 0
-            while 1:
-                doc_matrix_reducer.add( submatrix_gen.next() )
-                doccount += 1
-                yield doccount
-        except Warning, warn:
-            _logger.warning( str(warn) )
-            return
-        except StopIteration, si:
-            _logger.debug("Document sub-graph processed (%s) for period %s"%(
-                doc_matrix_reducer.__class__.__name__,
-                process_period
-                )
+        metacorpus = PyTextMiner.updateEdges(process_period.edges, metacorpus)
+        
+    ngram_args = ( config, storage, metacorpus, docgraphconfig, ngram_index, doc_index )
+    adj = DocGraph( *ngram_args )
+    adj.diagonal(doc_matrix_reducer)
+    try:
+        submatrix_gen = adj.generator()
+        doccount = 0
+        while 1:
+            doc_matrix_reducer.add( submatrix_gen.next() )
+            doccount += 1
+            yield doccount
+    except Warning, warn:
+        _logger.warning( str(warn) )
+        return
+    except StopIteration, si:
+        _logger.debug("Document sub-graph processed (%s) for period %s"%(
+            doc_matrix_reducer.__class__.__name__,
+            process_period
             )
+        )
     _logger.debug("writing Document subgraph to memory")
     load_subgraph_gen = graphwriter.load_subgraph( 'Document', doc_matrix_reducer, subgraphconfig = docgraphconfig)
     try:
@@ -383,22 +390,17 @@ class SubGraph(object):
     Base class
     A simple subgraph proximity matrix processor
     """
-    def __init__( self, config, storage, corpusid, opts, name, index ):
+    def __init__( self, config, storage, corpus, opts, name, ngram_index, doc_index ):
         """
         Attach storage, a corpus objects and init the Matrix
         """
         self.storage = storage
-        self.corpusid = corpusid
-        # loads the corpus object
-        self.corpus = self.storage.loadCorpus( self.corpusid )
-        # TODO reduce corpus ngrams to the index contents
-        if self.corpus is None:
-            raise Warning('Corpus not found')
-            return
+        self.corpusid = corpus['id']
+        self.corpus = corpus
         self.name = name
         self._loadOptions(opts, config)
-        # sets intersection of ngrams from the whitelist and the corpus
-        self.periodngrams = index & set(self.corpus['edges']['NGram'].keys())
+        self.ngram_index = ngram_index
+        self.doc_index = doc_index
 
     def _loadDefaults(self, config):
         """
@@ -434,20 +436,17 @@ class SubGraph(object):
             _logger.error("impossible to load %s"%opts['proximity'])
             self.proximity = None
 
-
     def proximity(self, document):
         raise Exception("proximity method not defined")
         return 0
 
     def walkDocuments(self):
         """
-        walks through a sorted list of documents within a corpus
+        walks through a list of documents within a corpus
         """
-        totaldocs = len(self.corpus['edges']['Document'].keys())
+        totaldocs = len(self.doc_index)
         doccount = 0
-        sortednodes = self.corpus['edges']['Document'].keys()
-        sortednodes.sort()
-        for doc_id in sortednodes:
+        for doc_id in self.doc_index:
             obj = self.storage.loadDocument( doc_id )
             if obj is not None:
                 yield obj
@@ -467,16 +466,19 @@ class SubGraph(object):
 
 class NgramGraph(SubGraph):
     """
-    A NGram graph subgraph processor
+    A NGram subgraph edges processor
     """
-    def __init__(self, config, storage, corpusid, opts, index ):
-        SubGraph.__init__(self, config, storage, corpusid, opts, 'NGramGraph', index )
-
+    def __init__(self, config, storage, corpus, opts, ngram_index, doc_index ):
+        SubGraph.__init__(self, config, storage, corpus, opts, 'NGramGraph', ngram_index, doc_index )
+        print self.ngram_index
+        print self.doc_index
+        print self.corpus.edges
+        
     def cooccurrences( self, document ):
         """
         simple document cooccurrences matrix calculator
         """ 
-        valid_keys = set(document['edges']['NGram'].keys()) & self.periodngrams
+        valid_keys = set(document['edges']['NGram'].keys()) & self.ngram_index
         submatrix = Matrix( list(valid_keys), valuesize=float32 )
         # only processes a half of the symmetric matrix
         for (ngi, ngj) in itertools.combinations(valid_keys, 2):
@@ -484,24 +486,23 @@ class NgramGraph(SubGraph):
             submatrix.set( ngj, ngi, 1 )
         return submatrix
     
-    def storage( self, document ):
+    def preprocess( self, document ):
         """
-        gets proximities from storage
+        gets preprocessed proximities from storage
         """ 
-        valid_keys = set(document['edges']['NGram'].keys()) & self.periodngrams
+        valid_keys = set(document['edges']['NGram'].keys()) & self.ngram_index
         submatrix = Matrix( list(valid_keys), valuesize=float32 )
-        ngramcache = []
-        for ngi in valid_keys, 2:
-            ngiobj = self.storage.loadNGram(ngi)
-            if ngiobj is None: continue
-            for ngj, stored_prox in ngiobj['edges']['NGram'].iteritems():
+
+        for ngi in valid_keys:
+            ngirow = self.storage.loadGraphPreprocess(self.corpusid+"::"+ngi, "NGram")
+            if ngirow is None: continue
+            for ngj, stored_prox in ngirow.iteritems():
                 if ngj not in valid_keys: continue
                 submatrix.set( ngi, ngj, stored_prox )
         return submatrix
 
     def diagonal( self, matrix_reducer ):
-        # global index
-        for ng in self.periodngrams:
+        for ng in self.ngram_index:
             matrix_reducer.set( ng, ng, value=self.corpus['edges']['NGram'][ng])
 
     def generator(self):
@@ -520,60 +521,51 @@ class NgramGraph(SubGraph):
 
 class DocGraph(SubGraph):
     """
-    A Document SubGraph adjacency processor
+    A Document SubGraph edges processor
     """
-    def __init__(self, config, storage, corpusid, opts, index ):
-        SubGraph.__init__(self, config, storage, corpusid, opts, 'DocumentGraph', index )
-        # docngrams cache
+    def __init__(self, config, storage, corpus, opts, ngram_index, doc_index ):
+        SubGraph.__init__(self, config, storage, corpus, opts, 'DocumentGraph', ngram_index, doc_index )
+        # document's ngrams subset cache
         self.documentngrams = {}
-        # pre-calculed maximum ngrams in documents
-        #self.maxngrams = 0
-        for doc in self.corpus['edges']['Document'].keys():
+        for doc in self.doc_index:
             documentobj = self.storage.loadDocument(doc)
-            self.documentngrams[doc] = set(documentobj['edges']['NGram'].keys()) & self.periodngrams
-            #if self.maxngrams < len(self.documentngrams[doc]):
-            #    self.maxngrams = len(self.documentngrams[doc])
+            self.documentngrams[doc] = set(documentobj['edges']['NGram'].keys()) & self.ngram_index
 
-    def intersection( self, document ):
+    def preprocess( self, document ):
         """
-        number of ngram shared by 2 documents dividedby the max over the period
-        """
-        submatrix = Matrix( self.corpus['edges']['Document'].keys(), valuesize=float32 )
-        doc1ngrams = self.documentngrams[document['id']]
-
-        for docid in self.documentngrams.keys():
-            if docid != document['id']:
-                doc2ngrams = self.documentngrams[docid]
-                #prox = len( doc1ngrams & doc2ngrams ) / self.maxngrams
-                prox = len( doc1ngrams & doc2ngrams )
-                submatrix.set( document['id'], docid, value=prox, overwrite=True )
-                submatrix.set( docid, document['id'], value=prox, overwrite=True )
-
+        gets preprocessed proximities from storage
+        """ 
+        submatrix = Matrix( self.doc_index, valuesize=float32 )
+        row = self.storage.loadGraphPreprocess(self.corpusid+"::"+document['id'], "Document")
+        if row is None: return submatrix
+        for docid, stored_prox in row.iteritems():
+            if docid == document['id']: continue
+            submatrix.set( document['id'], docid, value=stored_prox, overwrite=True )
+            submatrix.set( docid, document['id'], value=stored_prox, overwrite=True )
         return submatrix
 
     def sharedNGrams( self, document ):
         """
-        number of ngram shared by 2 documents dividedby the max over the period
+        number of ngrams shared by 2 documents
         """
-        submatrix = Matrix( self.corpus['edges']['Document'].keys(), valuesize=float32 )
+        submatrix = Matrix( self.doc_index, valuesize=float32 )
         doc1ngrams = self.documentngrams[document['id']]
 
-        for docid in self.documentngrams.keys():
+        for docid in self.doc_index:
             if docid != document['id']:
                 doc2ngrams = self.documentngrams[docid]
-                #prox = len( doc1ngrams & doc2ngrams ) / self.maxngrams
                 prox = len( doc1ngrams & doc2ngrams )
                 submatrix.set( document['id'], docid, value=prox, overwrite=True )
                 submatrix.set( docid, document['id'], value=prox, overwrite=True )
 
         return submatrix
 
-
     def logJaccard( self, document ):
         """
         Jaccard-like similarity distance
+        Invalid if summing values avor many periods
         """
-        submatrix = Matrix( self.corpus['edges']['Document'].keys(), valuesize=float32 )
+        submatrix = Matrix( self.doc_index, valuesize=float32 )
         doc1ngrams = self.documentngrams[document['id']]
 
         for docid in self.documentngrams.keys():
@@ -584,11 +576,9 @@ class DocGraph(SubGraph):
                 weight = 0
                 numerator = 0
                 for ngi in ngramsintersection:
-                    #print "intersection :", document['id'], docid, ngi, self.corpus['edges']['NGram'][ngi]
                     numerator += 1/(math.log( 1 + self.corpus['edges']['NGram'][ngi] ))
                 denominator = 0
                 for ngi in ngramsunion:
-                    #print "union :", document['id'], docid, ngi, self.corpus['edges']['NGram'][ngi]
                     denominator += 1/(math.log( 1 + self.corpus['edges']['NGram'][ngi] ))
                 if denominator > 0:
                     weight = numerator / denominator
@@ -602,14 +592,14 @@ class DocGraph(SubGraph):
 
     def generator(self):
         """
-        uses SubGraph.walkDocuments() to return processed proximities
+        uses SubGraph.walkDocuments() to yield processed proximities
         """
         generator = self.walkDocuments()
         try:
             while 1:
                 document = generator.next()
                 yield self.proximity( document )
-                #### CAUTION : this limits calculations to half a matrix
+                #### CAUTION : this limits processing to an half of the matrix
                 del self.documentngrams[document['id']]
         except StopIteration, si:
             return

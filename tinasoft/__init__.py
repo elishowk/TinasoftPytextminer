@@ -266,14 +266,15 @@ class PytextminerFlowApi(PytextminerFileApi):
             
             previousdataset = storage.loadCorpora(dataset)
             previousngrams = set([])
-
             if previousdataset is not None:
                 allpreviousperiods = previousdataset.edges['Corpus'].keys()
                 for period in allpreviousperiods:
                     previouscorpus = storage.loadCorpus( period )
                     if previouscorpus is None: continue
-                    previousngrams |= set(previouscorpus.edges['NGram'].keys())       
-
+                    previousngrams |= set(previouscorpus.edges['NGram'].keys())
+                    
+            doc_index = set([])
+            
             extract = extractor.Extractor(
                 storage,
                 self.config['datasets'],
@@ -288,7 +289,7 @@ class PytextminerFlowApi(PytextminerFileApi):
                 overwrite
             )
             while 1:
-                extractorGenerator.next()
+                doc_index |= set( [extractorGenerator.next()] )
                 yield self.STATUS_RUNNING
         except IOError, ioe:
             self.logger.error("%s"%ioe)
@@ -299,11 +300,18 @@ class PytextminerFlowApi(PytextminerFileApi):
             self.logger.debug("preprocessing cooccurrences")
             ### prepares parameters
             ngram_index = previousngrams | set( whitelist['edges']['NGram'].values() )
-            periods = storage.loadCorpora(dataset).edges['Corpus'].keys()
+            
+            periods = []
+            for corpusid in storage.loadCorpora(dataset).edges['Corpus'].keys():
+                corpusobj = storage.loadCorpus( corpusid )
+                periods += [corpusobj]
+                
             ngram_matrix_reducer = graph.MatrixReducer( ngram_index )
-            cooc_writer = self._new_graph_writer(dataset, periods, whitelist['id'], storage, generate=False, preprocess=True)
+            cooc_writer = self._new_graph_writer(dataset, [per['id'] for per in periods], whitelist['id'], storage, generate=False, preprocess=True)
+            
             ngramgraphconfig = self.config['datamining']['NGramGraph']
             ngramgraphconfig['proximity'] = 'cooccurrences'
+            
             ### cooccurrences for each period
             for period in periods:
                 if len(ngram_index) == 0: continue
@@ -312,6 +320,7 @@ class PytextminerFlowApi(PytextminerFileApi):
                     dataset,
                     [period],
                     ngram_index,
+                    doc_index,
                     ngram_matrix_reducer,
                     ngramgraphconfig,
                     cooc_writer,
@@ -373,11 +382,6 @@ class PytextminerFlowApi(PytextminerFileApi):
             periods = [periods]
         if not documentgraphconfig: documentgraphconfig = {}
         if not ngramgraphconfig: ngramgraphconfig = {}
-        # updates default config with parameters
-        self.config['datamining']['NGramGraph'].update(ngramgraphconfig)
-        self.config['datamining']['DocumentGraph'].update(documentgraphconfig)
-        ngramconfig = self.config['datamining']['NGramGraph']
-        documentconfig = self.config['datamining']['DocumentGraph']
 
         storage = self.get_storage(dataset, create=False, drop_tables=False)
         if storage == self.STATUS_ERROR:
@@ -407,7 +411,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             corpus = storage.loadCorpus( period )
             yield self.STATUS_RUNNING
             if corpus is not None:
-                periods_to_process += [period]
+                periods_to_process += [corpus]
                 # unions
                 ngram_index &= set( corpus['edges']['NGram'].keys() )
                 yield self.STATUS_RUNNING
@@ -415,12 +419,12 @@ class PytextminerFlowApi(PytextminerFileApi):
             else:
                 self.logger.debug('Period %s not found in database, skipping'%str(period))
 
-
         if len(ngram_index) == 0 or len(doc_index) == 0:
             yield self.STATUS_ERROR
             _logger.warning( "Graph not generated because there was ZERO NGrams or Documents" )
             return
-        # hack
+        
+        # hack for proximity parameter ambiguity
         if ngramconfig['proximity']=='cooccurrences':
             ngram_matrix_reducer = graph.MatrixReducerFilter( ngram_index )
         if ngramconfig['proximity']=='pseudoInclusion':
@@ -428,13 +432,14 @@ class PytextminerFlowApi(PytextminerFileApi):
         if ngramconfig['proximity']=='equivalenceIndex':
             ngramconfig['nb_documents'] = len(doc_index)
             ngram_matrix_reducer = graph.EquivalenceIndexMatrix( ngram_index )
-        # graph prox is based on previously stored
-        ngramconfig['proximity'] = 'storage'
+        # ngramgraph proximity is based on previously stored
+        ngramconfig['proximity'] = 'preprocess'
         ngramsubgraph_gen = graph.process_ngram_subgraph(
             self.config,
             dataset,
             periods_to_process,
             ngram_index,
+            doc_index,
             ngram_matrix_reducer,
             ngramconfig,
             GEXFWriter,
@@ -446,6 +451,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             dataset,
             periods_to_process,
             ngram_index,
+            doc_index,
             doc_matrix_reducer,
             docconfig,
             GEXFWriter,

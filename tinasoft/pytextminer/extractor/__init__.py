@@ -152,7 +152,7 @@ class Extractor():
                 doccount += 1
                 if doccount % NUM_DOC_NOTIFY == 0:
                     _logger.debug("%d documents indexed"%doccount)
-                yield doccount
+                yield document['id']
 
         except StopIteration:
             self.storage.updateCorpora( self.corpora, overwrite )
