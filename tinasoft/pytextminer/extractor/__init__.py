@@ -157,6 +157,7 @@ class Extractor():
         except StopIteration:
             self.storage.updateCorpora( self.corpora, overwrite )
             for corpusObj in self.reader.corpusDict.values():
+                print corpusObj.edges
                 self.storage.updateCorpus( corpusObj, overwrite )
             return
 
