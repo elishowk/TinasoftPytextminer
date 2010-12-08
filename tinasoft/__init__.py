@@ -288,8 +288,6 @@ class PytextminerFlowApi(PytextminerFileApi):
                 corpusobj = storage.loadCorpus( corpusid )
                 periods += [corpusobj]
 
-
-            
             ngramgraphconfig = self.config['datamining']['NGramGraph']
             ngramgraphconfig['proximity'] = 'cooccurrences'
             
