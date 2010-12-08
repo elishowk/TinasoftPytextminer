@@ -128,7 +128,6 @@ class Extractor():
         doccount = 0
         try:
             while 1:
-                ### gets the next document
                 document, corpusNum = fileGenerator.next()
                 document.addEdge( 'Corpus', corpusNum, 1 )
                 ### updates Corpora and Corpus objects edges
@@ -136,7 +135,7 @@ class Extractor():
                 self.reader.corpusDict[ corpusNum ].addEdge( 'Corpora', self.corpora['id'], 1)
                 ### adds Corpus-Doc edge if possible
                 self.reader.corpusDict[ corpusNum ].addEdge( 'Document', document['id'], 1)
-                ### extract and filter ngrams
+                ### extracts and filters ngrams
                 docngrams = tokenizer.TreeBankWordTokenizer.extract(
                     document,
                     self.config,
@@ -157,15 +156,14 @@ class Extractor():
         except StopIteration:
             self.storage.updateCorpora( self.corpora, overwrite )
             for corpusObj in self.reader.corpusDict.values():
-                print corpusObj.edges
                 self.storage.updateCorpus( corpusObj, overwrite )
+                _logger.debug("%d NEW NGrams to corpus %s"%(len(corpusObj.edges['NGram'].keys()), corpusObj['id']))
             return
 
     def _insert_NGrams( self, docngrams, document, corpusNum, overwrite ):
         """
-        Inserts NGrams and its graphs to storage
-        MUST NOT BE USED FOR AN EXISTING DOCUMENT IN THE DB
-        OTHERWISE THIS METHOD WILL BREAK EXISTING DATA
+        Inserts NGrams and its relations to storage
+        Verifying previous storage contents prevneting data corruption
         """
         for ngid, ng in docngrams.iteritems():
             # increments document-ngram edge

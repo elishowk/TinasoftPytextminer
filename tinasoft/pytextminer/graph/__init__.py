@@ -470,9 +470,6 @@ class NgramGraph(SubGraph):
     """
     def __init__(self, config, storage, corpus, opts, ngram_index, doc_index ):
         SubGraph.__init__(self, config, storage, corpus, opts, 'NGramGraph', ngram_index, doc_index )
-        print self.ngram_index
-        print self.doc_index
-        print self.corpus.edges
         
     def cooccurrences( self, document ):
         """

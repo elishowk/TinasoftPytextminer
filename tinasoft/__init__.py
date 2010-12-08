@@ -61,8 +61,8 @@ LOG_FILE = "tinasoft-log.txt"
 class PytextminerFlowApi(PytextminerFileApi):
     """
     Main application class
-    should be used in conjunction with ThreadPool()
-    see below the standard return codes
+    In a Server context, all public methods return python generators (see httpserver.py)
+    In a scripting context, better using PyTextMinerApi
     """
 
     STATUS_RUNNING = 0
@@ -75,7 +75,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             custom_logger=None
         ):
         """
-        Init config, logger, locale, storage
+        Init config, logger, locale, and application directories
         """
         self.opened_storage = {}
         # import config yaml to self.config
@@ -83,7 +83,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             self.config = yaml.safe_load( file( configFilePath, 'rU' ) )
         except yaml.YAMLError, exc:
             print exc
-            print "bad config file path passed to PytextminerFlowApi : %s"%configFilePath
+            print "bad file path : %s"%configFilePath
             return self.STATUS_ERROR
         # creates applications directories
         self.user = self._init_user_directory()
@@ -98,19 +98,14 @@ class PytextminerFlowApi(PytextminerFileApi):
         except:
             self.locale = ''
             self.logger.warning(
-                "configured locale not found, switching to default ='%s'"%self.locale
+                "locale %s not found on this system, switching to the default"%self.config['general']['locale']
             )
             locale.setlocale(locale.LC_ALL, self.locale)
-
         self.logger.debug("Pytextminer started")
-
-    def __del__(self):
-        """resumes the storage transactions when destroying this object"""
-        del self.opened_storage
 
     def set_logger(self, custom_logger=None):
         """
-        sets a customized or a default logger
+        sets a customized or the default logger
         """
         # Set up a specific logger with our desired output level
         self.LOG_FILE = LOG_FILE
@@ -144,9 +139,9 @@ class PytextminerFlowApi(PytextminerFileApi):
 
     def get_storage(self, dataset_id, create=True, drop_tables=False, **options):
         """
-        unique DB connection handler
+        DB connection handler
         one separate database per dataset=corpora
-        always check storage is notad before using it
+        always check storage is not openend before using it
         """
         if dataset_id in self.opened_storage:
             return self.opened_storage[dataset_id]
@@ -240,9 +235,6 @@ class PytextminerFlowApi(PytextminerFileApi):
             self.logger.error("%s"%excep)
             yield self.STATUS_ERROR
             return
-        #finally:
-        #    del self.opened_storage[dataset]
-        #    del extract
 
     def index_file(self,
             path,
@@ -263,15 +255,6 @@ class PytextminerFlowApi(PytextminerFileApi):
             if storage == self.STATUS_ERROR:
                 yield self.STATUS_ERROR
                 return
-            
-            previousdataset = storage.loadCorpora(dataset)
-            previousngrams = set([])
-            if previousdataset is not None:
-                allpreviousperiods = previousdataset.edges['Corpus'].keys()
-                for period in allpreviousperiods:
-                    previouscorpus = storage.loadCorpus( period )
-                    if previouscorpus is None: continue
-                    previousngrams |= set(previouscorpus.edges['NGram'].keys())
                     
             doc_index = set([])
             
@@ -282,6 +265,7 @@ class PytextminerFlowApi(PytextminerFileApi):
                 filters=None,
                 stemmer=stemmer.Nltk()
             )
+            
             extractorGenerator = extract.index_file(
                 path,
                 format,
@@ -299,22 +283,34 @@ class PytextminerFlowApi(PytextminerFileApi):
             
             self.logger.debug("preprocessing cooccurrences")
             ### prepares parameters
-            ngram_index = previousngrams | set( whitelist['edges']['NGram'].values() )
-            
             periods = []
             for corpusid in storage.loadCorpora(dataset).edges['Corpus'].keys():
                 corpusobj = storage.loadCorpus( corpusid )
                 periods += [corpusobj]
-                
-            ngram_matrix_reducer = graph.MatrixReducer( ngram_index )
-            cooc_writer = self._new_graph_writer(dataset, [per['id'] for per in periods], whitelist['id'], storage, generate=False, preprocess=True)
+
+
             
             ngramgraphconfig = self.config['datamining']['NGramGraph']
             ngramgraphconfig['proximity'] = 'cooccurrences'
             
             ### cooccurrences for each period
             for period in periods:
+                
+                previouscorpus = storage.loadCorpus( period )
+                if previouscorpus is None: continue
+                ngram_index = set(previouscorpus.edges['NGram'].keys())
                 if len(ngram_index) == 0: continue
+                ngram_matrix_reducer = graph.MatrixReducer( ngram_index )
+                
+                cooc_writer = self._new_graph_writer(
+                    dataset,
+                    [period['id']],
+                    whitelist['id'],
+                    storage,
+                    generate=False,
+                    preprocess=True
+                )
+                
                 ngramsubgraph_gen = graph.process_ngram_subgraph(
                     self.config,
                     dataset,
@@ -399,7 +395,14 @@ class PytextminerFlowApi(PytextminerFileApi):
         # loads the whitelist
         whitelist = self._import_whitelist(whitelistpath)
         
-        GEXFWriter = self._new_graph_writer(dataset, periods, whitelist['id'], storage, generate=True, preprocess=False)
+        GEXFWriter = self._new_graph_writer(
+            dataset,
+            periods,
+            whitelist['id'],
+            storage,
+            generate=True,
+            preprocess=False
+        )
 
         periods_to_process = []
         # intersection with the whitelist NGram edges values == N-Lemmas id
@@ -421,7 +424,10 @@ class PytextminerFlowApi(PytextminerFileApi):
 
         if len(ngram_index) == 0 or len(doc_index) == 0:
             yield self.STATUS_ERROR
-            _logger.warning( "Graph not generated because there was ZERO NGrams or Documents" )
+            _logger.warning(
+                "Graph not generated : NGram index length = %d, Document index length = %d"
+                %(len(ngram_index),len(doc_index))
+            )
             return
         
         # hack for proximity parameter ambiguity
@@ -432,6 +438,7 @@ class PytextminerFlowApi(PytextminerFileApi):
         if ngramconfig['proximity']=='equivalenceIndex':
             ngramconfig['nb_documents'] = len(doc_index)
             ngram_matrix_reducer = graph.EquivalenceIndexMatrix( ngram_index )
+            
         # ngramgraph proximity is based on previously stored
         ngramconfig['proximity'] = 'preprocess'
         ngramsubgraph_gen = graph.process_ngram_subgraph(
@@ -445,6 +452,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             GEXFWriter,
             storage
         )
+        
         doc_matrix_reducer = graph.MatrixReducerFilter( doc_index )
         docsubgraph_gen = graph.process_document_subgraph(
             self.config,

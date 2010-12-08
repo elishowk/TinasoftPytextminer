@@ -33,16 +33,13 @@ nltk_treebank_tokenizer = nltk.TreebankWordTokenizer()
 # We consider following rules to apply whatever be the langage.
 # ... is an ellipsis, put spaces around before splitting on spaces
 # (make it a token)
-ellipfind_re = re.compile(ur"(\.\.\.)",
-                          re.IGNORECASE|re.VERBOSE)
+ellipfind_re = re.compile(ur"(\.\.\.)", re.IGNORECASE|re.VERBOSE)
 ellipfind_subst = ur" ... "
 # A regexp to put spaces if missing after alone marks.
-punct1find_re = re.compile(ur"(["+string.punctuation+"])([^ ])",
-                           re.IGNORECASE|re.VERBOSE)
+punct1find_re = re.compile(ur"(["+string.punctuation+"])([^ ])", re.IGNORECASE|re.VERBOSE)
 punct1find_subst = ur"\1 \2"
 # A regexp to put spaces if missing before alone marks.
-punct2find_re = re.compile(ur"([^ ])([["+string.punctuation+"])",
-                           re.IGNORECASE|re.VERBOSE)
+punct2find_re = re.compile(ur"([^ ])([["+string.punctuation+"])", re.IGNORECASE|re.VERBOSE)
 punct2find_subst = ur"\1 \2"
 
 class RegexpTokenizer():
@@ -217,7 +214,8 @@ class TreeBankWordTokenizer(RegexpTokenizer):
         """
         nlemmas = {}
         for whiteid, whiteng in ngrams.iteritems():
-            if whiteid not in whitelist['edges']['NGram']: continue
+            if whiteid not in whitelist['edges']['NGram']:
+                continue
             whitenlemmaid = whitelist['edges']['NGram'][whiteid]
             if whitenlemmaid in nlemmas:
                 nlemmas[whitenlemmaid].addForm( whiteng['content'], whiteng['postag'], whiteng['occs'] )
@@ -231,4 +229,5 @@ class TreeBankWordTokenizer(RegexpTokenizer):
                 except Exception, exc:
                     _logger.error("unable to group ngram %s"%exc)
                     continue
+                
         return nlemmas

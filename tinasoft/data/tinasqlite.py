@@ -441,8 +441,9 @@ class Engine(Backend):
 
 
     def updateNGram( self, ngObj, overwrite, docId=None, corpId=None ):
-        """updates or overwrite a ngram and associations"""
-
+        """
+        updates or overwrite a ngram and associations
+        """
         # if ngram is already into queue, will flush it first to permit incremental updates
         if ngObj['id'] in self.ngramqueueindex:
             self.flushNGramQueue()
@@ -467,13 +468,11 @@ class Engine(Backend):
         updates or overwrite graph preprocess row
         transaction queue grouping by self.MAX_INSERT_QUEUE
         """
-        _logger.debug(row)
         if category not in self.graphpreprocessqueue:
             self.graphpreprocessqueue[category] = []
         self.graphpreprocessqueue[category] += [(period+"::"+id, row)]
         queuesize = len( self.graphpreprocessqueue[category] )
         if queuesize > self.MAX_INSERT_QUEUE:
-            _logger.debug("will flushGraphPreprocessQueue")
             self.flushGraphPreprocessQueue()
             return 0
         else:

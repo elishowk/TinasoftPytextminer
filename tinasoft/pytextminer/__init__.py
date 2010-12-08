@@ -16,7 +16,7 @@
 
 
 
-__author__="elishowk@nonutc.fr"
+__author__ = "elishowk@nonutc.fr"
 
 __all__ = [
     "corpora", "corpus", "document", "ngram", "whitelist"
