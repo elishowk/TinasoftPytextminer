@@ -81,7 +81,8 @@ datamining:
         nodethreshold:
             - 1.0
             - 'inf'
-        proximity: 'logJaccard'
+        proximity: 'sharedNGrams'
+        #proximity: 'logJaccard'
     NGramGraph:
         edgethreshold:
             - 0.0001
@@ -91,4 +92,6 @@ datamining:
             - 'inf'
         alpha: 0.1
         #hapax: 1
-        proximity: 'equivalenceIndex'
+        proximity: 'cooccurrences'
+        #proximity: 'equivalenceIndex'
+        #proximity: 'pseudoInclusion'

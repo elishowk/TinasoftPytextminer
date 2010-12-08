@@ -521,7 +521,7 @@ class DocGraph(SubGraph):
     """
     A Document SubGraph edges processor
     """
-    def __init__(self, config, storage, corpus, opts, ngram_index, doc_index ):
+    def __init__( self, config, storage, corpus, opts, ngram_index, doc_index ):
         SubGraph.__init__(self, config, storage, corpus, opts, 'DocumentGraph', ngram_index, doc_index )
         # document's ngrams subset cache
         self.documentngrams = {}
@@ -548,8 +548,7 @@ class DocGraph(SubGraph):
         """
         submatrix = Matrix( self.doc_index, valuesize=float32 )
         doc1ngrams = self.documentngrams[document['id']]
-
-        for docid in self.doc_index:
+        for docid in self.documentngrams.keys():
             if docid != document['id']:
                 doc2ngrams = self.documentngrams[docid]
                 prox = len( doc1ngrams & doc2ngrams )
