@@ -49,6 +49,8 @@ tenjin._write_binary_file = _write_binary_file
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
+NODE_COUNT_LOGGING = 1
+
 class Exporter(Handler):
     """
     A Gexf Exporter engine providing multipartite graph exports
@@ -86,7 +88,7 @@ class Exporter(Handler):
         self.preprocess = preprocess
 
     def notify(self, count):
-        if count % 200 == 0:
+        if count % NODE_COUNT_LOGGING == 0:
             _logger.debug( "%d graph nodes processed"%count )
 
     def load_subgraph(self, category, matrix, subgraphconfig):
@@ -118,7 +120,7 @@ class Exporter(Handler):
         """
         updates the storage with a matrix row
         """
-        if self.storage is None: return True
+        if self.storage is None: return
         for period in self.periods:
             self.storage.updateGraphPreprocess(period, category, nodeid, row)    
 
@@ -126,10 +128,9 @@ class Exporter(Handler):
         """
         updates the network in storage with a matrix row
         """
-        if self.storage is None: return True
+        if self.storage is None: return
         obj = self.storage.load(nodeid, category)
-        if obj is None:
-            return False
+        if obj is None: return
         # temp edges row for the target category
         temp = { category: row }
         # overwrites the object

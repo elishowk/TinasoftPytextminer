@@ -280,7 +280,7 @@ class MatrixReducer(Matrix):
                 row[nodej] = prox
             #if len(row.keys()) > 0:
             yield (nodei, row)
-        _logger.debug("found %d valid nodes "%len(id_index.keys()))
+        _logger.debug("MatrixReducer extracted %d valid nodes"%len(id_index.keys()))
 
     def export(self, path, index):
         fh = open(path, 'w+')
@@ -313,7 +313,7 @@ class MatrixReducerFilter(MatrixReducer):
                 count += len(row.keys())
                 yield (nodei, row)
         except StopIteration, si:
-            _logger.debug("found %d valid proximity values"%count)
+            _logger.debug("MatrixReducerFilter found %d valid edges"%count)
 
 
 class PseudoInclusionMatrix(MatrixReducer):
@@ -345,7 +345,7 @@ class PseudoInclusionMatrix(MatrixReducer):
                 count += len(row.keys())
                 yield nodei, row
         except StopIteration:
-            _logger.debug("found %d valid pseudo-inclusion values"%count)
+            _logger.debug("PseudoInclusionMatrix found %d valid edges"%count)
 
 
 class EquivalenceIndexMatrix(MatrixReducer):
@@ -382,7 +382,7 @@ class EquivalenceIndexMatrix(MatrixReducer):
                 count += len(row.keys())
                 yield nodei, row
         except StopIteration:
-            _logger.debug("found %d valid E-Index values"%count)
+            _logger.debug("EquivalenceIndexMatrix found %d valid edges"%count)
 
 
 class SubGraph(object):
@@ -459,7 +459,7 @@ class SubGraph(object):
     def notify(self, doccount, totaldocs):
         if doccount % 50 == 0:
             _logger.debug(
-                'done %s proximities for %d of %d documents in period %s'\
+                '%s processed %d of %d documents in period %s'\
                     %(self.name, doccount,totaldocs,self.corpusid)
             )
 

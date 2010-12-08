@@ -101,7 +101,7 @@ class PytextminerFlowApi(PytextminerFileApi):
                 "locale %s not found on this system, switching to the default"%self.config['general']['locale']
             )
             locale.setlocale(locale.LC_ALL, self.locale)
-        self.logger.debug("Pytextminer started")
+        self.logger.debug("===Pytextminer started===")
 
     def set_logger(self, custom_logger=None):
         """
@@ -281,11 +281,12 @@ class PytextminerFlowApi(PytextminerFileApi):
         except StopIteration, si:
             storage.flushNGramQueue()
             
-            self.logger.debug("preprocessing cooccurrences")
+            self.logger.debug("starting cooc preprocessing")
             ### prepares parameters
             periods = []
             for corpusid in storage.loadCorpora(dataset).edges['Corpus'].keys():
                 corpusobj = storage.loadCorpus( corpusid )
+                if corpusobj is None: continue
                 periods += [corpusobj]
 
             ngramgraphconfig = self.config['datamining']['NGramGraph']
@@ -293,10 +294,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             
             ### cooccurrences for each period
             for period in periods:
-                
-                previouscorpus = storage.loadCorpus( period )
-                if previouscorpus is None: continue
-                ngram_index = set(previouscorpus.edges['NGram'].keys())
+                ngram_index = set(period.edges['NGram'].keys())
                 if len(ngram_index) == 0: continue
                 ngram_matrix_reducer = graph.MatrixReducer( ngram_index )
                 
@@ -325,6 +323,7 @@ class PytextminerFlowApi(PytextminerFileApi):
                         yield self.STATUS_RUNNING
                         ngram_matrix_reducer_update = ngramsubgraph_gen.next()
                 except StopIteration, stopi:
+                    self.logger.debug("end of cooc preprocessing")
                     pass
                     
             ### end of preprocess
