@@ -20,7 +20,7 @@ import itertools
 from numpy import *
 import math
 
-from tinasoft.pytextminer import PyTextMiner
+from tinasoft.pytextminer import PyTextMiner, corpus
 
 import logging
 _logger = logging.getLogger('TinaAppLogger')
@@ -56,7 +56,7 @@ def process_ngram_subgraph(
         except StopIteration, si:
             _logger.debug("NGram sub-graph processed (%s) for period %s"%(
                     ngram_matrix_reducer.__class__.__name__,
-                    process_period
+                    process_period.id
                 )
             )
     _logger.debug("writing NGram subgraph to memory")
@@ -70,7 +70,7 @@ def process_ngram_subgraph(
         yield ngram_matrix_reducer
         return
 
-def process_doc_subgraph(
+def process_document_subgraph(
         config,
         dataset,
         periods,
@@ -82,14 +82,15 @@ def process_doc_subgraph(
         storage
     ):
     """
-    Generates ngram graph matrices from indexed dataset
+    Generates document graph from an indexed dataset
+    Merging multiple periods in one meta object
     """
     metacorpus = corpus.Corpus("meta")
     for process_period in periods:
         metacorpus = PyTextMiner.updateEdges(process_period.edges, metacorpus)
         
-    ngram_args = ( config, storage, metacorpus, docgraphconfig, ngram_index, doc_index )
-    adj = DocGraph( *ngram_args )
+    doc_args = ( config, storage, metacorpus, docgraphconfig, ngram_index, doc_index )
+    adj = DocGraph( *doc_args )
     adj.diagonal(doc_matrix_reducer)
     try:
         submatrix_gen = adj.generator()
@@ -103,8 +104,8 @@ def process_doc_subgraph(
         return
     except StopIteration, si:
         _logger.debug("Document sub-graph processed (%s) for period %s"%(
-            doc_matrix_reducer.__class__.__name__,
-            process_period
+                doc_matrix_reducer.__class__.__name__,
+                metacorpus.id
             )
         )
     _logger.debug("writing Document subgraph to memory")

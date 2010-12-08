@@ -22,21 +22,22 @@ datasets:
         # - defined by one of the field's value
         # - constants required fields : 'content'/'label'/'id'
         - 'content'
-        - 'label'
+        - 'title'
     # tina csv columns declaration
     # will ignore undeclared fields
     # and warn not found optional fields
     tinacsv:
         # doc_label represents one of the field's key
-        doc_label: 'label'
+        doc_label: 'acronym'
         fields:
             # required fields
-            label: 'title'
+            label: 'acronym'
             content: 'abstract'
             corpus_id: 'corp_id'
             id: 'doc_id'
             # optionnal fields
-            #author: 'acronym'
+            title: 'title'
+            acronym: 'acronym'
         # csv reader params
         #delimiter: ','
         #quotechar: '"'

@@ -350,6 +350,10 @@ class PytextminerFlowApi(PytextminerFileApi):
             'description': "a tinasoft graph",
             'creators': ["CREA Lab, CNRS/Ecole Polytechnique UMR 7656 (Fr)"],
             'date': "%s"%datetime.now().strftime("%Y-%m-%d"),
+            'nodes': {
+                'NGram' : {},
+                'Document': {}
+            }
         }
         graphwriter.new_graph( storage, graphmeta, periods, generate, preprocess)
         return graphwriter
@@ -427,17 +431,23 @@ class PytextminerFlowApi(PytextminerFileApi):
             )
             return
         
+        # updates default config with parameters
+        self.config['datamining']['NGramGraph'].update(ngramgraphconfig)
+        self.config['datamining']['DocumentGraph'].update(documentgraphconfig)
+        ngramgraphconfig = self.config['datamining']['NGramGraph']
+        documentgraphconfig = self.config['datamining']['DocumentGraph']
+        
         # hack for proximity parameter ambiguity
-        if ngramconfig['proximity']=='cooccurrences':
+        if ngramgraphconfig['proximity']=='cooccurrences':
             ngram_matrix_reducer = graph.MatrixReducerFilter( ngram_index )
-        if ngramconfig['proximity']=='pseudoInclusion':
+        if ngramgraphconfig['proximity']=='pseudoInclusion':
             ngram_matrix_reducer = graph.PseudoInclusionMatrix( ngram_index )
-        if ngramconfig['proximity']=='equivalenceIndex':
-            ngramconfig['nb_documents'] = len(doc_index)
+        if ngramgraphconfig['proximity']=='equivalenceIndex':
+            ngramgraphconfig['nb_documents'] = len(doc_index)
             ngram_matrix_reducer = graph.EquivalenceIndexMatrix( ngram_index )
             
         # ngramgraph proximity is based on previously stored
-        ngramconfig['proximity'] = 'preprocess'
+        ngramgraphconfig['proximity'] = 'preprocess'
         ngramsubgraph_gen = graph.process_ngram_subgraph(
             self.config,
             dataset,
@@ -445,7 +455,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             ngram_index,
             doc_index,
             ngram_matrix_reducer,
-            ngramconfig,
+            ngramgraphconfig,
             GEXFWriter,
             storage
         )
@@ -458,7 +468,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             ngram_index,
             doc_index,
             doc_matrix_reducer,
-            docconfig,
+            documentgraphconfig,
             GEXFWriter,
             storage
         )
