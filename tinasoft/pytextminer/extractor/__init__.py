@@ -145,9 +145,7 @@ class Extractor():
                 )
                 nlemmas = tokenizer.TreeBankWordTokenizer.group(docngrams, whitelist)
                 #### inserts/updates NGram and update document obj
-                self._insert_NGrams(nlemmas, document, corpusNum, overwrite)
-                # creates or OVERWRITES document into storage
-                self.duplicate += self.storage.updateDocument( document, overwrite )
+                self._insert_NGram_Document(nlemmas, document, corpusNum, overwrite)
                 doccount += 1
                 if doccount % NUM_DOC_NOTIFY == 0:
                     _logger.debug("%d documents indexed"%doccount)
@@ -157,10 +155,11 @@ class Extractor():
             self.storage.updateCorpora( self.corpora, overwrite )
             for corpusObj in self.reader.corpusDict.values():
                 self.storage.updateCorpus( corpusObj, overwrite )
-                _logger.debug("%d NEW NGrams to corpus %s"%(len(corpusObj.edges['NGram'].keys()), corpusObj['id']))
+                _logger.debug("%d NEW NGrams in corpus %s"%(len(corpusObj.edges['NGram'].keys()), corpusObj['id']))
+                _logger.debug("%d NEW Documents in corpus %s"%(len(corpusObj.edges['Document'].keys()), corpusObj['id']))
             return
 
-    def _insert_NGrams( self, docngrams, document, corpusNum, overwrite ):
+    def _insert_NGram_Document( self, docngrams, document, corpusNum, overwrite ):
         """
         Inserts NGrams and its relations to storage
         Verifying previous storage contents prevneting data corruption
@@ -184,10 +183,11 @@ class Extractor():
                 if ngid not in storedDoc['edges']['NGram']:
                     ng.addEdge( 'Corpus', corpusNum, 1 )
                     self.reader.corpusDict[ corpusNum ].addEdge( 'NGram', ngid, 1 )
-            ### anyway attach document and ngram
+            ### updates Doc-NGram edges
             ng.addEdge( 'Document', document['id'], docOccs )
-            # updates Doc-NGram edges
             document.addEdge( 'NGram', ng['id'], docOccs )
             # queue the storage/update of the ngram
             self.storage.updateNGram( ng, overwrite, document['id'], corpusNum )
         self.storage.flushNGramQueue()
+        # creates or OVERWRITES document into storage
+        self.duplicate += self.storage.updateDocument( document, overwrite )
