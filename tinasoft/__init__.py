@@ -79,12 +79,8 @@ class PytextminerFlowApi(PytextminerFileApi):
         """
         self.opened_storage = {}
         # import config yaml to self.config
-        try:
-            self.config = yaml.safe_load( file( configFilePath, 'rU' ) )
-        except yaml.YAMLError, exc:
-            print exc
-            print "bad file path : %s"%configFilePath
-            return self.STATUS_ERROR
+        self.config_path = configFilePath
+        self._load_config()
         # creates applications directories
         self.user = self._init_user_directory()
         self.source_file_directory = self._init_source_file_directory()
@@ -102,6 +98,10 @@ class PytextminerFlowApi(PytextminerFileApi):
             )
             locale.setlocale(locale.LC_ALL, self.locale)
         self.logger.debug("===Pytextminer started===")
+
+    def _load_config(self):
+        # import config yaml to self.config
+        self.config = yaml.safe_load( file( self.config_path, 'rU' ) )
 
     def set_logger(self, custom_logger=None):
         """
@@ -181,6 +181,7 @@ class PytextminerFlowApi(PytextminerFileApi):
         tinasoft source extraction controler
         send a corpora and a storage handler to an Extractor() instance
         """
+        self._load_config()
         try:
             path = self._get_sourcefile_path(path)
         except IOError, ioe:
@@ -246,6 +247,7 @@ class PytextminerFlowApi(PytextminerFileApi):
         """
         Like import_file but limited to a given whitelist
         """
+        self._load_config()
         try:
             path = self._get_sourcefile_path(path)
             corporaObj = corpora.Corpora(dataset)
@@ -371,6 +373,7 @@ class PytextminerFlowApi(PytextminerFileApi):
 
         @return absolute path to the gexf file
         """
+        self._load_config()
         if not isinstance(periods, list):
             periods = [periods]
         if not documentgraphconfig: documentgraphconfig = {}
@@ -427,27 +430,27 @@ class PytextminerFlowApi(PytextminerFileApi):
             return
         
         # updates default config with parameters
-        self.config['datamining']['NGramGraph'].update(ngramgraphconfig)
-        self.config['datamining']['DocumentGraph'].update(documentgraphconfig)
-        ngramgraphconfig = self.config['datamining']['NGramGraph']
-        documentgraphconfig = self.config['datamining']['DocumentGraph']
+        update_ngramconfig = self.config['datamining']['NGramGraph']
+        update_ngramconfig.update(ngramgraphconfig)
+        update_documentconfig = self.config['datamining']['DocumentGraph']
+        update_documentconfig.update(documentgraphconfig)
         
         # hack resolving the proximity parameter ambiguity
-        if ngramgraphconfig['proximity']=='cooccurrences':
+        if update_ngramconfig['proximity']=='cooccurrences':
             ngram_matrix_reducer = graph.MatrixReducerFilter( ngram_index )
-        elif ngramgraphconfig['proximity']=='pseudoInclusion':
+        elif update_ngramconfig['proximity']=='pseudoInclusion':
             ngram_matrix_reducer = graph.PseudoInclusionMatrix( ngram_index )
-        elif ngramgraphconfig['proximity']=='equivalenceIndex':
-            ngramgraphconfig['nb_documents'] = len(doc_index)
+        elif update_ngramconfig['proximity']=='equivalenceIndex':
+            update_ngramconfig['nb_documents'] = len(doc_index)
             ngram_matrix_reducer = graph.EquivalenceIndexMatrix( ngram_index )
         else:
-            errmsg = "%s is not a valid NGram graph proximity"%ngramgraphconfig['proximity']
+            errmsg = "%s is not a valid NGram graph proximity"%update_ngramconfig['proximity']
             self.logger.error(errmsg)
             raise NotImplementedError(errmsg)
             return
           
         # ngramgraph proximity is based on previously stored
-        ngramgraphconfig['proximity'] = 'preprocess'
+        update_ngramconfig['proximity'] = 'preprocess'
         ngramsubgraph_gen = graph.process_ngram_subgraph(
             self.config,
             dataset,
@@ -455,7 +458,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             ngram_index,
             doc_index,
             ngram_matrix_reducer,
-            ngramgraphconfig,
+            update_ngramconfig,
             GEXFWriter,
             storage
         )
@@ -468,16 +471,18 @@ class PytextminerFlowApi(PytextminerFileApi):
             ngram_index,
             doc_index,
             doc_matrix_reducer,
-            documentgraphconfig,
+            update_documentconfig,
             GEXFWriter,
             storage
         )
         try:
             while 1:
                 yield self.STATUS_RUNNING
-                ngram_matrix_reducer_update = ngramsubgraph_gen.next()
+                #ngram_matrix_reducer_update = ngramsubgraph_gen.next()
+                ngramsubgraph_gen.next()
                 yield self.STATUS_RUNNING
-                doc_matrix_reducer_update = docsubgraph_gen.next()
+                #doc_matrix_reducer_update = docsubgraph_gen.next()
+                docsubgraph_gen.next()
         except StopIteration, stopi:
             pass
         
@@ -503,6 +508,7 @@ class PytextminerFlowApi(PytextminerFileApi):
         updates cooccurrences into storage,
         optionally exporting cooccurrence matrix
         """
+        self._load_config()
         try:
             # path is an archive directory
             path = self._get_sourcefile_path(path)
@@ -559,6 +565,7 @@ class PytextminerFlowApi(PytextminerFileApi):
         returns a text file outpath containing the db cooc
         for a list of periods ans an ngrams whitelist
         """
+        self._load_config()
         storage = self.get_storage(dataset, create=True, drop_tables=False)
         if storage == self.STATUS_ERROR:
             return self.STATUS_ERROR
