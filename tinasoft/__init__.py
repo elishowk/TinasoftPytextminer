@@ -292,7 +292,7 @@ class PytextminerFlowApi(PytextminerFileApi):
                 periods += [corpusobj]
 
             ngramgraphconfig = self.config['datamining']['NGramGraph']
-            ngramgraphconfig['proximity'] = 'cooccurrences'
+            #ngramgraphconfig['proximity'] = 'cooccurrences'
             
             ### cooccurrences for each period
             for period in periods:
@@ -436,19 +436,22 @@ class PytextminerFlowApi(PytextminerFileApi):
         update_documentconfig.update(documentgraphconfig)
         
         # hack resolving the proximity parameter ambiguity
-        if update_ngramconfig['proximity']=='cooccurrences':
-            ngram_matrix_reducer = graph.MatrixReducerFilter( ngram_index )
-        elif update_ngramconfig['proximity']=='pseudoInclusion':
-            ngram_matrix_reducer = graph.PseudoInclusionMatrix( ngram_index )
-        elif update_ngramconfig['proximity']=='equivalenceIndex':
-            update_ngramconfig['nb_documents'] = len(doc_index)
-            ngram_matrix_reducer = graph.EquivalenceIndexMatrix( ngram_index )
-        else:
-            errmsg = "%s is not a valid NGram graph proximity"%update_ngramconfig['proximity']
-            self.logger.error(errmsg)
-            raise NotImplementedError(errmsg)
-            return
+        #if update_ngramconfig['proximity']=='cooccurrences':
+        #    ngram_matrix_reducer = graph.MatrixReducerFilter( ngram_index )
+        #elif update_ngramconfig['proximity']=='pseudoInclusion':
+        #    ngram_matrix_reducer = graph.PseudoInclusionMatrix( ngram_index )
+        #elif update_ngramconfig['proximity']=='equivalenceIndex':
+        #    update_ngramconfig['nb_documents'] = len(doc_index)
+        #    ngram_matrix_reducer = graph.EquivalenceIndexMatrix( ngram_index )
+        #else:
+        #    errmsg = "%s is not a valid NGram graph proximity"%update_ngramconfig['proximity']
+        #    self.logger.error(errmsg)
+        #    raise NotImplementedError(errmsg)
+        #    return
           
+        ngram_matrix_class = _dynamic_get_class("graph", update_ngramconfig['proximity'])
+        ngram_matrix_reducer = ngram_matrix_class(ngram_index)
+        
         # ngramgraph proximity is based on previously stored
         update_ngramconfig['proximity'] = 'preprocess'
         ngramsubgraph_gen = graph.process_ngram_subgraph(
@@ -661,10 +664,8 @@ class PytextminerApi(PytextminerFlowApi):
         return self._eraseFlow( generator )
 
 
-def import_module(name):
-    """returns a imported module given its string name"""
-    try:
-        module =  __import__(name)
-        return sys.modules[name]
-    except ImportError, exc:
-        raise Exception("couldn't load module %s: %s"%(name,exc))
+def _dynamic_get_class(mod_name, class_name):
+    """returns an instanciated class given its name"""
+    mod = __import__(mod_name, globals(), locals(), [class_name])
+    klass = getattr(mod, class_name)
+    return klass

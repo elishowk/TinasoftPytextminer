@@ -21,6 +21,7 @@ from numpy import *
 import math
 
 from tinasoft.pytextminer import PyTextMiner, corpus
+from tinasoft import _dynamic_get_class
 
 import logging
 _logger = logging.getLogger('TinaAppLogger')
@@ -41,7 +42,8 @@ def process_ngram_subgraph(
     """
     for process_period in periods:
         ngram_args = ( config, storage, process_period, ngramgraphconfig, ngram_index, doc_index )
-        adj = NgramGraph( *ngram_args )
+        ngram_graph_class = _dynamic_get_class("graph", ngramgraphconfig['proximity'])
+        adj = ngram_graph_class( *ngram_args )
         adj.diagonal(ngram_matrix_reducer)
         try:
             submatrix_gen = adj.generator()
@@ -59,7 +61,6 @@ def process_ngram_subgraph(
                     process_period.id
                 )
             )
-
     load_subgraph_gen = graphwriter.load_subgraph( 'NGram', ngram_matrix_reducer, subgraphconfig=ngramgraphconfig)
     try:
         while 1:
@@ -316,6 +317,9 @@ class MatrixReducerFilter(MatrixReducer):
             _logger.debug("MatrixReducerFilter generated %d valid edges"%count)
 
 
+class CooccurrenceMatrix(MatrixReducerFilter): pass
+
+
 class PseudoInclusionMatrix(MatrixReducer):
     """
     Matrix Reducer used to store cooccurrence matrix,
@@ -398,7 +402,8 @@ class SubGraph(object):
         self.corpusid = corpus['id']
         self.corpus = corpus
         self.name = name
-        self._loadOptions(opts, config)
+        self._loadDefaults(config)
+        self._loadOptions(opts)
         self.ngram_index = ngram_index
         self.doc_index = doc_index
 
@@ -408,33 +413,17 @@ class SubGraph(object):
         """
         for attr, value in config['datamining'][self.name].iteritems():
             setattr(self,attr,value)
-        try:
-            if 'proximity' in config['datamining'][self.name]:
-                # string eval to method
-                self.proximity = getattr(self, config['datamining'][self.name]['proximity'])
 
-        except Exception, exc:
-            _logger.error("%s cannot load %s"%(self.name, config['datamining'][self.name]['proximity']))
-
-    def _loadOptions(self, opts, defaults):
+    def _loadOptions(self, opts):
         """
-        First loads the default options
-        Then overwrites with eventual user options
+        Overwrites config with eventual user parameters
         """
-        self._loadDefaults(defaults)
-        # override default config
         for attr, value in opts.iteritems():
             setattr(self,attr,value)
-        # override the proximity method
-        try:
-            if 'proximity' in opts:
-                # string eval to method
-                _logger.debug("%s setting proximity to %s"%(self.name,opts['proximity']))
-                self.proximity = getattr(self, opts['proximity'])
-
-        except Exception, exc:
-            _logger.error("%s cannot load %s"%(self.name,opts['proximity']))
-            self.proximity = None
+            
+    def _loadProximity(self):
+        _logger.debug("%s setting proximity to %s"%(self.name,opts['proximity']))
+        self.proximity = getattr(self, opts['proximity'])
 
     def proximity(self, document):
         raise Exception("proximity method not defined in %s"%self.name)
@@ -464,14 +453,14 @@ class SubGraph(object):
             )
 
 
-class NgramGraph(SubGraph):
+class NgramGraphPreprocess(SubGraph):
     """
     A NGram subgraph edges processor
     """
     def __init__(self, config, storage, corpus, opts, ngram_index, doc_index ):
         SubGraph.__init__(self, config, storage, corpus, opts, 'NGramGraph', ngram_index, doc_index )
         
-    def cooccurrences( self, document ):
+    def proximity( self, document ):
         """
         simple document cooccurrences matrix calculator
         """ 
@@ -481,21 +470,6 @@ class NgramGraph(SubGraph):
         for (ngi, ngj) in itertools.combinations(valid_keys, 2):
             submatrix.set( ngi, ngj, 1 )
             submatrix.set( ngj, ngi, 1 )
-        return submatrix
-    
-    def preprocess( self, document ):
-        """
-        gets preprocessed proximities from storage
-        """ 
-        valid_keys = set(document['edges']['NGram'].keys()) & self.ngram_index
-        submatrix = Matrix( list(valid_keys), valuesize=float32 )
-
-        for ngi in valid_keys:
-            ngirow = self.storage.loadGraphPreprocess(self.corpusid+"::"+ngi, "NGram")
-            if ngirow is None: continue
-            for ngj, stored_prox in ngirow.iteritems():
-                if ngj not in valid_keys: continue
-                submatrix.set( ngi, ngj, stored_prox )
         return submatrix
 
     def diagonal( self, matrix_reducer ):
@@ -516,30 +490,51 @@ class NgramGraph(SubGraph):
             return
 
 
+class NgramGraph(SubGraph):
+    """
+    A NGram subgraph edges processor
+    """
+    def __init__(self, config, storage, corpus, opts, ngram_index, doc_index ):
+        SubGraph.__init__(self, config, storage, corpus, opts, 'NGramGraph', ngram_index, doc_index )
+        
+    def proximity( self, ngid ):
+        """
+        gets preprocessed proximities from storage
+        """ 
+        submatrix = Matrix( list(self.ngram_index), valuesize=float32 )
+        ngirow = self.storage.loadGraphPreprocess(self.corpusid+"::"+ngid, "NGram")
+        if ngirow is None: return submatrix
+        for ngj, stored_prox in ngirow.iteritems():
+            if ngj not in self.ngram_index: continue
+            submatrix.set( ngi, ngj, stored_prox )
+        return submatrix
+
+    def diagonal( self, matrix_reducer ):
+        for ng in self.ngram_index:
+            matrix_reducer.set( ng, ng, value=self.corpus['edges']['NGram'][ng])
+
+    def generator(self):
+        """
+        walks through a list of documents into a corpus
+        to process proximities
+        """
+        for ngid in self.ngram_index:
+            yield self.proximity( ngid )
+
+
 class DocGraph(SubGraph):
     """
     A Document SubGraph edges processor
     """
     def __init__( self, config, storage, corpus, opts, ngram_index, doc_index ):
         SubGraph.__init__(self, config, storage, corpus, opts, 'DocumentGraph', ngram_index, doc_index )
-        # document's ngrams subset cache
+        # docgraph needs a custom proximity function
+        self._loadProximity()
+        # document's ngrams lists caching
         self.documentngrams = {}
         for doc in self.doc_index:
             documentobj = self.storage.loadDocument(doc)
             self.documentngrams[doc] = set(documentobj['edges']['NGram'].keys()) & self.ngram_index
-
-    def preprocess( self, document ):
-        """
-        gets preprocessed proximities from storage
-        """ 
-        submatrix = Matrix( self.doc_index, valuesize=float32 )
-        row = self.storage.loadGraphPreprocess(self.corpusid+"::"+document['id'], "Document")
-        if row is None: return submatrix
-        for docid, stored_prox in row.iteritems():
-            if docid == document['id']: continue
-            submatrix.set( document['id'], docid, value=stored_prox, overwrite=True )
-            submatrix.set( docid, document['id'], value=stored_prox, overwrite=True )
-        return submatrix
 
     def sharedNGrams( self, document ):
         """
