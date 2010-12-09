@@ -59,7 +59,7 @@ def process_ngram_subgraph(
                     process_period.id
                 )
             )
-    _logger.debug("writing NGram subgraph to memory")
+
     load_subgraph_gen = graphwriter.load_subgraph( 'NGram', ngram_matrix_reducer, subgraphconfig=ngramgraphconfig)
     try:
         while 1:
@@ -108,7 +108,7 @@ def process_document_subgraph(
                 metacorpus.id
             )
         )
-    _logger.debug("writing Document subgraph to memory")
+
     load_subgraph_gen = graphwriter.load_subgraph( 'Document', doc_matrix_reducer, subgraphconfig = docgraphconfig)
     try:
         while 1:
@@ -243,7 +243,6 @@ class MatrixReducer(Matrix):
                         row[nodej] = prox
             if len(row.keys()) > 0:
                 yield (nodei, row)
-        _logger.debug("found %d valid proximity values"%count)
 
     def extract_matrix(self, config, **kwargs):
         """
@@ -314,7 +313,7 @@ class MatrixReducerFilter(MatrixReducer):
                 count += len(row.keys())
                 yield (nodei, row)
         except StopIteration, si:
-            _logger.debug("MatrixReducerFilter found %d valid edges"%count)
+            _logger.debug("MatrixReducerFilter generated %d valid edges"%count)
 
 
 class PseudoInclusionMatrix(MatrixReducer):
@@ -346,7 +345,7 @@ class PseudoInclusionMatrix(MatrixReducer):
                 count += len(row.keys())
                 yield nodei, row
         except StopIteration:
-            _logger.debug("PseudoInclusionMatrix found %d valid edges"%count)
+            _logger.debug("PseudoInclusionMatrix generated %d valid edges"%count)
 
 
 class EquivalenceIndexMatrix(MatrixReducer):
@@ -356,7 +355,7 @@ class EquivalenceIndexMatrix(MatrixReducer):
     """
     def extract_matrix( self, config, **kwargs ):
         """
-        extract_matrix with an equivakence index proximity calculator
+        extract_matrix with an equivalence index proximity calculator
         """
         nb_documents = config['nb_documents']
         minedges = float(config['edgethreshold'][0])
@@ -383,7 +382,7 @@ class EquivalenceIndexMatrix(MatrixReducer):
                 count += len(row.keys())
                 yield nodei, row
         except StopIteration:
-            _logger.debug("EquivalenceIndexMatrix found %d valid edges"%count)
+            _logger.debug("EquivalenceIndexMatrix generated %d valid edges"%count)
 
 
 class SubGraph(object):
@@ -415,7 +414,7 @@ class SubGraph(object):
                 self.proximity = getattr(self, config['datamining'][self.name]['proximity'])
 
         except Exception, exc:
-            _logger.error("impossible to load %s"%config['datamining'][self.name]['proximity'])
+            _logger.error("%s cannot load %s"%(self.name, config['datamining'][self.name]['proximity']))
 
     def _loadOptions(self, opts, defaults):
         """
@@ -430,15 +429,15 @@ class SubGraph(object):
         try:
             if 'proximity' in opts:
                 # string eval to method
-                _logger.debug("setting up proximity from paramater to %s"%opts['proximity'])
+                _logger.debug("%s setting proximity to %s"%(self.name,opts['proximity']))
                 self.proximity = getattr(self, opts['proximity'])
 
         except Exception, exc:
-            _logger.error("impossible to load %s"%opts['proximity'])
+            _logger.error("%s cannot load %s"%(self.name,opts['proximity']))
             self.proximity = None
 
     def proximity(self, document):
-        raise Exception("proximity method not defined")
+        raise Exception("proximity method not defined in %s"%self.name)
         return 0
 
     def walkDocuments(self):
@@ -454,14 +453,14 @@ class SubGraph(object):
                 doccount += 1
                 self.notify( doccount, totaldocs )
             else:
-                _logger.warning("document %s not found in database"%doc_id)
+                _logger.warning("%s cannot found document %s in database"%(self.name,doc_id))
         return
 
     def notify(self, doccount, totaldocs):
         if doccount % 50 == 0:
             _logger.debug(
                 '%s processed %d of %d documents in period %s'\
-                    %(self.name, doccount,totaldocs,self.corpusid)
+                    %(self.name, doccount, totaldocs, self.corpusid)
             )
 
 

@@ -26,6 +26,8 @@ import urllib
 httplib.HTTPConnection.debuglevel = 1
 import jsonpickle
 
+import tests
+
 class ServerTest(unittest.TestCase):
     def setUp(self):
         self.headers = {
@@ -33,11 +35,11 @@ class ServerTest(unittest.TestCase):
             "Accept": "application/json"
         }
         self.connection = httplib.HTTPConnection("localhost", 8888)
-        self.datasetId = argument3
-        self.period = argument5
+        self.datasetId = datasetId
+        self.period = period
         self.argument1 = argument1
         self.argument2 = argument2
-        self.whitelist = argument4
+        self.whitelist = whitelist
 
 
 class ExtractFile(ServerTest):
@@ -65,13 +67,13 @@ class IndexFile(ServerTest):
         index a whitelist against a source file
          and its network in the db
         """
-        params = urllib.urlencode( {
+        params = urllib.urlencode({
             'path': self.argument1,
             'dataset': self.datasetId,
             'whitelistpath': self.whitelist,
             'format': self.argument2,
             'overwrite': False
-        } )
+        })
         self.connection.request(
             'POST',
             '/file',
@@ -89,13 +91,13 @@ class GenerateGraph(ServerTest):
             'periods': self.period,
             'whitelistpath': self.whitelist,
             'outpath': 'test_graph',
-            #'ngramgraphconfig': {
-            #    'proximity': self.argument1
-            #},
-            #'documentgraphconfig': {
-            #    'proximity': self.argument2
-            #}
-        } )
+            'ngramgraphconfig': {
+                'proximity': self.argument1
+            },
+            'documentgraphconfig': {
+                'proximity': self.argument2
+            }
+        })
         self.connection.request(
             'POST',
             '/graph',
@@ -105,91 +107,62 @@ class GenerateGraph(ServerTest):
         print self.connection.getresponse().read()
 
 
-def getCorpora(connection, headers, dataset_id):
+def getObject(connection, headers, object_type, dataset_id, obj_id=None):
     """getCorpora : gets a corpora from database"""
-    params =  urllib.urlencode({
-        'dataset': dataset_id,
-    })
+    if obj_id is None:
+        params =  urllib.urlencode({
+            'dataset': dataset_id
+        })
+    else:
+        params =  urllib.urlencode({
+            'dataset': dataset_id,
+            'id': obj_id
+        })
     connection.request(
         'GET',
-        '/dataset?'+params,
+        '/'+object_type+'?'+params,
         body = params,
         headers = headers
     )
     data = connection.getresponse().read()
-    print "DATA RECEIVED - ", data
-    obj = jsonpickle.decode( data )
+    obj = jsonpickle.decode(data)
     return obj
 
-class GetNodes(ServerTest):
+class TestGraph(ServerTest):
     def runTest(self):
         """GetNodes : gets nodes from database after having generated a graph"""
-        Datasetlabel = getCorpora(self.connection, self.headers, self.datasetId)
-        print Datasetlabel
-        print "Verifying Dataset with Dataset named %s"%Datasetlabel
-        params =  urllib.urlencode({
-            'dataset': self.datasetId,
-            'id': self.period
-        })
-        self.connection.request(
-            'GET',
-            '/corpus?'+params,
-            body = params,
-            headers = self.headers
-        )
-        data = self.connection.getresponse().read()
-        print "DATA RECEIVED - ", data
-        corpusObj = jsonpickle.decode( data )
-        print corpusObj
+        data = tests.get_tinacsv_test_3_data()
         
-        for ngid in corpusObj['edges']['NGram'].iterkeys():
-            params =  urllib.urlencode({
-                'dataset': self.datasetId,
-                'id': ngid
-            })
-            self.connection.request(
-                'GET',
-                '/ngram?'+params,
-                body = params,
-                headers = self.headers
-            )
-            data = self.connection.getresponse().read()
-            print "DATA RECEIVED - ", data
-            ngramObj = jsonpickle.decode( data )
-            print ngramObj.edges
-            
-        for docid in corpusObj['edges']['Document'].iterkeys():
-            params =  urllib.urlencode({
-                'dataset': self.datasetId,
-                'id': docid
-            })
-            self.connection.request(
-                'GET',
-                '/document?'+params,
-                body = params,
-                headers = self.headers
-            )
-            data = self.connection.getresponse().read()
-            print "DATA RECEIVED - ", data
-            documentObj = jsonpickle.decode( data )
-            print documentObj
+        corporaResult = getObject(self.connection, self.headers, 'dataset', self.datasetId)
+        print "Testing the dataset labelled %s"%corporaResult.label
+        
+        corpusResult = getObject(self.connection, self.headers, 'corpus', self.datasetId, self.period)
+        
+        print "Testing the NGram nodes in period %s"%self.period
+        for ngid in corpusResult['edges']['NGram'].iterkeys():
+            ngramObj = getObject(self.connection, self.headers, 'ngram', self.datasetId, ngid)
+
+        print "Testing the Document nodes in period %s"%self.period
+        for docid in corpusResult['edges']['Document'].iterkeys():
+            documentObj = getObject(self.connection, self.headers, 'document', self.datasetId, docid)
+
 
 def usage():
     print " servertests.py USAGE :\n"
     print " first, launch the server : python httpserver.py configuration_file_path \n"
     print " python servertests.py ExtractFile source_filename source_file_format dataset_name whitelist_out_path\n"
     print " python servertests.py IndexFile source_filename source_file_format dataset_name whitelist_path\n"
-    print " python servertests.py GenerateGraph dataset_name whitelist_path period\n"
-    print " python servertests.py GetNodes dataset_name period\n"
+    print " python servertests.py GenerateGraph ngram_proximity document_proximity dataset_name whitelist_path period\n"
+    print " python servertests.py TestGraph dataset_name period\n"
 
 
 if __name__ == '__main__':
     print sys.argv
     argument1 = None
     argument2 = None
-    argument3 = None
-    argument4 = None
-    argument5 = None
+    datasetId = None
+    whitelist = None
+    period = None
     try:
         testclass = sys.argv[1]
     except Exception, e:
@@ -200,25 +173,27 @@ if __name__ == '__main__':
         try:
             argument1 = sys.argv[2]
             argument2 = sys.argv[3]
-            argument3 = sys.argv[4]
-            argument4 = sys.argv[5]
+            datasetId = sys.argv[4]
+            whitelist = sys.argv[5]
             del sys.argv[2:]
         except:
             usage()
             exit()
     elif testclass == 'GenerateGraph':
         try:
-            argument3 = sys.argv[2]
-            argument4 = sys.argv[3]
-            argument5 = sys.argv[4]
+            argument1 = sys.argv[2]
+            argument2 = sys.argv[3]
+            datasetId = sys.argv[4]
+            whitelist = sys.argv[5]
+            period = sys.argv[6]
             del sys.argv[2:]
         except:
             usage()
             exit()
-    elif testclass == 'GetNodes':
+    elif testclass == 'TestGraph':
         try:
-            argument3 = sys.argv[2]
-            argument5 = sys.argv[3]
+            datasetId = sys.argv[2]
+            period = sys.argv[3]
             del sys.argv[2:]
         except:
             usage()

@@ -49,7 +49,7 @@ tenjin._write_binary_file = _write_binary_file
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
-NODE_COUNT_LOGGING = 1
+NODE_COUNT_LOGGING = 10
 
 class Exporter(Handler):
     """
@@ -89,7 +89,7 @@ class Exporter(Handler):
 
     def notify(self, count):
         if count % NODE_COUNT_LOGGING == 0:
-            _logger.debug( "%d graph nodes processed"%count )
+            _logger.debug( "%d subgraph nodes loaded"%count )
 
     def load_subgraph(self, category, matrix, subgraphconfig):
         """

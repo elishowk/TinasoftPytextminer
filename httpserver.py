@@ -87,13 +87,14 @@ class TinasoftServerRequest(resource.Resource):
                 parsed_args[key] = self._parse_args( self.argument_types[key](args[key][0]) )
             else:
                 parsed_args[key] = self.argument_types[key](args[key][0])
+                
+        self.logger.info( str(self.method) + " ---" + str(parsed_args) )
         return parsed_args
 
     def render(self, request):
         """
-        Prepares arguments and call the method
+        Prepares arguments and call the Cooperative method
         """
-        #self.logger.info( str(self.method) + " ---" + str(parsed_args) )
         d = CooperativeExecution()._method_wrapper(request, self.callback.success, self.handler, self.method, self.logger)
         d.addCallback(lambda ignored: request.finish())
         d.addErrback(self._method_failed, request)
@@ -459,8 +460,8 @@ class Serializer(object):
         writes the success json string
         but still checks STATUS_ERROR in case of caught error during request
         """
-        if response == PytextminerFlowApi.STATUS_ERROR:
-            response = traceback.format_exc()
+        #if response == PytextminerFlowApi.STATUS_ERROR:
+        #    response = traceback.format_exc()
         if response == None:
             response = self.default
         return self.serialize( response )

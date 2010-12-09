@@ -231,10 +231,10 @@ class PytextminerFlowApi(PytextminerFileApi):
         except StopIteration, si:
             yield absolute_outpath
             return
-        except Exception, excep:
-            self.logger.error("%s"%excep)
-            yield self.STATUS_ERROR
-            return
+        #except Exception, excep:
+        #    self.logger.error("%s"%excep)
+        #    yield self.STATUS_ERROR
+        #    return
 
     def index_file(self,
             path,
@@ -328,10 +328,6 @@ class PytextminerFlowApi(PytextminerFileApi):
                     
             ### end of preprocess
             yield extract.duplicate
-            return
-        except Exception, exc:
-            self.logger.error("%s"%exc)
-            yield self.STATUS_ERROR
             return
 
     def _new_graph_writer(self, dataset, periods, whitelistid, storage=None, generate=True, preprocess=False):
@@ -437,15 +433,18 @@ class PytextminerFlowApi(PytextminerFileApi):
         ngramgraphconfig = self.config['datamining']['NGramGraph']
         documentgraphconfig = self.config['datamining']['DocumentGraph']
         
-        # hack for proximity parameter ambiguity
+        # hack resolving the proximity parameter ambiguity
         if ngramgraphconfig['proximity']=='cooccurrences':
             ngram_matrix_reducer = graph.MatrixReducerFilter( ngram_index )
-        if ngramgraphconfig['proximity']=='pseudoInclusion':
+        elif ngramgraphconfig['proximity']=='pseudoInclusion':
             ngram_matrix_reducer = graph.PseudoInclusionMatrix( ngram_index )
-        if ngramgraphconfig['proximity']=='equivalenceIndex':
+        elif ngramgraphconfig['proximity']=='equivalenceIndex':
             ngramgraphconfig['nb_documents'] = len(doc_index)
             ngram_matrix_reducer = graph.EquivalenceIndexMatrix( ngram_index )
-            
+        else:
+            self.logger.error("%s is not a valid NGram graph proximity"%ngramgraphconfig['proximity'])
+            return
+          
         # ngramgraph proximity is based on previously stored
         ngramgraphconfig['proximity'] = 'preprocess'
         ngramsubgraph_gen = graph.process_ngram_subgraph(
