@@ -28,6 +28,8 @@ import jsonpickle
 
 import tests
 
+from tinasoft.pytextminer import corpora, corpus, document, ngram
+
 class ServerTest(unittest.TestCase):
     def setUp(self):
         self.headers = {
@@ -91,12 +93,13 @@ class GenerateGraph(ServerTest):
             'periods': self.period,
             'whitelistpath': self.whitelist,
             'outpath': 'test_graph',
-            'ngramgraphconfig': {
-                'proximity': self.argument1
-            },
-            'documentgraphconfig': {
-                'proximity': self.argument2
-            }
+            # DOES ONT WORK : urlencode fails
+            #'ngramgraphconfig': {
+            #    'proximity': self.argument1
+            #},
+            #'documentgraphconfig': {
+            #    'proximity': self.argument2
+            #}
         })
         self.connection.request(
             'POST',
@@ -134,17 +137,22 @@ class TestGraph(ServerTest):
         data = tests.get_tinacsv_test_3_data()
         
         corporaResult = getObject(self.connection, self.headers, 'dataset', self.datasetId)
-        print "Testing the dataset labelled %s"%corporaResult.label
+        self.failUnless( isinstance( corporaResult, corpora.Corpora ), "dataset request failed : %s"%self.datasetId )
         
         corpusResult = getObject(self.connection, self.headers, 'corpus', self.datasetId, self.period)
-        
+        self.failUnless( isinstance( corpusResult, corpus.Corpus ), "corpus request failed" )
         print "Testing the NGram nodes in period %s"%self.period
         for ngid in corpusResult['edges']['NGram'].iterkeys():
             ngramObj = getObject(self.connection, self.headers, 'ngram', self.datasetId, ngid)
-
+            self.failUnless( isinstance( ngramObj, ngram.NGram ), "ngram request failed" )
+            print "testing NGram %s (%s)"%(ngramObj['label'],ngramObj['id'])
+            self.failUnless( ("NGram::"+ngramObj['id'] in data['nodes']), "ngram not in the graph db" )
+            self.failUnlessEqual( ngramObj['label'], data['nodes']["NGram::"+ngramObj['id']]['label'], "ngram label test failed : %s"%ngramObj['label'] )
+            self.failUnlessEqual( data['nodes']["NGram::"+ngramObj['id']]['weight'], corpusResult.edges['NGram'][ngramObj['id']], "ngram weight test failed : %s"%corpusResult.edges['NGram'][ngramObj['id']] )
         print "Testing the Document nodes in period %s"%self.period
         for docid in corpusResult['edges']['Document'].iterkeys():
             documentObj = getObject(self.connection, self.headers, 'document', self.datasetId, docid)
+            self.failUnless( isinstance( documentObj, document.Document ), "document request failed" )
 
 
 def usage():
@@ -152,7 +160,7 @@ def usage():
     print " first, launch the server : python httpserver.py configuration_file_path \n"
     print " python servertests.py ExtractFile source_filename source_file_format dataset_name whitelist_out_path\n"
     print " python servertests.py IndexFile source_filename source_file_format dataset_name whitelist_path\n"
-    print " python servertests.py GenerateGraph ngram_proximity document_proximity dataset_name whitelist_path period\n"
+    print " python servertests.py GenerateGraph dataset_name whitelist_path period\n"
     print " python servertests.py TestGraph dataset_name period\n"
 
 
@@ -181,11 +189,11 @@ if __name__ == '__main__':
             exit()
     elif testclass == 'GenerateGraph':
         try:
-            argument1 = sys.argv[2]
-            argument2 = sys.argv[3]
-            datasetId = sys.argv[4]
-            whitelist = sys.argv[5]
-            period = sys.argv[6]
+            #argument1 = sys.argv[2]
+            #argument2 = sys.argv[3]
+            datasetId = sys.argv[2]
+            whitelist = sys.argv[3]
+            period = sys.argv[4]
             del sys.argv[2:]
         except:
             usage()
