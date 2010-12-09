@@ -421,10 +421,9 @@ class PytextminerFlowApi(PytextminerFileApi):
 
         if len(ngram_index) == 0 or len(doc_index) == 0:
             yield self.STATUS_ERROR
-            _logger.warning(
-                "Graph not generated : NGram index length = %d, Document index length = %d"
-                %(len(ngram_index),len(doc_index))
-            )
+            errmsg = "Graph not generated : NGram index length = %d, Document index length = %d"%(len(ngram_index),len(doc_index))
+            self.logger.warning(errmsg)
+            raise RuntimeError(errmsg)
             return
         
         # updates default config with parameters
@@ -442,7 +441,9 @@ class PytextminerFlowApi(PytextminerFileApi):
             ngramgraphconfig['nb_documents'] = len(doc_index)
             ngram_matrix_reducer = graph.EquivalenceIndexMatrix( ngram_index )
         else:
-            self.logger.error("%s is not a valid NGram graph proximity"%ngramgraphconfig['proximity'])
+            errmsg = "%s is not a valid NGram graph proximity"%ngramgraphconfig['proximity']
+            self.logger.error(errmsg)
+            raise NotImplementedError(errmsg)
             return
           
         # ngramgraph proximity is based on previously stored
