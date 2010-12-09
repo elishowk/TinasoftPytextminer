@@ -145,15 +145,50 @@ class TestGraph(ServerTest):
         for ngid in corpusResult['edges']['NGram'].iterkeys():
             ngramObj = getObject(self.connection, self.headers, 'ngram', self.datasetId, ngid)
             self.failUnless( isinstance( ngramObj, ngram.NGram ), "ngram request failed" )
+            
             print "testing NGram %s (%s)"%(ngramObj['label'],ngramObj['id'])
+            
             self.failUnless( ("NGram::"+ngramObj['id'] in data['nodes']), "ngram not in the graph db" )
             self.failUnlessEqual( ngramObj['label'], data['nodes']["NGram::"+ngramObj['id']]['label'], "ngram label test failed : %s"%ngramObj['label'] )
             self.failUnlessEqual( data['nodes']["NGram::"+ngramObj['id']]['weight'], corpusResult.edges['NGram'][ngramObj['id']], "ngram weight test failed : %s"%corpusResult.edges['NGram'][ngramObj['id']] )
+            
+            print ngramObj['edges']
+            
+            for category in ["NGram", "Document"]:
+                for targetid, weight in ngramObj['edges'][category].iteritems():
+                    
+                    print "testing cat=%s, target id=%s"%(category, targetid )
+                    
+                    self.failUnless( ( "NGram::"+ngramObj['id'] in data['edges']),
+                        "missing all ngram's edges: %s"%ngramObj['label'])
+                    self.failUnless( ( category+"::"+targetid in data['edges']["NGram::"+ngramObj['id']]),
+                        "missing an edge of ngram: %s"%ngramObj['label'])
+                    self.failUnlessEqual( weight,  data['edges']["NGram::"+ngramObj['id']][category+"::"+targetid],
+                        "ngram weight test failed : %s"%ngramObj['label'] )
+                    
         print "Testing the Document nodes in period %s"%self.period
         for docid in corpusResult['edges']['Document'].iterkeys():
             documentObj = getObject(self.connection, self.headers, 'document', self.datasetId, docid)
             self.failUnless( isinstance( documentObj, document.Document ), "document request failed" )
-
+            print "testing Document %s (%s)"%(documentObj['label'],documentObj['id'])
+                       
+            self.failUnless( ("Document::"+documentObj['id'] in data['nodes']), "Document not in the graph db" )
+            self.failUnlessEqual( documentObj['label'], data['nodes']["Document::"+documentObj['id']]['label'], "Document label test failed : %s"%documentObj['label'] )
+            self.failUnlessEqual( data['nodes']["Document::"+documentObj['id']]['weight'], corpusResult.edges['Document'][documentObj['id']], "Document weight test failed : %s"%corpusResult.edges['Document'][documentObj['id']] )
+            
+            print documentObj['edges']
+            
+            for category in ["NGram", "Document"]:
+                for targetid, weight in documentObj['edges'][category].iteritems():
+                    
+                    print "testing cat=%s, target id=%s"%(category, targetid )
+                    
+                    self.failUnless( ( "Document::"+documentObj['id'] in data['edges']),
+                        "missing all Document's edges s: %s"%documentObj['label'])
+                    self.failUnless( ( category+"::"+targetid in data['edges']["Document::"+documentObj['id']]),
+                        "missing an edge of Document : %s"%documentObj['label'])
+                    self.failUnlessEqual( weight,  data['edges']["Document::"+documentObj['id']][category+"::"+targetid],
+                        "Document weight test failed : %s"%documentObj['label'] )
 
 def usage():
     print " servertests.py USAGE :\n"
