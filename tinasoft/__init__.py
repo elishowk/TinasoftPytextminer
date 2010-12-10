@@ -469,7 +469,15 @@ class PytextminerFlowApi(PytextminerFileApi):
             storage,
             ngram_graph_class
         )
+        try:
+            while 1:
+                yield self.STATUS_RUNNING
+                ngramsubgraph_gen.next()
+        except StopIteration, stopi:
+            pass
+        
         doc_graph_class = _dynamic_get_class("tinasoft.pytextminer.graph", "DocGraph")
+        
         doc_matrix_reducer = graph.MatrixReducerFilter( doc_index )
         docsubgraph_gen = graph.process_document_subgraph(
             self.config,
@@ -486,10 +494,6 @@ class PytextminerFlowApi(PytextminerFileApi):
         try:
             while 1:
                 yield self.STATUS_RUNNING
-                #ngram_matrix_reducer_update = ngramsubgraph_gen.next()
-                ngramsubgraph_gen.next()
-                yield self.STATUS_RUNNING
-                #doc_matrix_reducer_update = docsubgraph_gen.next()
                 docsubgraph_gen.next()
         except StopIteration, stopi:
             pass

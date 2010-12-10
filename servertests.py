@@ -133,7 +133,10 @@ def getObject(connection, headers, object_type, dataset_id, obj_id=None):
 
 class TestGraph(ServerTest):
     def runTest(self):
-        """GetNodes : gets nodes from database after having generated a graph"""
+        """TestGraph :
+        gets nodes from database after having generated a graph
+        and test values agains the ones in tests/__init__.py
+        """
         data = tests.get_tinacsv_test_3_data()
         
         corporaResult = getObject(self.connection, self.headers, 'dataset', self.datasetId)
@@ -141,6 +144,7 @@ class TestGraph(ServerTest):
         
         corpusResult = getObject(self.connection, self.headers, 'corpus', self.datasetId, self.period)
         self.failUnless( isinstance( corpusResult, corpus.Corpus ), "corpus request failed" )
+        
         print "Testing the NGram nodes in period %s"%self.period
         for ngid in corpusResult['edges']['NGram'].iterkeys():
             ngramObj = getObject(self.connection, self.headers, 'ngram', self.datasetId, ngid)
@@ -151,8 +155,6 @@ class TestGraph(ServerTest):
             self.failUnless( ("NGram::"+ngramObj['id'] in data['nodes']), "ngram not in the graph db" )
             self.failUnlessEqual( ngramObj['label'], data['nodes']["NGram::"+ngramObj['id']]['label'], "ngram label test failed : %s"%ngramObj['label'] )
             self.failUnlessEqual( data['nodes']["NGram::"+ngramObj['id']]['weight'], corpusResult.edges['NGram'][ngramObj['id']], "ngram weight test failed : %s"%corpusResult.edges['NGram'][ngramObj['id']] )
-            
-            print ngramObj['edges']
             
             for category in ["NGram", "Document"]:
                 for targetid, weight in ngramObj['edges'][category].iteritems():

@@ -105,6 +105,7 @@ class Exporter(Handler):
                 if self.preprocess is True:
                     self._update_preprocess_db(nodeid, row, category)
                 if self.generate is True:
+                    print nodeid, row
                     self._update_graph_db(nodeid, row, category)
                     # adds node and its weight to the template var
                     self.graph['nodes'][category][nodeid] = matrix.get(nodeid, nodeid)
