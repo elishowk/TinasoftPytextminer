@@ -442,8 +442,8 @@ class PytextminerFlowApi(PytextminerFileApi):
         #    ngram_matrix_reducer = graph.MatrixReducerFilter( ngram_index )
         #elif update_ngramconfig['proximity']=='pseudoInclusion':
         #    ngram_matrix_reducer = graph.PseudoInclusionMatrix( ngram_index )
-        #elif update_ngramconfig['proximity']=='equivalenceIndex':
-        #    update_ngramconfig['nb_documents'] = len(doc_index)
+        if update_ngramconfig['proximity']=='EquivalenceIndex':
+            update_ngramconfig['nb_documents'] = len(doc_index)
         #    ngram_matrix_reducer = graph.EquivalenceIndexMatrix( ngram_index )
         #else:
         #    errmsg = "%s is not a valid NGram graph proximity"%update_ngramconfig['proximity']

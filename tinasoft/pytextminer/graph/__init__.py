@@ -329,7 +329,7 @@ class PseudoInclusion(MatrixReducer):
         alpha = config['alpha']
         minedges = float(config['edgethreshold'][0])
         maxedges = float(config['edgethreshold'][1])
-        matrix = super(PseudoInclusionMatrix, self).extract_matrix( config )
+        matrix = super(PseudoInclusion, self).extract_matrix( config )
         try:
             count = 0
             while 1:
@@ -364,7 +364,7 @@ class EquivalenceIndex(MatrixReducer):
         nb_documents = config['nb_documents']
         minedges = float(config['edgethreshold'][0])
         maxedges = float(config['edgethreshold'][1])
-        matrix = super(EquivalenceIndexMatrix, self).extract_matrix( config )
+        matrix = super(EquivalenceIndex, self).extract_matrix( config )
         try:
             count = 0
             while 1:
