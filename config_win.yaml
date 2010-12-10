@@ -71,23 +71,26 @@ datasets:
     #postag_valid: '^((VB.?,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?((PREP.?|DET.?,|IN.?,|CC.?,|\?,)((VB.?,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?)*?$'
     #postag_valid: '^((VB.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?((IN.?,|CC.?,|\?,)((VB.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?)*?$'
 datamining:
-    template: 'shared\gexf\gexf.default.template'
+    template: 'shared/gexf/gexf.default.template'
     # default values if no params are passed to gexf exporter
     DocumentGraph:
         edgethreshold:
             - 0.0001
             - 'inf'
         nodethreshold:
-            - 1.0
+            - 1.00
             - 'inf'
-        proximity: 'logJaccard'
+        proximity: 'sharedNGrams'
+        #proximity: 'logJaccard'
     NGramGraph:
         edgethreshold:
             - 0.0001
             - 'inf'
         nodethreshold:
-            - 1.0
+            - 1.00
             - 'inf'
-        alpha: 0.1
+        alpha: 0.10
         #hapax: 1
-        proximity: 'equivalenceIndex'
+        proximity: 'Cooccurrences'
+        #proximity: 'EquivalenceIndex'
+        #proximity: 'PseudoInclusion'
