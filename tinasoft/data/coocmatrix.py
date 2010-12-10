@@ -31,7 +31,7 @@ class Exporter(basecsv.Exporter):
         countcooc = 0
         for corpusid in periods:
             try:
-                generator = storage.selectCorpusSimi(corpusid, "Cooc")
+                generator = storage.selectCorpusGraphPreprocess(corpusid, "NGram")
                 while 1:
                     ng1, row = generator.next()
                     if whitelist is not None and not whitelist.test(ng1):

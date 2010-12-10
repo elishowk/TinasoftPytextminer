@@ -224,14 +224,13 @@ class ArchiveCounter():
         where ngramid <= ngi
         """
         generator = self.matrix.extract_matrix(minCooc)
-        key = period+'::'
         try:
             while 1:
                 ngi, row = generator.next()
-                self.storage.updateCooc( key+ngi, row, overwrite )
-                yield None
+                self.storage.updateGraphPreprocess(period, "NGram", ngi, row)
+                yield ngi
         except StopIteration, si:
-            self.storage.flushCoocQueue()
+            self.storage.flushGraphPreprocessQueue()
             return
 
 
@@ -241,7 +240,7 @@ class ArchiveCounter():
         """
         matrix = SymmetricMatrix(termList)
         try:
-            generator = self.storage.selectCorpusSimi(period, "Cooc")
+            generator = self.storage.selectCorpusGraphPreprocess(period, "NGram")
             while 1:
                 ngi,row = generator.next()
                 for ngj in row.iterkeys():
