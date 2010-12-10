@@ -1,0 +1,6 @@
+recursive-include *.py *.yaml
+include LICENSE
+include README
+include user_stopwords.csv
+include source_files tinacsv_test_3.csv
+recursive-include shared *.template *.pickle *.txt

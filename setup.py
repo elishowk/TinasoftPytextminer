@@ -18,11 +18,12 @@
 __version__="1.0alpha"
 
 __url__="http://tinasoft.eu"
-__longdescr__="A text-mining python module producing thematic field graphs"
+__longdescr__="A text-mining python module producing thematic networks"
 __license__="GNU General Public License v3"
-__keywords__="nlp,textmining,graph"
+__keywords__="semantic network"
 __author__="elias showk"
 __author_email__="elishowk@nonutc.fr"
+
 __classifiers__= [
 "Topic :: Text Processing :: Indexing",
 "Topic :: Text Processing :: Linguistic",
@@ -49,8 +50,7 @@ data_files = [
     ('tinasoft', glob(r'config_unix.yaml')),
     ('tinasoft', glob(r'config_win.yaml')),
     ('tinasoft',glob(r'README')),
-    ('tinasoft',glob(r'LICENSE')),
-    ('tinasoft',glob(r'GNU-GPL.txt'))
+    ('tinasoft',glob(r'LICENSE'))
 ]
 
 setup (
@@ -59,8 +59,7 @@ setup (
     data_files = data_files,
     include_package_data = True,
     # Declare your packages' dependencies here, for eg:
-    install_requires = ['numpy','pyyaml','nltk','jsonpickle','tenjin','twisted','simplejson'],
-    #dependency_links = DEPS,
+    install_requires = ['simplejson','pyyaml','numpy','nltk','jsonpickle','tenjin','zope.interface','twisted'],
     scripts = ['httpserver.py'],
     version = __version__,
     url = __url__,
@@ -69,6 +68,7 @@ setup (
     keywords = __keywords__,
     author = __author__,
     author_email = __author_email__,
-    #classifiers = __classifiers__,
+    classifiers = __classifiers__,
     #test_suite = "unittest.TinasoftUnitTests",
+    #dependency_links = DEPS,
 )
