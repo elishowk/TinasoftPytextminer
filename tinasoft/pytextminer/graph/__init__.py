@@ -21,7 +21,6 @@ from numpy import *
 import math
 
 from tinasoft.pytextminer import PyTextMiner, corpus
-from tinasoft import _dynamic_get_class
 
 import logging
 _logger = logging.getLogger('TinaAppLogger')
@@ -35,14 +34,14 @@ def process_ngram_subgraph(
         ngram_matrix_reducer,
         ngramgraphconfig,
         graphwriter,
-        storage
+        storage,
+        ngram_graph_class
     ):
     """
     Generates ngram graph matrices from indexed dataset
     """
     for process_period in periods:
         ngram_args = ( config, storage, process_period, ngramgraphconfig, ngram_index, doc_index )
-        ngram_graph_class = _dynamic_get_class("graph", ngramgraphconfig['proximity'])
         adj = ngram_graph_class( *ngram_args )
         adj.diagonal(ngram_matrix_reducer)
         try:
@@ -80,7 +79,8 @@ def process_document_subgraph(
         doc_matrix_reducer,
         docgraphconfig,
         graphwriter,
-        storage
+        storage,
+        doc_graph_class
     ):
     """
     Generates document graph from an indexed dataset
@@ -91,7 +91,7 @@ def process_document_subgraph(
         metacorpus = PyTextMiner.updateEdges(process_period.edges, metacorpus)
         
     doc_args = ( config, storage, metacorpus, docgraphconfig, ngram_index, doc_index )
-    adj = DocGraph( *doc_args )
+    adj = doc_graph_class( *doc_args )
     adj.diagonal(doc_matrix_reducer)
     try:
         submatrix_gen = adj.generator()
@@ -317,10 +317,10 @@ class MatrixReducerFilter(MatrixReducer):
             _logger.debug("MatrixReducerFilter generated %d valid edges"%count)
 
 
-class CooccurrenceMatrix(MatrixReducerFilter): pass
+class Cooccurrences(MatrixReducerFilter): pass
 
 
-class PseudoInclusionMatrix(MatrixReducer):
+class PseudoInclusion(MatrixReducer):
     """
     Matrix Reducer used to store cooccurrence matrix,
     then extract pseudo-inclusion on the fly
@@ -352,7 +352,7 @@ class PseudoInclusionMatrix(MatrixReducer):
             _logger.debug("PseudoInclusionMatrix generated %d valid edges"%count)
 
 
-class EquivalenceIndexMatrix(MatrixReducer):
+class EquivalenceIndex(MatrixReducer):
     """
     Implements Equivalence Index distance between two NGram nodes
     based on the mutual information of two NGrams
@@ -422,10 +422,10 @@ class SubGraph(object):
             setattr(self,attr,value)
             
     def _loadProximity(self):
-        _logger.debug("%s setting proximity to %s"%(self.name,opts['proximity']))
-        self.proximity = getattr(self, opts['proximity'])
+        _logger.debug("%s setting getsubgraph() to %s"%(self.name,self.proximity))
+        self.getsubgraph = getattr(self, self.proximity)
 
-    def proximity(self, document):
+    def getsubgraph(self, document):
         raise Exception("proximity method not defined in %s"%self.name)
         return 0
 
@@ -453,42 +453,6 @@ class SubGraph(object):
             )
 
 
-class NgramGraphPreprocess(SubGraph):
-    """
-    A NGram subgraph edges processor
-    """
-    def __init__(self, config, storage, corpus, opts, ngram_index, doc_index ):
-        SubGraph.__init__(self, config, storage, corpus, opts, 'NGramGraph', ngram_index, doc_index )
-        
-    def proximity( self, document ):
-        """
-        simple document cooccurrences matrix calculator
-        """ 
-        valid_keys = set(document['edges']['NGram'].keys()) & self.ngram_index
-        submatrix = Matrix( list(valid_keys), valuesize=float32 )
-        # only processes a half of the symmetric matrix
-        for (ngi, ngj) in itertools.combinations(valid_keys, 2):
-            submatrix.set( ngi, ngj, 1 )
-            submatrix.set( ngj, ngi, 1 )
-        return submatrix
-
-    def diagonal( self, matrix_reducer ):
-        for ng in self.ngram_index:
-            matrix_reducer.set( ng, ng, value=self.corpus['edges']['NGram'][ng])
-
-    def generator(self):
-        """
-        walks through a list of documents into a corpus
-        to process proximities
-        """
-        generator = self.walkDocuments()
-        try:
-            while 1:
-                document = generator.next()
-                yield self.proximity( document )
-        except StopIteration, si:
-            return
-
 
 class NgramGraph(SubGraph):
     """
@@ -497,7 +461,7 @@ class NgramGraph(SubGraph):
     def __init__(self, config, storage, corpus, opts, ngram_index, doc_index ):
         SubGraph.__init__(self, config, storage, corpus, opts, 'NGramGraph', ngram_index, doc_index )
         
-    def proximity( self, ngid ):
+    def getsubgraph( self, ngid ):
         """
         gets preprocessed proximities from storage
         """ 
@@ -506,7 +470,7 @@ class NgramGraph(SubGraph):
         if ngirow is None: return submatrix
         for ngj, stored_prox in ngirow.iteritems():
             if ngj not in self.ngram_index: continue
-            submatrix.set( ngi, ngj, stored_prox )
+            submatrix.set( ngid, ngj, stored_prox )
         return submatrix
 
     def diagonal( self, matrix_reducer ):
@@ -519,12 +483,41 @@ class NgramGraph(SubGraph):
         to process proximities
         """
         for ngid in self.ngram_index:
-            yield self.proximity( ngid )
+            yield self.getsubgraph( ngid )
 
+
+class NgramGraphPreprocess(NgramGraph):
+    """
+    A NGram subgraph edges PRE processor
+    """
+    def getsubgraph( self, document ):
+        """
+        simple document cooccurrences matrix calculator
+        """ 
+        valid_keys = set(document['edges']['NGram'].keys()) & self.ngram_index
+        submatrix = Matrix( list(valid_keys), valuesize=float32 )
+        # only processes a half of the symmetric matrix
+        for (ngi, ngj) in itertools.combinations(valid_keys, 2):
+            submatrix.set( ngi, ngj, 1 )
+            submatrix.set( ngj, ngi, 1 )
+        return submatrix
+
+    def generator(self):
+        """
+        walks through a list of documents into a corpus
+        to process proximities
+        """
+        docgenerator = self.walkDocuments()
+        try:
+            while 1:
+                yield self.getsubgraph( docgenerator.next() )
+        except StopIteration, si:
+            return
 
 class DocGraph(SubGraph):
     """
     A Document SubGraph edges processor
+    'proximity' parameter that maps one of its method
     """
     def __init__( self, config, storage, corpus, opts, ngram_index, doc_index ):
         SubGraph.__init__(self, config, storage, corpus, opts, 'DocumentGraph', ngram_index, doc_index )
@@ -589,7 +582,7 @@ class DocGraph(SubGraph):
         try:
             while 1:
                 document = generator.next()
-                yield self.proximity( document )
+                yield self.getsubgraph( document )
                 #### CAUTION : this limits processing to an half of the matrix
                 del self.documentngrams[document['id']]
         except StopIteration, si:

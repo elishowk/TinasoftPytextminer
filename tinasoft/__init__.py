@@ -292,12 +292,12 @@ class PytextminerFlowApi(PytextminerFileApi):
                 periods += [corpusobj]
 
             ngramgraphconfig = self.config['datamining']['NGramGraph']
-            #ngramgraphconfig['proximity'] = 'cooccurrences'
-            
+
             ### cooccurrences for each period
             for period in periods:
                 ngram_index = set(period.edges['NGram'].keys())
                 if len(ngram_index) == 0: continue
+                
                 ngram_matrix_reducer = graph.MatrixReducer( ngram_index )
                 
                 cooc_writer = self._new_graph_writer(
@@ -309,6 +309,7 @@ class PytextminerFlowApi(PytextminerFileApi):
                     preprocess=True
                 )
                 
+                ngram_graph_preprocess = _dynamic_get_class("tinasoft.pytextminer.graph", "NgramGraphPreprocess")
                 ngramsubgraph_gen = graph.process_ngram_subgraph(
                     self.config,
                     dataset,
@@ -318,7 +319,8 @@ class PytextminerFlowApi(PytextminerFileApi):
                     ngram_matrix_reducer,
                     ngramgraphconfig,
                     cooc_writer,
-                    storage
+                    storage,
+                    ngram_graph_preprocess
                 )
                 try:
                     while 1:
@@ -449,11 +451,12 @@ class PytextminerFlowApi(PytextminerFileApi):
         #    raise NotImplementedError(errmsg)
         #    return
           
-        ngram_matrix_class = _dynamic_get_class("graph", update_ngramconfig['proximity'])
+        ngram_graph_class = _dynamic_get_class("tinasoft.pytextminer.graph", "NgramGraph")
+          
+        ngram_matrix_class = _dynamic_get_class("tinasoft.pytextminer.graph", update_ngramconfig['proximity'])
         ngram_matrix_reducer = ngram_matrix_class(ngram_index)
         
         # ngramgraph proximity is based on previously stored
-        update_ngramconfig['proximity'] = 'preprocess'
         ngramsubgraph_gen = graph.process_ngram_subgraph(
             self.config,
             dataset,
@@ -463,9 +466,10 @@ class PytextminerFlowApi(PytextminerFileApi):
             ngram_matrix_reducer,
             update_ngramconfig,
             GEXFWriter,
-            storage
+            storage,
+            ngram_graph_class
         )
-        
+        doc_graph_class = _dynamic_get_class("tinasoft.pytextminer.graph", "DocGraph")
         doc_matrix_reducer = graph.MatrixReducerFilter( doc_index )
         docsubgraph_gen = graph.process_document_subgraph(
             self.config,
@@ -476,7 +480,8 @@ class PytextminerFlowApi(PytextminerFileApi):
             doc_matrix_reducer,
             update_documentconfig,
             GEXFWriter,
-            storage
+            storage,
+            doc_graph_class
         )
         try:
             while 1:
@@ -665,7 +670,6 @@ class PytextminerApi(PytextminerFlowApi):
 
 
 def _dynamic_get_class(mod_name, class_name):
-    """returns an instanciated class given its name"""
+    """returns a class given its name"""
     mod = __import__(mod_name, globals(), locals(), [class_name])
-    klass = getattr(mod, class_name)
-    return klass
+    return getattr(mod, class_name)

@@ -92,6 +92,6 @@ datamining:
             - 'inf'
         alpha: 0.10
         #hapax: 1
-        proximity: 'cooccurrences'
-        #proximity: 'equivalenceIndex'
-        #proximity: 'pseudoInclusion'
+        proximity: 'Cooccurrences'
+        #proximity: 'EquivalenceIndex'
+        #proximity: 'PseudoInclusion'
