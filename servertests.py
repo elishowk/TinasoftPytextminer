@@ -190,7 +190,7 @@ class TestGraph(ServerTest):
                     self.failUnless( ( category+"::"+targetid in data['edges']["Document::"+documentObj['id']]),
                         "missing an edge of Document : %s"%documentObj['label'])
                     self.failUnlessEqual( weight,  data['edges']["Document::"+documentObj['id']][category+"::"+targetid],
-                        "Document weight test failed : %s"%documentObj['label'] )
+                        "Document weight test failed : source %s , target = %s"%(documentObj['label'],category+"::"+targetid) )
 
 def usage():
     print " servertests.py USAGE :\n"
