@@ -97,12 +97,13 @@ class ArchiveCounter():
     """
     A cooccurrences matrix processor for large archives given a whitelist
     """
-    def __init__(self, storage):
+    def __init__(self, config, storage):
+        self.config = config
         # target database
         self.storage = storage
 
     def _notify(self, articleNumber):
-        if not articleNumber%1000 :
+        if not articleNumber%100 :
             _logger.debug( "ArchiveCounter executed on %d abstracts at %s"%(articleNumber,time.asctime(time.localtime())) )
 
     def walkCorpus(self, whitelist, reader, period, exporter=None, minCooc=1):
@@ -128,7 +129,9 @@ class ArchiveCounter():
                 yield articleNumber
                 # words list
                 wordSequence = tokenizer.RegexpTokenizer.tokenize(
-                    tokenizer.TreeBankWordTokenizer.sanitize(abstract['content'])
+                    tokenizer.TreeBankWordTokenizer.sanitize(
+                        tokenizer.RegexpTokenizer.selectcontent( self.config, abstract )
+                    )
                 )
                 # Occurrences
                 currentDescriptors, markerList = self._occurrences(termDictList, wordSequence, nDescriptors)
@@ -172,7 +175,7 @@ class ArchiveCounter():
             termDictList[len(ngobj['content'])-1][ngobj['label']] = index
             for label in ngobj['edges']['label'].iterkeys():
                 termDictList[len(label.split(" "))-1][label] = index
-            
+
         termNameList.sort()
         return termNameList, termDictList
 

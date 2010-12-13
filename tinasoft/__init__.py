@@ -550,7 +550,7 @@ class PytextminerFlowApi(PytextminerFileApi):
         archive_walker = archive.walkArchive(periods)
         try:
             period_gen, period = archive_walker.next()
-            sc = indexer.ArchiveCounter(storage)
+            sc = indexer.ArchiveCounter(self.config['datasets'], storage)
             walkCorpusGen = sc.walkCorpus(whitelist, period_gen, period, exporter, minCooc)
             try:
                 while 1:

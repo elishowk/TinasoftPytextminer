@@ -89,6 +89,22 @@ class RegexpTokenizer():
                 if len(content) >= i + n:
                     ngrams[n-1].append(content[i:n + i])
         return ngrams
+    
+    @staticmethod
+    def selectcontent(config, doc):
+        """
+        Adds content fields from application's configuration
+        """
+        customContent = ""
+        for field in config['doc_extraction']:
+            try:
+                customContent += " . " + doc[ field ]
+            except Exception, exc:
+                _logger.error("bad field for document content extraction, error : %s"%exc)
+        if len(customContent)==0:
+            _logger.error("document %s content is empty"%doc['id'])
+        return customContent
+
 
 class TreeBankWordTokenizer(RegexpTokenizer):
     """
@@ -138,17 +154,11 @@ class TreeBankWordTokenizer(RegexpTokenizer):
         """
         ngramMin = config['ngramMin']
         ngramMax = config['ngramMax']
-        customContent = ""
-        for field in config['doc_extraction']:
-            try:
-                customContent += " . " + doc[ field ]
-            except Exception, exc:
-                _logger.error("bad field for document content extraction, error : %s"%exc)
-        if len(customContent)==0:
-            _logger.error("document %s content is empty"%doc['id'])
 
         sentenceTaggedTokens = TreeBankWordTokenizer.tokenize(
-            TreeBankWordTokenizer.sanitize(customContent),
+            TreeBankWordTokenizer.sanitize(
+                TreeBankWordTokenizer.selectcontent(config, doc)
+            ),
             tagger
         )
 

@@ -18,6 +18,7 @@ __author__="elishowk@nonutc.fr"
 
 from tinasoft.data import medline, Handler
 from os.path import join
+
 # get tinasoft's logger
 import logging
 _logger = logging.getLogger('TinaAppLogger')
