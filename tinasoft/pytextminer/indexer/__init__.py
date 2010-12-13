@@ -218,7 +218,7 @@ class ArchiveCounter():
                     markerList[c]
                 )
 
-    def write_matrix(self, period, exporter=None, whitelist_exporter=None, minCooc=1):
+    def write_matrix(self, period, exporter, whitelist_exporter, minCooc=1):
         """
         stores and optionally exports the cooc matrix
         """
@@ -228,19 +228,17 @@ class ArchiveCounter():
             while 1:
                 ngi, row = generator.next()
                 self.storage.updateGraphPreprocess(period, "NGram", ngi, row)
-                if exporter is not None:
-                    internal_1 = self.matrix.id_index.index( ngi ) + 1
-                    for ng2, cooc in row.iteritems():
-                        if cooc >= minCooc:
-                            internal_2 = self.matrix.id_index.index( ng2 ) + 1
-                            exporter.writeRow([ internal_1, internal_2, cooc, period ])
-                countcooc += 1
+                internal_1 = self.matrix.id_index.index( ngi ) + 1
+                for ng2, cooc in row.iteritems():
+                    if cooc >= minCooc:
+                        internal_2 = self.matrix.id_index.index( ng2 ) + 1
+                        exporter.writeRow([ internal_1, internal_2, cooc, period ])
+                        countcooc += 1
                 yield countcooc
         except StopIteration, si:
             self.storage.flushGraphPreprocessQueue()
-            if whitelist_exporter is not None:
-                for lemma_label in self.descriptorNameList:
-                    whitelist_exporter.writeRow([lemma_label])
+            for lemma_label in self.descriptorNameList:
+                whitelist_exporter.writeRow([lemma_label])
             return
 
 
