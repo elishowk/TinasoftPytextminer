@@ -26,41 +26,38 @@ _logger = logging.getLogger('TinaAppLogger')
 class Exporter(basecsv.Exporter):
     """A class for space separated file exports of Cooccurrences matrix"""
 
-    def export_from_storage(self, storage, periods, whitelist=None, minCooc=1):
-        """exports a reconstitued cooc matrix from storage, applying whitelist filtering"""
+    def _write_cooc_row(self, ngid, row, corpusid, minCooc=1):
         countcooc = 0
+        for ng2, cooc in row.iteritems():
+            if cooc >= minCooc:
+                self.writeRow([ ngid, ng2, cooc, corpusid ])
+                countcooc += 1
+        return countcooc
+        
+    def export_from_storage(self, storage, periods, minCooc=1):
+        """exports a reconstitued cooc matrix from storage, applying whitelist filtering"""
+        totalcooc = 0
         for corpusid in periods:
             try:
                 generator = storage.selectCorpusGraphPreprocess(corpusid, "NGram")
                 while 1:
                     ng1, row = generator.next()
-                    if whitelist is not None and not whitelist.test(ng1):
-                        continue
-                    for ng2, cooc in row.iteritems():
-                        if cooc < minCooc:
-                            continue
-                        if cooc > row[ng1]:
-                            _logger.error( "inconsistency cooc %s %d > %d occur %s" % (ng2, cooc, row[ng1], ng1) )
-                        if whitelist is not None and not whitelist.test(ng2):
-                            continue
-                        countcooc += 1
-                        self.writeRow([ ng1, ng2, cooc, corpusid ])
+                    totalcooc += self._write_cooc_row(ng1, row, corpusid, minCooc)
+                    yield totalcooc
             except StopIteration, si:
-                continue
-        _logger.debug("Exported %d non-zeros cooccurrences"%countcooc)
-        return self.filepath
+                _logger.debug("Exported %d non-zeros cooccurrences for period %s"%(totalcooc,corpusid))
+                yield self.filepath
+                return
 
     def export_matrix(self, matrix, period, minCooc=1):
         """exports one half of a symmetric cooccurrences matrix"""
         generator = matrix.extract_matrix(minCooc)
-        countcooc = 0
+        totalcooc = 0
         try:
             while 1:
                 ngi, row = generator.next()
-                for ngj,cooc in row.iteritems():
-                    countcooc += 1
-                    self.writeRow([ngi, ngj, cooc, period])
+                totalcooc +=  self._write_cooc_row(ng1, row, period, minCooc)
         except StopIteration, si:
-            _logger.debug("Exported %d non-zeros cooccurrences for the period %s"%(countcooc, period))
+            _logger.debug("Exported %d non-zeros cooccurrences for the period %s"%(totalcooc, period))
             return self.filepath
 

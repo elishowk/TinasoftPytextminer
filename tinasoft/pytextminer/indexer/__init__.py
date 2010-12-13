@@ -106,13 +106,14 @@ class ArchiveCounter():
         if not articleNumber%100 :
             _logger.debug( "ArchiveCounter executed on %d abstracts at %s"%(articleNumber,time.asctime(time.localtime())) )
 
-    def walkCorpus(self, whitelist, reader, period, exporter=None, minCooc=1):
+    def walk_period(self, whitelist, reader, period):
         """
         parses a file, with documents for one period
         and processes cooc for a given whitelist
         """
         # loads a whitelist
         descriptorNameList, termDictList = self._load_whitelist(whitelist)
+        self.descriptorNameList = descriptorNameList
         # basic counter
         articleNumber = 0
         # size of the whitelist
@@ -140,9 +141,6 @@ class ArchiveCounter():
                 #if articleNumber == 10000:
                 #    raise StopIteration()
         except StopIteration, si:
-            if exporter:
-                exporter.export_matrix(self.matrix, period, minCooc)
-            yield articleNumber
             return
 
 
@@ -194,7 +192,7 @@ class ArchiveCounter():
             for ngram in ngrams[ngramsLengthMinusOne]:
                 currentTerm = ' '.join(ngram)
                 # mark presence of an ngram in the document
-                if termDictList[ngramsLengthMinusOne].has_key(currentTerm):
+                if currentTerm in termDictList[ngramsLengthMinusOne]:
                     correspondingDescriptorNumber = termDictList[ngramsLengthMinusOne][currentTerm]
                     if not markerList[correspondingDescriptorNumber]:
                         markerList[correspondingDescriptorNumber] = True
@@ -220,26 +218,35 @@ class ArchiveCounter():
                     markerList[c]
                 )
 
-    def writeMatrix(self, period, overwrite=True, minCooc=1):
+    def write_matrix(self, period, exporter=None, whitelist_exporter=None, minCooc=1):
         """
-        stores into Cooc DB table of the SEMI matrix
-        'corpus::ngramid' => '{ 'ngx' : y, 'ngy': z }'
-        where ngramid <= ngi
+        stores and optionally exports the cooc matrix
         """
         generator = self.matrix.extract_matrix(minCooc)
+        countcooc = 0
         try:
             while 1:
                 ngi, row = generator.next()
                 self.storage.updateGraphPreprocess(period, "NGram", ngi, row)
-                yield ngi
+                if exporter is not None:
+                    internal_1 = self.matrix.id_index.index( ngi ) + 1
+                    for ng2, cooc in row.iteritems():
+                        if cooc >= minCooc:
+                            internal_2 = self.matrix.id_index.index( ng2 ) + 1
+                            exporter.writeRow([ internal_1, internal_2, cooc, period ])
+                countcooc += 1
+                yield countcooc
         except StopIteration, si:
             self.storage.flushGraphPreprocessQueue()
+            if whitelist_exporter is not None:
+                for lemma_label in self.descriptorNameList:
+                    whitelist_exporter.writeRow([lemma_label])
             return
 
 
-    def readMatrix(self, termList, period):
+    def load_matrix(self, termList, period):
         """
-        OBSOLETE : TO UPDATE
+        UNUSED, to test
         """
         matrix = SymmetricMatrix(termList)
         try:

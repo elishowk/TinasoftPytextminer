@@ -513,7 +513,8 @@ class PytextminerFlowApi(PytextminerFileApi):
             whitelistpath,
             format,
             outpath=None,
-            minCooc=1
+            minCooc=1,
+            store=None
         ):
         """
         Index a whitelist against an archive of articles,
@@ -540,9 +541,15 @@ class PytextminerFlowApi(PytextminerFileApi):
             outpath = self._get_user_filepath(
                 dataset,
                 'cooccurrences',
-                "%s-index_archive.csv"%(whitelist['label'])
+                "%s-coocmatrix.csv"%(whitelist['label'])
             )
             exporter = Writer("coocmatrix://"+outpath)
+            whtelist_outpath = self._get_user_filepath(
+                dataset,
+                'cooccurrences',
+                "%s-terms.csv"%(whitelist['label'])
+            )
+            whitelist_exporter = Writer("basecsv://"+whtelist_outpath)
         else:
             exporter = None
             
@@ -551,13 +558,13 @@ class PytextminerFlowApi(PytextminerFileApi):
         try:
             period_gen, period = archive_walker.next()
             sc = indexer.ArchiveCounter(self.config['datasets'], storage)
-            walkCorpusGen = sc.walkCorpus(whitelist, period_gen, period, exporter, minCooc)
+            walkCorpusGen = sc.walk_period(whitelist, period_gen, period)
             try:
                 while 1:
                     yield walkCorpusGen.next()
             except StopIteration:
                 pass
-            writeMatrixGen = sc.writeMatrix(period, True, minCooc)
+            writeMatrixGen = sc.write_matrix(period, exporter, whitelist_exporter, minCooc)
             try:
                 while 1:
                     yield writeMatrixGen.next()
@@ -570,8 +577,8 @@ class PytextminerFlowApi(PytextminerFileApi):
     def export_cooc(self,
             dataset,
             periods,
-            whitelistpath=None,
-            outpath=None
+            outpath=None,
+            minCooc=1
         ):
         """
         returns a text file outpath containing the db cooc
@@ -591,7 +598,8 @@ class PytextminerFlowApi(PytextminerFileApi):
         if whitelistpath is not None:
             whitelist = self._import_whitelist(whitelistpath)
         exporter = Writer('coocmatrix://'+outpath)
-        return exporter.export_from_storage( storage, periods, whitelist )
+        # is a generator
+        return exporter.export_from_storage( storage, periods, minCooc )
 
     def _import_whitelist(
             self,
