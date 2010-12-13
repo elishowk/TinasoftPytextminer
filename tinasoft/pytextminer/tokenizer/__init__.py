@@ -100,7 +100,7 @@ class RegexpTokenizer():
             try:
                 customContent += " . " + doc[ field ]
             except Exception, exc:
-                _logger.error("bad field for document content extraction, error : %s"%exc)
+                _logger.warning("selectcontent : %s"%exc)
         if len(customContent)==0:
             _logger.error("document %s content is empty"%doc['id'])
         return customContent
