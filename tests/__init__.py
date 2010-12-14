@@ -16,6 +16,32 @@
 
 __author__ = "elishowk@nonutc.fr"
 
+#Works with the following CONFIGURATION:
+#
+#datasets:
+#    doc_extraction:
+#        # the following values can be document object fields:
+#        # - defined by one of the field's value
+#        # - constants required fields : 'content'/'label'/'id'
+#        - 'content'
+#        - 'title'
+#    # tina csv columns declaration
+#    # will ignore undeclared fields
+#    # and warn not found optional fields
+#    tinacsv:
+#        # doc_label represents one of the field's key
+#        # if not found in the file, will use the field specified by "label"
+#        doc_label: 'acronym'
+#        fields:
+#            # required fields
+#            label: 'doc_id'
+#            content: 'abstract'
+#            corpus_id: 'corp_id'
+#            id: 'doc_id'
+#            # optionnal fields
+#            title: 'title'
+#            acronym: 'acronym'
+
 def get_tinacsv_test_3_data(ngram_prox="cooccurrences", doc_prox="sharedNGrams"):
     return {
         'nodes' : {
@@ -94,8 +120,8 @@ def get_tinacsv_test_3_data(ngram_prox="cooccurrences", doc_prox="sharedNGrams")
                 "NGram::a7a9ed6c4c233c9fc17c8ff33d4f490df8750503939d726ca856d109a2c1bd98": 1,
                 "NGram::818c1d3377c1b53a31b756404dd07fcf642fbb59c30ab27c1f92cb1e746570dc": 1,
                 "NGram::0d712987367dce537111041aa572fc3f368c50b99b2ed06271840f15ae88af3e": 1,
-                "Document::60": 1,
-                #"Document::59": 0,
+                #"Document::60": 0,
+                "Document::59": 1,
                 #"Document::55": 0,
             },
             "Document::60": {
@@ -103,7 +129,7 @@ def get_tinacsv_test_3_data(ngram_prox="cooccurrences", doc_prox="sharedNGrams")
                 "NGram::a7a9ed6c4c233c9fc17c8ff33d4f490df8750503939d726ca856d109a2c1bd98": 1,
                 "NGram::818c1d3377c1b53a31b756404dd07fcf642fbb59c30ab27c1f92cb1e746570dc": 1,
                 "NGram::0d712987367dce537111041aa572fc3f368c50b99b2ed06271840f15ae88af3e": 1,
-                #"NGram::a9f6eb8ed71f6e1d6e8121cf05e6d7d3362382010d973681a9e2351e3ab2c958": 1,
+                #"NGram::a9f6eb8ed71f6e1d6e8121cf05e6d7d3362382010d973681a9e2351e3ab2c958": 0,
                 "Document::59": 4,
                 "Document::55": 1,
             },

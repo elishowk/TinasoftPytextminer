@@ -164,9 +164,9 @@ class TestGraph(ServerTest):
                     self.failUnless( ( "NGram::"+ngramObj['id'] in data['edges']),
                         "missing all ngram's edges: %s"%ngramObj['label'])
                     self.failUnless( ( category+"::"+targetid in data['edges']["NGram::"+ngramObj['id']]),
-                        "missing an edge of ngram: %s"%ngramObj['label'])
+                        "missing or invalid edge of ngram: %s"%ngramObj['label'])
                     self.failUnlessEqual( weight,  data['edges']["NGram::"+ngramObj['id']][category+"::"+targetid],
-                        "ngram weight test failed : %s"%ngramObj['label'] )
+                        "bad ngram weight : %s"%ngramObj['label'] )
                     
         print "Testing the Document nodes in period %s"%self.period
         for docid in corpusResult['edges']['Document'].iterkeys():

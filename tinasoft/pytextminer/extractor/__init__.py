@@ -124,7 +124,7 @@ class Extractor():
         ### adds whitelist as a unique filter
         self.duplicate = []
         self.filters = [whitelist]
-        fileGenerator = self._walkFile( path, format )
+        fileGenerator = self._walk_file( path, format )
         doccount = 0
         try:
             while 1:

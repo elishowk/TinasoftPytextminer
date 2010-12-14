@@ -284,6 +284,9 @@ class MatrixReducer(Matrix):
         _logger.debug("MatrixReducer extracted %d valid nodes"%len(id_index.keys()))
 
     def export(self, path, index):
+        """
+        Utility for raw exports of the matrix
+        """
         fh = open(path, 'w+')
         fh.write(",".join(index))
         savetxt( fh, self.array, "%.2f", ",")

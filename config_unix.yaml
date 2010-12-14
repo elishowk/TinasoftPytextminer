@@ -44,21 +44,25 @@ datasets:
         dialect: 'excel'
     # pubmed.gov "medline" file export
     medline:
-        doc_label: 'id'
-        # period_size = number first characters of pub date field "corpusField"
-        period_size: 4
-        encoding: 'ascii'
+        # doc_label represents one of the field's key
+        # if not found in the file, will use the field specified by "label"
+        doc_label: 'label'
         fields:
             label: 'TI'
             content: 'AB'
             corpus_id: 'DP'
             id: 'PMID'
+            # optional fields
+            #   title: 'TI'
+        # period_size = number first characters of pub date field "corpusField"
+        period_size: 4
+        encoding: 'ascii'
     # archive of pubmed.gov "medline" files, organized like this
     # Medline/
     #    period1/period1.txt
     #    period2/period2.txt
     #medlinearchive:
-        # nothing yet
+        # TODO
     # extraction size
     ngramMin: 1
     ngramMax: 4
@@ -66,6 +70,7 @@ datasets:
     training_tagger_size: 10000
     # under "basedirectory" directory, delete this file to regenerate a new one on next starting
     tagger: 'shared/tagger.pickle'
+    # change this Reg Expression to change NGram extraction filtering
     postag_valid: '^((VB,|VBD,|VBG,|VBN,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,)(CD.,)?)+?((PREP.?|DET.?,|IN.?,|CC.?,|\?,)((VB,|VBD,|VBG,|VBN,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?)*?$'
     #postag_valid: '^((VB.?,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?((PREP.?|DET.?,|IN.?,|CC.?,|\?,)((VB.?,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?)*?$'
     #postag_valid: '^((VB.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?((IN.?,|CC.?,|\?,)((VB.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?)*?$'

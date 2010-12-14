@@ -541,7 +541,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             outpath = self._get_user_filepath(
                 dataset,
                 'cooccurrences',
-                "%s-coocmatrix.csv"%(whitelist['label'])
+                "%s-matrix.csv"%(whitelist['label'])
             )
             exporter = Writer("coocmatrix://"+outpath)
             whtelist_outpath = self._get_user_filepath(
