@@ -129,6 +129,7 @@ class Extractor():
         try:
             while 1:
                 document, corpusNum = fileGenerator.next()
+                _logger.debug(corpusNum)
                 document.addEdge( 'Corpus', corpusNum, 1 )
                 ### updates Corpora and Corpus objects edges
                 self.corpora.addEdge( 'Corpus', corpusNum, 1 )
@@ -162,7 +163,8 @@ class Extractor():
     def _insert_NGram_Document( self, docngrams, document, corpusNum, overwrite ):
         """
         Inserts NGrams and its relations to storage
-        Verifying previous storage contents prevneting data corruption
+        Verifying previous storage contents preventing data corruption
+        Updates Document
         """
         for ngid, ng in docngrams.iteritems():
             # increments document-ngram edge

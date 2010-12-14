@@ -226,6 +226,8 @@ class Importer(sourcefile.Importer):
                 if key in record:
                     record[key] = " ".join(record[key])
 
+            record['DP'] = self._parse_period(record)
+
             yield record
             record = Record()
 
