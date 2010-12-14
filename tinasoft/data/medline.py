@@ -16,7 +16,7 @@
 
 __author__="elishowk@nonutc.fr"
 
-from tinasoft.data import Importer
+from tinasoft.data import sourcefile
 from tinasoft.pytextminer import document, corpus
 
 import logging
@@ -160,7 +160,7 @@ class Record(dict):
 
         self.undefined = []
 
-class Importer(Importer):
+class Importer(sourcefile.Importer):
     """
     Medline file importer class
     """
@@ -172,10 +172,8 @@ class Importer(Importer):
     }
 
     def __init__(self, path, **options):
-        self.loadOptions(options)
-        self.path = path
-        self.file = self.open(path)
-        self.line_num = 0
+        sourcefile.Importer.__init__(self, path, **options)
+        self.reader = self.get_record()
 
     def get_record(self):
         # These keys point to string values
@@ -231,86 +229,101 @@ class Importer(Importer):
             yield record
             record = Record()
 
-    def parsePeriod(self, record):
+    def _parse_period(self, record):
         if self.fields['corpus_id'] not in record:
             return None
         return record[ self.fields['corpus_id'] ][ : self.period_size]
 
-    def parseFile(self):
-        """
-        Read Medline records one by one from the handle.
-        The handle is either is a Medline file, a file-like object, or a list
-        of lines describing one or more Medline records.
-        """
-        recordGenerator = self.get_record()
-        countRecords = 0
-        countSkipped = 0
+    def next(self):
         try:
-            while 1:
-                tmpfields = dict(self.fields)
-                record = recordGenerator.next()
-                corpusid = self.parsePeriod(record)
-                if corpusid is not None:
-                    newdoc = self.parseDocument( record, corpusid, tmpfields )
-                    if newdoc is not None:
-                        countRecords+=1
-                        if corpusid not in self.corpusDict:
-                            # creates a new corpus and adds it to the global dict
-                            self.corpusDict[ corpusid ] = corpus.Corpus( corpusid )
-                        yield newdoc, corpusid
-                    else:
-                        countSkipped+=1
-                        _logger.error( "medline : skipping incomplete document at line %d"%self.line_num )
-        except StopIteration:
-            _logger.debug( "finished parsing %d pubmed articles"%countRecords )
-            _logger.debug( "skipped %d pubmed articles"%countSkipped )
-            return
+            row = self.reader.next()
+        except StopIteration, si:
+            raise StopIteration(si)
+        except Exception, ex:
+            _logger.error("basecsv reader error at line %d, reason : %s"%(self.reader.line_num, ex))
+            # returns None : child or using object should verify the returning value
+            return None
+        else:
+            return row
+
+    def __iter__(self):
+        return self
+
+    #def parse_file(self):
+    #    """
+    #    Read Medline records one by one from the handle.
+    #    The handle is either is a Medline file, a file-like object, or a list
+    #    of lines describing one or more Medline records.
+    #    """
+    #    recordGenerator = self.get_record()
+    #    countRecords = 0
+    #    countSkipped = 0
+    #    try:
+    #        while 1:
+    #            tmpfields = dict(self.fields)
+    #            record = recordGenerator.next()
+    #            corpusid = self._parse_period(record)
+    #            if corpusid is not None:
+    #                newdoc = self._parse_document( record, tmpfields )
+    #                if newdoc is not None:
+    #                    countRecords+=1
+    #                    if corpusid not in self.corpusDict:
+    #                        # creates a new corpus and adds it to the global dict
+    #                        self.corpusDict[ corpusid ] = corpus.Corpus( corpusid )
+    #                    yield newdoc, corpusid
+    #                else:
+    #                    countSkipped+=1
+    #                    _logger.error( "medline : skipping incomplete document at line %d"%self.line_num )
+    #    except StopIteration:
+    #        _logger.debug( "finished parsing %d pubmed articles"%countRecords )
+    #        _logger.debug( "skipped %d pubmed articles"%countSkipped )
+    #        return
 
 
-    def parseDocument(self, record, corpusid, tmpfields):
-        try:
-            content = record[ tmpfields['content'] ]
-            docid = record[ tmpfields['id'] ]
-        except KeyError, ke:
-            _logger.error( "incomplete article, missing %s"%ke )
-            if ke == tmpfields['id'] and content is not None:
-                _logger.error( "replacing ID by sha256 of its content" )
-                docid = sha256( content ).hexdigest()
-            else:
-                return None
-            
-        try:
-            label = record[ tmpfields[self.doc_label] ]
-        except KeyError, ke:
-            _logger.error( "incomplete article, missing label == %s"%ke )
-            if ke == tmpfields[self.doc_label]:
-                _logger.error( "replacing LABEL by ID" )
-                label = docid
-            else:
-                return None
-            
-        # cleans tmpfields
-        try:
-            del tmpfields[self.doc_label]
-            del tmpfields['content']
-            del tmpfields['id']
-        except:
-            pass
-        
-        # parsing optional fields loop and TRY
-        docOpt = {}
-        for field in tmpfields.itervalues():
-            try:
-                docOpt[ field ] = record[ field ]
-            except Exception, exc:
-                _logger.warning("missing an optional field %s at line %d"%(field,self.line_num))
-        record.update(docOpt)
-        # document instance
-        newdoc = document.Document(
-            content,
-            docid,
-            label,
-            **record
-        )
-        return newdoc
+    #def parseDocument(self, record, corpusid, tmpfields):
+    #    try:
+    #        content = record[ tmpfields['content'] ]
+    #        docid = record[ tmpfields['id'] ]
+    #    except KeyError, ke:
+    #        _logger.error( "incomplete article, missing %s"%ke )
+    #        if ke == tmpfields['id'] and content is not None:
+    #            _logger.error( "replacing ID by sha256 of its content" )
+    #            docid = sha256( content ).hexdigest()
+    #        else:
+    #            return None
+    #        
+    #    try:
+    #        label = record[ tmpfields[self.doc_label] ]
+    #    except KeyError, ke:
+    #        _logger.error( "incomplete article, missing label == %s"%ke )
+    #        if ke == tmpfields[self.doc_label]:
+    #            _logger.error( "replacing LABEL by ID" )
+    #            label = docid
+    #        else:
+    #            return None
+    #        
+    #    # cleans tmpfields
+    #    try:
+    #        del tmpfields[self.doc_label]
+    #        del tmpfields['content']
+    #        del tmpfields['id']
+    #    except:
+    #        pass
+    #    
+    #    # parsing optional fields loop and TRY
+    #    docOpt = {}
+    #    for field in tmpfields.itervalues():
+    #        try:
+    #            docOpt[ field ] = record[ field ]
+    #        except Exception, exc:
+    #            _logger.warning("missing an optional field %s at line %d"%(field,self.line_num))
+    #    record.update(docOpt)
+    #    # document instance
+    #    newdoc = document.Document(
+    #        content,
+    #        docid,
+    #        label,
+    #        **record
+    #    )
+    #    return newdoc
 

@@ -46,7 +46,7 @@ class Extractor():
             trained_pickle = self.config['tagger']
         )
 
-    def _openFile(self, path, format ):
+    def _open_reader(self, path, format ):
         """
         loads the source file
         automatically giving the Reader its config
@@ -58,10 +58,10 @@ class Extractor():
             return Reader( dsn )
 
 
-    def _walkFile( self, path, format ):
+    def _walk_file( self, path, format ):
         """Main parsing generator method"""
-        self.reader = self._openFile( path, format )
-        fileGenerator = self.reader.parseFile()
+        self.reader = self._open_reader( path, format )
+        fileGenerator = self.reader.parse_file()
         try:
             while 1:
                 yield fileGenerator.next()
@@ -76,7 +76,7 @@ class Extractor():
         then produces a whitelist,
         and finally export to a file
         """
-        fileGenerator = self._walkFile(path, format)
+        fileGenerator = self._walk_file(path, format)
         if whitelistlabel is None:
             whitelistlabel = self.corpora['id']
         newwl = whitelist.Whitelist(whitelistlabel, whitelistlabel)
@@ -191,3 +191,4 @@ class Extractor():
         self.storage.flushNGramQueue()
         # creates or OVERWRITES document into storage
         self.duplicate += self.storage.updateDocument( document, overwrite )
+        

@@ -14,7 +14,7 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-__all__ = ['tinasqlite','basecsv','whitelist','tinacsv','tinabsddb','gexf','medline','coocmatrix']
+__all__ = ['tinasqlite','basecsv','whitelist','tinacsv','source','gexf','medline','medlinearchive','coocmatrix']
 
 # changing jsonpickle serializer
 #jsonpickle.load_backend('django.util.simplejson', 'dumps', 'loads', ValueError))
@@ -39,8 +39,13 @@ class Handler (object):
     path = None
     file = None
     # defaults
-    options = {}
-
+    options = {
+        'encoding': 'utf-8'
+    }
+    
+    #def __del__(self):
+    #    self.file.close()
+    
     def loadOptions(self, options):
         self.options.update(options)
         for attr, value in self.options.iteritems():
@@ -50,14 +55,22 @@ class Handler (object):
         return toEncode.encode( self.encoding, 'ignore')
 
     def unicode(self, toDecode):
-        return unicode( toDecode, self.encoding, 'ignore' )
+        return unicode( toDecode, self.encoding, 'replace' )
+        
+    def _coerce_unicode(self, cell):
+        """
+        checks a value and eventually convert to type
+        """
+        if type(cell) != unicode:
+            return self.unicode(cell)
+        else:
+            return cell
 
 class Importer(Handler):
-    corpusDict = {}
 
     def open(self, path):
         return codecs.open( path, 'rU', encoding=self.encoding, errors='ignore')
-
+        
 class Exporter(Handler): pass
 
 # Factories

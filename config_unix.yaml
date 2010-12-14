@@ -28,10 +28,11 @@ datasets:
     # and warn not found optional fields
     tinacsv:
         # doc_label represents one of the field's key
+        # if not found in the file, will use the field specified by "label"
         doc_label: 'acronym'
         fields:
             # required fields
-            label: 'acronym'
+            label: 'doc_id'
             content: 'abstract'
             corpus_id: 'corp_id'
             id: 'doc_id'
@@ -39,15 +40,12 @@ datasets:
             title: 'title'
             acronym: 'acronym'
         # csv reader params
-        #delimiter: ','
-        #quotechar: '"'
         encoding: 'utf-8'
         dialect: 'excel'
     # pubmed.gov "medline" file export
-    # same behaviour as tinacsv
-    # period_size = number first characters of pub date field "corpusField"
     medline:
         doc_label: 'id'
+        # period_size = number first characters of pub date field "corpusField"
         period_size: 4
         encoding: 'ascii'
         fields:
@@ -65,7 +63,7 @@ datasets:
     ngramMin: 1
     ngramMax: 4
     # tagger learning on 2 x training_tagger_size sentences of tagged nltk corpus
-    training_tagger_size: 8000
+    training_tagger_size: 10000
     # under "basedirectory" directory, delete this file to regenerate a new one on next starting
     tagger: 'shared/tagger.pickle'
     postag_valid: '^((VB,|VBD,|VBG,|VBN,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,)(CD.,)?)+?((PREP.?|DET.?,|IN.?,|CC.?,|\?,)((VB,|VBD,|VBG,|VBN,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?)*?$'
