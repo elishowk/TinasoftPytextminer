@@ -25,7 +25,7 @@ from tinasoft.pytextminer import PyTextMiner
 import tenjin
 from tenjin.helpers import *
 
-# Patch for Tenjin (Windows error 183)
+# Patch for Tenjin (MS Windows File overwriting Error)
 def _write_binary_file(filename, content):
     f = None
     try:
@@ -136,18 +136,13 @@ class Exporter(Handler):
         # overwrites the object
         self.storage.insert( PyTextMiner.updateEdges(temp, obj), category )
 
-    def _render(self, gexf):
-        """
-        calls tenjin rendering method
-        """
-        return self.engine.render(self.template, gexf)
-
     def finalize(self, path, exportedges=False):
         """
         final method compiling the graph and writing it to file
         """
         # arguments passed to tenjin, to optionally write edges into the gexf
         self.graph['exportedges'] = exportedges
-        open(path, 'w+b').write(self._render( self.graph ))
-        # returns the same path
+        open(path, 'w+b').write(
+            self.engine.render(self.template, self.graph)
+        )
         return path
