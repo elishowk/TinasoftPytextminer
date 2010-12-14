@@ -16,8 +16,6 @@
 
 
 from tinasoft.data import sourcefile, basecsv
-from tinasoft.pytextminer import document
-from tinasoft.pytextminer import corpus
 
 import logging
 _logger = logging.getLogger('TinaAppLogger')
