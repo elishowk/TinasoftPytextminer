@@ -606,13 +606,18 @@ class PytextminerFlowApi(PytextminerFileApi):
             whitelistpath,
             dataset = None,
             userstopwords = None,
-            **kwargs
+            dialect="excel",
+            encoding="utf-8"
         ):
         """
         import one or a list of whitelits files
         returns a whitelist object to be used as input of other methods
         """
         whitelist_id = self._get_filepath_id(whitelistpath)
+        kwargs = {
+            'dialect': dialect,
+            'encoding': encoding
+        }
         if whitelist_id is not None:
             # whitelistpath EXISTS
             self.logger.debug("loading whitelist from %s (%s)"%(whitelistpath, whitelist_id))

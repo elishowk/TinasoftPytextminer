@@ -31,10 +31,7 @@ class Importer(BaseImporter):
     corpusDict = {}
 
     def __init__(self, path, **kwargs):
-        self.path = path
-        self.loadOptions( kwargs )
-        self.file = self.open(path)
-        self.line_num = 0
+        BaseImporter.__init__(self, path, **kwargs)
 
     def parse_file(self):
         """

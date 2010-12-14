@@ -16,7 +16,8 @@
 
 __author__ = "elishowk@nonutc.fr"
 
-from tinasoft.data import basecsv, Handler
+from tinasoft.data import basecsv
+from tinasoft.data import Importer as BaseImporter
 from tinasoft.pytextminer import ngram, corpus, filtering
 # tinasoft's logger
 import logging
@@ -48,11 +49,15 @@ class WhitelistFile(object):
 
 
 
-class Importer(basecsv.Importer):
+class Importer(basecsv.Importer, BaseImporter):
     """A class for csv imports of selected ngrams whitelists"""
     storage = None
     filemodel = WhitelistFile()
     whitelist = None
+    
+    def __init__(self, path, **kwargs):
+        BaseImporter.__init__(self, path, **kwargs)
+        basecsv.Importer.__init__(self, path, **kwargs)
 
     def _add_whitelist(self, ngid, nglabelid):
         """

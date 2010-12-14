@@ -42,5 +42,5 @@ class Importer(Handler):
         for id in periods:
             abstractFilePath = join(self.path, id, id + '.txt')
             reader = medline.Importer( abstractFilePath, **self.fileconfig )
-            reader_gen = reader.parseFile()
+            reader_gen = reader.parse_file()
             yield reader_gen, id

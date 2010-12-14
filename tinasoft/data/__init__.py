@@ -67,6 +67,12 @@ class Handler (object):
             return cell
 
 class Importer(Handler):
+    
+    def __init__(self, path, **kwargs):
+        self.path = path
+        self.loadOptions( kwargs )
+        self.file = self.open(path)
+        self.line_num = 0
 
     def open(self, path):
         return codecs.open( path, 'rU', encoding=self.encoding, errors='ignore')

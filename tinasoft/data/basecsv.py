@@ -37,7 +37,7 @@ class UTF8Recoder(object):
     def next(self):
         return self.reader.next().encode("utf-8", 'replace')
 
-class Importer(BaseImporter):
+class Importer(object):
     """
     A CSV reader which will iterate over lines in the CSV file "f",
     which is encoded in the given encoding.
@@ -83,7 +83,7 @@ class Importer(BaseImporter):
         """
         return open( path, 'rb' )
 
-class Exporter (BaseExporter):
+class Exporter(BaseExporter):
     """
     home-made exporter class for a csv file
     """
