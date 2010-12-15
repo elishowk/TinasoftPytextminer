@@ -121,8 +121,11 @@ class IndexArchive(PytextminerApiTest):
 
 class ExportCoocMatrix(PytextminerApiTest):
     def runTest(self):
-        """testF_ExportCoocMatrix"""
-        print self.tinasoft.export_cooc(self.datasetId, "Pubmed_2003[dp]")
+        """testF_ExportCoocMatrix"""        
+        datasetObj= self.tinasoft.storage.loadCorpora(self.datasetId)
+        if datasetObj is not None:
+            for periodid in datasetObj['edges']['Corpus'].keys():
+                print self.tinasoft.export_cooc(self.datasetId, periodid)
 
 def usage():
     print " apitests.py USAGE :\n"

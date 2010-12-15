@@ -98,3 +98,5 @@ datamining:
         proximity: 'Cooccurrences'
         #proximity: 'EquivalenceIndex'
         #proximity: 'PseudoInclusion'
+indexer:
+    minCooc: 10
