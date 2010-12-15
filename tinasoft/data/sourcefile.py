@@ -67,12 +67,12 @@ class Importer(BaseImporter):
         with its edges
         """
         try:
-            label = doc[ tmpfields[self.doc_label] ]
-        except Exception, exc:
-            _logger.warning("unable to find custom label, using the label field : %s"%exc)
-            label = doc[tmpfields['label']]
-            del tmpfields['label']
-        finally:
+            if tmpfields[self.doc_label] in doc:
+                label = doc[ tmpfields[self.doc_label] ]
+            else:
+                label = doc[tmpfields['label']]
+                del tmpfields['label']
+        except KeyError, exc:
             _logger.warning("unable to find any label, skipping document at line %d : %s"%(self.line_num, exc))
             return None
         try:
