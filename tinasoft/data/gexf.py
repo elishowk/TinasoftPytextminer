@@ -25,7 +25,7 @@ from tinasoft.pytextminer import PyTextMiner
 import tenjin
 from tenjin.helpers import *
 
-# Patch for Tenjin (Windows error 183)
+# Patch for Tenjin (MS Windows File overwriting Error)
 def _write_binary_file(filename, content):
     f = None
     try:
@@ -49,13 +49,17 @@ tenjin._write_binary_file = _write_binary_file
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
+NODE_COUNT_LOGGING = 10
+
 class Exporter(Handler):
     """
     A Gexf Exporter engine providing multipartite graph exports
     """
     options = {
-        'encoding'     : 'utf-8',
+        'encoding'     : 'utf_8',
         'template'   : 'shared/gexf/gexf.default.template',
+        'preprocess' : False,
+        'generate' : True
     }
 
     def __init__(self, path, **opts):
@@ -65,11 +69,7 @@ class Exporter(Handler):
         self.loadOptions(opts)
         self.engine = tenjin.Engine()
 
-    def new_graph(
-            self,
-            storage,
-            meta
-        ):
+    def new_graph(self, storage, meta, periods, generate, preprocess):
         """
         initialize the graph object and a storage connector
         """
@@ -83,44 +83,58 @@ class Exporter(Handler):
             'attredges': {},
         }
         self.graph.update(meta)
+        self.periods = periods
+        self.generate = generate
+        self.preprocess = preprocess
 
     def notify(self, count):
-        if count % 200 == 0:
-            _logger.debug( "%d graph nodes processed"%count )
+        if count % NODE_COUNT_LOGGING == 0:
+            _logger.debug( "%d subgraph nodes loaded"%count )
 
-    def load_subgraph(self, category, matrix, subgraphconfig=None):
+    def load_subgraph(self, category, matrix, subgraphconfig):
         """
         uses a Graph.MatrixReducer type object
-        to add a "category" subgraph to the global graph object
-        and updates the storage
+        to update the storage with new node edges
         """
-        self.graph['nodes'][category] = {}
         nodecount = 0
-        _logger.debug("loading %s edges into storage/gexf"%category)
+        _logger.debug("loading %s edges into graph"%category)
         rows = matrix.extract_matrix( subgraphconfig )
         try:
             while 1:
                 nodeid, row = rows.next()
-                obj = self.storage.load(nodeid, category)
-                if obj is None:
-                    continue
-                # node weight in the diagonal of the matrix
-                self.graph['nodes'][category][nodeid] = matrix.get(nodeid, nodeid)
-                # temp edges row for the target category
-                temp = { category: row }
-                # overwrites the object
-                self.storage.insert( PyTextMiner.updateEdges(temp, obj), category )
+                if self.preprocess is True:
+                    self._update_preprocess_db(nodeid, row, category)
+                if self.generate is True:
+                    self._update_graph_db(nodeid, row, category)
+                    # adds node and its weight to the template var
+                    self.graph['nodes'][category][nodeid] = matrix.get(nodeid, nodeid)
                 nodecount += 1
                 self.notify(nodecount)
                 yield nodecount
         except StopIteration, si:
-            pass
+            if self.storage is not None:
+                self.storage.flushQueues()
+            return
 
-    def render( self, gexf ):
+    def _update_preprocess_db(self, nodeid, row, category):
         """
-        calls tenjin rendering method
+        updates the storage with a matrix row
         """
-        return self.engine.render(self.template, gexf)
+        if self.storage is None: return
+        for period in self.periods:
+            self.storage.updateGraphPreprocess(period, category, nodeid, row)    
+
+    def _update_graph_db(self, nodeid, row, category):
+        """
+        updates the network in storage with a matrix row
+        """
+        if self.storage is None: return
+        obj = self.storage.load(nodeid, category)
+        if obj is None: return
+        # temp edges row for the target category
+        temp = { category: row }
+        # overwrites the object
+        self.storage.insert( PyTextMiner.updateEdges(temp, obj), category )
 
     def finalize(self, path, exportedges=False):
         """
@@ -128,6 +142,7 @@ class Exporter(Handler):
         """
         # arguments passed to tenjin, to optionally write edges into the gexf
         self.graph['exportedges'] = exportedges
-        open(path, 'w+b').write(self.render( self.graph ))
-        # returns the same path
+        open(path, 'w+b').write(
+            self.engine.render(self.template, self.graph)
+        )
         return path

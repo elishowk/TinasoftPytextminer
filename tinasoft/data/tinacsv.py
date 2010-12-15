@@ -15,93 +15,24 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from tinasoft.data import basecsv
-from tinasoft.pytextminer import document
-from tinasoft.pytextminer import corpus
+from tinasoft.data import sourcefile, basecsv
 
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
-class Importer (basecsv.Importer):
+class Importer (sourcefile.Importer, basecsv.Importer):
     """
-    importer for tina csv format
+    importer for the tina csv format
     e.g. :
     from tinasoft.data import Reader
-    tinaReader = Reader( "tinacsv://text_file_to_import.csv", config )
-    config must contain a 'fields' dict, like :
-    fields = {
-        doc_title: 'doc_titl',
-        doc_content: 'doc_abst',
-        corpus_id: 'corp_id',
-        doc_id 'doc_id',
-        doc_author: 'doc_acrnm',
-    })
+    tinaCsvReader = Reader( "tinacsv://file_to_read.csv", config )
     """
-    def parseFile(self):
-        """
-        parses a row to extract corpus meta-data
-        updates corpus and corpora edges
-        """
-        for doc in self:
-            if doc is None: continue
-            tmpfields = dict(self.fields)
-            # decoding & parsing TRY
-            try:
-                corpusID = self._coerce_unicode( doc[self.fields['corpus_id']] )
-            except Exception, exc:
-                _logger.error( "tinacsv error : corpus id missing at line %d"%self.reader.line_num )
-                _logger.error( exc )
-                continue
-            # TODO check if corpus already exists
-            newdoc = self._parse_document( doc, tmpfields )
-            # if error parsing the document
-            if newdoc is None: continue
-            # if corpus DOES NOT already exist
-            if corpusID not in self.corpusDict:
-                # creates a new corpus and adds it to the global dict
-                self.corpusDict[ corpusID ] = corpus.Corpus( corpusID )
-            # sends the document and the corpus id
-            yield newdoc, corpusID
-        self.file.close()
-        return
-
-    def _parse_document( self, doc, tmpfields ):
-        """
-        parses a row to extract a document object
-        with its edges
-        """
-        try:
-            label = self._coerce_unicode( doc[ tmpfields[self.doc_label] ] )
-            #el tmpfields[self.doc_label]
-        except Exception, exc:
-            _logger.warning("unable to find custom label, using the title field : %s"%exc)
-            label = self._coerce_unicode( doc[tmpfields['label']] )
-            del tmpfields['label']
-        try:
-            # get required fields
-            docID = self._coerce_unicode( doc[tmpfields['id']] )
-            content = self._coerce_unicode( doc[tmpfields['content']] )
-            # cleans all remaining fields
-            if 'corpus_id' in tmpfields: del tmpfields['corpus_id']
-            if 'content' in tmpfields: del tmpfields['content']
-            if 'id' in tmpfields: del tmpfields['id']
-        except Exception, exc:
-            _logger.error("error parsing document at line %d : skipping"%(self.reader.line_num))
-            _logger.error(exc)
-            return None
-        # parsing optional fields loop and TRY
-        docArgs = {}
-        for field in tmpfields.itervalues():
-            try:
-                docArgs[ field ] = doc[ field ]
-            except Exception, exc:
-                _logger.warning("missing a document's field %s at line %d"%(field,self.reader.line_num))
-
-        # new document
-        newdoc = document.Document(
-            content,
-            docID,
-            label,
-            **docArgs
-        )
-        return newdoc
+    # defaults
+    options = {
+        'encoding': 'utf_8',
+        'dialect': 'excel',
+    }
+    
+    def __init__(self, path, **kwargs):
+        sourcefile.Importer.__init__(self, path, **kwargs)
+        basecsv.Importer.__init__(self, path, **kwargs)

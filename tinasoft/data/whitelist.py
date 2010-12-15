@@ -16,7 +16,8 @@
 
 __author__ = "elishowk@nonutc.fr"
 
-from tinasoft.data import basecsv, Handler
+from tinasoft.data import basecsv
+from tinasoft.data import Importer as BaseImporter
 from tinasoft.pytextminer import ngram, corpus, filtering
 # tinasoft's logger
 import logging
@@ -48,11 +49,15 @@ class WhitelistFile(object):
 
 
 
-class Importer(basecsv.Importer):
+class Importer(basecsv.Importer, BaseImporter):
     """A class for csv imports of selected ngrams whitelists"""
     storage = None
     filemodel = WhitelistFile()
     whitelist = None
+    
+    def __init__(self, path, **kwargs):
+        BaseImporter.__init__(self, path, **kwargs)
+        basecsv.Importer.__init__(self, path, **kwargs)
 
     def _add_whitelist(self, ngid, nglabelid):
         """
@@ -76,17 +81,20 @@ class Importer(basecsv.Importer):
                 ### breaks if not whitelisted
                 if status != self.filemodel.accept: continue
                 label = self._coerce_unicode( row[self.filemodel.columns[1][1]] ).strip()
-                forms_tokens = [self._coerce_unicode( form ).strip() for form in row[self.filemodel.columns[4][1]].split( self.filemodel.forms_separator )]
+                forms_labels = [self._coerce_unicode( form ).strip() for form in row[self.filemodel.columns[4][1]].split( self.filemodel.forms_separator )]
             except KeyError, keyexc:
                 _logger.error( "%s column (required) not found importing the whitelist at line %d, import failed"%(keyexc, self.reader.line_num) )
                 continue
             ngid = ngram.NGram.getNormId(label.split(" "))
-            forms_id = [ngram.NGram.getNormId(forms.split(" ")) for forms in forms_tokens]
-            [self._add_whitelist( formid, ngid ) for formid in forms_id]
+            for form in forms_labels:
+                formobj = ngram.NGram(form.split(" "))
+                self._add_whitelist( formobj['id'], ngid )
+                # form object storage only used by indexer.ArchiveCounter
+                self.whitelist.addContent( formobj )
+            # these edges are used to cache labels
             self.whitelist.addEdge( 'form_label', ngid, label )
-            # only used for the indexer module
-            self.whitelist.addContent( ngram.NGram(forms.split(" "), formid, forms) )
         self.file.close()
+        self.whitelist.storage.flushNGramQueue()
         return self.whitelist
 
 def load_from_storage(whitelist, storage, periods, filters=None, wlinstance=None):

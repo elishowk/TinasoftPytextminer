@@ -33,16 +33,13 @@ nltk_treebank_tokenizer = nltk.TreebankWordTokenizer()
 # We consider following rules to apply whatever be the langage.
 # ... is an ellipsis, put spaces around before splitting on spaces
 # (make it a token)
-ellipfind_re = re.compile(ur"(\.\.\.)",
-                          re.IGNORECASE|re.VERBOSE)
+ellipfind_re = re.compile(ur"(\.\.\.)", re.IGNORECASE|re.VERBOSE)
 ellipfind_subst = ur" ... "
 # A regexp to put spaces if missing after alone marks.
-punct1find_re = re.compile(ur"(["+string.punctuation+"])([^ ])",
-                           re.IGNORECASE|re.VERBOSE)
+punct1find_re = re.compile(ur"(["+string.punctuation+"])([^ ])", re.IGNORECASE|re.VERBOSE)
 punct1find_subst = ur"\1 \2"
 # A regexp to put spaces if missing before alone marks.
-punct2find_re = re.compile(ur"([^ ])([["+string.punctuation+"])",
-                           re.IGNORECASE|re.VERBOSE)
+punct2find_re = re.compile(ur"([^ ])([["+string.punctuation+"])", re.IGNORECASE|re.VERBOSE)
 punct2find_subst = ur"\1 \2"
 
 class RegexpTokenizer():
@@ -92,6 +89,22 @@ class RegexpTokenizer():
                 if len(content) >= i + n:
                     ngrams[n-1].append(content[i:n + i])
         return ngrams
+    
+    @staticmethod
+    def selectcontent(config, doc):
+        """
+        Adds content fields from application's configuration
+        """
+        customContent = ""
+        for field in config['doc_extraction']:
+            try:
+                customContent += " . " + doc[ field ]
+            except Exception, exc:
+                _logger.warning("selectcontent : %s"%exc)
+        if len(customContent)==0:
+            _logger.error("document %s content is empty"%doc['id'])
+        return customContent
+
 
 class TreeBankWordTokenizer(RegexpTokenizer):
     """
@@ -141,17 +154,11 @@ class TreeBankWordTokenizer(RegexpTokenizer):
         """
         ngramMin = config['ngramMin']
         ngramMax = config['ngramMax']
-        customContent = ""
-        for field in config['doc_extraction']:
-            try:
-                customContent += " . " + doc[ field ]
-            except Exception, exc:
-                _logger.error("bad field for document content extraction, error : %s"%exc)
-        if len(customContent)==0:
-            _logger.error("document %s content is empty"%doc['id'])
 
         sentenceTaggedTokens = TreeBankWordTokenizer.tokenize(
-            TreeBankWordTokenizer.sanitize(customContent),
+            TreeBankWordTokenizer.sanitize(
+                TreeBankWordTokenizer.selectcontent(config, doc)
+            ),
             tagger
         )
 
@@ -217,7 +224,8 @@ class TreeBankWordTokenizer(RegexpTokenizer):
         """
         nlemmas = {}
         for whiteid, whiteng in ngrams.iteritems():
-            if whiteid not in whitelist['edges']['NGram']: continue
+            if whiteid not in whitelist['edges']['NGram']:
+                continue
             whitenlemmaid = whitelist['edges']['NGram'][whiteid]
             if whitenlemmaid in nlemmas:
                 nlemmas[whitenlemmaid].addForm( whiteng['content'], whiteng['postag'], whiteng['occs'] )
@@ -231,4 +239,5 @@ class TreeBankWordTokenizer(RegexpTokenizer):
                 except Exception, exc:
                     _logger.error("unable to group ngram %s"%exc)
                     continue
+                
         return nlemmas

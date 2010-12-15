@@ -32,32 +32,33 @@ _logger = logging.getLogger('TinaAppLogger')
 
 sqlite3.enable_callback_tracebacks(True)
 
-# LOW-LEVEL BACKEND
 class Backend(Handler):
-
+    """
+    Low-Level sqlite3 database backend
+    """
     options = {
         'home' : 'db',
-        'drop_tables': False,
-        'prefix' : {
-            'Corpora':'Corpora::',
-            'Corpus':'Corpus::',
-            'Document':'Document::',
-            'NGram':'NGram::',
-            'Cooc':'Cooc::',
-            'Whitelist':'Whitelist::',
-            'Cluster':'Cluster::',
-        },
-
-        'tables' : [
-            'Corpora',
-            'Corpus',
-            'Document',
-            'NGram',
-            'Cooc',
-            'Whitelist',
-            'Cluster'
-        ],
+        'drop_tables': False
     }
+    
+    def __init__(self, path, **opts):
+        """loads options, connect or create db"""
+        self.loadOptions(opts)
+        self.path = path
+        ###  mkdirectory
+        if not exists(self.home):
+            makedirs(self.home)
+        ### connection
+        self._connect()
+        ### empty database if needed
+        if self.drop_tables is True:
+            _logger.debug("will drop all tables of db %s"%self.path)
+            self._drop_tables()
+        ### create  tables if needed
+        self._create_tables()
+        ### chacks success
+        if self.is_open() is False:
+            raise Exception("Unable to open a tinasqlite database")
 
     def is_open(self):
         return self.__open
@@ -97,20 +98,6 @@ class Backend(Handler):
             _logger.error("_connect() error : %s"%connect_exc)
             raise Exception(connect_exc)
 
-    def __init__(self, path, **opts):
-        """loads options, connect or create db"""
-        self.loadOptions(opts)
-        self.path = path
-        if not exists(self.home):
-            makedirs(self.home)
-        self._connect()
-        if self.drop_tables is True:
-            _logger.debug("will drop all tables of db %s"%self.path)
-            self._drop_tables()
-        self._create_tables()
-        if self.is_open() is False:
-            raise Exception("Unable to open a tinasqlite database")
-
     def close(self):
         """
         Properly handles transactions explicitely (with parameter) or by default
@@ -121,9 +108,6 @@ class Backend(Handler):
         self._db.close()
         self.__open = False
         
-    def __del__(self):
-        self.close()
-
     def commit(self):
         """
         commits
@@ -192,31 +176,48 @@ class Backend(Handler):
             _logger.error( "exception during safewrite on table %s : %s"%(tabname,insert_exc) )
             self.rollback()
 
-    def safedelete(self, tabname, key):
-        """
-        TODO
-        """
-        pass
+    #def safedelete(self, tabname, key):
+    #    """
+    #    TODO
+    #    """
+    #    pass
 
 class Engine(Backend):
     """
-    tinabsddb Engine
+    High level database Engine of Pytextminer
     """
+    # max-size to automatically flush insert queues
+    MAX_INSERT_QUEUE = 500
+    # caches current insert queues data
     ngramqueue = []
     ngramqueueindex = []
-    coocqueue = []
-    MAX_INSERT_QUEUE = 500
+    graphpreprocessqueue = {}
+    # used for an indexation session
     ngramindex = []
-
-
+    
+    options = {
+        'home' : 'db',
+        'drop_tables': False,
+        'tables' : [
+            'Corpora',
+            'Corpus',
+            'Document',
+            'NGram',
+            'Whitelist',
+            'Cluster',
+            'GraphPreprocessNGram',
+            'GraphPreprocessDocument'
+        ],
+    }
+    
     def __del__(self):
         """safely closes db and dbenv"""
         self.flushQueues()
         self.close()
 
-    def delete(self, id, deltype):
-        """deletes a object given its type and id"""
-        self.safedelete(deltype, id)
+    #def delete(self, id, deltype):
+    #    """deletes a object given its type and id"""
+    #    self.safedelete(deltype, id)
 
     def load(self, id, target, raw=False):
         read = self.saferead( target, id )
@@ -256,8 +257,8 @@ class Engine(Backend):
     def loadNGram(self, id, raw=False ):
         return self.load(id, 'NGram', raw)
 
-    def loadCooc(self, id, raw=False ):
-        return self.load(id, 'Cooc', raw)
+    def loadGraphPreprocess(self, id, category, raw=False ):
+        return self.load(id, 'GraphPreprocess'+category, raw)
 
     def loadWhitelist(self, id, raw=False):
         return self.load(id, 'Whitelist', raw)
@@ -285,7 +286,6 @@ class Engine(Backend):
         return self.insertMany( iter, 'Corpus', overwrite )
 
     def insertDocument(self, obj, id=None, overwrite=False ):
-        """automatically removes text content before storing"""
         return self.insert( obj, 'Document', id, overwrite )
 
     def insertManyDocument(self, iter, overwrite=False ):
@@ -297,13 +297,15 @@ class Engine(Backend):
     def insertManyNGram(self, iter, overwrite=False ):
         return self.insertMany( iter, 'NGram', overwrite )
 
-    def insertCooc(self, obj, id, overwrite=False ):
-        # @id "corpus_id::ngramd_id"
-        # @obj Cooc class instance
-        return self.insert( obj, 'Cooc', id, overwrite )
+    def insertGraphPreprocess(self, obj, id, type, overwrite=False ):
+        """
+        @id "corpus_id::node_id"
+        @obj graph row dict
+        """
+        return self.insert( obj, 'GraphPreprocess'+type, id, overwrite )
 
-    def insertManyCooc( self, iter, overwrite=False ):
-        return self.insertMany( iter, 'Cooc', overwrite )
+    def insertManyGraphPreprocess( self, iter, type, overwrite=False ):
+        return self.insertMany( iter, 'GraphPreprocess'+type, overwrite )
 
     def insertWhitelist(self, obj, id, overwrite=False ):
         return self.insert( obj, 'Whitelist', id, overwrite )
@@ -317,22 +319,19 @@ class Engine(Backend):
     def insertManyCluster( self, iter, overwrite=False ):
         return self.insertMany( iter, 'Cluster', overwrite )
 
-    def selectCorpusCooc(self, corpusId):
+    def selectCorpusGraphPreprocess(self, corpusId, tabname):
         """
-        Yields tuples (ngramkey, cooc_matrix_line) from table Cooc
-        for a given a corpus
+        Yields tuples (node_id, db_row)
+        for a given a corpus id
         """
-        #if isinstance(corpusId, str) is False:
-        #    corpusId = str(corpusId)
-        coocGen = self.select( 'Cooc', corpusId )
+        rowGen = self.select( tabname, corpusId )
         try:
-            record = coocGen.next()
+            record = rowGen.next()
             while record:
-                # separate CORPUSID::NGRAMID
+                # separate CORPUSID::OBJID
                 key = record[0].split('::')
-                # yields ngram id associated with its Cooc obj
                 yield (key[1], record[1])
-                record = coocGen.next()
+                record = rowGen.next()
         except StopIteration, si:
             return
 
@@ -379,7 +378,6 @@ class Engine(Backend):
             obj = PyTextMiner.updateObjectEdges( obj, stored )
         self.insertCluster( obj, overwrite=True )
 
-
     def updateCorpora( self, corporaObj, overwrite ):
         """updates or overwrite a corpora and associations"""
         if overwrite is True:
@@ -420,14 +418,15 @@ class Engine(Backend):
         self.ngramqueue = []
         self.ngramqueueindex = []
 
-    def flushCoocQueue(self):
-        self.insertManyCooc( self.coocqueue, overwrite=True )
-        self.coocqueue = []
+    def flushGraphPreprocessQueue(self):
+        for category, queue in self.graphpreprocessqueue.iteritems():
+            self.insertManyGraphPreprocess(queue, category, overwrite=True)
+            self.graphpreprocessqueue[category]=[]
 
     def flushQueues(self):
-        self.flushCoocQueue()
+        self.flushGraphPreprocessQueue()
         self.flushNGramQueue()
-        self.ngramindex= []
+        self.ngramindex = []
         _logger.debug("flushed insert queues for database %s"%self.path)
 
     def _ngramQueue( self, id, ng ):
@@ -442,8 +441,9 @@ class Engine(Backend):
 
 
     def updateNGram( self, ngObj, overwrite, docId=None, corpId=None ):
-        """updates or overwrite a ngram and associations"""
-
+        """
+        updates or overwrite a ngram and associations
+        """
         # if ngram is already into queue, will flush it first to permit incremental updates
         if ngObj['id'] in self.ngramqueueindex:
             self.flushNGramQueue()
@@ -463,23 +463,17 @@ class Engine(Backend):
         # adds object to the INSERT the queue
         return self._ngramQueue( ngObj['id'], ngObj )
 
-    def _coocQueue( self, id, obj, overwrite ):
+    def updateGraphPreprocess(self, period, category, id, row):
         """
-        Transaction queue grouping by self.MAX_INSERT_QUEUE
-        overwrite should always be True because updateNGram
-        keep the object updated
+        updates or overwrite graph preprocess row
+        transaction queue grouping by self.MAX_INSERT_QUEUE
         """
-        self.coocqueue += [(id, obj)]
-        queue = len( self.coocqueue )
-        if queue > self.MAX_INSERT_QUEUE:
-            _logger.debug("will flushCoocQueue")
-            self.flushCoocQueue()
+        if category not in self.graphpreprocessqueue:
+            self.graphpreprocessqueue[category] = []
+        self.graphpreprocessqueue[category] += [(period+"::"+id, row)]
+        queuesize = len( self.graphpreprocessqueue[category] )
+        if queuesize > self.MAX_INSERT_QUEUE:
+            self.flushGraphPreprocessQueue()
             return 0
         else:
-            return queue
-
-    def updateCooc( self, id, obj, overwrite ):
-        """updates or overwrite Cooc row"""
-        return self._coocQueue( id, obj, overwrite )
-
-
+            return queuesize

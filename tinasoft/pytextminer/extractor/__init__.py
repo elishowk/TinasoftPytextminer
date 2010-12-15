@@ -46,7 +46,7 @@ class Extractor():
             trained_pickle = self.config['tagger']
         )
 
-    def _openFile(self, path, format ):
+    def _open_reader(self, path, format ):
         """
         loads the source file
         automatically giving the Reader its config
@@ -58,10 +58,10 @@ class Extractor():
             return Reader( dsn )
 
 
-    def _walkFile( self, path, format ):
+    def _walk_file( self, path, format ):
         """Main parsing generator method"""
-        self.reader = self._openFile( path, format )
-        fileGenerator = self.reader.parseFile()
+        self.reader = self._open_reader( path, format )
+        fileGenerator = self.reader.parse_file()
         try:
             while 1:
                 yield fileGenerator.next()
@@ -76,7 +76,7 @@ class Extractor():
         then produces a whitelist,
         and finally export to a file
         """
-        fileGenerator = self._walkFile(path, format)
+        fileGenerator = self._walk_file(path, format)
         if whitelistlabel is None:
             whitelistlabel = self.corpora['id']
         newwl = whitelist.Whitelist(whitelistlabel, whitelistlabel)
@@ -124,11 +124,10 @@ class Extractor():
         ### adds whitelist as a unique filter
         self.duplicate = []
         self.filters = [whitelist]
-        fileGenerator = self._walkFile( path, format )
+        fileGenerator = self._walk_file( path, format )
         doccount = 0
         try:
             while 1:
-                ### gets the next document
                 document, corpusNum = fileGenerator.next()
                 document.addEdge( 'Corpus', corpusNum, 1 )
                 ### updates Corpora and Corpus objects edges
@@ -136,7 +135,7 @@ class Extractor():
                 self.reader.corpusDict[ corpusNum ].addEdge( 'Corpora', self.corpora['id'], 1)
                 ### adds Corpus-Doc edge if possible
                 self.reader.corpusDict[ corpusNum ].addEdge( 'Document', document['id'], 1)
-                ### extract and filter ngrams
+                ### extracts and filters ngrams
                 docngrams = tokenizer.TreeBankWordTokenizer.extract(
                     document,
                     self.config,
@@ -146,25 +145,25 @@ class Extractor():
                 )
                 nlemmas = tokenizer.TreeBankWordTokenizer.group(docngrams, whitelist)
                 #### inserts/updates NGram and update document obj
-                self._insert_NGrams(nlemmas, document, corpusNum, overwrite)
-                # creates or OVERWRITES document into storage
-                self.duplicate += self.storage.updateDocument( document, overwrite )
+                self._insert_NGram_Document(nlemmas, document, corpusNum, overwrite)
                 doccount += 1
                 if doccount % NUM_DOC_NOTIFY == 0:
                     _logger.debug("%d documents indexed"%doccount)
-                yield doccount
+                yield document['id']
 
         except StopIteration:
             self.storage.updateCorpora( self.corpora, overwrite )
             for corpusObj in self.reader.corpusDict.values():
                 self.storage.updateCorpus( corpusObj, overwrite )
+                _logger.debug("%d NEW NGrams in corpus %s"%(len(corpusObj.edges['NGram'].keys()), corpusObj['id']))
+                _logger.debug("%d NEW Documents in corpus %s"%(len(corpusObj.edges['Document'].keys()), corpusObj['id']))
             return
 
-    def _insert_NGrams( self, docngrams, document, corpusNum, overwrite ):
+    def _insert_NGram_Document( self, docngrams, document, corpusNum, overwrite ):
         """
-        Inserts NGrams and its graphs to storage
-        MUST NOT BE USED FOR AN EXISTING DOCUMENT IN THE DB
-        OTHERWISE THIS METHOD WILL BREAK EXISTING DATA
+        Inserts NGrams and its relations to storage
+        Verifying previous storage contents preventing data corruption
+        Updates Document
         """
         for ngid, ng in docngrams.iteritems():
             # increments document-ngram edge
@@ -185,10 +184,12 @@ class Extractor():
                 if ngid not in storedDoc['edges']['NGram']:
                     ng.addEdge( 'Corpus', corpusNum, 1 )
                     self.reader.corpusDict[ corpusNum ].addEdge( 'NGram', ngid, 1 )
-            ### anyway attach document and ngram
+            ### updates Doc-NGram edges
             ng.addEdge( 'Document', document['id'], docOccs )
-            # updates Doc-NGram edges
             document.addEdge( 'NGram', ng['id'], docOccs )
             # queue the storage/update of the ngram
             self.storage.updateNGram( ng, overwrite, document['id'], corpusNum )
         self.storage.flushNGramQueue()
+        # creates or OVERWRITES document into storage
+        self.duplicate += self.storage.updateDocument( document, overwrite )
+        
