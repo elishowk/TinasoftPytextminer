@@ -29,7 +29,7 @@ class Importer (sourcefile.Importer, basecsv.Importer):
     """
     # defaults
     options = {
-        'encoding': 'utf-8',
+        'encoding': 'utf_8',
         'dialect': 'excel',
     }
     

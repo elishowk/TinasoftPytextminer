@@ -56,7 +56,7 @@ class Exporter(Handler):
     A Gexf Exporter engine providing multipartite graph exports
     """
     options = {
-        'encoding'     : 'utf-8',
+        'encoding'     : 'utf_8',
         'template'   : 'shared/gexf/gexf.default.template',
         'preprocess' : False,
         'generate' : True

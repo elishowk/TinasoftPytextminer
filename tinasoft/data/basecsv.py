@@ -26,16 +26,21 @@ _logger = logging.getLogger('TinaAppLogger')
 
 class UTF8Recoder(object):
     """
-    Iterator that reads an encoded stream and reencodes the input to UTF-8
+    Iterator that reads an encoded stream and reencodes the input to UTF_8
     """
-    def __init__(self, f, encoding):
-        self.reader = codecs.getreader(encoding)(f, 'replace')
+    def __init__(self, f):
+        self.decodedreader = f
+        self.utf8encoder = codecs.getencoder("utf_8")
 
     def __iter__(self):
         return self
 
     def next(self):
-        return self.reader.next().encode("utf-8", 'replace')
+        """
+        Encodes next line to utf_8
+        """
+        encodedline = self.utf8encoder( self.decodedreader.next(), 'ignore' )
+        return encodedline[0]
 
 class Importer(object):
     """
@@ -49,16 +54,36 @@ class Importer(object):
         if f1 is None:
             return
         
-        tmp = csv.reader( f1, dialect=kwargs['dialect'], quoting=csv.QUOTE_NONNUMERIC )
+        tmp = csv.reader( f1, dialect=kwargs['dialect'])
+        #tmp = csv.reader( f1, dialect=kwargs['dialect'], quoting=csv.QUOTE_NONNUMERIC )
         self.fieldnames = tmp.next()
         del f1, tmp
 
-        f = UTF8Recoder(self.open(path), kwargs['encoding'])
-        self.reader = csv.DictReader(f, self.fieldnames, kwargs['dialect'])
+        recodedcsvfile = UTF8Recoder(self.open(path))
+        self.reader = csv.DictReader(
+            recodedcsvfile,
+            fieldnames=self.fieldnames,
+            dialect=kwargs['dialect'],
+            restkey="unknown",
+            restval=""
+        )
         
         # only reads the first line
         for line in self:
             break
+        
+    def _utf8_to_unicode(self, row):
+        """
+        Static utf_8 to unicode decoder
+        Dedicated to decode csv.DictReader lines output
+        """
+        unicoderow = {}
+        for k,s in row.iteritems():
+            try:
+                unicoderow[k] = unicode(s, encoding="utf_8", errors='ignore')
+            except Exception, ex:
+                _logger.error("basecsv._row_to_unicode(), line %d, reason : %s"%(self.reader.line_num, ex))  
+        return unicoderow
         
     def next(self):
         try:
@@ -66,22 +91,14 @@ class Importer(object):
         except StopIteration, si:
             raise StopIteration(si)
         except Exception, ex:
-            _logger.error("basecsv reader error at line %d, reason : %s"%(self.reader.line_num, ex))
+            _logger.error("basecsv.next() error, line %d, reason : %s"%(self.reader.line_num, ex))
             return None
         else:
-            unicoderow={}
-            for k,s in row.iteritems():
-                unicoderow[k] = self._coerce_unicode(s)
-            return unicoderow
+            return self._utf8_to_unicode(row)
 
     def __iter__(self):
         return self
 
-    def open(self, path):
-        """
-        read-only binary file handler
-        """
-        return open( path, 'rb' )
 
 class Exporter(BaseExporter):
     """
@@ -89,7 +106,7 @@ class Exporter(BaseExporter):
     """
     # defaults
     options = {
-        'encoding': 'utf-8',
+        'encoding': 'utf_8',
         'delimiter': ',',
         'quotechar': '"',
     }

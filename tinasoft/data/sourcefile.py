@@ -43,7 +43,7 @@ class Importer(BaseImporter):
             tmpfields = dict(self.fields)
             # decoding & parsing TRY
             try:
-                corpusID = self._coerce_unicode( doc[self.fields['corpus_id']] )
+                corpusID = doc[self.fields['corpus_id']]
             except Exception, exc:
                 _logger.error( "sourcefile error : corpus id missing at line %d"%self.line_num )
                 _logger.error( exc )
@@ -67,15 +67,15 @@ class Importer(BaseImporter):
         with its edges
         """
         try:
-            label = self._coerce_unicode( doc[ tmpfields[self.doc_label] ] )
+            label = doc[ tmpfields[self.doc_label] ]
         except Exception, exc:
             _logger.warning("unable to find custom label, using the title field : %s"%exc)
-            label = self._coerce_unicode( doc[tmpfields['label']] )
+            label = doc[tmpfields['label']]
             del tmpfields['label']
         try:
             # get required fields
-            docID = self._coerce_unicode( doc[tmpfields['id']] )
-            content = self._coerce_unicode( doc[tmpfields['content']] )
+            docID = doc[tmpfields['id']]
+            content = doc[tmpfields['content']]
             # cleans all remaining fields
             if 'corpus_id' in tmpfields: del tmpfields['corpus_id']
             if 'content' in tmpfields: del tmpfields['content']

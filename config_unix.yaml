@@ -40,7 +40,7 @@ datasets:
             title: 'title'
             acronym: 'acronym'
         # csv reader params
-        encoding: 'utf-8'
+        encoding: 'utf_8'
         dialect: 'excel'
     # pubmed.gov "medline" file export
     medline:

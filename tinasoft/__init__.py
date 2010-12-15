@@ -607,7 +607,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             dataset = None,
             userstopwords = None,
             dialect="excel",
-            encoding="utf-8"
+            encoding="utf_8"
         ):
         """
         import one or a list of whitelits files

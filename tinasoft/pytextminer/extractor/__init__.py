@@ -129,7 +129,6 @@ class Extractor():
         try:
             while 1:
                 document, corpusNum = fileGenerator.next()
-                _logger.debug(corpusNum)
                 document.addEdge( 'Corpus', corpusNum, 1 )
                 ### updates Corpora and Corpus objects edges
                 self.corpora.addEdge( 'Corpus', corpusNum, 1 )

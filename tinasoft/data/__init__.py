@@ -40,7 +40,7 @@ class Handler (object):
     file = None
     # defaults
     options = {
-        'encoding': 'utf-8'
+        'encoding': 'utf_8'
     }
     
     #def __del__(self):
@@ -55,11 +55,11 @@ class Handler (object):
         return toEncode.encode( self.encoding, 'ignore')
 
     def unicode(self, toDecode):
-        return unicode( toDecode, self.encoding, 'replace' )
+        return unicode( toDecode, self.encoding, 'ignore' )
         
     def _coerce_unicode(self, cell):
         """
-        checks a value and eventually convert to type
+        checks a value and eventually converts to unicode
         """
         if type(cell) != unicode:
             return self.unicode(cell)

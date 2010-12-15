@@ -93,7 +93,7 @@ class PyTextMiner(object):
         """
         label = " ".join(tokens)
         if not isinstance(label, unicode ):
-            return unicode(label , "utf-8", errors='ignore')
+            return unicode(label , "utf_8", errors='ignore')
         else:
             return label
 

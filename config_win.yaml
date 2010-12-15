@@ -23,6 +23,7 @@ datasets:
         # - constants required fields : 'content'/'label'/'id'
         - 'content'
         - 'label'
+        - 'keywords'
     # tina csv columns declaration
     # will ignore undeclared fields
     # and warn not found optional fields
@@ -39,8 +40,9 @@ datasets:
             # optionnal fields
             title: 'title'
             acronym: 'acronym'
+            keywords: 'doc_keywords'
         # csv reader params
-        encoding: 'utf-8'
+        encoding: 'utf_8'
         dialect: 'excel'
     # pubmed.gov "medline" file export
     medline:
