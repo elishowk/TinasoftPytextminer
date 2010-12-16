@@ -267,7 +267,7 @@ class POSTHandler(object):
     @value_to_gen
     def dataset(self, corporaobj):
         """ insert or update """
-        storage = self.pytmapi.get_storage( corporaobj['id'] )
+        storage = self.pytmapi.get_storage( corporaobj['id'], create=False )
         if storage == self.pytmapi.STATUS_ERROR:
             return self.pytmapi.STATUS_ERROR
         return storage.insertCorpora(corporaobj)
@@ -275,7 +275,7 @@ class POSTHandler(object):
     @value_to_gen
     def corpus(self, dataset, corpusobj):
         """ insert or update """
-        storage = self.pytmapi.get_storage( dataset )
+        storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
             return self.pytmapi.STATUS_ERROR
         return storage.insertCorpus(corpusobj)
@@ -283,7 +283,7 @@ class POSTHandler(object):
     @value_to_gen
     def document(self, dataset, documentobj):
         """ insert or update """
-        storage = self.pytmapi.get_storage( dataset )
+        storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
             return self.pytmapi.STATUS_ERROR
         return storage.insertDocument(documentobj)
@@ -291,7 +291,7 @@ class POSTHandler(object):
     @value_to_gen
     def ngram(self, dataset, ngramobj):
         """ insert or update """
-        storage = self.pytmapi.get_storage( dataset )
+        storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
             return self.pytmapi.STATUS_ERROR
         return storage.insertNGram(ngramobj)
@@ -330,9 +330,9 @@ class GETHandler(object):
         """
         if dataset is None:
             return self.pytmapi.walk_datasets()
-        storage = self.pytmapi.get_storage( dataset )
+        storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
-            _logger.error("unable to connect to the database")
+            self.pytmapi.logger.error("unable to connect to the database")
             return None
         else:
             return storage.loadCorpora(dataset)
@@ -342,9 +342,9 @@ class GETHandler(object):
         """
         returns a corpus json object from the database
         """
-        storage = self.pytmapi.get_storage( dataset )
+        storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
-            _logger.error("unable to connect to the database")
+            self.pytmapi.logger.error("unable to connect to the database")
             return None
         else:
             return storage.loadCorpus(id)
@@ -356,7 +356,7 @@ class GETHandler(object):
         """
         storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
-            _logger.error("unable to connect to the database")
+            self.pytmapi.logger.error("unable to connect to the database")
             return None
         else:
             return storage.loadDocument(id)
@@ -368,7 +368,7 @@ class GETHandler(object):
         """
         storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
-            _logger.error("unable to connect to the database")
+            self.pytmapi.logger.error("unable to connect to the database")
             return None
         else:
             return storage.loadNGram(id)
