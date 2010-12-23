@@ -48,14 +48,14 @@ datasets:
     medline:
         # doc_label represents one of the field's key
         # if not found in the file, will use the field specified by "label"
-        doc_label: 'label'
+        doc_label: 'title'
         fields:
-            label: 'TI'
+            label: 'PMID'
             content: 'AB'
             corpus_id: 'DP'
             id: 'PMID'
             # optional fields
-            #title: 'TI'
+            title: 'TI'
         # period_size = number first characters of pub date field "corpusField"
         period_size: 4
         encoding: 'ascii'
@@ -100,3 +100,5 @@ datamining:
         proximity: 'Cooccurrences'
         #proximity: 'EquivalenceIndex'
         #proximity: 'PseudoInclusion'
+indexer:
+    minCooc: 10
