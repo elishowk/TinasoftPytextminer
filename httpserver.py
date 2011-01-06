@@ -88,14 +88,14 @@ class TinasoftServerRequest(resource.Resource):
             else:
                 parsed_args[key] = self.argument_types[key](args[key][0])
                 
-        self.logger.info( str(self.method) + " ---" + str(parsed_args) )
+        #self.logger.info( str(self.method) + " ---" + str(parsed_args) )
         return parsed_args
 
     def render(self, request):
         """
         Prepares arguments and call the Cooperative method
         """
-        d = CooperativeExecution()._method_wrapper(request, self.callback.success, self.handler, self.method, self.logger)
+        d = CooperativeExecution()._method_wrapper(request, self.callback, self.handler, self.method, self.logger)
         d.addCallback(lambda ignored: request.finish())
         d.addErrback(self._method_failed, request)
         return server.NOT_DONE_YET
@@ -134,7 +134,8 @@ class CooperativeExecution(object):
         'alpha': float,
         'nodethreshold': list,
         'edgethreshold': list,
-        'exportedges': bool
+        'exportedges': bool,
+        'object': jsonpickle.decode,
     }
 
     def _method_wrapper(self, request, serializer, handler, method, logger):
@@ -163,7 +164,7 @@ class CooperativeExecution(object):
                 lastValue = processGenerator.next()
                 yield None
         except StopIteration, si:
-            self.request.write( self.serializer( lastValue ) )
+            self.request.write( self.serializer.success( lastValue ) )
 
     def _parse_args(self, args):
         """
@@ -265,36 +266,36 @@ class POSTHandler(object):
         return self.pytmapi.generate_graph(*args, **kwargs)
 
     @value_to_gen
-    def dataset(self, corporaobj):
+    def dataset(self, object):
         """ insert or update """
         storage = self.pytmapi.get_storage( corporaobj['id'], create=False )
         if storage == self.pytmapi.STATUS_ERROR:
             return self.pytmapi.STATUS_ERROR
-        return storage.insertCorpora(corporaobj)
+        return storage.insertCorpora(object)
 
     @value_to_gen
-    def corpus(self, dataset, corpusobj):
+    def corpus(self, dataset, object):
         """ insert or update """
         storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
             return self.pytmapi.STATUS_ERROR
-        return storage.insertCorpus(corpusobj)
+        return storage.insertCorpus(object)
 
     @value_to_gen
-    def document(self, dataset, documentobj):
+    def document(self, dataset, object):
         """ insert or update """
         storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
             return self.pytmapi.STATUS_ERROR
-        return storage.insertDocument(documentobj)
+        return storage.insertDocument(object)
 
     @value_to_gen
-    def ngram(self, dataset, ngramobj):
+    def ngram(self, dataset, object):
         """ insert or update """
         storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
             return self.pytmapi.STATUS_ERROR
-        return storage.insertNGram(ngramobj)
+        return storage.insertNGram(object)
 
 
 class GETHandler(object):
