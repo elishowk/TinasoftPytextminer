@@ -232,10 +232,6 @@ class PytextminerFlowApi(PytextminerFileApi):
         except StopIteration, si:
             yield absolute_outpath
             return
-        #except Exception, excep:
-        #    self.logger.error("%s"%excep)
-        #    yield self.STATUS_ERROR
-        #    return
 
     def index_file(self,
             path,
