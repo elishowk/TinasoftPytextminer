@@ -134,7 +134,7 @@ class Exporter(Handler):
         # temp edges row for the target category
         temp = { category: row }
         # overwrites the object
-        self.storage.insert( PyTextMiner.updateEdges(temp, obj), category )
+        self.storage.insert( obj.updateEdges(temp), category )
 
     def finalize(self, path, exportedges=False):
         """

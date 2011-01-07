@@ -72,18 +72,14 @@ class PyTextMiner(object):
     @staticmethod
     def updateObjectEdges(canditate, toupdate):
         """increments an object's edges with the candidate object's edges"""
-        for targettype in canditate['edges'].iterkeys():
-            for targetid, weight in canditate['edges'][targettype].iteritems():
-                toupdate.addEdge( targettype, targetid, weight )
+        toupdate.updateEdges(candidate['edges'])
         return toupdate
 
-    @staticmethod
-    def updateEdges(updateedges, toupdate):
-        """increments an object's edges with the candidate object's edges"""
+    def updateEdges(self, updateedges):
+        """increments an object's edges with the candidate edges"""
         for targettype in updateedges.iterkeys():
             for targetid, weight in updateedges[targettype].iteritems():
-                toupdate.addEdge( targettype, targetid, weight )
-        return toupdate
+                self.addEdge( targettype, targetid, weight )
 
 
     @staticmethod

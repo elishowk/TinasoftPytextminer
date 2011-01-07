@@ -88,7 +88,8 @@ def process_document_subgraph(
     """
     metacorpus = corpus.Corpus("meta")
     for process_period in periods:
-        metacorpus = PyTextMiner.updateEdges(process_period.edges, metacorpus)
+        metacorpus.updateEdges(process_period.edges)
+        #metacorpus = PyTextMiner.updateEdges(process_period.edges, metacorpus)
         
     doc_args = ( config, storage, metacorpus, docgraphconfig, ngram_index, doc_index )
     adj = doc_graph_class( *doc_args )

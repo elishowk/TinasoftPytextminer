@@ -322,50 +322,79 @@ class Engine(Backend):
     def insertManyCluster( self, iter ):
         return self.insertMany( iter, 'Cluster' )
 
-    def update( self, object, target, recursive=False ):
-        """updates or overwrite an object and associations"""
-        stored = self.load( object['id'], target )
+    def _updateObject(self, stored, obj):
+        """ overwrites all attributes then increment edges """
+        upobj = stored
+        upobj.__dict__.update(obj.__dict__)
+        stored.updateEdges( obj['edges'] )
+        upobj['edges'] = stored['edges']
+        return upobj
+
+    def _neighboursUpdate(self, obj, target):
+        """
+        updates object's neighbours edges
+        """
+        for category in obj['edges']:
+            for neighbourid in obj['edges'][category]:
+                neighbourobj = self.load(neighbourid, category)
+                if neighbourobj is not None:
+                    neighbourobj['edges'][target][obj['id']] = obj['edges'][category][neighbourid]
+                    self.insert(neighbourobj, category)
+                
+
+    def update( self, obj, target, recursive=False ):
+        """updates an object and associations"""
+        stored = self.load( obj['id'], target )
         if stored is not None:
-            object = PyTextMiner.updateObjectEdges( object, stored )
-        self.insert( object, target  )
+            obj = self._updateObject(stored, obj)
+        _logger.debug(obj)
+        self.insert( obj, target )
+        if recursive is True:
+            self._neighboursUpdate(obj, target)
         
     def updateWhitelist( self, obj, recursive=False ):
-        """updates or overwrite a Whitelist and associations"""
+        """updates a Whitelist and associations"""
         self.update( obj, 'Whitelist', recursive )
 
     def updateCluster( self, obj, recursive=False ):
-        """updates or overwrite a Cluster and associations"""
+        """updates a Cluster and associations"""
         self.update( obj, 'Cluster', recursive )
 
     def updateCorpora( self, obj, recursive=False ):
-        """updates or overwrite a Corpora and associations"""
+        """updates a Corpora and associations"""
         self.update( obj, 'Corpora', recursive )
 
     def updateCorpus( self, obj, recursive=False ):
-        """updates or overwrite a Corpus and associations"""
+        """updates a Corpus and associations"""
         self.update( obj, 'Corpus', recursive )
 
     def updateDocument( self, obj, recursive=False ):
-        """updates or overwrite a Document and associations"""
+        """updates a Document and associations"""
         self.update( obj, 'Document', recursive )
 
     def updateNGram( self, obj, recursive=False ):
         """
-        updates or overwrite a ngram and associations
+        updates a ngram and associations
         """
-        # if ngram is already into queue, will flush it first to permit incremental updates
+        self.update( obj, 'NGram', recursive )
+
+    def updateManyNGram( self, obj ):
+        """
+        updates a ngram and associations using the ngram insert queue
+        if ngram is already into queue,
+        will flush it first to ensure incremental updates
+        """
         if obj['id'] in self.ngramqueueindex:
             self.flushNGramQueue()
-        # then try to update the NGram
-        storedNGram = self.loadNGram( obj['id'] )
-        if storedNGram is not None:    
-            obj = PyTextMiner.updateObjectEdges( storedNGram, obj )
+        stored = self.loadNGram(obj['id'])
+        if stored is not None:
+            obj = self._updateObject(stored, obj)
         # adds object to the INSERT the queue and returns its length
-        return self._ngramQueue( obj['id'], obj )
+        return self._ngramQueue(obj['id'], obj)
 
     def updateGraphPreprocess(self, period, category, id, row):
         """
-        updates or overwrite graph preprocess row
+        updates a graph preprocess row
         transaction queue grouping by self.MAX_INSERT_QUEUE
         """
         if category not in self.graphpreprocessqueue:

@@ -187,7 +187,7 @@ class Extractor():
             ng.addEdge( 'Document', document['id'], docOccs )
             document.addEdge( 'NGram', ng['id'], docOccs )
             # queue the storage/update of the ngram
-            self.storage.updateNGram( ng )
+            self.storage.updateManyNGram( ng )
             
         self.storage.flushNGramQueue()
         
