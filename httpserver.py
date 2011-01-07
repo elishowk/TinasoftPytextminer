@@ -257,7 +257,8 @@ def value_to_gen(func):
 
 class POSTHandler(object):
     """
-    Pytextminer API mapping POST requests and Pytextminer API's methods
+    Pytextminer API mapping POST requests to database insert methods
+    All insert methods will overwrite objects, use carefully
     """
     def __init__(self, pytmapi):
         self.pytmapi = pytmapi
@@ -304,42 +305,44 @@ class POSTHandler(object):
 
 class PUTHandler(object):
     """
-    Pytextminer API mapping POST requests and Pytextminer API's methods
+    Pytextminer API mapping PUT requests to database methods
+    if @recursive is True, update will recursively write updated edges values to all linked nodes
+    of @overwrtie is True, update will overwrite edges, not safe
     """
     def __init__(self, pytmapi):
         self.pytmapi = pytmapi
 
     @value_to_gen
-    def dataset(self, object, recursive):
+    def dataset(self, object, overwrite, recursive):
         """ update """
         storage = self.pytmapi.get_storage( corporaobj['id'], create=False )
         if storage == self.pytmapi.STATUS_ERROR:
             return self.pytmapi.STATUS_ERROR
-        return storage.updateCorpora(object, recursive)
+        return storage.updateCorpora(object, overwrite, recursive)
 
     @value_to_gen
-    def corpus(self, dataset, object, recursive):
+    def corpus(self, dataset, object, overwrite, recursive):
         """ update """
         storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
             return self.pytmapi.STATUS_ERROR
-        return storage.updateCorpus(object)
+        return storage.updateCorpus(object, overwrite, recursive)
 
     @value_to_gen
-    def document(self, dataset, object, recursive):
+    def document(self, dataset, object, overwrite, recursive):
         """ update """
         storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
             return self.pytmapi.STATUS_ERROR
-        return storage.updateDocument(object)
+        return storage.updateDocument(object, overwrite, recursive)
 
     @value_to_gen
-    def ngram(self, dataset, object, recursive):
+    def ngram(self, dataset, object, overwrite, recursive):
         """ update """
         storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
             return self.pytmapi.STATUS_ERROR
-        return storage.updateNGram(object)
+        return storage.updateNGram(object, overwrite, recursive)
 
 class GETHandler(object):
     """
@@ -454,14 +457,14 @@ class GETHandler(object):
 
 class DELETEHandler(object):
     """
-    Pytextminer API mapping DELETE requests and Pytextminer API's methods
+    Pytextminer API mapping DELETE requests to storage methods
     """
     def __init__(self, pytmapi):
         self.pytmapi = pytmapi
 
     @value_to_gen
     def dataset(self, dataset):
-        """ deletes all the dataset's file """
+        """ deletes all the dataset's files and directory """
         return self.pytmapi.delete_dataset(dataset)
         
     @value_to_gen

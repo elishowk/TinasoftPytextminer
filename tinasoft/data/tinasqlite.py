@@ -176,11 +176,12 @@ class Backend(Handler):
             _logger.error( "exception during safewrite on table %s : %s"%(tabname,insert_exc) )
             self.rollback()
 
-    #def safedelete(self, tabname, key):
-    #    """
-    #    TODO
-    #    """
-    #    pass
+    def safedelete(self, tabname, key):
+        """
+        TODO
+        """
+        _logger.warning("safedelete is not yet implemented")
+        pass
 
 class Engine(Backend):
     """
@@ -215,9 +216,9 @@ class Engine(Backend):
         self.flushQueues()
         self.close()
 
-    #def delete(self, id, deltype):
-    #    """deletes a object given its type and id"""
-    #    self.safedelete(deltype, id)
+    def delete(self, id, target, recursive=False):
+        """deletes a object given its type and id"""
+        self.safedelete(target, id)
 
     def load(self, id, target, raw=False):
         read = self.saferead( target, id )
