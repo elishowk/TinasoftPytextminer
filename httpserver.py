@@ -136,6 +136,7 @@ class CooperativeExecution(object):
         'edgethreshold': list,
         'exportedges': bool,
         'object': jsonpickle.decode,
+        'recursive': bool
     }
 
     def _method_wrapper(self, request, serializer, handler, method, logger):
@@ -462,6 +463,30 @@ class DELETEHandler(object):
     def dataset(self, dataset):
         """ deletes all the dataset's file """
         return self.pytmapi.delete_dataset(dataset)
+        
+    @value_to_gen
+    def corpus(self, dataset, id, recursive):
+        """ remove """
+        storage = self.pytmapi.get_storage( dataset, create=False )
+        if storage == self.pytmapi.STATUS_ERROR:
+            return self.pytmapi.STATUS_ERROR
+        return storage.delete(id, 'Corpus', recursive)
+
+    @value_to_gen
+    def document(self, dataset, id, recursive):
+        """ remove """
+        storage = self.pytmapi.get_storage( dataset, create=False )
+        if storage == self.pytmapi.STATUS_ERROR:
+            return self.pytmapi.STATUS_ERROR
+        return storage.delete(id, 'Document', recursive)
+
+    @value_to_gen
+    def ngram(self, dataset, id, recursive):
+        """ remove """
+        storage = self.pytmapi.get_storage( dataset, create=False )
+        if storage == self.pytmapi.STATUS_ERROR:
+            return self.pytmapi.STATUS_ERROR
+        return storage.delete(id, 'NGram', recursive)
 
 class NumpyFloatHandler(jsonpickle.handlers.BaseHandler):
     """
