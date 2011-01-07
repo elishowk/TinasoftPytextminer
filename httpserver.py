@@ -267,7 +267,7 @@ class POSTHandler(object):
 
     @value_to_gen
     def dataset(self, object):
-        """ insert or update """
+        """ insert or overwrite """
         storage = self.pytmapi.get_storage( corporaobj['id'], create=False )
         if storage == self.pytmapi.STATUS_ERROR:
             return self.pytmapi.STATUS_ERROR
@@ -275,7 +275,7 @@ class POSTHandler(object):
 
     @value_to_gen
     def corpus(self, dataset, object):
-        """ insert or update """
+        """ insert or overwrite """
         storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
             return self.pytmapi.STATUS_ERROR
@@ -283,7 +283,7 @@ class POSTHandler(object):
 
     @value_to_gen
     def document(self, dataset, object):
-        """ insert or update """
+        """ insert or overwrite """
         storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
             return self.pytmapi.STATUS_ERROR
@@ -291,12 +291,50 @@ class POSTHandler(object):
 
     @value_to_gen
     def ngram(self, dataset, object):
-        """ insert or update """
+        """ insert or overwrite """
         storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
             return self.pytmapi.STATUS_ERROR
         return storage.insertNGram(object)
 
+class PUTHandler(object):
+    """
+    Pytextminer API mapping POST requests and Pytextminer API's methods
+    """
+    def __init__(self, pytmapi):
+        self.pytmapi = pytmapi
+
+    @value_to_gen
+    def dataset(self, object, recursive):
+        """ update """
+        storage = self.pytmapi.get_storage( corporaobj['id'], create=False )
+        if storage == self.pytmapi.STATUS_ERROR:
+            return self.pytmapi.STATUS_ERROR
+        return storage.updateCorpora(object, recursive)
+
+    @value_to_gen
+    def corpus(self, dataset, object, recursive):
+        """ update """
+        storage = self.pytmapi.get_storage( dataset, create=False )
+        if storage == self.pytmapi.STATUS_ERROR:
+            return self.pytmapi.STATUS_ERROR
+        return storage.updateCorpus(object)
+
+    @value_to_gen
+    def document(self, dataset, object, recursive):
+        """ update """
+        storage = self.pytmapi.get_storage( dataset, create=False )
+        if storage == self.pytmapi.STATUS_ERROR:
+            return self.pytmapi.STATUS_ERROR
+        return storage.updateDocument(object)
+
+    @value_to_gen
+    def ngram(self, dataset, object, recursive):
+        """ update """
+        storage = self.pytmapi.get_storage( dataset, create=False )
+        if storage == self.pytmapi.STATUS_ERROR:
+            return self.pytmapi.STATUS_ERROR
+        return storage.updateNGram(object)
 
 class GETHandler(object):
     """
