@@ -350,32 +350,19 @@ class Engine(Backend):
         """updates or overwrite a Document and associations"""
         self.update( obj, 'Document', overwrite, recursive )
 
-    def updateNGram( self, ngObj, overwrite, recursive=False, docId=None, corpId=None ):
+    def updateNGram( self, obj, overwrite, recursive=False ):
         """
         updates or overwrite a ngram and associations
         """
         # if ngram is already into queue, will flush it first to permit incremental updates
-        if ngObj['id'] in self.ngramqueueindex:
+        if obj['id'] in self.ngramqueueindex:
             self.flushNGramQueue()
         # then try to update the NGram
-        storedNGram = self.loadNGram( ngObj['id'] )
-        
-        if storedNGram is not None:
-            
-            # if overwriting and existing NGram yet NOT in the current index
-            if overwrite is True and ngObj['id'] not in self.ngramindex:
-                # cleans current corpus edges unless it won't change during overwrite
-                if corpId is not None and corpId in storedNGram['edges']['Corpus']:
-                    del storedNGram['edges']['Corpus'][corpId]
-                # cleans current document edges unless it won't change during overwrite
-                if  docId is not None and docId in storedNGram['edges']['Document']:
-                    del storedNGram['edges']['Document'][docId]
-                    
-            # anyway, updates all edges
-            ngObj = PyTextMiner.updateObjectEdges( storedNGram, ngObj )
-            
+        storedNGram = self.loadNGram( obj['id'] )
+        if storedNGram is not None:    
+            obj = PyTextMiner.updateObjectEdges( storedNGram, obj )
         # adds object to the INSERT the queue and returns its length
-        return self._ngramQueue( ngObj['id'], ngObj )
+        return self._ngramQueue( obj['id'], obj )
 
     def updateGraphPreprocess(self, period, category, id, row):
         """
