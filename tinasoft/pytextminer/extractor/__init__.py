@@ -187,8 +187,13 @@ class Extractor():
             ng.addEdge( 'Document', document['id'], docOccs )
             document.addEdge( 'NGram', ng['id'], docOccs )
             # queue the storage/update of the ngram
+            
             self.storage.updateNGram( ng, overwrite, document['id'], corpusNum )
         self.storage.flushNGramQueue()
+        
         # creates or OVERWRITES document into storage
-        self.duplicate += self.storage.updateDocument( document, overwrite )
+        storedDoc = self.storage.loadDocument( document['id'] )
+        if storedDoc is not None:
+            self.duplicate += [storedDoc]
+        self.storage.updateDocument( document, overwrite )
         

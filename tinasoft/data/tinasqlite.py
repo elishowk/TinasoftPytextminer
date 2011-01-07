@@ -320,6 +320,104 @@ class Engine(Backend):
     def insertManyCluster( self, iter, overwrite=False ):
         return self.insertMany( iter, 'Cluster', overwrite )
 
+    def update( self, object, target, overwrite, recursive=False ):
+        """updates or overwrite an object and associations"""
+        if overwrite is True:
+            self.insert( object, target, overwrite=True )
+            return
+        stored = self.load( object['id'], target )
+        if stored is not None:
+            object = PyTextMiner.updateObjectEdges( object, stored )
+        self.insert( object, target, overwrite )
+        
+    def updateWhitelist( self, obj, overwrite, recursive=False ):
+        """updates or overwrite a Whitelist and associations"""
+        self.update( obj, 'Whitelist', overwrite, recursive )
+
+    def updateCluster( self, obj, overwrite, recursive=False ):
+        """updates or overwrite a Cluster and associations"""
+        self.update( obj, 'Cluster', overwrite, recursive )
+
+    def updateCorpora( self, obj, overwrite, recursive=False ):
+        """updates or overwrite a Corpora and associations"""
+        self.update( obj, 'Corpora', overwrite, recursive )
+
+    def updateCorpus( self, obj, overwrite, recursive=False ):
+        """updates or overwrite a Corpus and associations"""
+        self.update( obj, 'Corpus', overwrite, recursive )
+
+    def updateDocument( self, obj, overwrite, recursive=False ):
+        """updates or overwrite a Document and associations"""
+        self.update( obj, 'Document', overwrite, recursive )
+
+    def updateNGram( self, ngObj, overwrite, recursive=False, docId=None, corpId=None ):
+        """
+        updates or overwrite a ngram and associations
+        """
+        # if ngram is already into queue, will flush it first to permit incremental updates
+        if ngObj['id'] in self.ngramqueueindex:
+            self.flushNGramQueue()
+        # then try to update the NGram
+        storedNGram = self.loadNGram( ngObj['id'] )
+        
+        if storedNGram is not None:
+            
+            # if overwriting and existing NGram yet NOT in the current index
+            if overwrite is True and ngObj['id'] not in self.ngramindex:
+                # cleans current corpus edges unless it won't change during overwrite
+                if corpId is not None and corpId in storedNGram['edges']['Corpus']:
+                    del storedNGram['edges']['Corpus'][corpId]
+                # cleans current document edges unless it won't change during overwrite
+                if  docId is not None and docId in storedNGram['edges']['Document']:
+                    del storedNGram['edges']['Document'][docId]
+                    
+            # anyway, updates all edges
+            ngObj = PyTextMiner.updateObjectEdges( storedNGram, ngObj )
+            
+        # adds object to the INSERT the queue and returns its length
+        return self._ngramQueue( ngObj['id'], ngObj )
+
+    def updateGraphPreprocess(self, period, category, id, row):
+        """
+        updates or overwrite graph preprocess row
+        transaction queue grouping by self.MAX_INSERT_QUEUE
+        """
+        if category not in self.graphpreprocessqueue:
+            self.graphpreprocessqueue[category] = []
+        self.graphpreprocessqueue[category] += [(period+"::"+id, row)]
+        queuesize = len( self.graphpreprocessqueue[category] )
+        if queuesize > self.MAX_INSERT_QUEUE:
+            self.flushGraphPreprocessQueue()
+            return 0
+        else:
+            return queuesize
+
+    def flushNGramQueue(self):
+        self.insertManyNGram( self.ngramqueue, overwrite=True )
+        self.ngramqueue = []
+        self.ngramqueueindex = []
+
+    def flushGraphPreprocessQueue(self):
+        for category, queue in self.graphpreprocessqueue.iteritems():
+            self.insertManyGraphPreprocess(queue, category, overwrite=True)
+            self.graphpreprocessqueue[category]=[]
+
+    def flushQueues(self):
+        self.flushGraphPreprocessQueue()
+        self.flushNGramQueue()
+        self.ngramindex = []
+        _logger.debug("flushed insert queues for database %s"%self.path)
+
+    def _ngramQueue( self, id, ng ):
+        """
+        add a ngram to the queue and session index
+        """
+        self.ngramqueueindex += [id]
+        self.ngramqueue += [(id, ng)]
+        self.ngramindex += [id]
+        queue = len( self.ngramqueue )
+        return queue
+    
     def selectCorpusGraphPreprocess(self, corpusId, tabname):
         """
         Yields tuples (node_id, db_row)
@@ -358,123 +456,3 @@ class Engine(Backend):
                     yield ( record["id"], self.unpickle(str(record["pickle"])))
         except StopIteration, si:
             return
-
-    def updateWhitelist( self, whitelistObj, overwrite ):
-        """updates or overwrite a Whitelist and associations"""
-        if overwrite is True:
-            self.insertWhitelist( whitelistObj, overwrite=True )
-            return
-        stored = self.loadWhitelist( whitelistObj['id'] )
-        if stored is not None:
-            whitelistObj = PyTextMiner.updateObjectEdges( whitelistObj, stored )
-        self.insertWhitelist( whitelistObj, overwrite=True )
-
-    def updateCluster( self, obj, overwrite ):
-        """updates or overwrite a Cluster and associations"""
-        if overwrite is True:
-            self.insertCluster( obj, overwrite=True )
-            return
-        stored = self.loadCluster( obj['id'] )
-        if stored is not None:
-            obj = PyTextMiner.updateObjectEdges( obj, stored )
-        self.insertCluster( obj, overwrite=True )
-
-    def updateCorpora( self, corporaObj, overwrite ):
-        """updates or overwrite a corpora and associations"""
-        if overwrite is True:
-            self.insertCorpora( corporaObj, overwrite=True )
-            return
-        storedCorpora = self.loadCorpora( corporaObj['id'] )
-        if storedCorpora is not None:
-            corporaObj = PyTextMiner.updateObjectEdges( corporaObj, storedCorpora )
-        self.insertCorpora( corporaObj, overwrite=True )
-
-    def updateCorpus( self, corpusObj, overwrite ):
-        """updates or overwrite a corpus and associations"""
-        if overwrite is True:
-            self.insertCorpus( corpusObj, overwrite=True )
-            return
-        storedCorpus = self.loadCorpus( corpusObj['id'] )
-        if storedCorpus is not None:
-            corpusObj = PyTextMiner.updateObjectEdges( corpusObj, storedCorpus )
-        self.insertCorpus( corpusObj, overwrite=True )
-
-    def updateDocument( self, documentObj, overwrite ):
-        """updates or overwrite a document and associations"""
-        if overwrite is True:
-            self.insertDocument( documentObj, overwrite=True )
-            return
-        storedDocument = self.loadDocument( documentObj['id'] )
-        if storedDocument is not None:
-            documentObj = PyTextMiner.updateObjectEdges( documentObj, storedDocument )
-        self.insertDocument( documentObj, overwrite=True )
-        # returns a duplicate information
-        if storedDocument is not None:
-            return [storedDocument]
-        else:
-            return []
-
-    def flushNGramQueue(self):
-        self.insertManyNGram( self.ngramqueue, overwrite=True )
-        self.ngramqueue = []
-        self.ngramqueueindex = []
-
-    def flushGraphPreprocessQueue(self):
-        for category, queue in self.graphpreprocessqueue.iteritems():
-            self.insertManyGraphPreprocess(queue, category, overwrite=True)
-            self.graphpreprocessqueue[category]=[]
-
-    def flushQueues(self):
-        self.flushGraphPreprocessQueue()
-        self.flushNGramQueue()
-        self.ngramindex = []
-        _logger.debug("flushed insert queues for database %s"%self.path)
-
-    def _ngramQueue( self, id, ng ):
-        """
-        add a ngram to the queue and session index
-        """
-        self.ngramqueueindex += [id]
-        self.ngramqueue += [(id, ng)]
-        self.ngramindex += [id]
-        queue = len( self.ngramqueue )
-        return queue
-
-
-    def updateNGram( self, ngObj, overwrite, docId=None, corpId=None ):
-        """
-        updates or overwrite a ngram and associations
-        """
-        # if ngram is already into queue, will flush it first to permit incremental updates
-        if ngObj['id'] in self.ngramqueueindex:
-            self.flushNGramQueue()
-        # then try to update the NGram
-        storedNGram = self.loadNGram( ngObj['id'] )
-        if storedNGram is not None:
-            # if overwriting and existing NGram yet NOT in the current index
-            if overwrite is True and ngObj['id'] not in self.ngramindex:
-                # cleans current corpus edges unless it won't change during overwrite
-                if corpId is not None and corpId in storedNGram['edges']['Corpus']:
-                    del storedNGram['edges']['Corpus'][corpId]
-                # cleans current document edges unless it won't change during overwrite
-                if  docId is not None and docId in storedNGram['edges']['Document']:
-                    del storedNGram['edges']['Document'][docId]
-            # anyway, updates all edges
-            ngObj = PyTextMiner.updateObjectEdges( storedNGram, ngObj )
-        # adds object to the INSERT the queue
-        return self._ngramQueue( ngObj['id'], ngObj )
-
-    def updateGraphPreprocess(self, period, category, id, row):
-        """
-        updates or overwrite graph preprocess row
-        transaction queue grouping by self.MAX_INSERT_QUEUE
-        """
-        if category not in self.graphpreprocessqueue:
-            self.graphpreprocessqueue[category] = []
-        self.graphpreprocessqueue[category] += [(period+"::"+id, row)]
-        queuesize = len( self.graphpreprocessqueue[category] )
-        if queuesize > self.MAX_INSERT_QUEUE:
-            self.flushGraphPreprocessQueue()
-            return 0
-        else:
-            return queuesize
