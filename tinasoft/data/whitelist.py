@@ -235,5 +235,5 @@ class Exporter(basecsv.Exporter):
         # cleans whitelist
         whitelist['content'] = whitelist['corpus'] = {}
         # updates whitelist into storage
-        storage.insertWhitelist(whitelist, self.whitelist['id'], overwrite=True)
+        storage.insertWhitelist(whitelist, self.whitelist['id'])
         return export_path

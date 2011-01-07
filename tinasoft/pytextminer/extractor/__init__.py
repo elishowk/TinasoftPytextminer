@@ -144,21 +144,21 @@ class Extractor():
                 )
                 nlemmas = tokenizer.TreeBankWordTokenizer.group(docngrams, whitelist)
                 #### inserts/updates NGram and update document obj
-                self._insert_NGram_Document(nlemmas, document, corpusNum, overwrite)
+                self._update_NGram_Document(nlemmas, document, corpusNum)
                 doccount += 1
                 if doccount % NUM_DOC_NOTIFY == 0:
                     _logger.debug("%d documents indexed"%doccount)
                 yield document['id']
 
         except StopIteration:
-            self.storage.updateCorpora( self.corpora, overwrite )
+            self.storage.updateCorpora( self.corpora )
             for corpusObj in self.reader.corpusDict.values():
-                self.storage.updateCorpus( corpusObj, overwrite )
+                self.storage.updateCorpus( corpusObj )
                 _logger.debug("%d NEW NGrams in corpus %s"%(len(corpusObj.edges['NGram'].keys()), corpusObj['id']))
                 _logger.debug("%d NEW Documents in corpus %s"%(len(corpusObj.edges['Document'].keys()), corpusObj['id']))
             return
 
-    def _insert_NGram_Document( self, docngrams, document, corpusNum, overwrite ):
+    def _update_NGram_Document( self, docngrams, document, corpusNum ):
         """
         Inserts NGrams and its relations to storage
         Verifying previous storage contents preventing data corruption
@@ -187,13 +187,13 @@ class Extractor():
             ng.addEdge( 'Document', document['id'], docOccs )
             document.addEdge( 'NGram', ng['id'], docOccs )
             # queue the storage/update of the ngram
+            self.storage.updateNGram( ng )
             
-            self.storage.updateNGram( ng, overwrite )
         self.storage.flushNGramQueue()
         
-        # creates or OVERWRITES document into storage
+        # creates or update document into storage
         storedDoc = self.storage.loadDocument( document['id'] )
         if storedDoc is not None:
             self.duplicate += [storedDoc]
-        self.storage.updateDocument( document, overwrite )
+        self.storage.updateDocument( document )
         

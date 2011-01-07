@@ -90,7 +90,7 @@ class Whitelist(PyTextMiner,whitelist.WhitelistFile):
             ngram.addEdge( 'Corpus', corpus_id, 1 )
         if document_id is not None:
             ngram.addEdge( 'Document', document_id, 1 )
-        if self.storage.updateNGram( ngram, False ) >= self.storage.MAX_INSERT_QUEUE:
+        if self.storage.updateNGram( ngram ) >= self.storage.MAX_INSERT_QUEUE:
             self.storage.flushNGramQueue()
 
     def getContent(self, id=None):

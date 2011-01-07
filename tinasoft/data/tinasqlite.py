@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-#  Copyright (C) 2010 elishowk
+#  Copyright (C) 2009-2011 CREA Lab, CNRS/Ecole Polytechnique UMR 7656 (Fr)
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -15,7 +15,8 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-__author__="Elias Showk"
+__author__="elishowk@nonutc.fr"
+
 from tinasoft.data import Handler
 from tinasoft.pytextminer import PyTextMiner
 
@@ -267,90 +268,88 @@ class Engine(Backend):
     def loadCluster(self, id, raw=False):
         return self.load(id, 'Cluster', raw)
 
-    def insertMany(self, iter, target, overwrite=False):
-        """TODO overwrite is ignored"""
+    def insertMany(self, iter, target):
+        """insert many objects from a list"""
         if len(iter) != 0:
             return self.safewrite(target, iter)
 
-    def insert( self, obj, target, id=None, overwrite=False ):
+    def insert( self, obj, target, id=None ):
+        """insert one object given its type"""
         if id is None:
             id = obj['id']
         return self.safewrite( target, [(id, obj)] )
 
-    def insertCorpora(self, obj, id=None, overwrite=False ):
-        return self.insert( obj, 'Corpora', id, overwrite )
+    def insertCorpora(self, obj, id=None ):
+        return self.insert( obj, 'Corpora', id )
 
-    def insertCorpus(self, obj, id=None, overwrite=False ):
-        return self.insert( obj, 'Corpus', id, overwrite )
+    def insertCorpus(self, obj, id=None ):
+        return self.insert( obj, 'Corpus', id )
 
-    def insertManyCorpus(self, iter, overwrite=False ):
-        return self.insertMany( iter, 'Corpus', overwrite )
+    def insertManyCorpus(self, iter ):
+        return self.insertMany( iter, 'Corpus' )
 
-    def insertDocument(self, obj, id=None, overwrite=False ):
-        return self.insert( obj, 'Document', id, overwrite )
+    def insertDocument(self, obj, id=None ):
+        return self.insert( obj, 'Document', id )
 
-    def insertManyDocument(self, iter, overwrite=False ):
-        return self.insertMany( iter, 'Document', overwrite )
+    def insertManyDocument(self, iter):
+        return self.insertMany( iter, 'Document' )
 
-    def insertNGram(self, obj, id=None, overwrite=False ):
-        return self.insert( obj, 'NGram', id, overwrite )
+    def insertNGram(self, obj, id=None ):
+        return self.insert( obj, 'NGram', id )
 
-    def insertManyNGram(self, iter, overwrite=False ):
-        return self.insertMany( iter, 'NGram', overwrite )
+    def insertManyNGram(self, iter ):
+        return self.insertMany( iter, 'NGram' )
 
-    def insertGraphPreprocess(self, obj, id, type, overwrite=False ):
+    def insertGraphPreprocess(self, obj, id, type ):
         """
         @id "corpus_id::node_id"
         @obj graph row dict
         """
-        return self.insert( obj, 'GraphPreprocess'+type, id, overwrite )
+        return self.insert( obj, 'GraphPreprocess'+type, id )
 
-    def insertManyGraphPreprocess( self, iter, type, overwrite=False ):
-        return self.insertMany( iter, 'GraphPreprocess'+type, overwrite )
+    def insertManyGraphPreprocess( self, iter, type ):
+        return self.insertMany( iter, 'GraphPreprocess'+type )
 
-    def insertWhitelist(self, obj, id, overwrite=False ):
-        return self.insert( obj, 'Whitelist', id, overwrite )
+    def insertWhitelist(self, obj, id ):
+        return self.insert( obj, 'Whitelist', id )
 
-    def insertManyWhitelist( self, iter, overwrite=False ):
-        return self.insertMany( iter, 'Whitelist', overwrite )
+    def insertManyWhitelist( self, iter ):
+        return self.insertMany( iter, 'Whitelist' )
 
-    def insertCluster(self, obj, id, overwrite=False ):
-        return self.insert( obj, 'Cluster', id, overwrite )
+    def insertCluster(self, obj, id ):
+        return self.insert( obj, 'Cluster', id )
 
-    def insertManyCluster( self, iter, overwrite=False ):
-        return self.insertMany( iter, 'Cluster', overwrite )
+    def insertManyCluster( self, iter ):
+        return self.insertMany( iter, 'Cluster' )
 
-    def update( self, object, target, overwrite, recursive=False ):
+    def update( self, object, target, recursive=False ):
         """updates or overwrite an object and associations"""
-        if overwrite is True:
-            self.insert( object, target, overwrite=True )
-            return
         stored = self.load( object['id'], target )
         if stored is not None:
             object = PyTextMiner.updateObjectEdges( object, stored )
-        self.insert( object, target, overwrite )
+        self.insert( object, target  )
         
-    def updateWhitelist( self, obj, overwrite, recursive=False ):
+    def updateWhitelist( self, obj, recursive=False ):
         """updates or overwrite a Whitelist and associations"""
-        self.update( obj, 'Whitelist', overwrite, recursive )
+        self.update( obj, 'Whitelist', recursive )
 
-    def updateCluster( self, obj, overwrite, recursive=False ):
+    def updateCluster( self, obj, recursive=False ):
         """updates or overwrite a Cluster and associations"""
-        self.update( obj, 'Cluster', overwrite, recursive )
+        self.update( obj, 'Cluster', recursive )
 
-    def updateCorpora( self, obj, overwrite, recursive=False ):
+    def updateCorpora( self, obj, recursive=False ):
         """updates or overwrite a Corpora and associations"""
-        self.update( obj, 'Corpora', overwrite, recursive )
+        self.update( obj, 'Corpora', recursive )
 
-    def updateCorpus( self, obj, overwrite, recursive=False ):
+    def updateCorpus( self, obj, recursive=False ):
         """updates or overwrite a Corpus and associations"""
-        self.update( obj, 'Corpus', overwrite, recursive )
+        self.update( obj, 'Corpus', recursive )
 
-    def updateDocument( self, obj, overwrite, recursive=False ):
+    def updateDocument( self, obj, recursive=False ):
         """updates or overwrite a Document and associations"""
-        self.update( obj, 'Document', overwrite, recursive )
+        self.update( obj, 'Document', recursive )
 
-    def updateNGram( self, obj, overwrite, recursive=False ):
+    def updateNGram( self, obj, recursive=False ):
         """
         updates or overwrite a ngram and associations
         """
@@ -380,13 +379,13 @@ class Engine(Backend):
             return queuesize
 
     def flushNGramQueue(self):
-        self.insertManyNGram( self.ngramqueue, overwrite=True )
+        self.insertManyNGram( self.ngramqueue )
         self.ngramqueue = []
         self.ngramqueueindex = []
 
     def flushGraphPreprocessQueue(self):
         for category, queue in self.graphpreprocessqueue.iteritems():
-            self.insertManyGraphPreprocess(queue, category, overwrite=True)
+            self.insertManyGraphPreprocess(queue, category)
             self.graphpreprocessqueue[category]=[]
 
     def flushQueues(self):
