@@ -213,11 +213,12 @@ class TinasoftServer(resource.Resource):
     Main Server class
     dynamically dispatching URL to a TinaServerResquest class
     """
-    def __init__(self, tinacallback, posthandler, gethandler, deletehandler):
+    def __init__(self, tinacallback, posthandler, gethandler, deletehandler, puthandler):
         self.callback = tinacallback
         self.posthandler = posthandler
         self.gethandler = gethandler
         self.deletehandler = deletehandler
+        self.puthandler = puthandler
         resource.Resource.__init__(self)
 
     def getChild(self, name, request):
@@ -230,6 +231,9 @@ class TinasoftServer(resource.Resource):
                 getattr(handler, name)
             elif request.method == 'DELETE':
                 handler = self.deletehandler
+                getattr(handler, name)
+            elif request.method == 'PUT':
+                handler = self.puthandler
                 getattr(handler, name)
             else:
                 raise Exception()
@@ -534,7 +538,8 @@ def run(confFile):
         Serializer(),
         POSTHandler(pytmapi),
         GETHandler(pytmapi, stream),
-        DELETEHandler(pytmapi)
+        DELETEHandler(pytmapi),
+        PUTHandler(pytmapi)
     )
     # the user generated files directory is served as-is
     pytmserver.putChild("user", File(pytmapi.user) )
