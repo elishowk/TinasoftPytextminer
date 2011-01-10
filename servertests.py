@@ -145,7 +145,7 @@ class TestGraph(ServerTest):
         corpusResult = getObject(self.connection, self.headers, 'corpus', self.datasetId, self.period)
         self.failUnless( isinstance( corpusResult, corpus.Corpus ), "corpus request failed" )
         
-        print "Testing the NGram nodes in period %s"%self.period
+        print "Testing NGram nodes in period %s"%self.period
         for ngid in corpusResult['edges']['NGram'].iterkeys():
             ngramObj = getObject(self.connection, self.headers, 'ngram', self.datasetId, ngid)
             self.failUnless( isinstance( ngramObj, ngram.NGram ), "ngram request failed" )
@@ -173,7 +173,7 @@ class TestGraph(ServerTest):
                     self.failUnlessEqual( weight,  data['edges']["NGram::"+ngramObj['id']][category+"::"+targetid],
                         "bad ngram weight : %s"%ngramObj['label'] )
                     
-        print "Testing the Document nodes in period %s"%self.period
+        print "Testing Document nodes in period %s"%self.period
         for docid in corpusResult['edges']['Document'].iterkeys():
             documentObj = getObject(self.connection, self.headers, 'document', self.datasetId, docid)
             self.failUnless( isinstance( documentObj, document.Document ), "document request failed" )
@@ -183,7 +183,7 @@ class TestGraph(ServerTest):
             self.failUnlessEqual( documentObj['label'], data['nodes']["Document::"+documentObj['id']]['label'], "Document label test failed : %s"%documentObj['label'] )
             self.failUnlessEqual( data['nodes']["Document::"+documentObj['id']]['weight'], corpusResult.edges['Document'][documentObj['id']], "Corpus-Document weight test failed : %s"%corpusResult.edges['Document'][documentObj['id']] )
             
-            for targetgraphid, weight in data['edges']["Document::"+ngid].iteritems():
+            for targetgraphid, weight in data['edges']["Document::"+docid].iteritems():
                 category, targetid = targetgraphid.split("::")
                 self.failUnless( ( targetid in documentObj['edges'][category]),
                     "missing edge of Document: %s, target = %s::%s"%(documentObj['label'], category, targetid) )

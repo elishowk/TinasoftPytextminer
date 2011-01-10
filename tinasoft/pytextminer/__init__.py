@@ -81,6 +81,12 @@ class PyTextMiner(object):
             for targetid, weight in updateedges[targettype].iteritems():
                 self.addEdge( targettype, targetid, weight )
 
+    def updateObject(self, obj):
+        """ overwrites all attributes then increment edges """
+        edges = obj['edges']
+        del obj['edges']
+        self.__dict__.update(obj.__dict__)
+        self.updateEdges( edges )
 
     @staticmethod
     def form_label(tokens):

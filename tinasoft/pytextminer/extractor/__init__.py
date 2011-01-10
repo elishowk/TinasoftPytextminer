@@ -164,12 +164,13 @@ class Extractor():
         Verifying previous storage contents preventing data corruption
         Updates Document
         """
+        _logger.debug("%d in document %s"%(len(docngrams.keys()),document['id']))
+        storedDoc = self.storage.loadDocument( document['id'] )
         for ngid, ng in docngrams.iteritems():
             # increments document-ngram edge
             docOccs = ng['occs']
             del ng['occs']
-            # updates NGram-Corpus edges
-            storedDoc = self.storage.loadDocument( document['id'] )
+
             ### document is not in the database
             if storedDoc is None:
                 ng.addEdge( 'Corpus', corpusNum, 1 )
@@ -190,9 +191,7 @@ class Extractor():
             self.storage.updateManyNGram( ng )
             
         self.storage.flushNGramQueue()
-        
-        # creates or update document into storage
-        storedDoc = self.storage.loadDocument( document['id'] )
+
         if storedDoc is not None:
             self.duplicate += [storedDoc]
         self.storage.updateDocument( document )

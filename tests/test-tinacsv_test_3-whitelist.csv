@@ -1,15 +1,15 @@
-"status","label","pos tag","total occs","ngram forms","length","total occs ^ length","max occs per period","max occs period id","max occs  ^ length per period","max occs ^ length period id","period list","db ID"
-"w","visualisation","['NN']",1,"visualization *** visualisation",1,1,0.33,"FET",0.33,"FET","FET","a5961f3f5ac8a594d1c084d5948a7fa0b44d181b67ede0973c6641216ec06920"
-"w","interactive assessement","['JJ', 'NN']",1,"interactive assessement",2,1,0.33,"FET",0.33,"FET","FET","17cbabdd608f349c51432d599e43de755647495555aac4b00e4495263ed7a260"
-"","assessement","['NN']",1,"assessement",1,1,0.33,"FET",0.33,"FET","FET","14b9005e4f90ef7ebbee9f3e6559a67ce4fb2c16d0dff884213e4d1a0b825ff9"
-"","analysis","['NN']",2,"analysis",1,2,0.67,"FET",0.67,"FET","FET","395681e8cf118552aab1ff4e5ca45ae7888d7a4dd05a8209f5e3420b37b6f624"
-"","research","['NN']",2,"research",1,2,0.67,"FET",0.67,"FET","FET","66f62d1807d3821a3865f2573b69c74be033f1341240ac861fefc6d430bff5e0"
-"","duplicated document","['VBN', 'NN']",1,"duplicated document",2,1,0.33,"FET",0.33,"FET","FET","e0b753f5de4d22969d8a5e27381722382f9e61282feb6b2c3d8779f718ee11b8"
-"w","analysis and visualisation","['NN', 'CC', 'NN']",2,"analysis and visualisation",3,8,0.67,"FET",2.67,"FET","FET","efff3da5e8641d71495fd48ee24350903b1aeb0b7ec1725e0faec64e3abc6eae"
-"w","scientific research","['JJ', 'NN']",2,"scientific research",2,4,0.67,"FET",1.33,"FET","FET","2e13ee9d5697cd8a2448226df67b4bd4754e6ca123da5ba7d2a85d0530d9c653"
-"w","TINA EC ICT FP7 CA","['?']",2,"tina *** TINA",1,2,0.67,"FET",0.67,"FET","FET","d148bfa1bbe1ce4635f6bc654de582708d6efff9815b4ed28bd49b688830d194"
-"","unique document","['JJ', 'NN']",1,"unique document",2,1,0.33,"FET",0.33,"FET","FET","970b9265e743420e37a61fe41e98d9306e5f079a718a78feaff433eca9e1276d"
-"","support action","['NN', 'NN']",2,"support action",2,4,0.67,"FET",1.33,"FET","FET","bef7fa5f32ece691ab61770d8ccfa66451d4a2e90e176c476dd2d15143e3f713"
-"","support","['NN']",2,"support",1,2,0.67,"FET",0.67,"FET","FET","a18603086e5bdf9df88ccc9f5a083fed093e819976e87456b74dafcbd7011114"
-"","document","['NN']",2,"document",1,2,0.67,"FET",0.67,"FET","FET","43cc23fa52b87b4cc1d02b5b114154151d6adddb17c9fddc06b027fa99e24008"
-"","action","['NN']",2,"action",1,2,0.67,"FET",0.67,"FET","FET","bd938c688f49b77c7fc537c6b9222e2c97ebddd63076b87f2feaec66fb9c05d0"
+status,label,"pos tag","total occs","ngram forms",length,"total occs ^ length","max occs per period","max occs period id","max occs  ^ length per period","max occs ^ length period id","period list","db ID"
+w,visualisation,['NN'],1,"visualization *** visualisation",1,1,0.33,FET,0.33,FET,FET,a5961f3f5ac8a594d1c084d5948a7fa0b44d181b67ede0973c6641216ec06920
+w,"interactive assessement","['JJ', 'NN']",1,"interactive assessement",2,1,0.33,FET,0.33,FET,FET,17cbabdd608f349c51432d599e43de755647495555aac4b00e4495263ed7a260
+,assessement,['NN'],1,assessement,1,1,0.33,FET,0.33,FET,FET,14b9005e4f90ef7ebbee9f3e6559a67ce4fb2c16d0dff884213e4d1a0b825ff9
+,analysis,['NN'],2,analysis,1,2,0.67,FET,0.67,FET,FET,395681e8cf118552aab1ff4e5ca45ae7888d7a4dd05a8209f5e3420b37b6f624
+,research,['NN'],2,research,1,2,0.67,FET,0.67,FET,FET,66f62d1807d3821a3865f2573b69c74be033f1341240ac861fefc6d430bff5e0
+,"duplicated document","['VBN', 'NN']",1,"duplicated document",2,1,0.33,FET,0.33,FET,FET,e0b753f5de4d22969d8a5e27381722382f9e61282feb6b2c3d8779f718ee11b8
+w,"analysis and visualisation","['NN', 'CC', 'NN']",2,"analysis and visualisation",3,8,0.67,FET,2.67,FET,FET,efff3da5e8641d71495fd48ee24350903b1aeb0b7ec1725e0faec64e3abc6eae
+w,"scientific research","['JJ', 'NN']",2,"scientific research",2,4,0.67,FET,1.33,FET,FET,2e13ee9d5697cd8a2448226df67b4bd4754e6ca123da5ba7d2a85d0530d9c653
+w,"TINA EC ICT FP7 CA",['?'],2,tina,1,2,0.67,FET,0.67,FET,FET,d148bfa1bbe1ce4635f6bc654de582708d6efff9815b4ed28bd49b688830d194
+,"unique document","['JJ', 'NN']",1,"unique document",2,1,0.33,FET,0.33,FET,FET,970b9265e743420e37a61fe41e98d9306e5f079a718a78feaff433eca9e1276d
+,"support action","['NN', 'NN']",2,"support action",2,4,0.67,FET,1.33,FET,FET,bef7fa5f32ece691ab61770d8ccfa66451d4a2e90e176c476dd2d15143e3f713
+,support,['NN'],2,support,1,2,0.67,FET,0.67,FET,FET,a18603086e5bdf9df88ccc9f5a083fed093e819976e87456b74dafcbd7011114
+,document,['NN'],2,document,1,2,0.67,FET,0.67,FET,FET,43cc23fa52b87b4cc1d02b5b114154151d6adddb17c9fddc06b027fa99e24008
+,action,['NN'],2,action,1,2,0.67,FET,0.67,FET,FET,bd938c688f49b77c7fc537c6b9222e2c97ebddd63076b87f2feaec66fb9c05d0

@@ -322,14 +322,6 @@ class Engine(Backend):
     def insertManyCluster( self, iter ):
         return self.insertMany( iter, 'Cluster' )
 
-    def _updateObject(self, stored, obj):
-        """ overwrites all attributes then increment edges """
-        upobj = stored
-        upobj.__dict__.update(obj.__dict__)
-        stored.updateEdges( obj['edges'] )
-        upobj['edges'] = stored['edges']
-        return upobj
-
     def _neighboursUpdate(self, obj, target):
         """
         updates object's neighbours edges
@@ -346,8 +338,8 @@ class Engine(Backend):
         """updates an object and associations"""
         stored = self.load( obj['id'], target )
         if stored is not None:
-            obj = self._updateObject(stored, obj)
-        _logger.debug(obj)
+            stored.updateObject(obj)
+            obj = stored
         self.insert( obj, target )
         if recursive is True:
             self._neighboursUpdate(obj, target)
@@ -388,9 +380,10 @@ class Engine(Backend):
             self.flushNGramQueue()
         stored = self.loadNGram(obj['id'])
         if stored is not None:
-            obj = self._updateObject(stored, obj)
+            stored.updateObject(obj)
+            obj = stored
         # adds object to the INSERT the queue and returns its length
-        return self._ngramQueue(obj['id'], obj)
+        return self._ngramQueue( obj['id'], obj )
 
     def updateGraphPreprocess(self, period, category, id, row):
         """

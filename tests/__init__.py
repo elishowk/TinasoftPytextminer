@@ -132,7 +132,7 @@ def get_tinacsv_test_3_data(ngram_prox="cooccurrences", doc_prox="sharedNGrams")
                 "NGram::818c1d3377c1b53a31b756404dd07fcf642fbb59c30ab27c1f92cb1e746570dc": 1,
                 "NGram::0d712987367dce537111041aa572fc3f368c50b99b2ed06271840f15ae88af3e": 1,
                 # it shares "TINA", "analysis and visualisation" & "scientific research"
-                "Document::59": 3,
+                "Document::59": 4,
                 # it shares "TINA"
                 "Document::55": 1,
             },
@@ -143,7 +143,7 @@ def get_tinacsv_test_3_data(ngram_prox="cooccurrences", doc_prox="sharedNGrams")
                 "NGram::0d712987367dce537111041aa572fc3f368c50b99b2ed06271840f15ae88af3e": 1,
                 "NGram::a9f6eb8ed71f6e1d6e8121cf05e6d7d3362382010d973681a9e2351e3ab2c958": 1,
                 # it shares "TINA", "analysis and visualisation" & "scientific research"
-                "Document::60": 3,
+                "Document::60": 4,
                 # it shares "TINA"
                 "Document::55": 1,
             },

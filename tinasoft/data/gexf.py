@@ -18,7 +18,7 @@ __author__="elishowk@nonutc.fr"
 
 #from tinasoft import threadpool
 from tinasoft.data import Handler
-from tinasoft.pytextminer import PyTextMiner
+from tinasoft.pytextminer import PyTextMiner, ngram
 
 
 # Tenjin, the fastest template engine in the world !
@@ -132,10 +132,10 @@ class Exporter(Handler):
         obj = self.storage.load(nodeid, category)
         if obj is None: return
         # temp edges row for the target category
-        temp = { category: row }
+        partialgraphedges = { category: row }
         # overwrites the object
-        obj.updateEdges(temp)
-        self.storage.insert( obj, category )
+        obj.updateEdges(partialgraphedges)
+        self.storage.insert(obj, category, obj['id'])
 
     def finalize(self, path, exportedges=False):
         """
