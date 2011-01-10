@@ -45,10 +45,12 @@ __author__ = "elishowk@nonutc.fr"
 def get_tinacsv_test_3_data(ngram_prox="cooccurrences", doc_prox="sharedNGrams"):
     return {
         'nodes' : {
+            # matches "TINA" and "tina"
             "NGram::3743759f962f379be74fbd207d5c2e8ed68bb56751763772f7370bc13b76bb7e": {
                 'weight': 3,
                 'label': "TINA EC ICT FP7 CA"
             },
+            # matches "visualisation" and "visualization"
             "NGram::a7a9ed6c4c233c9fc17c8ff33d4f490df8750503939d726ca856d109a2c1bd98": {
                 'weight': 2,
                 'label': "visualisation"
@@ -79,6 +81,7 @@ def get_tinacsv_test_3_data(ngram_prox="cooccurrences", doc_prox="sharedNGrams")
             },
         },
         'edges': {
+            # "TINA" and "tina"
             "NGram::3743759f962f379be74fbd207d5c2e8ed68bb56751763772f7370bc13b76bb7e" : {
                 "NGram::a7a9ed6c4c233c9fc17c8ff33d4f490df8750503939d726ca856d109a2c1bd98": 2,
                 "NGram::818c1d3377c1b53a31b756404dd07fcf642fbb59c30ab27c1f92cb1e746570dc": 2,
@@ -88,6 +91,7 @@ def get_tinacsv_test_3_data(ngram_prox="cooccurrences", doc_prox="sharedNGrams")
                 "Document::59": 1,
                 "Document::55": 1,
             },
+            # "visualisation" and "visualization"
             "NGram::a7a9ed6c4c233c9fc17c8ff33d4f490df8750503939d726ca856d109a2c1bd98" : {
                 "NGram::3743759f962f379be74fbd207d5c2e8ed68bb56751763772f7370bc13b76bb7e": 2,
                 "NGram::818c1d3377c1b53a31b756404dd07fcf642fbb59c30ab27c1f92cb1e746570dc": 2,
@@ -95,8 +99,8 @@ def get_tinacsv_test_3_data(ngram_prox="cooccurrences", doc_prox="sharedNGrams")
                 "NGram::a9f6eb8ed71f6e1d6e8121cf05e6d7d3362382010d973681a9e2351e3ab2c958": 1,
                 "Document::60": 1,
                 "Document::59": 2,
-                #"Document::55": 0,
             },
+            # "analysis and visualisation"
             "NGram::818c1d3377c1b53a31b756404dd07fcf642fbb59c30ab27c1f92cb1e746570dc": {
                 "NGram::3743759f962f379be74fbd207d5c2e8ed68bb56751763772f7370bc13b76bb7e": 2,
                 "NGram::a7a9ed6c4c233c9fc17c8ff33d4f490df8750503939d726ca856d109a2c1bd98": 2,
@@ -104,8 +108,8 @@ def get_tinacsv_test_3_data(ngram_prox="cooccurrences", doc_prox="sharedNGrams")
                 "NGram::a9f6eb8ed71f6e1d6e8121cf05e6d7d3362382010d973681a9e2351e3ab2c958": 1,
                 "Document::60": 1,
                 "Document::59": 1,
-                #"Document::55": 0,
             },
+            # "scientific research"
             "NGram::0d712987367dce537111041aa572fc3f368c50b99b2ed06271840f15ae88af3e": {
                 "NGram::3743759f962f379be74fbd207d5c2e8ed68bb56751763772f7370bc13b76bb7e": 2,
                 "NGram::a7a9ed6c4c233c9fc17c8ff33d4f490df8750503939d726ca856d109a2c1bd98": 2,
@@ -113,24 +117,23 @@ def get_tinacsv_test_3_data(ngram_prox="cooccurrences", doc_prox="sharedNGrams")
                 "NGram::a9f6eb8ed71f6e1d6e8121cf05e6d7d3362382010d973681a9e2351e3ab2c958": 1,
                 "Document::60": 1,
                 "Document::59": 1,
-                #"Document::55": 0,
             },
+            # "interactive assessement"
             "NGram::a9f6eb8ed71f6e1d6e8121cf05e6d7d3362382010d973681a9e2351e3ab2c958": {
                 "NGram::3743759f962f379be74fbd207d5c2e8ed68bb56751763772f7370bc13b76bb7e": 1,
                 "NGram::a7a9ed6c4c233c9fc17c8ff33d4f490df8750503939d726ca856d109a2c1bd98": 1,
                 "NGram::818c1d3377c1b53a31b756404dd07fcf642fbb59c30ab27c1f92cb1e746570dc": 1,
                 "NGram::0d712987367dce537111041aa572fc3f368c50b99b2ed06271840f15ae88af3e": 1,
-                #"Document::60": 0,
                 "Document::59": 1,
-                #"Document::55": 0,
             },
             "Document::60": {
                 "NGram::3743759f962f379be74fbd207d5c2e8ed68bb56751763772f7370bc13b76bb7e": 1,
                 "NGram::a7a9ed6c4c233c9fc17c8ff33d4f490df8750503939d726ca856d109a2c1bd98": 1,
                 "NGram::818c1d3377c1b53a31b756404dd07fcf642fbb59c30ab27c1f92cb1e746570dc": 1,
                 "NGram::0d712987367dce537111041aa572fc3f368c50b99b2ed06271840f15ae88af3e": 1,
-                #"NGram::a9f6eb8ed71f6e1d6e8121cf05e6d7d3362382010d973681a9e2351e3ab2c958": 0,
-                "Document::59": 4,
+                # it shares "TINA", "analysis and visualisation" & "scientific research"
+                "Document::59": 3,
+                # it shares "TINA"
                 "Document::55": 1,
             },
             "Document::59": {
@@ -139,15 +142,14 @@ def get_tinacsv_test_3_data(ngram_prox="cooccurrences", doc_prox="sharedNGrams")
                 "NGram::818c1d3377c1b53a31b756404dd07fcf642fbb59c30ab27c1f92cb1e746570dc": 1,
                 "NGram::0d712987367dce537111041aa572fc3f368c50b99b2ed06271840f15ae88af3e": 1,
                 "NGram::a9f6eb8ed71f6e1d6e8121cf05e6d7d3362382010d973681a9e2351e3ab2c958": 1,
-                "Document::60": 4,
+                # it shares "TINA", "analysis and visualisation" & "scientific research"
+                "Document::60": 3,
+                # it shares "TINA"
                 "Document::55": 1,
             },
             "Document::55": {
                 "NGram::3743759f962f379be74fbd207d5c2e8ed68bb56751763772f7370bc13b76bb7e": 1,
-                #"NGram::a7a9ed6c4c233c9fc17c8ff33d4f490df8750503939d726ca856d109a2c1bd98": 0,
-                #"NGram::818c1d3377c1b53a31b756404dd07fcf642fbb59c30ab27c1f92cb1e746570dc": 0,
-                #"NGram::0d712987367dce537111041aa572fc3f368c50b99b2ed06271840f15ae88af3e": 0,
-                #"NGram::a9f6eb8ed71f6e1d6e8121cf05e6d7d3362382010d973681a9e2351e3ab2c958": 0,
+                # they both share "TINA"
                 "Document::60": 1,
                 "Document::59": 1,
             },
