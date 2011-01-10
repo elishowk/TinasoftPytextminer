@@ -143,6 +143,7 @@ class TestGraph(ServerTest):
         self.failUnless( isinstance( corporaResult, corpora.Corpora ), "dataset request failed : %s"%self.datasetId )
         
         corpusResult = getObject(self.connection, self.headers, 'corpus', self.datasetId, self.period)
+        print corpusResult
         self.failUnless( isinstance( corpusResult, corpus.Corpus ), "corpus request failed" )
         
         print "Testing the NGram nodes in period %s"%self.period

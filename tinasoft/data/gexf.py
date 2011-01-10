@@ -134,7 +134,8 @@ class Exporter(Handler):
         # temp edges row for the target category
         temp = { category: row }
         # overwrites the object
-        self.storage.insert( obj.updateEdges(temp), category )
+        obj.updateEdges(temp)
+        self.storage.insert( obj, category )
 
     def finalize(self, path, exportedges=False):
         """
