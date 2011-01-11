@@ -337,14 +337,22 @@ class Engine(Backend):
                     else:
                         neighbourobj['edges'][target][obj['id']] = obj['edges'][category][neighbourid] 
                     self.insert(neighbourobj, category)
-                
+    
+    def _cleanObject(self, obj):
+        for targettype in obj['edges'].keys():
+            for targetid in obj['edges'][targettype].keys():
+                if obj['edges'][targettype][targetid] == 0:
+                    del obj['edges'][targettype][targetid]
+        return obj
 
     def update( self, obj, target, redondantupdate=False ):
-        """updates an object and associations"""
+        """updates an object and its edges"""
         stored = self.load( obj['id'], target )
         if stored is not None:
             stored.updateObject(obj)
             obj = stored
+        # sends a storage object in case it's a Document
+        obj._cleanEdges(storage=self)
         self.insert( obj, target )
         if redondantupdate is True:
             self._neighboursUpdate(obj, target)
@@ -469,3 +477,20 @@ class Engine(Backend):
                     yield ( record["id"], self.unpickle(str(record["pickle"])))
         except StopIteration, si:
             return
+        
+    def deleteNGramForm(self, dataset_id, form, ngid):
+        """
+        removes a NGram's form and 
+        """
+        ng = self.loadNGram(ngid)
+        del ng['edges']['label'][form]
+        del ng['edges']['postag'][form]
+        self.insertNGram(ng)
+        dataset = self.loadCorpora(dataset_id)
+        for corp_id in dataset['edges']['Corpus'].keys():
+            corp = self.loadCorpus(corp_id)
+            for doc_id in corp['edges']['Document'].keys():
+                doc = self.loadDocument(doc_id)
+                doc.deleteNGramForm(form, nbid, self)
+                self.updateDocument(doc, redundantupdate=True)
+                

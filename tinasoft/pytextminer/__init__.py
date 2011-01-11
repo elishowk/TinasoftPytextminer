@@ -69,19 +69,17 @@ class PyTextMiner(object):
             defaultedges.update(edges)
         self.edges = defaultedges
 
-    @staticmethod
-    def updateObjectEdges(canditate, toupdate):
-        """increments an object's edges with the candidate object's edges"""
-        toupdate.updateEdges(candidate['edges'])
-        return toupdate
+    def _cleanEdges(self, *args, **kwargs):
+        for targettype in self['edges'].keys():
+            for targetid in self['edges'][targettype].keys():
+                if self['edges'][targettype][targetid] == 0:
+                    del self['edges'][targettype][targetid]
 
     def updateEdges(self, updateedges):
-        """increments an object's edges with the candidate edges"""
+        """updates an object's edges with the candidate edges dictionnary"""
         for targettype in updateedges.iterkeys():
             for targetid, weight in updateedges[targettype].iteritems():
                 self.addEdge( targettype, targetid, weight )
-                if self['edges'][targettype][targetid] == 0:
-                    del self['edges'][targettype][targetid]
 
     def updateObject(self, obj):
         """ overwrites all attributes then increment edges """

@@ -278,57 +278,15 @@ class PytextminerFlowApi(PytextminerFileApi):
             return
         except StopIteration, si:
             storage.flushNGramQueue()
-            
             self.logger.debug("starting cooc preprocessing")
-            ### prepares parameters
-            periods = []
-            for corpusid in storage.loadCorpora(dataset).edges['Corpus'].keys():
-                corpusobj = storage.loadCorpus( corpusid )
-                if corpusobj is None: continue
-                periods += [corpusobj]
-
-            ngramgraphconfig = self.config['datamining']['NGramGraph']
-
-            ### cooccurrences for each period
-            for period in periods:
-                ngram_index = set(period.edges['NGram'].keys())
-                if len(ngram_index) == 0: continue
-                
-                ngram_matrix_reducer = graph.MatrixReducer( ngram_index )
-                
-                cooc_writer = self._new_graph_writer(
-                    dataset,
-                    [period['id']],
-                    whitelist['id'],
-                    storage,
-                    generate=False,
-                    preprocess=True
-                )
-                
-                ngram_graph_preprocess = _dynamic_get_class("tinasoft.pytextminer.graph", "NgramGraphPreprocess")
-                ngramsubgraph_gen = graph.process_ngram_subgraph(
-                    self.config,
-                    dataset,
-                    [period],
-                    ngram_index,
-                    doc_index,
-                    ngram_matrix_reducer,
-                    ngramgraphconfig,
-                    cooc_writer,
-                    storage,
-                    ngram_graph_preprocess
-                )
-                try:
-                    while 1:
-                        yield self.STATUS_RUNNING
-                        ngram_matrix_reducer_update = ngramsubgraph_gen.next()
-                except StopIteration, stopi:
-                    self.logger.debug("end of cooc preprocessing")
-                    pass
-                    
-            ### end of preprocess
-            yield extract.duplicate
-            return
+            preprocessgen = self.graphpreprocess(dataset, whitelistpath)
+            try:
+                while 1:
+                    yield preprocessgen.next()
+            except StopIteration, si:
+                pass
+        yield extract.duplicate
+        return
 
     def _new_graph_writer(self, dataset, periods, whitelistid, storage=None, generate=True, preprocess=False):
         """ creates the Graph exporter """
@@ -496,6 +454,7 @@ class PytextminerFlowApi(PytextminerFileApi):
         
         if exportedges is True:
             self.logger.warning("exporting the full graph to current.gexf")
+            # TODO change graphmeta to switch "data/source" to "standalone"
             GEXFWriter.finalize("current.gexf", exportedges=True)
         # returns the absolute path of outpath
         GEXFWriter.finalize(outpath, exportedges=False)
@@ -569,6 +528,61 @@ class PytextminerFlowApi(PytextminerFileApi):
         except StopIteration, si:
             yield self.STATUS_OK
             return
+
+    def graphpreprocess(self, dataset, whitelistpath):
+        """Preprocesses graph database overwriting bi-partite edges based on present edges"""
+        storage = self.get_storage(dataset, create=True, drop_tables=False)
+        if storage == self.STATUS_ERROR:
+            yield self.STATUS_ERROR
+            return
+        yield self.STATUS_RUNNING
+        whitelist = self._import_whitelist(whitelistpath)
+        yield self.STATUS_RUNNING
+        periods = []
+        for corpusid in storage.loadCorpora(dataset).edges['Corpus'].keys():
+            corpusobj = storage.loadCorpus( corpusid )
+            if corpusobj is None: continue
+            periods += [corpusobj]
+            self.STATUS_RUNNING
+            
+        ngramgraphconfig = self.config['datamining']['NGramGraph']
+        ### cooccurrences for each period
+        for period in periods:
+            ngram_index = set(period.edges['NGram'].keys())
+            if len(ngram_index) == 0: continue
+            yield self.STATUS_RUNNING
+            ngram_matrix_reducer = graph.MatrixReducer( ngram_index )
+            yield self.STATUS_RUNNING
+            cooc_writer = self._new_graph_writer(
+                dataset,
+                [period['id']],
+                whitelist['id'],
+                storage,
+                generate=False,
+                preprocess=True
+            )
+            yield self.STATUS_RUNNING
+            ngram_graph_preprocess = _dynamic_get_class("tinasoft.pytextminer.graph", "NgramGraphPreprocess")
+            ngramsubgraph_gen = graph.process_ngram_subgraph(
+                self.config,
+                dataset,
+                [period],
+                ngram_index,
+                doc_index,
+                ngram_matrix_reducer,
+                ngramgraphconfig,
+                cooc_writer,
+                storage,
+                ngram_graph_preprocess
+            )
+
+            try:
+                while 1:
+                    yield self.STATUS_RUNNING
+                    ngram_matrix_reducer_update = ngramsubgraph_gen.next()
+            except StopIteration, stopi:
+                self.logger.debug("end of cooc preprocessing")
+                return
 
     def export_cooc(self,
             dataset,
