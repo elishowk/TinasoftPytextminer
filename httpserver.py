@@ -136,7 +136,7 @@ class CooperativeExecution(object):
         'edgethreshold': list,
         'exportedges': bool,
         'object': jsonpickle.decode,
-        'recursive': bool
+        'redondant': bool
     }
 
     def _method_wrapper(self, request, serializer, handler, method, logger):
@@ -254,7 +254,7 @@ def value_to_gen(func):
 class POSTHandler(object):
     """
     Pytextminer API mapping POST requests to database insert methods
-    if @recursive is True, update will also write updated edges values to all linked nodes
+    if @redondant is True, update will also write updated edges values to all linked nodes
     """
     def __init__(self, pytmapi):
         self.pytmapi = pytmapi
@@ -268,36 +268,36 @@ class POSTHandler(object):
         return self.pytmapi.generate_graph(*args, **kwargs)
 
     @value_to_gen
-    def dataset(self, object, recursive):
+    def dataset(self, object, redondant):
         """ update """
         storage = self.pytmapi.get_storage( corporaobj['id'], create=False )
         if storage == self.pytmapi.STATUS_ERROR:
             return self.pytmapi.STATUS_ERROR
-        return storage.updateCorpora(object, recursive)
+        return storage.updateCorpora(object, redondant)
 
     @value_to_gen
-    def corpus(self, dataset, object, recursive):
+    def corpus(self, dataset, object, redondant):
         """ update """
         storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
             return self.pytmapi.STATUS_ERROR
-        return storage.updateCorpus(object, recursive)
+        return storage.updateCorpus(object, redondant)
 
     @value_to_gen
-    def document(self, dataset, object, recursive):
+    def document(self, dataset, object, redondant):
         """ update """
         storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
             return self.pytmapi.STATUS_ERROR
-        return storage.updateDocument(object, recursive)
+        return storage.updateDocument(object, redondant)
 
     @value_to_gen
-    def ngram(self, dataset, object, recursive):
+    def ngram(self, dataset, object, redondant):
         """ update """
         storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
             return self.pytmapi.STATUS_ERROR
-        return storage.updateNGram(object, recursive)
+        return storage.updateNGram(object, redondant)
 
 class GETHandler(object):
     """
@@ -423,28 +423,28 @@ class DELETEHandler(object):
         return self.pytmapi.delete_dataset(dataset)
         
     @value_to_gen
-    def corpus(self, dataset, id, recursive):
+    def corpus(self, dataset, id, redondant):
         """ remove """
         storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
             return self.pytmapi.STATUS_ERROR
-        return storage.delete(id, 'Corpus', recursive)
+        return storage.delete(id, 'Corpus', redondant)
 
     @value_to_gen
-    def document(self, dataset, id, recursive):
+    def document(self, dataset, id, redondant):
         """ remove """
         storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
             return self.pytmapi.STATUS_ERROR
-        return storage.delete(id, 'Document', recursive)
+        return storage.delete(id, 'Document', redondant)
 
     @value_to_gen
-    def ngram(self, dataset, id, recursive):
+    def ngram(self, dataset, id, redondant):
         """ remove """
         storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
             return self.pytmapi.STATUS_ERROR
-        return storage.delete(id, 'NGram', recursive)
+        return storage.delete(id, 'NGram', redondant)
 
 class NumpyFloatHandler(jsonpickle.handlers.BaseHandler):
     """

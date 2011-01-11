@@ -217,7 +217,7 @@ class Engine(Backend):
         self.flushQueues()
         self.close()
 
-    def delete(self, id, target, recursive=False):
+    def delete(self, id, target, redondantupdate=False):
         """deletes a object given its type and id"""
         self.safedelete(target, id)
 
@@ -324,51 +324,56 @@ class Engine(Backend):
 
     def _neighboursUpdate(self, obj, target):
         """
-        updates object's neighbours edges
+        updates neighbours symmetric edges
         """
         for category in obj['edges']:
+            if category == target: continue
             for neighbourid in obj['edges'][category]:
                 neighbourobj = self.load(neighbourid, category)
                 if neighbourobj is not None:
-                    neighbourobj['edges'][target][obj['id']] = obj['edges'][category][neighbourid]
+                    if obj['edges'][category][neighbourid] == 0:
+                        del obj['edges'][category][neighbourid]
+                        del neighbourobj['edges'][target][obj['id']]
+                    else:
+                        neighbourobj['edges'][target][obj['id']] = obj['edges'][category][neighbourid] 
                     self.insert(neighbourobj, category)
                 
 
-    def update( self, obj, target, recursive=False ):
+    def update( self, obj, target, redondantupdate=False ):
         """updates an object and associations"""
         stored = self.load( obj['id'], target )
         if stored is not None:
             stored.updateObject(obj)
             obj = stored
         self.insert( obj, target )
-        if recursive is True:
+        if redondantupdate is True:
             self._neighboursUpdate(obj, target)
         
-    def updateWhitelist( self, obj, recursive=False ):
+    def updateWhitelist( self, obj, redondantupdate=False ):
         """updates a Whitelist and associations"""
-        self.update( obj, 'Whitelist', recursive )
+        self.update( obj, 'Whitelist', redondantupdate )
 
-    def updateCluster( self, obj, recursive=False ):
+    def updateCluster( self, obj, redondantupdate=False ):
         """updates a Cluster and associations"""
-        self.update( obj, 'Cluster', recursive )
+        self.update( obj, 'Cluster', redondantupdate )
 
-    def updateCorpora( self, obj, recursive=False ):
+    def updateCorpora( self, obj, redondantupdate=False ):
         """updates a Corpora and associations"""
-        self.update( obj, 'Corpora', recursive )
+        self.update( obj, 'Corpora', redondantupdate )
 
-    def updateCorpus( self, obj, recursive=False ):
+    def updateCorpus( self, obj, redondantupdate=False ):
         """updates a Corpus and associations"""
-        self.update( obj, 'Corpus', recursive )
+        self.update( obj, 'Corpus', redondantupdate )
 
-    def updateDocument( self, obj, recursive=False ):
+    def updateDocument( self, obj, redondantupdate=False ):
         """updates a Document and associations"""
-        self.update( obj, 'Document', recursive )
+        self.update( obj, 'Document', redondantupdate )
 
-    def updateNGram( self, obj, recursive=False ):
+    def updateNGram( self, obj, redondantupdate=False ):
         """
         updates a ngram and associations
         """
-        self.update( obj, 'NGram', recursive )
+        self.update( obj, 'NGram', redondantupdate )
 
     def updateManyNGram( self, obj ):
         """

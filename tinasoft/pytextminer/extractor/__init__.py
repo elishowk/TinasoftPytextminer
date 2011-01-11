@@ -164,7 +164,6 @@ class Extractor():
         Verifying previous storage contents preventing data corruption
         Updates Document
         """
-        _logger.debug("%d in document %s"%(len(docngrams.keys()),document['id']))
         storedDoc = self.storage.loadDocument( document['id'] )
         for ngid, ng in docngrams.iteritems():
             # increments document-ngram edge
