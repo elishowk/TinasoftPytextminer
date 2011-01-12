@@ -70,6 +70,7 @@ class Importer(BaseImporter):
             if tmpfields[self.doc_label] in doc:
                 label = doc[ tmpfields[self.doc_label] ]
             else:
+                _logger.warning("custom label %s NOT found, using default 'label' field (%s)"%(self.doc_label, tmpfields['label']))
                 label = doc[tmpfields['label']]
                 del tmpfields['label']
         except KeyError, exc:
@@ -89,12 +90,14 @@ class Importer(BaseImporter):
             return None
         # parsing optional fields loop and TRY
         docArgs = {}
-        for field in tmpfields.itervalues():
+        for field, realname in tmpfields.iteritems():
             try:
-                docArgs[ field ] = doc[ field ]
+                docArgs[ field ] = doc[ realname ]
             except Exception, exc:
                 _logger.warning("missing field %s at line %d"%(field,self.reader.line_num))
-
+        for invalid_docarg in ["label","id","content","edges"]:
+            if invalid_docarg in docArgs:
+                del docArgs[invalid_docarg]
         # new document
         newdoc = document.Document(
             content,
