@@ -422,29 +422,36 @@ class DELETEHandler(object):
         """ deletes all the dataset's files and directory """
         return self.pytmapi.delete_dataset(dataset)
         
+    #@value_to_gen
+    #def corpus(self, dataset, id, redondant):
+    #    """ remove """
+    #    storage = self.pytmapi.get_storage( dataset, create=False )
+    #    if storage == self.pytmapi.STATUS_ERROR:
+    #        return self.pytmapi.STATUS_ERROR
+    #    return storage.delete(id, 'Corpus', redondant)
+    #
+    #@value_to_gen
+    #def document(self, dataset, id, redondant):
+    #    """ remove """
+    #    storage = self.pytmapi.get_storage( dataset, create=False )
+    #    if storage == self.pytmapi.STATUS_ERROR:
+    #        return self.pytmapi.STATUS_ERROR
+    #    return storage.delete(id, 'Document', redondant)
+    #
+    #@value_to_gen
+    #def ngram(self, dataset, id, redondant):
+    #    """ remove """
+    #    storage = self.pytmapi.get_storage( dataset, create=False )
+    #    if storage == self.pytmapi.STATUS_ERROR:
+    #        return self.pytmapi.STATUS_ERROR
+    #    return storage.delete(id, 'NGram', redondant)
+        
     @value_to_gen
-    def corpus(self, dataset, id, redondant):
-        """ remove """
+    def ngramform(self, dataset, label, id):
         storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
             return self.pytmapi.STATUS_ERROR
-        return storage.delete(id, 'Corpus', redondant)
-
-    @value_to_gen
-    def document(self, dataset, id, redondant):
-        """ remove """
-        storage = self.pytmapi.get_storage( dataset, create=False )
-        if storage == self.pytmapi.STATUS_ERROR:
-            return self.pytmapi.STATUS_ERROR
-        return storage.delete(id, 'Document', redondant)
-
-    @value_to_gen
-    def ngram(self, dataset, id, redondant):
-        """ remove """
-        storage = self.pytmapi.get_storage( dataset, create=False )
-        if storage == self.pytmapi.STATUS_ERROR:
-            return self.pytmapi.STATUS_ERROR
-        return storage.delete(id, 'NGram', redondant)
+        return storage.deleteNGramForm( label, id )
 
 class NumpyFloatHandler(jsonpickle.handlers.BaseHandler):
     """

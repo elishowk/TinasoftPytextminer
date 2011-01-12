@@ -16,9 +16,11 @@
 
 __author__ = "elishowk@nonutc.fr"
 import datetime
+import re
 from tinasoft.pytextminer import PyTextMiner, corpus
 
-import re
+import logging
+_logger = logging.getLogger('TinaAppLogger')
 
 class Document(PyTextMiner):
     """a Document node containing content and linkied to ngrams and corpus"""
@@ -48,18 +50,19 @@ class Document(PyTextMiner):
                     del self['edges'][targettype][targetid]
                     if targettype == "NGram":
                         # decrement NGram-Corpus edges
-                        edges = {
+                        decrementedges = {
                             "NGram": {
                                 targetid : -1
                             }
                         }
                         for corpus_id in self['edges']['Corpus'].keys():
-                            updateCorpus = corpus.Corpus(corpus_id, edges=egdes)
+                            updateCorpus = corpus.Corpus(corpus_id, edges=decrementedges)
                             storage.updateCorpus(updateCorpus, redondantupdate=True)
                             
     def deleteNGramForm(self, form, ngid, storage):
         # count occurrences of the form in self['content']
-        matched = re.findall(r"\b%s\b"%form,self['content'],re.I+re.U)
+        matched = re.findall(r"\b%s\b"%form,self['content'],re.I | re.U)
         # decrement Document-NGram with count + redondant
         self.addEdge("NGram", ngid, -len(matched))
+        #_logger.debug(self.edges['NGram'])
         self._cleanEdges(storage)

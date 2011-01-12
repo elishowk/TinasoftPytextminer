@@ -179,10 +179,16 @@ class Backend(Handler):
 
     def safedelete(self, tabname, key):
         """
-        TODO
+        DELETE an object from database within a transaction
         """
-        _logger.warning("safedelete is not yet implemented")
-        pass
+        try:
+            cur = self._db.cursor()
+            cur.execute("DELETE FROM %s WHERE id=?"%tabname, (key,))
+            self.commit()
+        except Exception, _exc:
+            _logger.error( "exception during safedelete on table %s : %s"%(tabname,_exc) )
+            self.rollback()
+        
 
 class Engine(Backend):
     """
@@ -216,10 +222,6 @@ class Engine(Backend):
         """safely closes db and dbenv"""
         self.flushQueues()
         self.close()
-
-    def delete(self, id, target, redondantupdate=False):
-        """deletes a object given its type and id"""
-        self.safedelete(target, id)
 
     def load(self, id, target, raw=False):
         read = self.saferead( target, id )
@@ -324,7 +326,7 @@ class Engine(Backend):
 
     def _neighboursUpdate(self, obj, target):
         """
-        updates neighbours symmetric edges
+        updates neighbours symmetric edges and removes zero weighted edges
         """
         for category in obj['edges']:
             if category == target: continue
@@ -337,13 +339,6 @@ class Engine(Backend):
                     else:
                         neighbourobj['edges'][target][obj['id']] = obj['edges'][category][neighbourid] 
                     self.insert(neighbourobj, category)
-    
-    def _cleanObject(self, obj):
-        for targettype in obj['edges'].keys():
-            for targetid in obj['edges'][targettype].keys():
-                if obj['edges'][targettype][targetid] == 0:
-                    del obj['edges'][targettype][targetid]
-        return obj
 
     def update( self, obj, target, redondantupdate=False ):
         """updates an object and its edges"""
@@ -478,7 +473,21 @@ class Engine(Backend):
         except StopIteration, si:
             return
         
-    def deleteNGramForm(self, dataset_id, form, ngid):
+    def delete(self, id, target, redondantupdate=False):
+        """deletes a object given its type and id"""
+        if redondantupdate is True:
+            obj = self.load(id, target)
+            if obj is None: return
+            for cat in obj.edges.keys():
+                for neighbour_id in obj.edges[cat].keys():
+                    neighbour_obj = self.load(neighbour_id, cat)
+                    if neighbour_obj is None: continue
+                    if id in neighbour_obj.edges[target]:
+                        del neighbour_obj.edges[target][id]
+                    self.insert(neighbour_obj, cat)   
+        self.safedelete(target, id)
+        
+    def deleteNGramForm(self, form, ngid):
         """
         removes a NGram's form and 
         """
@@ -486,11 +495,10 @@ class Engine(Backend):
         del ng['edges']['label'][form]
         del ng['edges']['postag'][form]
         self.insertNGram(ng)
-        dataset = self.loadCorpora(dataset_id)
-        for corp_id in dataset['edges']['Corpus'].keys():
-            corp = self.loadCorpus(corp_id)
-            for doc_id in corp['edges']['Document'].keys():
-                doc = self.loadDocument(doc_id)
-                doc.deleteNGramForm(form, nbid, self)
-                self.updateDocument(doc, redundantupdate=True)
-                
+        doc_count = 0
+        for doc_id in ng['edges']['Document'].keys():
+            doc = self.loadDocument(doc_id)
+            doc.deleteNGramForm(form, ngid, self)
+            self.insertDocument(doc)
+            doc_count += 1
+        return doc_count
