@@ -163,11 +163,10 @@ class Extractor():
         except StopIteration:
             self.storage.updateCorpora( self.corpora )
             for corpusObj in self.corpusDict.values():
+                #import pdb; pdb.set_trace()
+                _logger.debug("%d NEW NGrams in corpus %s"%(len(corpusObj.edges['NGram'].keys()), corpusObj.id))
+                _logger.debug("found %d Documents in Corpus %s"%(len(corpusObj.edges['Document'].keys()), corpusObj.id))
                 self.storage.updateCorpus( corpusObj )
-                print corpusObj.edges
-                print corpusObj['edges']
-                _logger.debug("%d NEW NGrams in corpus %s"%(len(corpusObj['edges']['NGram'].keys()), corpusObj['id']))
-                _logger.debug("%d NEW Documents in corpus %s"%(len(corpusObj['edges']['Document'].keys()), corpusObj['id']))
             return
 
     def _update_NGram_Document( self, docngrams, document, corpusNum ):

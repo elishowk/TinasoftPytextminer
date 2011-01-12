@@ -1,6 +1,20 @@
 # -*- coding: utf-8 -*-
-__author__="Elias Showk"
+#  Copyright (C) 2009-2011 CREA Lab, CNRS/Ecole Polytechnique UMR 7656 (Fr)
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+__author__ = "elishowk@nonutc.fr"
 import datetime
 from tinasoft.pytextminer import PyTextMiner, corpus
 
@@ -20,10 +34,10 @@ class Document(PyTextMiner):
         PyTextMiner.__init__(self, content, id, label, edges, **metas)
 
     def addEdge(self, type, key, value):
-        if type in ["Corpus"]:
-            return self._addUniqueEdge( type, key, value )
-        elif type in ["Document"]:
+        if type in ["Document"]:
             return self._overwriteEdge( type, key, value )
+        elif type in ['Corpus']:
+            return self._addUniqueEdge( type, key, value )
         else:
             return self._addEdge( type, key, value )
             

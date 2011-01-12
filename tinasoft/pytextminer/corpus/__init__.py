@@ -31,7 +31,7 @@ class Corpus(PyTextMiner):
 
     def addEdge(self, type, key, value):
         # Corpora is linked only once to Corpus
-        if type == 'Corpora':
+        if type in ['Corpora','Document']:
             return self._addUniqueEdge( type, key, value )
         else:
             return  self._addEdge( type, key, value )

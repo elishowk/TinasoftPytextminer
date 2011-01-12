@@ -275,11 +275,12 @@ class PytextminerFlowApi(PytextminerFileApi):
                 yield self.STATUS_RUNNING
         except IOError, ioe:
             self.logger.error("%s"%ioe)
+            yield self.STATUS_ERROR
             return
         except StopIteration, si:
             storage.flushNGramQueue()
             self.logger.debug("starting cooc preprocessing")
-            preprocessgen = self.graphpreprocess(dataset, whitelistpath)
+            preprocessgen = self.graphpreprocess(dataset, whitelistpath, doc_index)
             try:
                 while 1:
                     yield preprocessgen.next()
@@ -529,7 +530,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             yield self.STATUS_OK
             return
 
-    def graphpreprocess(self, dataset, whitelistpath):
+    def graphpreprocess(self, dataset, whitelistpath, doc_index):
         """Preprocesses graph database overwriting bi-partite edges based on present edges"""
         storage = self.get_storage(dataset, create=True, drop_tables=False)
         if storage == self.STATUS_ERROR:
