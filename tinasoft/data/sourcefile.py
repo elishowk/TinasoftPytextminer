@@ -27,8 +27,6 @@ class Importer(BaseImporter):
     importer of any tinasoft source file format
     configuration kwargs passed to construction must contain a 'fields' dict
     """
-    # found corpus are stored here
-    corpusDict = {}
 
     def __init__(self, path, **kwargs):
         BaseImporter.__init__(self, path, **kwargs)
@@ -52,10 +50,6 @@ class Importer(BaseImporter):
             newdoc = self._parse_document( doc, tmpfields )
             # if error parsing the document
             if newdoc is None: continue
-            # if corpus DOES NOT already exist
-            if corpusID not in self.corpusDict:
-                # creates a new corpus and adds it to the global dict
-                self.corpusDict[ corpusID ] = corpus.Corpus( corpusID )
             # sends the document and the corpus id
             yield newdoc, corpusID
         self.file.close()

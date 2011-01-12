@@ -77,6 +77,7 @@ class Extractor():
         and finally export to a file
         """
         fileGenerator = self._walk_file(path, format)
+        self.corpusDict = {}
         if whitelistlabel is None:
             whitelistlabel = self.corpora['id']
         newwl = whitelist.Whitelist(whitelistlabel, whitelistlabel)
@@ -86,6 +87,10 @@ class Extractor():
             while 1:
                 # gets the next document
                 document, corpusNum = fileGenerator.next()
+                # if corpus DOES NOT already exist
+                if corpusNum not in self.corpusDict:
+                    # creates a new corpus and adds it to the global dict
+                    self.corpusDict[ corpusNum ] = corpus.Corpus( corpusNum )
                 document.addEdge( 'Corpus', corpusNum, 1 )
                 # extract and filter ngrams
                 docngrams = tokenizer.TreeBankWordTokenizer.extract(
@@ -124,16 +129,21 @@ class Extractor():
         self.duplicate = []
         self.filters = [whitelist]
         fileGenerator = self._walk_file( path, format )
+        self.corpusDict = {}
         doccount = 0
         try:
             while 1:
                 document, corpusNum = fileGenerator.next()
+                # if corpus DOES NOT already exist
+                if corpusNum not in self.corpusDict:
+                    # creates a new corpus and adds it to the global dict
+                    self.corpusDict[ corpusNum ] = corpus.Corpus( corpusNum )
                 document.addEdge( 'Corpus', corpusNum, 1 )
                 ### updates Corpora and Corpus objects edges
                 self.corpora.addEdge( 'Corpus', corpusNum, 1 )
-                self.reader.corpusDict[ corpusNum ].addEdge( 'Corpora', self.corpora['id'], 1)
+                self.corpusDict[ corpusNum ].addEdge( 'Corpora', self.corpora['id'], 1)
                 ### adds Corpus-Doc edge if possible
-                self.reader.corpusDict[ corpusNum ].addEdge( 'Document', document['id'], 1)
+                self.corpusDict[ corpusNum ].addEdge( 'Document', document['id'], 1)
                 ### extracts and filters ngrams
                 docngrams = tokenizer.TreeBankWordTokenizer.extract(
                     document,
@@ -152,10 +162,12 @@ class Extractor():
 
         except StopIteration:
             self.storage.updateCorpora( self.corpora )
-            for corpusObj in self.reader.corpusDict.values():
+            for corpusObj in self.corpusDict.values():
                 self.storage.updateCorpus( corpusObj )
-                _logger.debug("%d NEW NGrams in corpus %s"%(len(corpusObj.edges['NGram'].keys()), corpusObj['id']))
-                _logger.debug("%d NEW Documents in corpus %s"%(len(corpusObj.edges['Document'].keys()), corpusObj['id']))
+                print corpusObj.edges
+                print corpusObj['edges']
+                _logger.debug("%d NEW NGrams in corpus %s"%(len(corpusObj['edges']['NGram'].keys()), corpusObj['id']))
+                _logger.debug("%d NEW Documents in corpus %s"%(len(corpusObj['edges']['Document'].keys()), corpusObj['id']))
             return
 
     def _update_NGram_Document( self, docngrams, document, corpusNum ):
@@ -173,16 +185,16 @@ class Extractor():
             ### document is not in the database
             if storedDoc is None:
                 ng.addEdge( 'Corpus', corpusNum, 1 )
-                self.reader.corpusDict[ corpusNum ].addEdge( 'NGram', ngid, 1 )
+                self.corpusDict[ corpusNum ].addEdge( 'NGram', ngid, 1 )
             else:
                 ### document exists but not attached to the current period
                 if corpusNum not in storedDoc['edges']['Corpus']:
                     ng.addEdge( 'Corpus', corpusNum, 1 )
-                    self.reader.corpusDict[ corpusNum ].addEdge( 'NGram', ngid, 1 )
+                    self.corpusDict[ corpusNum ].addEdge( 'NGram', ngid, 1 )
                 ### document exist but does not contains the current ngram
                 if ngid not in storedDoc['edges']['NGram']:
                     ng.addEdge( 'Corpus', corpusNum, 1 )
-                    self.reader.corpusDict[ corpusNum ].addEdge( 'NGram', ngid, 1 )
+                    self.corpusDict[ corpusNum ].addEdge( 'NGram', ngid, 1 )
             ### updates Doc-NGram edges
             ng.addEdge( 'Document', document['id'], docOccs )
             document.addEdge( 'NGram', ng['id'], docOccs )
