@@ -254,7 +254,7 @@ class PytextminerFlowApi(PytextminerFileApi):
                 yield self.STATUS_ERROR
                 return
                     
-            doc_index = set([])
+            #doc_index = set([])
             
             extract = extractor.Extractor(
                 storage,
@@ -271,7 +271,8 @@ class PytextminerFlowApi(PytextminerFileApi):
                 overwrite
             )
             while 1:
-                doc_index |= set( [extractorGenerator.next()] )
+                #doc_index |= set( [extractorGenerator.next()] )
+                extractorGenerator.next()
                 yield self.STATUS_RUNNING
         except IOError, ioe:
             self.logger.error("%s"%ioe)
@@ -280,7 +281,7 @@ class PytextminerFlowApi(PytextminerFileApi):
         except StopIteration, si:
             storage.flushNGramQueue()
             self.logger.debug("starting cooc preprocessing")
-            preprocessgen = self.graphpreprocess(dataset, whitelistpath, doc_index)
+            preprocessgen = self.graph_preprocess(dataset)
             try:
                 while 1:
                     yield preprocessgen.next()
@@ -530,24 +531,24 @@ class PytextminerFlowApi(PytextminerFileApi):
             yield self.STATUS_OK
             return
 
-    def graphpreprocess(self, dataset, whitelistpath, doc_index):
+    def graph_preprocess(self, dataset):
         """Preprocesses graph database overwriting bi-partite edges based on present edges"""
         storage = self.get_storage(dataset, create=True, drop_tables=False)
         if storage == self.STATUS_ERROR:
             yield self.STATUS_ERROR
             return
         yield self.STATUS_RUNNING
-        whitelist = self._import_whitelist(whitelistpath)
-        yield self.STATUS_RUNNING
         periods = []
+        doc_index = set([])
         for corpusid in storage.loadCorpora(dataset).edges['Corpus'].keys():
             corpusobj = storage.loadCorpus( corpusid )
             if corpusobj is None: continue
             periods += [corpusobj]
+            doc_index |= set( corpusobj.edges['Document'].keys() )
             self.STATUS_RUNNING
             
         ngramgraphconfig = self.config['datamining']['NGramGraph']
-        ### cooccurrences for each period
+        ### cooccurrences calculated for each period
         for period in periods:
             ngram_index = set(period.edges['NGram'].keys())
             if len(ngram_index) == 0: continue
@@ -557,7 +558,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             cooc_writer = self._new_graph_writer(
                 dataset,
                 [period['id']],
-                whitelist['id'],
+                "preprocess",
                 storage,
                 generate=False,
                 preprocess=True

@@ -267,10 +267,14 @@ class POSTHandler(object):
         """ generate a graph given a dataset db, a whitelist and some graph params"""
         return self.pytmapi.generate_graph(*args, **kwargs)
 
+    def graph_preprocess(self, *args, **kwargs):
+        """ generate a graph given a dataset db, a whitelist and some graph params"""
+        return self.pytmapi.graph_preprocess(*args, **kwargs)
+
     @value_to_gen
     def dataset(self, object, redondant):
         """ update """
-        storage = self.pytmapi.get_storage( corporaobj['id'], create=False )
+        storage = self.pytmapi.get_storage( object['id'], create=False )
         if storage == self.pytmapi.STATUS_ERROR:
             return self.pytmapi.STATUS_ERROR
         return storage.updateCorpora(object, redondant)

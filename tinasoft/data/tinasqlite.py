@@ -501,4 +501,4 @@ class Engine(Backend):
             doc.deleteNGramForm(form, ngid, self)
             self.insertDocument(doc)
             doc_count += 1
-        return doc_count
+        return [form, doc_count]
