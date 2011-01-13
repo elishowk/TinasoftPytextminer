@@ -583,8 +583,7 @@ class PytextminerFlowApi(PytextminerFileApi):
                     yield self.STATUS_RUNNING
                     ngram_matrix_reducer_update = ngramsubgraph_gen.next()
             except StopIteration, stopi:
-                self.logger.debug("end of cooc preprocessing")
-                return
+                pass
 
     def export_cooc(self,
             dataset,
