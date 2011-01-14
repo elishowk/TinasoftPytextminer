@@ -109,12 +109,12 @@ class Extractor():
                     newwl.addContent( ng, corpusNum, document['id'] )
                     newwl.addEdge("NGram", ng['id'], 1)
                 newwl.storage.flushNGramQueue()
-                
+
                 doccount += 1
                 if doccount % NUM_DOC_NOTIFY == 0:
                     _logger.debug("%d documents parsed"%doccount)
                 yield doccount
-                
+
         except StopIteration:
             _logger.debug("Total documents extracted = %d"%doccount)
             self.storage.updateCorpora( self.corpora, False )
@@ -180,7 +180,6 @@ class Extractor():
             # increments document-ngram edge
             docOccs = ng['occs']
             del ng['occs']
-
             ### document is not in the database
             if storedDoc is None:
                 ng.addEdge( 'Corpus', corpusNum, 1 )
@@ -199,10 +198,9 @@ class Extractor():
             document.addEdge( 'NGram', ng['id'], docOccs )
             # queue the storage/update of the ngram
             self.storage.updateManyNGram( ng )
-            
+
         self.storage.flushNGramQueue()
 
         if storedDoc is not None:
             self.duplicate += [storedDoc]
         self.storage.updateDocument( document )
-        

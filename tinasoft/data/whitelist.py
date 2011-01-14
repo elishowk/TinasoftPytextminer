@@ -54,7 +54,7 @@ class Importer(basecsv.Importer, BaseImporter):
     storage = None
     filemodel = WhitelistFile()
     whitelist = None
-    
+
     def __init__(self, path, **kwargs):
         BaseImporter.__init__(self, path, **kwargs)
         basecsv.Importer.__init__(self, path, **kwargs)

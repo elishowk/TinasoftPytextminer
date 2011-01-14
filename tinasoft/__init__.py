@@ -248,13 +248,10 @@ class PytextminerFlowApi(PytextminerFileApi):
             path = self._get_sourcefile_path(path)
             corporaObj = corpora.Corpora(dataset)
             whitelist = self._import_whitelist(whitelistpath)
-
             storage = self.get_storage(dataset, create=True, drop_tables=False)
             if storage == self.STATUS_ERROR:
                 yield self.STATUS_ERROR
                 return
-
-            #doc_index = set([])
 
             extract = extractor.Extractor(
                 storage,
@@ -271,7 +268,6 @@ class PytextminerFlowApi(PytextminerFileApi):
                 overwrite
             )
             while 1:
-                #doc_index |= set( [extractorGenerator.next()] )
                 extractorGenerator.next()
                 yield self.STATUS_RUNNING
         except IOError, ioe:
@@ -381,7 +377,7 @@ class PytextminerFlowApi(PytextminerFileApi):
 
         if len(ngram_index) == 0 or len(doc_index) == 0:
             yield self.STATUS_ERROR
-            errmsg = "Graph not generated : NGram index length = %d, Document index length = %d"%(len(ngram_index),len(doc_index))
+            errmsg = "Graph not generated because : NGram index length = %d, Document index length = %d"%(len(ngram_index),len(doc_index))
             self.logger.warning(errmsg)
             raise RuntimeError(errmsg)
             return
@@ -630,7 +626,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             'encoding': encoding
         }
         if whitelist_id is not None:
-            # whitelistpath EXISTS
+            ### whitelistpath EXISTS
             self.logger.debug("loading whitelist from %s (%s)"%(whitelistpath, whitelist_id))
             wlimport = Reader('whitelist://'+whitelistpath, **kwargs)
             wlimport.whitelist = whitelist.Whitelist( whitelist_id, whitelist_id )
@@ -642,6 +638,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             new_wl = whitelist.Whitelist( whitelist_id, whitelist_id )
             new_wl = whitelistdata.load_from_storage(new_wl, dataset, periods, userstopwords)
         elif exists(whitelistpath):
+            ### whitelist path is a real path but not in a correct format
             whitelist_id = dataset
             self.logger.debug("loading whitelist from %s (%s)"%(whitelistpath, whitelist_id))
             wlimport = Reader('whitelist://'+whitelistpath, **kwargs)
