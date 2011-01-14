@@ -41,7 +41,7 @@ class Backend(Handler):
         'home' : 'db',
         'drop_tables': False
     }
-    
+
     def __init__(self, path, **opts):
         """loads options, connect or create db"""
         self.loadOptions(opts)
@@ -108,7 +108,7 @@ class Backend(Handler):
             return
         self._db.close()
         self.__open = False
-        
+
     def commit(self):
         """
         commits
@@ -188,7 +188,7 @@ class Backend(Handler):
         except Exception, _exc:
             _logger.error( "exception during safedelete on table %s : %s"%(tabname,_exc) )
             self.rollback()
-        
+
 
 class Engine(Backend):
     """
@@ -202,7 +202,7 @@ class Engine(Backend):
     graphpreprocessqueue = {}
     # used for an indexation session
     ngramindex = []
-    
+
     options = {
         'home' : 'db',
         'drop_tables': False,
@@ -217,7 +217,7 @@ class Engine(Backend):
             'GraphPreprocessDocument'
         ],
     }
-    
+
     def __del__(self):
         """safely closes db and dbenv"""
         self.flushQueues()
@@ -333,11 +333,11 @@ class Engine(Backend):
             for neighbourid in obj['edges'][category]:
                 neighbourobj = self.load(neighbourid, category)
                 if neighbourobj is not None:
-                    if obj['edges'][category][neighbourid] == 0:
+                    if obj['edges'][category][neighbourid] <= 0:
                         del obj['edges'][category][neighbourid]
                         del neighbourobj['edges'][target][obj['id']]
                     else:
-                        neighbourobj['edges'][target][obj['id']] = obj['edges'][category][neighbourid] 
+                        neighbourobj['edges'][target][obj['id']] = obj['edges'][category][neighbourid]
                     self.insert(neighbourobj, category)
 
     def update( self, obj, target, redondantupdate=False ):
@@ -351,7 +351,7 @@ class Engine(Backend):
         self.insert( obj, target )
         if redondantupdate is True:
             self._neighboursUpdate(obj, target)
-        
+
     def updateWhitelist( self, obj, redondantupdate=False ):
         """updates a Whitelist and associations"""
         self.update( obj, 'Whitelist', redondantupdate )
@@ -433,7 +433,7 @@ class Engine(Backend):
         self.ngramindex += [id]
         queue = len( self.ngramqueue )
         return queue
-    
+
     def selectCorpusGraphPreprocess(self, corpusId, tabname):
         """
         Yields tuples (node_id, db_row)
@@ -472,7 +472,7 @@ class Engine(Backend):
                     yield ( record["id"], self.unpickle(str(record["pickle"])))
         except StopIteration, si:
             return
-        
+
     def delete(self, id, target, redondantupdate=False):
         """deletes a object given its type and id"""
         if redondantupdate is True:
@@ -484,12 +484,12 @@ class Engine(Backend):
                     if neighbour_obj is None: continue
                     if id in neighbour_obj.edges[target]:
                         del neighbour_obj.edges[target][id]
-                    self.insert(neighbour_obj, cat)   
+                    self.insert(neighbour_obj, cat)
         self.safedelete(target, id)
-        
+
     def deleteNGramForm(self, form, ngid):
         """
-        removes a NGram's form and 
+        removes a NGram's form and
         """
         ng = self.loadNGram(ngid)
         del ng['edges']['label'][form]

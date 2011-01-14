@@ -49,7 +49,7 @@ class NGram(PyTextMiner):
         """
         #if type in ["Document"]:
         #    return self._addUniqueEdge( type, key, value )
-        if type in ["NGram", "postag"]:
+        if type in ["NGram", "postag","Document"]:
             return self._overwriteEdge( type, key, value )
         else:
             return self._addEdge( type, key, value )
@@ -96,4 +96,3 @@ class NGram(PyTextMiner):
         form_label = PyTextMiner.form_label( form_tokens )
         self.addEdge('label', form_label, form_occs)
         self.addEdge('postag', form_label, form_postag)
-

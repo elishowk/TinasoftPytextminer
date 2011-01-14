@@ -145,7 +145,7 @@ class PytextminerFlowApi(PytextminerFileApi):
         """
         if dataset_id in self.opened_storage:
             return self.opened_storage[dataset_id]
-            
+
         try:
             options['drop_tables'] = drop_tables
             storagedir = join(
@@ -248,14 +248,14 @@ class PytextminerFlowApi(PytextminerFileApi):
             path = self._get_sourcefile_path(path)
             corporaObj = corpora.Corpora(dataset)
             whitelist = self._import_whitelist(whitelistpath)
-            
+
             storage = self.get_storage(dataset, create=True, drop_tables=False)
             if storage == self.STATUS_ERROR:
                 yield self.STATUS_ERROR
                 return
-                    
+
             #doc_index = set([])
-            
+
             extract = extractor.Extractor(
                 storage,
                 self.config['datasets'],
@@ -263,7 +263,7 @@ class PytextminerFlowApi(PytextminerFileApi):
                 filters=None,
                 stemmer=stemmer.Nltk()
             )
-            
+
             extractorGenerator = extract.index_file(
                 path,
                 format,
@@ -280,7 +280,6 @@ class PytextminerFlowApi(PytextminerFileApi):
             return
         except StopIteration, si:
             storage.flushNGramQueue()
-            self.logger.debug("starting cooc preprocessing")
             preprocessgen = self.graph_preprocess(dataset)
             try:
                 while 1:
@@ -349,10 +348,10 @@ class PytextminerFlowApi(PytextminerFileApi):
         else:
             outpath = self._get_user_filepath(dataset, 'gexf',  "%s_%s-graph"%(params_string, outpath) )
         outpath = abspath( outpath + ".gexf" )
-        
+
         # loads the whitelist
         whitelist = self._import_whitelist(whitelistpath)
-        
+
         GEXFWriter = self._new_graph_writer(
             dataset,
             periods,
@@ -386,13 +385,13 @@ class PytextminerFlowApi(PytextminerFileApi):
             self.logger.warning(errmsg)
             raise RuntimeError(errmsg)
             return
-        
+
         # updates default config with parameters
         update_ngramconfig = self.config['datamining']['NGramGraph']
         update_ngramconfig.update(ngramgraphconfig)
         update_documentconfig = self.config['datamining']['DocumentGraph']
         update_documentconfig.update(documentgraphconfig)
-        
+
         # hack resolving the proximity parameter ambiguity
         #if update_ngramconfig['proximity']=='cooccurrences':
         #    ngram_matrix_reducer = graph.MatrixReducerFilter( ngram_index )
@@ -406,12 +405,12 @@ class PytextminerFlowApi(PytextminerFileApi):
         #    self.logger.error(errmsg)
         #    raise NotImplementedError(errmsg)
         #    return
-          
+
         ngram_graph_class = _dynamic_get_class("tinasoft.pytextminer.graph", "NgramGraph")
-          
+
         ngram_matrix_class = _dynamic_get_class("tinasoft.pytextminer.graph", update_ngramconfig['proximity'])
         ngram_matrix_reducer = ngram_matrix_class(ngram_index)
-        
+
         # ngramgraph proximity is based on previously stored
         ngramsubgraph_gen = graph.process_ngram_subgraph(
             self.config,
@@ -431,9 +430,9 @@ class PytextminerFlowApi(PytextminerFileApi):
                 ngramsubgraph_gen.next()
         except StopIteration, stopi:
             pass
-        
+
         doc_graph_class = _dynamic_get_class("tinasoft.pytextminer.graph", "DocGraph")
-        
+
         doc_matrix_reducer = graph.MatrixReducerFilter( doc_index )
         docsubgraph_gen = graph.process_document_subgraph(
             self.config,
@@ -453,7 +452,7 @@ class PytextminerFlowApi(PytextminerFileApi):
                 docsubgraph_gen.next()
         except StopIteration, stopi:
             pass
-        
+
         if exportedges is True:
             self.logger.warning("exporting the full graph to current.gexf")
             # TODO change graphmeta to switch "data/source" to "standalone"
@@ -509,7 +508,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             whitelist_exporter = Writer("basecsv://"+whtelist_outpath)
         else:
             exporter = None
-            
+
         archive = Reader( format + "://" + path, **self.config['datasets'] )
         archive_walker = archive.walkArchive(periods)
         try:
@@ -533,6 +532,7 @@ class PytextminerFlowApi(PytextminerFileApi):
 
     def graph_preprocess(self, dataset):
         """Preprocesses graph database overwriting bi-partite edges based on present edges"""
+        self.logger.debug("starting graph_preprocess")
         storage = self.get_storage(dataset, create=True, drop_tables=False)
         if storage == self.STATUS_ERROR:
             yield self.STATUS_ERROR
@@ -546,7 +546,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             periods += [corpusobj]
             doc_index |= set( corpusobj.edges['Document'].keys() )
             self.STATUS_RUNNING
-            
+
         ngramgraphconfig = self.config['datamining']['NGramGraph']
         ### cooccurrences calculated for each period
         for period in periods:
@@ -558,7 +558,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             cooc_writer = self._new_graph_writer(
                 dataset,
                 [period['id']],
-                "preprocess",
+                "preprocess tmp graph",
                 storage,
                 generate=False,
                 preprocess=True

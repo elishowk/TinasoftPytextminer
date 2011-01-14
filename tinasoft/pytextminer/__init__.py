@@ -72,7 +72,7 @@ class PyTextMiner(object):
     def _cleanEdges(self, *args, **kwargs):
         for targettype in self['edges'].keys():
             for targetid in self['edges'][targettype].keys():
-                if self['edges'][targettype][targetid] == 0:
+                if self['edges'][targettype][targetid] <= 0:
                     del self['edges'][targettype][targetid]
 
     def updateEdges(self, updateedges):
@@ -147,8 +147,6 @@ class PyTextMiner(object):
             self['edges'][type][key] += value
         else:
             self['edges'][type][key] = value
-        if self['edges'][type][key] == 0:
-            del self['edges'][type][key]
         return True
 
     def __getitem__(self, key):
