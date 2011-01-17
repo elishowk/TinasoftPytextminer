@@ -18,7 +18,7 @@
 __author__="elishowk@nonutc.fr"
 
 from tinasoft.data import Handler
-from tinasoft.pytextminer import PyTextMiner
+from tinasoft.pytextminer import PyTextMiner, ngram
 
 import sqlite3
 
@@ -474,7 +474,9 @@ class Engine(Backend):
             return
 
     def delete(self, id, target, redondantupdate=False):
-        """deletes a object given its type and id"""
+        """
+        deletes a object given its type and id
+        """
         if redondantupdate is True:
             obj = self.load(id, target)
             if obj is None: return
@@ -487,9 +489,9 @@ class Engine(Backend):
                     self.insert(neighbour_obj, cat)
         self.safedelete(target, id)
 
-    def deleteNGramForm(self, form, ngid):
+    def deleteNGramForm(self, form, ngid, is_keyword):
         """
-        removes a NGram's form and
+        removes a NGram's form if every Documents it's linked to
         """
         ng = self.loadNGram(ngid)
         del ng['edges']['label'][form]
@@ -498,7 +500,44 @@ class Engine(Backend):
         doc_count = 0
         for doc_id in ng['edges']['Document'].keys():
             doc = self.loadDocument(doc_id)
-            doc.deleteNGramForm(form, ngid, self)
+            doc.deleteNGramForm(form, ngid, self, is_keyword)
             self.insertDocument(doc)
             doc_count += 1
-        return [form, doc_count]
+            yield None
+        yield [form, doc_count]
+        return
+
+    def addNGramForm(self, form, is_keyword):
+        """
+        adds a NGram as a form to all the dataset's Documents
+        """
+        doc_count = 0
+        new_ngram = ngram.NGram(form.split(" "), label=form)
+        stored_ngram = self.loadNGram(new_ngram.id)
+
+        if stored_ngram is not None:
+            _logger.debug("%s keyphrase is already indexed in the database, cleaning..."%form)
+            delete_gen = self.deleteNGramForm(form, new_ngram.id, is_keyword)
+            try:
+                while 1:
+                    last_yield = delete_gen.next()
+                    yield None
+            except StopIteration, si:
+                [clean_form, clean_doc_count] = last_yield
+                _logger.debug("removed %s from %d Documents before adding it as a keyphrase"%(clean_form, clean_doc_count))
+
+        doc_count = 0
+        total_occs = 0
+        dataset_gen = self.loadMany("Corpora")
+        (dataset_id, dataset) = dataset_gen.next()
+        for corp_id in dataset['edges']['Corpus'].keys():
+            corpus_obj = self.loadCorpus(corp_id)
+            for doc_id in corpus_obj['edges']['Document'].keys():
+                doc = self.loadDocument(doc_id)
+                total_occs += doc.addNGramForm(form, new_ngram.id, self, is_keyword)
+                self.insertDocument(doc)
+                if total_occs != 0:
+                    doc_count += 1
+                yield None
+        yield [form, doc_count]
+        return

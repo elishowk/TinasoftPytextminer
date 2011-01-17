@@ -312,7 +312,6 @@ class PytextminerFlowApi(PytextminerFileApi):
     def generate_graph(self,
             dataset,
             periods,
-            whitelistpath,
             outpath=None,
             ngramgraphconfig=None,
             documentgraphconfig=None,
@@ -320,11 +319,11 @@ class PytextminerFlowApi(PytextminerFileApi):
         ):
         """
         Generates the proximity matrices from indexed NGrams/Document/Corpus
-        given a list of @periods and a @whitelistpath
+        given a list of @periods
         Then export the corresponding graph to storage and gexf
         optionnaly exports the complete graph to a gexf file for use in tinaweb
 
-        @return absolute path to the gexf file
+        @return absolute path to the tinasoft gexf file
         """
         self._load_config()
         if not isinstance(periods, list):
@@ -338,39 +337,37 @@ class PytextminerFlowApi(PytextminerFileApi):
             return
 
         # outpath is an optional label but transformed to an absolute file path
-        params_string = "%s_%s"%(self._get_filepath_id(whitelistpath),"+".join(periods))
+        params_string = "%s"%("+".join(periods))
         if outpath is None:
             outpath = self._get_user_filepath(dataset, 'gexf', "%s-graph"%params_string)
         else:
             outpath = self._get_user_filepath(dataset, 'gexf',  "%s_%s-graph"%(params_string, outpath) )
         outpath = abspath( outpath + ".gexf" )
 
-        # loads the whitelist
-        whitelist = self._import_whitelist(whitelistpath)
+        ### TODO get list of whitelist in dataset object metadata
 
         GEXFWriter = self._new_graph_writer(
             dataset,
             periods,
-            whitelist['id'],
+            "None",
             storage,
             generate=True,
             preprocess=False
         )
 
         periods_to_process = []
-        # intersection with the whitelist NGram edges values == N-Lemmas id
-        ngram_index = set( whitelist['edges']['NGram'].values() )
+        ngram_index = set([])
         doc_index = set([])
-
         # checks periods and construct nodes' indices
         for period in periods:
             corpus = storage.loadCorpus( period )
             yield self.STATUS_RUNNING
             if corpus is not None:
                 periods_to_process += [corpus]
-                # unions
-                ngram_index &= set( corpus['edges']['NGram'].keys() )
+                # union
+                ngram_index |= set( corpus['edges']['NGram'].keys() )
                 yield self.STATUS_RUNNING
+                # union
                 doc_index |= set( corpus['edges']['Document'].keys() )
             else:
                 self.logger.debug('Period %s not found in database, skipping'%str(period))

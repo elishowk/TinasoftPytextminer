@@ -34,9 +34,11 @@ class Document(PyTextMiner):
             **metas
         ):
         PyTextMiner.__init__(self, content, id, label, edges, **metas)
+        if 'keyword' not in self.edges:
+            self.edges['keyword']={}
 
     def addEdge(self, type, key, value):
-        if type in ["Document","NGram"]:
+        if type in ["Document","NGram","keyword"]:
             return self._overwriteEdge( type, key, value )
         elif type in ['Corpus']:
             return self._addUniqueEdge( type, key, value )
@@ -48,8 +50,9 @@ class Document(PyTextMiner):
             for targetid in self['edges'][targettype].keys():
                 if self['edges'][targettype][targetid] <= 0:
                     del self['edges'][targettype][targetid]
+                    # special trigger for NGram-Corpus edge
                     if targettype == "NGram":
-                        # decrement NGram-Corpus edges
+                        # decrement the edge
                         decrementedges = {
                             "NGram": {
                                 targetid : -1
@@ -57,12 +60,39 @@ class Document(PyTextMiner):
                         }
                         for corpus_id in self['edges']['Corpus'].keys():
                             updateCorpus = corpus.Corpus(corpus_id, edges=decrementedges)
-                            storage.updateCorpus(updateCorpus, redondantupdate=True)
+                            ### CHECK : no need for redondantupdate ??
+                            storage.updateCorpus(updateCorpus, redondantupdate=False)
 
-    def deleteNGramForm(self, form, ngid, storage):
+    def deleteNGramForm(self, form, ngid, storage, is_keyword=False):
         #### TODO count occs in each target field of the document
         matched = re.findall(r"\b%s\b"%form,self['content'], re.I|re.U)
         # decrement Document-NGram with count + redondant
         self.addEdge("NGram", ngid, -len(matched))
-        #_logger.debug(self.edges['NGram'])
+        if is_keyword is True and form in self.edges["keyword"]:
+             del self.edges["keyword"][form]
         self._cleanEdges(storage)
+
+    def addNGramForm(self, form, ngid, storage, is_keyword=False):
+        #### TODO count occs in each target field of the document
+        matched = re.findall(r"\b%s\b"%form,self['content'], re.I|re.U)
+
+        occs = len(matched)
+        if is_keyword is True:
+             self.addEdge("keyword", form, ngid)
+             if occs == 0:
+                occs = 1
+        self.addEdge("NGram", ngid, occs)
+
+        if ngid not in self.edges['NGram']:
+            # increment the edge
+            incrementedges = {
+                "NGram": {
+                    ngid : 1
+                }
+            }
+            for corpus_id in self['edges']['Corpus'].keys():
+                updateCorpus = corpus.Corpus(corpus_id, edges=incrementedges)
+                ### CHECK : no need for redondantupdate ??
+                storage.updateCorpus(updateCorpus, redondantupdate=False)
+
+        return occs

@@ -100,7 +100,7 @@ class Extractor():
                     self.tagger,
                     self.stemmer
                 )
-                ### updates newwl to prepare export
+                # updates newwl to prepare export
                 if  corpusNum not in newwl['corpus']:
                     newwl['corpus'][corpusNum] = corpus.Corpus(corpusNum)
                 newwl['corpus'][corpusNum].addEdge('Document', document['id'], 1)

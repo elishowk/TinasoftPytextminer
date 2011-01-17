@@ -87,7 +87,7 @@ class TinasoftServerRequest(resource.Resource):
                 parsed_args[key] = self._parse_args( self.argument_types[key](args[key][0]) )
             else:
                 parsed_args[key] = self.argument_types[key](args[key][0])
-                
+
         #self.logger.info( str(self.method) + " ---" + str(parsed_args) )
         return parsed_args
 
@@ -136,7 +136,8 @@ class CooperativeExecution(object):
         'edgethreshold': list,
         'exportedges': bool,
         'object': jsonpickle.decode,
-        'redondant': bool
+        'redondant': bool,
+        'is_keyword': bool
     }
 
     def _method_wrapper(self, request, serializer, handler, method, logger):
@@ -303,6 +304,12 @@ class POSTHandler(object):
             return self.pytmapi.STATUS_ERROR
         return storage.updateNGram(object, redondant)
 
+    def ngramform(self, dataset, label, is_keyword):
+        storage = self.pytmapi.get_storage( dataset, create=False )
+        if storage == self.pytmapi.STATUS_ERROR:
+            return self.pytmapi.STATUS_ERROR
+        return storage.addNGramForm( label, is_keyword )
+
 class GETHandler(object):
     """
     Pytextminer API mapping GET requests and Pytextminer API's methods
@@ -425,7 +432,7 @@ class DELETEHandler(object):
     def dataset(self, dataset):
         """ deletes all the dataset's files and directory """
         return self.pytmapi.delete_dataset(dataset)
-        
+
     #@value_to_gen
     #def corpus(self, dataset, id, redondant):
     #    """ remove """
@@ -449,9 +456,8 @@ class DELETEHandler(object):
     #    if storage == self.pytmapi.STATUS_ERROR:
     #        return self.pytmapi.STATUS_ERROR
     #    return storage.delete(id, 'NGram', redondant)
-        
-    @value_to_gen
-    def ngramform(self, dataset, label, id):
+
+    def ngramform(self, dataset, label, id, is_keyword):
         storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
             return self.pytmapi.STATUS_ERROR

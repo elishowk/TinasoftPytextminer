@@ -90,7 +90,7 @@ def process_document_subgraph(
     for process_period in periods:
         metacorpus.updateEdges(process_period.edges)
         #metacorpus = PyTextMiner.updateEdges(process_period.edges, metacorpus)
-        
+
     doc_args = ( config, storage, metacorpus, docgraphconfig, ngram_index, doc_index )
     adj = doc_graph_class( *doc_args )
     adj.diagonal(doc_matrix_reducer)
@@ -424,7 +424,7 @@ class SubGraph(object):
         """
         for attr, value in opts.iteritems():
             setattr(self,attr,value)
-            
+
     def _loadProximity(self):
         _logger.debug("%s setting getsubgraph() to %s"%(self.name,self.proximity))
         self.getsubgraph = getattr(self, self.proximity)
@@ -464,11 +464,11 @@ class NgramGraph(SubGraph):
     """
     def __init__(self, config, storage, corpus, opts, ngram_index, doc_index ):
         SubGraph.__init__(self, config, storage, corpus, opts, 'NGramGraph', ngram_index, doc_index )
-        
+
     def getsubgraph( self, ngid ):
         """
         gets preprocessed proximities from storage
-        """ 
+        """
         submatrix = Matrix( list(self.ngram_index), valuesize=float32 )
         ngirow = self.storage.loadGraphPreprocess(self.corpusid+"::"+ngid, "NGram")
         if ngirow is None: return submatrix
@@ -478,8 +478,8 @@ class NgramGraph(SubGraph):
         return submatrix
 
     def diagonal( self, matrix_reducer ):
-        for ng in self.ngram_index:
-            matrix_reducer.set( ng, ng, value=self.corpus['edges']['NGram'][ng])
+        for ng, weight in self.corpus['edges']['NGram'].iteritems():
+            matrix_reducer.set( ng, ng, value=weight)
 
     def generator(self):
         """
@@ -497,11 +497,11 @@ class NgramGraphPreprocess(NgramGraph):
     def getsubgraph( self, document ):
         """
         simple document cooccurrences matrix calculator
-        """ 
-        valid_keys = set(document['edges']['NGram'].keys()) & self.ngram_index
-        submatrix = Matrix( list(valid_keys), valuesize=float32 )
+        """
+        #valid_keys = set(document['edges']['NGram'].keys()) & self.ngram_index
+        submatrix = Matrix( document['edges']['NGram'].keys(), valuesize=float32 )
         # only processes a half of the symmetric matrix
-        for (ngi, ngj) in itertools.combinations(valid_keys, 2):
+        for (ngi, ngj) in itertools.combinations(document['edges']['NGram'].keys(), 2):
             submatrix.set( ngi, ngj, 1 )
             submatrix.set( ngj, ngi, 1 )
         return submatrix
@@ -531,7 +531,7 @@ class DocGraph(SubGraph):
         self.documentngrams = {}
         for doc in self.doc_index:
             documentobj = self.storage.loadDocument(doc)
-            self.documentngrams[doc] = set(documentobj['edges']['NGram'].keys()) & self.ngram_index
+            self.documentngrams[doc] = set(documentobj['edges']['NGram'].keys())
 
     def sharedNGrams( self, document ):
         """
@@ -559,15 +559,18 @@ class DocGraph(SubGraph):
         for docid in self.documentngrams.keys():
             if docid != document['id']:
                 doc2ngrams = self.documentngrams[docid]
-                ngramsintersection = doc1ngrams & doc2ngrams
-                ngramsunion = (doc1ngrams | doc2ngrams)
-                weight = 0
+                ngramsintersection = set(self.corpus['edges']['NGram'])
+                ngramsunion = set(self.corpus['edges']['NGram'])
+                ngramsintersection &= doc1ngrams & doc2ngrams
+                ngramsunion &= doc1ngrams | doc2ngrams
+
                 numerator = 0
                 for ngi in ngramsintersection:
                     numerator += 1/(math.log( 1 + self.corpus['edges']['NGram'][ngi] ))
                 denominator = 0
                 for ngi in ngramsunion:
                     denominator += 1/(math.log( 1 + self.corpus['edges']['NGram'][ngi] ))
+                weight = 0
                 if denominator > 0:
                     weight = numerator / denominator
                 submatrix.set(document['id'], docid, value=weight, overwrite=True)
@@ -575,8 +578,8 @@ class DocGraph(SubGraph):
         return submatrix
 
     def diagonal( self, matrix_reducer ):
-        for doc in self.documentngrams.iterkeys():
-            matrix_reducer.set( doc, doc, value=self.corpus['edges']['Document'][doc])
+        for doc, weight in self.corpus['edges']['Document'].iteritems():
+            matrix_reducer.set( doc, doc, value=weight)
 
     def generator(self):
         """
