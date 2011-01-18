@@ -461,7 +461,7 @@ class DELETEHandler(object):
         storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
             return self.pytmapi.STATUS_ERROR
-        return storage.deleteNGramForm( label, id )
+        return storage.deleteNGramForm( label, id, is_keyword )
 
 class NumpyFloatHandler(jsonpickle.handlers.BaseHandler):
     """

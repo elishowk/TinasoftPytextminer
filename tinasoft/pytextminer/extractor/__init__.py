@@ -193,14 +193,14 @@ class Extractor():
                 if ngid not in storedDoc['edges']['NGram']:
                     ng.addEdge( 'Corpus', corpusNum, 1 )
                     self.corpusDict[ corpusNum ].addEdge( 'NGram', ngid, 1 )
-            ### updates Doc-NGram edges
+            ### overwrites Doc-NGram edges
             ng.addEdge( 'Document', document['id'], docOccs )
             document.addEdge( 'NGram', ng['id'], docOccs )
+
             # queue the storage/update of the ngram
             self.storage.updateManyNGram( ng )
 
         self.storage.flushNGramQueue()
-
         if storedDoc is not None:
             self.duplicate += [storedDoc]
         self.storage.updateDocument( document )

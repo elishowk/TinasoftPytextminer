@@ -23,6 +23,7 @@ datasets:
         # - constants required fields : 'content'/'label'/'id'
         - 'content'
         - 'title'
+        #- 'keywords'
     # tina csv columns declaration
     # will ignore undeclared fields
     # and warn not found optional fields
@@ -37,6 +38,7 @@ datasets:
             corpus_id: 'corp_id'
             id: 'doc_id'
             # optionnal fields
+            keywords: 'keywords'
             title: 'title'
             acronym: 'acronym'
         # csv reader params

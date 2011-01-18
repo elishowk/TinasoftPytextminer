@@ -346,7 +346,7 @@ class Engine(Backend):
         if stored is not None:
             stored.updateObject(obj)
             obj = stored
-        # sends a storage object in case it's a Document
+        # sends a storage object in case it's a Document otherwise it's not used
         obj._cleanEdges(storage=self)
         self.insert( obj, target )
         if redondantupdate is True:
@@ -525,19 +525,26 @@ class Engine(Backend):
             except StopIteration, si:
                 [clean_form, clean_doc_count] = last_yield
                 _logger.debug("removed %s from %d Documents before adding it as a keyphrase"%(clean_form, clean_doc_count))
+                stored_ngram.addForm( form.split(" "), ["None"])
+                new_ngram = stored_ngram
 
-        doc_count = 0
-        total_occs = 0
         dataset_gen = self.loadMany("Corpora")
         (dataset_id, dataset) = dataset_gen.next()
+
         for corp_id in dataset['edges']['Corpus'].keys():
             corpus_obj = self.loadCorpus(corp_id)
+            doc_count = 0
             for doc_id in corpus_obj['edges']['Document'].keys():
+                total_occs = 0
                 doc = self.loadDocument(doc_id)
                 total_occs += doc.addNGramForm(form, new_ngram.id, self, is_keyword)
                 self.insertDocument(doc)
                 if total_occs != 0:
                     doc_count += 1
+                    new_ngram.addEdge("Document",doc_id, total_occs)
                 yield None
+            new_ngram.addEdge("Corpus", corp_id, doc_count)
+
         yield [form, doc_count]
+        self.insertNGram(new_ngram, new_ngram.id)
         return

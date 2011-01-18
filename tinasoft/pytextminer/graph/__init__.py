@@ -19,6 +19,7 @@ __author__ = "elishowk@nonutc.fr"
 import itertools
 from numpy import *
 import math
+from collections import defaultdict
 
 from tinasoft.pytextminer import PyTextMiner, corpus
 
@@ -121,6 +122,35 @@ def process_document_subgraph(
         yield doc_matrix_reducer
         return
 
+class MatrixDict(defaultdict):
+    """
+    Testing Prototype
+    """
+    def __init__(self, *args, **kwargs):
+        """
+        Sublcassing a defaultdict which automatically creates rows
+        of nested defaultdict of integers values
+        """
+        defaultdict.__init__(self, defaultdict(int))
+
+    def get( self, key1, key2=None ):
+        """
+        Getter returning an entire row or a cell value
+        """
+        if key2 is None:
+            return self[key1]
+        else:
+            return self[key1][key2]
+
+    def set( self, key1, key2, value=1, overwrite=False ):
+        """
+        Setter using sums to increment cooc values
+        """
+        if overwrite is False:
+            self[key1][key2] += value
+        else:
+            self[key1][key2] = value
+
 class Matrix(object):
     """
     Matrix class to build adjacency matrix using numpy
@@ -165,41 +195,6 @@ class Matrix(object):
             self.array[ index1, index2 ] += value
         else:
             self.array[ index1, index2 ] = value
-
-
-class SymmetricMatrix(Matrix):
-    """
-    OBSOLETE
-    Specialized semi numpy 2D array container
-    Gets and Set only upper part of the matrix
-    SymmetricMatrix.get(key1,key2) === SymmetricMatrix.get(key2,key1)
-    DO NOT increment values twice !!!
-    """
-    def __init__(self, *args, **kwargs):
-        Matrix.__init__(self, *args, **kwargs)
-
-    def get( self, key1, key2=None ):
-        """
-        Getter returning rows or cell from the matrix
-        """
-        if key2 is None:
-            return self.array[ self._getindex(key1), : ]
-        else:
-            indices = [self._getindex(key1), self._getindex(key2)]
-            indices.sort()
-            return self.array[ indices[0], indices[1] ]
-
-    def set( self, key1, key2, value=1, overwrite=False ):
-        """
-        Increments cooc array using boolean multiplication
-        Sort keys and avoid duplicates values.
-        """
-        indices = [self._getindex(key1), self._getindex(key2)]
-        indices.sort()
-        if overwrite is False:
-            self.array[ indices[0], indices[1] ] += value
-        else:
-            self.array[ indices[0], indices[1] ] = value
 
 
 class MatrixReducer(Matrix):
@@ -498,9 +493,8 @@ class NgramGraphPreprocess(NgramGraph):
         """
         simple document cooccurrences matrix calculator
         """
-        #valid_keys = set(document['edges']['NGram'].keys()) & self.ngram_index
         submatrix = Matrix( document['edges']['NGram'].keys(), valuesize=float32 )
-        # only processes a half of the symmetric matrix
+        # only walks through a half of the matrix
         for (ngi, ngj) in itertools.combinations(document['edges']['NGram'].keys(), 2):
             submatrix.set( ngi, ngj, 1 )
             submatrix.set( ngj, ngi, 1 )

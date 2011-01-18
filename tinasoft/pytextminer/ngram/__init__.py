@@ -89,10 +89,12 @@ class NGram(PyTextMiner):
         else:
             return self.label
 
-    def addForm(self, form_tokens, form_postag, form_occs=1 ):
+    def addForm(self, form_tokens, form_postag=None, form_occs=1 ):
         """
         increments form edges
         """
+        if form_postag is None:
+            form_postag = ["?"]
         form_label = PyTextMiner.form_label( form_tokens )
         self.addEdge('label', form_label, form_occs)
         self.addEdge('postag', form_label, form_postag)
