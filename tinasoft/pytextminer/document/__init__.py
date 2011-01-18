@@ -75,16 +75,14 @@ class Document(PyTextMiner):
     def addNGramForm(self, form, ngid, storage, is_keyword=False):
         #### TODO count occs in each target field of the document
         matched = re.findall(r"\b%s\b"%form,self['content'], re.I|re.U)
-
         occs = len(matched)
         if is_keyword is True:
              self.addEdge("keyword", form, ngid)
+             # force to count one occurrence if is_keyword
              if occs == 0:
                 occs = 1
-        self.addEdge("NGram", ngid, occs)
-
-        if ngid not in self.edges['NGram']:
-            # increment the edge
+        if ngid not in self.edges['NGram'] and occs > 0:
+            # increment the Corpus-NGram edge
             incrementedges = {
                 "NGram": {
                     ngid : 1
@@ -94,5 +92,5 @@ class Document(PyTextMiner):
                 updateCorpus = corpus.Corpus(corpus_id, edges=incrementedges)
                 ### CHECK : no need for redondantupdate ??
                 storage.updateCorpus(updateCorpus, redondantupdate=False)
-
+            self.addEdge("NGram", ngid, occs)
         return occs

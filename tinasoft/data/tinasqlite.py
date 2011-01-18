@@ -534,6 +534,7 @@ class Engine(Backend):
         for corp_id in dataset['edges']['Corpus'].keys():
             corpus_obj = self.loadCorpus(corp_id)
             doc_count = 0
+
             for doc_id in corpus_obj['edges']['Document'].keys():
                 total_occs = 0
                 doc = self.loadDocument(doc_id)
@@ -541,8 +542,11 @@ class Engine(Backend):
                 self.insertDocument(doc)
                 if total_occs != 0:
                     doc_count += 1
+                    _logger.debug("adding %d times %s in document %s"%(total_occs, form, doc_id))
                     new_ngram.addEdge("Document",doc_id, total_occs)
+                    
                 yield None
+            _logger.debug("adding %d times %s in period %s"%(doc_count, form, corp_id))
             new_ngram.addEdge("Corpus", corp_id, doc_count)
 
         yield [form, doc_count]
