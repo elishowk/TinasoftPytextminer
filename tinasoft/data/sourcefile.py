@@ -92,6 +92,7 @@ class Importer(BaseImporter):
         for invalid_docarg in ["label","id","content","edges"]:
             if invalid_docarg in docArgs:
                 del docArgs[invalid_docarg]
+        docArgs['target'] = self.doc_extraction
         # new document
         newdoc = document.Document(
             content,

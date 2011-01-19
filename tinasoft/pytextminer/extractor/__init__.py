@@ -52,10 +52,13 @@ class Extractor():
         automatically giving the Reader its config
         """
         dsn = format+"://"+path
+        config = self.config[format]
+        config['doc_extraction'] = self.config['doc_extraction']
         if format in self.config:
             return Reader( dsn, **self.config[format] )
         else:
-            return Reader( dsn )
+            raise RuntimeError("unable to load %s because its file definition was NOT found in the config file"%path)
+            return
 
 
     def _walk_file( self, path, format ):

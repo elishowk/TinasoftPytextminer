@@ -65,24 +65,31 @@ class Document(PyTextMiner):
 
     def deleteNGramForm(self, form, ngid, storage, is_keyword=False):
         #### TODO count occs in each target field of the document
-        matched = re.findall(r"\b%s\b"%form,self['content'], re.I|re.U)
+        matched = 0
+        for target in self['target']:
+            matched += re.findall(r"\b%s\b"%form,self[target], re.I|re.U)
         # decrement Document-NGram with count + redondant
         self.addEdge("NGram", ngid, -len(matched))
+        # if removing a keyword
         if is_keyword is True and form in self.edges["keyword"]:
              del self.edges["keyword"][form]
         self._cleanEdges(storage)
 
     def addNGramForm(self, form, ngid, storage, is_keyword=False):
         #### TODO count occs in each target field of the document
-        matched = re.findall(r"\b%s\b"%form,self['content'], re.I|re.U)
+        matched = 0
+        for target in self['target']:
+            matched += re.findall(r"\b%s\b"%form,self[target], re.I|re.U)
         occs = len(matched)
+        # if adding a keyword
         if is_keyword is True:
              self.addEdge("keyword", form, ngid)
              # force to count one occurrence if is_keyword
              if occs == 0:
                 occs = 1
+
+        # increment the Corpus-NGram edge
         if ngid not in self.edges['NGram'] and occs > 0:
-            # increment the Corpus-NGram edge
             incrementedges = {
                 "NGram": {
                     ngid : 1
