@@ -494,9 +494,13 @@ class Engine(Backend):
         removes a NGram's form if every Documents it's linked to
         """
         ng = self.loadNGram(ngid)
-        del ng['edges']['label'][form]
-        del ng['edges']['postag'][form]
+        if form in ng['edges']['label']:
+            del ng['edges']['label'][form]
+        if form in ng['edges']['postag']:
+            del ng['edges']['postag'][form]
         self.insertNGram(ng)
+        _logger.debug("removed the keyphrase %s from NGram %s"%(form,ngid))
+        _logger.debug("will decrement neighbours edges")
         doc_count = 0
         for doc_id in ng['edges']['Document'].keys():
             doc = self.loadDocument(doc_id)
@@ -514,7 +518,7 @@ class Engine(Backend):
         doc_count = 0
         new_ngram = ngram.NGram(form.split(" "), label=form)
         stored_ngram = self.loadNGram(new_ngram.id)
-
+        #_logger.debug("%s exists in database"%stored_ngram.label)
         if stored_ngram is not None:
             _logger.debug("%s keyphrase is already indexed in the database, cleaning..."%form)
             delete_gen = self.deleteNGramForm(form, new_ngram.id, is_keyword)
@@ -525,7 +529,7 @@ class Engine(Backend):
             except StopIteration, si:
                 [clean_form, clean_doc_count] = last_yield
                 _logger.debug("removed %s from %d Documents before adding it as a keyphrase"%(clean_form, clean_doc_count))
-                stored_ngram.addForm( form.split(" "), ["None"])
+                stored_ngram.addForm(form.split(" "), ["None"])
                 new_ngram = stored_ngram
 
         dataset_gen = self.loadMany("Corpora")
@@ -548,5 +552,6 @@ class Engine(Backend):
             new_ngram.addEdge("Corpus", corp_id, doc_count)
 
         yield [form, doc_count]
+        _logger.debug("inserting NGram %s into database"%new_ngram.id)
         self.insertNGram(new_ngram, new_ngram.id)
         return
