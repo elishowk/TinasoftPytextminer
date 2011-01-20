@@ -64,30 +64,34 @@ class Document(PyTextMiner):
                             storage.updateCorpus(updateCorpus, redondantupdate=False)
 
     def deleteNGramForm(self, form, ngid, storage, is_keyword=False):
-        #### TODO count occs in each target field of the document
+        """
+        Removes a NGram form, optionally a keyword
+        And propagates changes to neighbours edges
+        """
         matched = 0
         for target in self['target']:
-            matched += re.findall(r"\b%s\b"%form,self[target], re.I|re.U)
+            matched += len(re.findall(r"\b%s\b"%form,self[target], re.I|re.U))
         # decrement Document-NGram with count + redondant
-        self.addEdge("NGram", ngid, -len(matched))
+        self.addEdge("NGram", ngid, -matched)
         # if removing a keyword
         if is_keyword is True and form in self.edges["keyword"]:
              del self.edges["keyword"][form]
         self._cleanEdges(storage)
 
     def addNGramForm(self, form, ngid, storage, is_keyword=False):
-        #### TODO count occs in each target field of the document
-        matched = 0
+        """
+        Adds a NGram form, optionally a keyword
+        And propagates changes to neighbours edges
+        """
+        occs = 0
         for target in self['target']:
-            matched += re.findall(r"\b%s\b"%form,self[target], re.I|re.U)
-        occs = len(matched)
+            occs += len(re.findall(r"\b%s\b"%form,self[target], re.I|re.U))
         # if adding a keyword
         if is_keyword is True:
              self.addEdge("keyword", form, ngid)
              # force to count one occurrence if is_keyword
              if occs == 0:
                 occs = 1
-
         # increment the Corpus-NGram edge
         if ngid not in self.edges['NGram'] and occs > 0:
             incrementedges = {
@@ -97,7 +101,8 @@ class Document(PyTextMiner):
             }
             for corpus_id in self['edges']['Corpus'].keys():
                 updateCorpus = corpus.Corpus(corpus_id, edges=incrementedges)
-                ### CHECK : no need for redondantupdate ??
                 storage.updateCorpus(updateCorpus, redondantupdate=False)
             self.addEdge("NGram", ngid, occs)
+        else:
+            _logger.debug("NGram %s is already indexed into Document %s"%(ngid, self.id))
         return occs

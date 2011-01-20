@@ -520,7 +520,7 @@ class Engine(Backend):
         stored_ngram = self.loadNGram(new_ngram.id)
         #_logger.debug("%s exists in database"%stored_ngram.label)
         if stored_ngram is not None:
-            _logger.debug("%s keyphrase is already indexed in the database, cleaning..."%form)
+            _logger.debug("%s keyphrase is already indexed in the database, cleaning form from NGram %s"%(form,new_ngram.id))
             delete_gen = self.deleteNGramForm(form, new_ngram.id, is_keyword)
             try:
                 while 1:
@@ -528,7 +528,7 @@ class Engine(Backend):
                     yield None
             except StopIteration, si:
                 [clean_form, clean_doc_count] = last_yield
-                _logger.debug("removed %s from %d Documents before adding it as a keyphrase"%(clean_form, clean_doc_count))
+                #_logger.debug("removed %s from %d Documents before adding it as a keyphrase"%(clean_form, clean_doc_count))
                 stored_ngram.addForm(form.split(" "), ["None"])
                 new_ngram = stored_ngram
 
