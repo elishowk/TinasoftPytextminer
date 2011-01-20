@@ -326,7 +326,7 @@ class Engine(Backend):
 
     def _neighboursUpdate(self, obj, target):
         """
-        updates neighbours symmetric edges and removes zero weighted edges
+        updates EXISTING neighbours symmetric edges and removes zero weighted edges
         """
         for category in obj['edges']:
             if category == target: continue
@@ -450,7 +450,6 @@ class Engine(Backend):
         except StopIteration, si:
             return
 
-
     def select( self, tabname, key=None, raw=False ):
         """
         Yields raw or unpickled tuples (key, obj)
@@ -493,65 +492,43 @@ class Engine(Backend):
         """
         removes a NGram's form if every Documents it's linked to
         """
+        # updates the NGram first
         ng = self.loadNGram(ngid)
         if form in ng['edges']['label']:
             del ng['edges']['label'][form]
         if form in ng['edges']['postag']:
             del ng['edges']['postag'][form]
         self.insertNGram(ng)
-        _logger.debug("removed the keyphrase %s from NGram %s"%(form,ngid))
-        _logger.debug("will decrement neighbours edges")
+
         doc_count = 0
         for doc_id in ng['edges']['Document'].keys():
             doc = self.loadDocument(doc_id)
-            doc.deleteNGramForm(form, ngid, self, is_keyword)
+            doc.deleteNGramForm(form, ngid, is_keyword)
+            doc._cleanEdges(self)
             self.insertDocument(doc)
+            self._neighboursUpdate(doc, 'Document')
             doc_count += 1
             yield None
         yield [form, doc_count]
         return
 
-    def addNGramForm(self, form, is_keyword):
+    def addNGramForm(self, form, doc_id, is_keyword):
         """
         adds a NGram as a form to all the dataset's Documents
         """
-        doc_count = 0
         new_ngram = ngram.NGram(form.split(" "), label=form)
         stored_ngram = self.loadNGram(new_ngram.id)
-        #_logger.debug("%s exists in database"%stored_ngram.label)
+
         if stored_ngram is not None:
-            _logger.debug("%s keyphrase is already indexed in the database, cleaning form from NGram %s"%(form,new_ngram.id))
-            delete_gen = self.deleteNGramForm(form, new_ngram.id, is_keyword)
-            try:
-                while 1:
-                    last_yield = delete_gen.next()
-                    yield None
-            except StopIteration, si:
-                [clean_form, clean_doc_count] = last_yield
-                #_logger.debug("removed %s from %d Documents before adding it as a keyphrase"%(clean_form, clean_doc_count))
-                stored_ngram.addForm(form.split(" "), ["None"])
-                new_ngram = stored_ngram
-
-        dataset_gen = self.loadMany("Corpora")
-        (dataset_id, dataset) = dataset_gen.next()
-
-        for corp_id in dataset['edges']['Corpus'].keys():
-            corpus_obj = self.loadCorpus(corp_id)
-            doc_count = 0
-            for doc_id in corpus_obj['edges']['Document'].keys():
-                doc = self.loadDocument(doc_id)
-                total_occs = doc.addNGramForm(form, new_ngram.id, self, is_keyword)
-                self.insertDocument(doc)
-                if total_occs != 0:
-                    doc_count += 1
-                    _logger.debug("adding %d times %s in document %s"%(total_occs, form, doc_id))
-                    new_ngram.addEdge("Document",doc_id, total_occs)
-
-                yield None
-            _logger.debug("adding %d times %s in period %s"%(doc_count, form, corp_id))
-            new_ngram.addEdge("Corpus", corp_id, doc_count)
-
-        yield [form, doc_count]
-        _logger.debug("inserting NGram %s into database"%new_ngram.id)
-        self.insertNGram(new_ngram, new_ngram.id)
+            _logger.debug("%s exists in database"%new_ngram.label)
+            stored_ngram.addForm(form.split(" "), ["None"])
+            # only updates form attributes
+            new_ngram = stored_ngram
+        # inserts NGram first
+        self.insertNGram( new_ngram )
+        # updates the Document
+        doc = self.loadDocument(doc_id)
+        total_occs = doc.addNGramForm(form, new_ngram.id, self, is_keyword)
+        self.insertDocument(doc)
+        yield [form, total_occs]
         return

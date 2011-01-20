@@ -53,20 +53,27 @@ class Document(PyTextMiner):
                     # special trigger for NGram-Corpus edge
                     if targettype == "NGram":
                         # decrement the edge
-                        decrementedges = {
-                            "NGram": {
-                                targetid : -1
-                            }
-                        }
-                        for corpus_id in self['edges']['Corpus'].keys():
-                            updateCorpus = corpus.Corpus(corpus_id, edges=decrementedges)
-                            ### CHECK : no need for redondantupdate ??
-                            storage.updateCorpus(updateCorpus, redondantupdate=False)
+                        self._updateNGramCorpusEdge(storage, targetid, -1)
 
-    def deleteNGramForm(self, form, ngid, storage, is_keyword=False):
+    def _updateNGramCorpusEdge(self, storage, ngid, value):
+        """
+        decrement or increment the Corpus-NGram edges, symmetrically
+        """
+        incrementedges = {
+            "NGram": {
+                ngid : value
+            }
+        }
+        # updates Corpus-NGram edges, symmetrically ONLY if exists
+        for corpus_id in self['edges']['Corpus'].keys():
+            updateCorpus = corpus.Corpus(corpus_id, edges=incrementedges)
+            storage.updateCorpus(updateCorpus, redondantupdate=True)
+
+
+    def deleteNGramForm(self, form, ngid, is_keyword=False):
         """
         Removes a NGram form, optionally a keyword
-        And propagates changes to neighbours edges
+        And _cleanEdges
         """
         matched = 0
         for target in self['target']:
@@ -76,33 +83,26 @@ class Document(PyTextMiner):
         # if removing a keyword
         if is_keyword is True and form in self.edges["keyword"]:
              del self.edges["keyword"][form]
-        self._cleanEdges(storage)
 
     def addNGramForm(self, form, ngid, storage, is_keyword=False):
         """
         Adds a NGram form, optionally a keyword
-        And propagates changes to neighbours edges
+        And updates Corpus if needed
         """
         occs = 0
         for target in self['target']:
             occs += len(re.findall(r"\b%s\b"%form,self[target], re.I|re.U))
-        # if adding a keyword
-        if is_keyword is True:
-             self.addEdge("keyword", form, ngid)
-             # force to count one occurrence if is_keyword
-             if occs == 0:
-                occs = 1
-        # increment the Corpus-NGram edge
-        if ngid not in self.edges['NGram'] and occs > 0:
-            incrementedges = {
-                "NGram": {
-                    ngid : 1
-                }
-            }
-            for corpus_id in self['edges']['Corpus'].keys():
-                updateCorpus = corpus.Corpus(corpus_id, edges=incrementedges)
-                storage.updateCorpus(updateCorpus, redondantupdate=False)
+        # if it occurs
+        if occs > 0:
+            # if it's new
+            if ngid not in self.edges['NGram']:
+                self._updateNGramCorpusEdge(storage, ngid, 1)
             self.addEdge("NGram", ngid, occs)
-        else:
-            _logger.debug("NGram %s is already indexed into Document %s"%(ngid, self.id))
+        # if not in the content, add both keyword and NGram links
+        elif is_keyword is True:
+            # and add a Document-keyword link
+            self.addEdge("keyword", form, ngid)
+            self.addEdge("NGram", ngid, 1)
+            self._updateNGramCorpusEdge(storage, ngid, 1)
+            occs = 1
         return occs

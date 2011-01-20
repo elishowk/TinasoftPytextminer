@@ -304,11 +304,11 @@ class POSTHandler(object):
             return self.pytmapi.STATUS_ERROR
         return storage.updateNGram(object, redondant)
 
-    def ngramform(self, dataset, label, is_keyword):
+    def ngramform(self, dataset, label, id, is_keyword):
         storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
             return self.pytmapi.STATUS_ERROR
-        return storage.addNGramForm( label, is_keyword )
+        return storage.addNGramForm( label, id, is_keyword )
 
 class GETHandler(object):
     """

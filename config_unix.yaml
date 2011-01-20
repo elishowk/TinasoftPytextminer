@@ -21,8 +21,8 @@ datasets:
         # the following values can be document object fields:
         # - defined by one of the field's value
         # - constants required fields : 'content'/'label'/'id'
-        - 'content'
         - 'title'
+        - 'content'
         #- 'keywords'
     # tina csv columns declaration
     # will ignore undeclared fields
