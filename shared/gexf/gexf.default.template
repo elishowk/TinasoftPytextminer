@@ -17,7 +17,7 @@
         <attribute id="0" title="weight" type="float"></attribute>
         <attribute id="1" title="category" type="string"></attribute>
         <attribute id="2" title="content" type="string"></attribute>
-        <attribute id="3" title="keywords" type="string"></attribute>
+        <attribute id="3" title="keyword" type="string"></attribute>
     </attributes>
     <nodes>
 <?py categories = [] ?>
@@ -35,8 +35,8 @@
                 <attvalue for="1" value="${ category }" />
         <?py if category == 'Document': ?>
                 <attvalue for="2" value="${ nodeobj['content'] }" />
-            <?py if 'doc_keywords' in nodeobj: ?>
-                <attvalue for="3" value="${ nodeobj['doc_keywords'] }" />
+            <?py for kwd in nodeobj['edges']['keyword'].keys(): ?>
+                <attvalue for="3" value="${ kwd }" />
             <?py #endif ?>
         <?py #endif ?>
             </attvalues>
@@ -62,9 +62,6 @@
                             <?py #endif ?>
                             <?py sourcegraphid = sourcecategory + "::" + source ?>
                             <?py targetgraphid = targetcategory + "::" + target ?>
-                            <?py if sourcecategory != targetcategory: ?>
-            <edge id="#{i}" source="#{sourcegraphid}" target="#{targetgraphid}" type="mutual" weight="${weight}"></edge>
-                            <?py else: ?>
             <edge id="#{i}" source="#{sourcegraphid}" target="#{targetgraphid}" type="directed" weight="${weight}"></edge>
                             <?py #endif ?>
                             <?py i += 1 ?>
