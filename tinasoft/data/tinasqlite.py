@@ -328,17 +328,20 @@ class Engine(Backend):
         """
         updates EXISTING neighbours symmetric edges and removes zero weighted edges
         """
-        for category in obj['edges']:
+        for category in obj['edges'].keys():
             if category == target: continue
-            for neighbourid in obj['edges'][category]:
+            for neighbourid in obj['edges'][category].keys():
                 neighbourobj = self.load(neighbourid, category)
                 if neighbourobj is not None:
                     if obj['edges'][category][neighbourid] <= 0:
                         del obj['edges'][category][neighbourid]
-                        del neighbourobj['edges'][target][obj['id']]
+                        if obj['id'] in neighbourobj['edges'][target]:
+                            del neighbourobj['edges'][target][obj['id']]
                     else:
                         neighbourobj['edges'][target][obj['id']] = obj['edges'][category][neighbourid]
                     self.insert(neighbourobj, category)
+                else:
+                    _logger.warning("missing neighbour %s for node %s"%(neighbourid,obj.id))
 
     def update( self, obj, target, redondantupdate=False ):
         """updates an object and its edges"""
@@ -346,11 +349,11 @@ class Engine(Backend):
         if stored is not None:
             stored.updateObject(obj)
             obj = stored
+        if redondantupdate is True:
+            self._neighboursUpdate(obj, target)
         # sends a storage object in case it's a Document otherwise it's not used
         obj._cleanEdges(storage=self)
         self.insert( obj, target )
-        if redondantupdate is True:
-            self._neighboursUpdate(obj, target)
 
     def updateWhitelist( self, obj, redondantupdate=False ):
         """updates a Whitelist and associations"""
