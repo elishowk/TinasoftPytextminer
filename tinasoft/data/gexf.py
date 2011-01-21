@@ -122,7 +122,7 @@ class Exporter(Handler):
         """
         if self.storage is None: return
         for period in self.periods:
-            self.storage.updateGraphPreprocess(period, category, nodeid, row)    
+            self.storage.updateGraphPreprocess(period, category, nodeid, row)
 
     def _update_graph_db(self, nodeid, row, category):
         """
@@ -133,8 +133,9 @@ class Exporter(Handler):
         if obj is None: return
         # temp edges row for the target category
         partialgraphedges = { category: row }
-        # overwrites the object
-        obj.updateEdges(partialgraphedges)
+        # overwrites the object edges to category
+        obj.edges[category] = row
+        #obj.updateEdges(partialgraphedges)
         self.storage.insert(obj, category, obj['id'])
 
     def finalize(self, path, exportedges=False):
