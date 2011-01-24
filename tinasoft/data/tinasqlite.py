@@ -509,6 +509,7 @@ class Engine(Backend):
             doc.deleteNGramForm(form, ngid, is_keyword)
             doc._cleanEdges(self)
             self.insertDocument(doc)
+            # propagates decremented edges to its neighbours
             self._neighboursUpdate(doc, 'Document')
             doc_count += 1
             yield None
