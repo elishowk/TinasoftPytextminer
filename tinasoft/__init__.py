@@ -663,6 +663,7 @@ class PytextminerFlowApi(PytextminerFileApi):
                 self.config['general']['basedirectory'],
                 self.config['general']['userstopwords']
             )
+        self.logger.debug("loading user stopwords from %s"%path)
         return [stopwords.StopWordFilter( "file://%s" % path )]
 
 

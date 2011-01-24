@@ -515,7 +515,7 @@ class Engine(Backend):
         yield [form, doc_count]
         return
 
-    def addNGramForm(self, form, doc_id, is_keyword):
+    def addNGramForm(self, form, target_doc_id, is_keyword):
         """
         adds a NGram as a form to all the dataset's Documents
         """
@@ -527,11 +527,26 @@ class Engine(Backend):
             stored_ngram.addForm(form.split(" "), ["None"])
             # only updates form attributes
             new_ngram = stored_ngram
-        # inserts NGram first
-        self.insertNGram( new_ngram )
-        # updates the Document
-        doc = self.loadDocument(doc_id)
-        total_occs = doc.addNGramForm(form, new_ngram.id, self, is_keyword)
-        self.insertDocument(doc)
-        yield [form, total_occs]
+        # updated NGram
+        self.insertNGram(new_ngram)
+        # first and only dataset
+        dataset_gen = self.loadMany("Corpora")
+        (dataset_id, dataset) = dataset_gen.next()
+        doc_count = 0
+        # walks through all documents
+        for corp_id in dataset['edges']['Corpus'].keys():
+            corpus_obj = self.loadCorpus(corp_id)
+            for docid in corpus_obj['edges']['Document'].keys():
+                doc = self.loadDocument(docid)
+                if docid != target_doc_id:
+                    total_occs += doc.addNGramForm(form, new_ngram.id, self, False)
+                else:
+                    total_occs += doc.addNGramForm(form, new_ngram.id, self, is_keyword)
+                self.insertDocument(doc)
+                if total_occs > 0:
+                    doc_count += 1
+                    _logger.debug("adding %d times %s in document %s"%(total_occs, form, docid))
+                yield None
+
+        yield [form, doc_count]
         return
