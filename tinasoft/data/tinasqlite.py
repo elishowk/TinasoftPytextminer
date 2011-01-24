@@ -527,16 +527,19 @@ class Engine(Backend):
             stored_ngram.addForm(form.split(" "), ["None"])
             # only updates form attributes
             new_ngram = stored_ngram
+
         # updated NGram
         self.insertNGram(new_ngram)
         # first and only dataset
         dataset_gen = self.loadMany("Corpora")
         (dataset_id, dataset) = dataset_gen.next()
         doc_count = 0
+
         # walks through all documents
         for corp_id in dataset['edges']['Corpus'].keys():
             corpus_obj = self.loadCorpus(corp_id)
             for docid in corpus_obj['edges']['Document'].keys():
+                total_occs = 0
                 doc = self.loadDocument(docid)
                 if docid != target_doc_id:
                     total_occs += doc.addNGramForm(form, new_ngram.id, self, False)
