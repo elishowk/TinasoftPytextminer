@@ -32,7 +32,8 @@ def apply_filters(ngram, filters=None):
     if filters is not None:
         for filt in filters:
             passFilter &= filt.test(ngram)
-            if passFilter is False: return passFilter
+            if passFilter is False:
+                return passFilter
     return passFilter
 
 
@@ -148,16 +149,16 @@ class WordSizeFilter(Content):
     Word length filtering
     """
     rules = {}
-    
+
     def test(self, ng):
         """returns True if ALL the tests passed"""
         content = self.get_content(ng)
         test = True
         for word in content:
             if len(word) < self.rules['minWordSize']:
-                test = False        
+                test = False
         return test
-        
+
     def get_content(self, ng):
         """selects NGram's postag"""
         return [word for word in ng['content']]
