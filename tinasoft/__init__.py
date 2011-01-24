@@ -507,7 +507,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             self.logger.warning("exporting the full graph to current.gexf")
             # TODO change graphmeta to switch "data/source" to "standalone"
             GEXFWriter.graph['parameters']['data/source'] = "standalone"
-            GEXFWriter.finalize("static/current.gexf", exportedges=True)
+            GEXFWriter.finalize(join("static","current.gexf"), exportedges=True)
         # returns the absolute path of outpath
         GEXFWriter.graph['parameters']['data/source'] = "browser"
         GEXFWriter.finalize(outpath, exportedges=False)
