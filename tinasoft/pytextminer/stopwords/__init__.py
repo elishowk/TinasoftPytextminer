@@ -144,7 +144,7 @@ class StopWords(object):
         """
         for label in ngramobj['edges']['label'].keys():
             if label in self[len(label.split(" "))]:
-                _logger.debug("%s blocked "%label)  
+                #_logger.debug("%s blocked "%label)
                 return True
         return False
 

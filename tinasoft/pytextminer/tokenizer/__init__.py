@@ -89,7 +89,7 @@ class RegexpTokenizer():
                 if len(content) >= i + n:
                     ngrams[n-1].append(content[i:n + i])
         return ngrams
-    
+
     @staticmethod
     def selectcontent(config, doc):
         """
@@ -215,8 +215,8 @@ class TreeBankWordTokenizer(RegexpTokenizer):
                         # application defined filtering
                         if filtering.apply_filters(ng, filters) is True:
                             ngrams[ngid] = ng
-                        else:
-                            _logger.debug("tokenizer filtering rejected %s"%ng.label)
+                        #else:
+                        #    _logger.debug("tokenizer filtering rejected %s"%ng.label)
         return ngrams
 
     @staticmethod
@@ -241,5 +241,5 @@ class TreeBankWordTokenizer(RegexpTokenizer):
                 except Exception, exc:
                     _logger.error("unable to group ngram %s"%exc)
                     continue
-                
+
         return nlemmas

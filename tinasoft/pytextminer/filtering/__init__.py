@@ -29,7 +29,7 @@ def apply_filters(ngram, filters=None):
     if filters is not None:
         for filt in filters:
             if filt.test(ngram) is False:
-                _logger.debug("apply_filters rejected %s"%ngram.label)
+                #_logger.debug("apply_filters rejected %s"%ngram.label)
                 return False
     return True
 
