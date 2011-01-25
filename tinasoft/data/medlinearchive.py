@@ -18,6 +18,7 @@ __author__="elishowk@nonutc.fr"
 
 from tinasoft.data import medline, Handler
 from os.path import join
+
 # get tinasoft's logger
 import logging
 _logger = logging.getLogger('TinaAppLogger')
@@ -41,5 +42,5 @@ class Importer(Handler):
         for id in periods:
             abstractFilePath = join(self.path, id, id + '.txt')
             reader = medline.Importer( abstractFilePath, **self.fileconfig )
-            reader_gen = reader.parseFile()
+            reader_gen = reader.parse_file()
             yield reader_gen, id

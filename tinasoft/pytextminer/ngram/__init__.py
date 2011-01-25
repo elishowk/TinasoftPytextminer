@@ -28,34 +28,28 @@ class NGram(PyTextMiner):
         initiate the object
         normalize must be local value for pickling reasons
         """
-        # default creates label
-        if label is None:
-            label = PyTextMiner.form_label(tokenlist)
         # normlist is the normalized list of tokens
-        normalized_tokens = []
-        for word in tokenlist:
-            normalized_tokens += [NGram.normalize(word)]
-
-        postag_label = None
+        normalized_tokens = [NGram.normalize(word) for word in tokenlist]
         # prepares postag
         if postag is not None:
-            postag_label = PyTextMiner.form_label(postag)
             metas["postag"] = postag
+        else:
+            metas["postag"] = ["?"]
         # default emtpy edges
         if edges is None:
             edges = { 'label': {}, 'postag' : {} }
         PyTextMiner.__init__(self, normalized_tokens, id, label, edges, **metas)
         # updates majors forms before returning instance
-        self.updateMajorForm(label, postag_label)
+        self.addForm(normalized_tokens, metas["postag"], 1)
 
     def addEdge(self, type, key, value):
         """
         The NGram object accepts only one edge write to a Document object
-        All the ohter edges are multiples
+        All other edges are multiples
         """
-        if type in ["Document"]:
-            return self._addUniqueEdge( type, key, value )
-        elif type in ["NGram"]:
+        #if type in ["Document"]:
+        #    return self._addUniqueEdge( type, key, value )
+        if type in ["NGram", "postag","Document"]:
             return self._overwriteEdge( type, key, value )
         else:
             return self._addEdge( type, key, value )
@@ -77,16 +71,13 @@ class NGram(PyTextMiner):
         normalized_tokens = [NGram.normalize(word) for word in tokens]
         return PyTextMiner.getId(normalized_tokens)
 
-    def updateMajorForm(self, label, postag_label):
+    def updateMajorForm(self):
         """
         updates major form of a nlemma
         """
-        # updates edges
-        self.addEdge('label', label, 1)
-        if postag_label is not None:
-            self.addEdge('postag', postag_label, 1)
-        # updates major form label attr
         self.label = self.getLabel()
+        self.content = self.label.split(" ")
+        self.postag = self['edges']['postag'][self.label]
 
     def getLabel(self):
         """
@@ -94,16 +85,16 @@ class NGram(PyTextMiner):
         """
         ordered_forms = sorted(self['edges']['label'])
         if len(ordered_forms) > 0:
-            return ordered_forms[0]
+            return ordered_forms[-1]
         else:
             return self.label
 
-    def getPostag(self):
+    def addForm(self, form_tokens, form_postag=None, form_occs=1 ):
         """
-        returns the major form POS tag or None
+        increments form edges
         """
-        ordered_forms = sorted(self['edges']['postag'])
-        if len(ordered_forms) > 0:
-            return ordered_forms[0]
-        else:
-            return self.postag
+        if form_postag is None:
+            form_postag = ["?"]
+        form_label = PyTextMiner.form_label( form_tokens )
+        self.addEdge('label', form_label, form_occs)
+        self.addEdge('postag', form_label, form_postag)

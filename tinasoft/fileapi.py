@@ -122,14 +122,16 @@ class PytextminerFileApi(object):
                 dataset_list += [file]
         return dataset_list
 
-    def delete_dataset(self, dataset):
+    def delete_dataset(self, dataset_id):
         """
         Part of the File API
         remove a dataset db directory and suer directory
         """
-        rmtree(join( self.config['general']['basedirectory'], self.config['general']['dbenv'], dataset ), True, lambda: True)
-        rmtree(join( self.user, dataset ), True, lambda: True)
-        return dataset
+        # may be ? win32api.SetFileAttributes(path, win32con.FILE_ATTRIBUTE_NORMAL)
+        del self.opened_storage[dataset_id]
+        rmtree(join( self.config['general']['basedirectory'], self.config['general']['dbenv'], dataset_id ), True, lambda: True)
+        rmtree(join( self.user, dataset_id ), True, lambda: True)
+        return dataset_id
 
     def walk_source_files(self):
         """

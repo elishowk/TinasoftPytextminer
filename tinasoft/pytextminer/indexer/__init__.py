@@ -97,21 +97,23 @@ class ArchiveCounter():
     """
     A cooccurrences matrix processor for large archives given a whitelist
     """
-    def __init__(self, storage):
+    def __init__(self, config, storage):
+        self.config = config
         # target database
         self.storage = storage
 
     def _notify(self, articleNumber):
-        if not articleNumber%1000 :
+        if not articleNumber%100 :
             _logger.debug( "ArchiveCounter executed on %d abstracts at %s"%(articleNumber,time.asctime(time.localtime())) )
 
-    def walkCorpus(self, whitelist, reader, period, exporter=None, minCooc=1):
+    def walk_period(self, whitelist, reader, period):
         """
         parses a file, with documents for one period
         and processes cooc for a given whitelist
         """
         # loads a whitelist
         descriptorNameList, termDictList = self._load_whitelist(whitelist)
+        self.descriptorNameList = descriptorNameList
         # basic counter
         articleNumber = 0
         # size of the whitelist
@@ -128,7 +130,9 @@ class ArchiveCounter():
                 yield articleNumber
                 # words list
                 wordSequence = tokenizer.RegexpTokenizer.tokenize(
-                    tokenizer.TreeBankWordTokenizer.sanitize(abstract['content'])
+                    tokenizer.TreeBankWordTokenizer.sanitize(
+                        tokenizer.RegexpTokenizer.selectcontent( self.config, abstract )
+                    )
                 )
                 # Occurrences
                 currentDescriptors, markerList = self._occurrences(termDictList, wordSequence, nDescriptors)
@@ -137,9 +141,6 @@ class ArchiveCounter():
                 #if articleNumber == 10000:
                 #    raise StopIteration()
         except StopIteration, si:
-            if exporter:
-                exporter.export_matrix(self.matrix, period, minCooc)
-            yield articleNumber
             return
 
 
@@ -156,24 +157,24 @@ class ArchiveCounter():
         termDictList = []
         maxLength = 0
 
-        # walks through all ngram in the whitelist
-        whitelistcontent = whitelist.getContent()
-        try:
-            while 1:
-                ngid, ngobj = whitelistcontent.next()
-                # puts the major form into termNameList
-                termNameList.append(ngobj['label'])
-                if len(termDictList) < len(ngobj['content']):
-                    # auto-adjust termDictList size
-                    for i in range(len(termDictList),len(ngobj['content'])):
-                        termDictList.append({})
-                # insert terms and forms into termDictList
-                index = len(termNameList) - 1
-                termDictList[len(ngobj['content'])-1][ngobj['label']] = index
-                for label in ngobj['edges']['label'].iterkeys():
-                    termDictList[len(label.split(" "))-1][label] = index
-        except StopIteration, si:
-            termNameList.sort()
+        # walks through all ngram forms in the whitelist
+        for form_id, lemmaid in whitelist.edges['NGram'].iteritems():
+            ngobj = whitelist.storage.loadNGram( form_id )
+            if ngobj is None: continue
+            # puts the major form into termNameList
+            lemmalabel = whitelist.edges['form_label'][lemmaid]
+            termNameList.append(lemmalabel)
+            if len(termDictList) < len(ngobj['content']):
+                # auto-adjust termDictList size
+                for i in range(len(termDictList), len(ngobj['content'])):
+                    termDictList.append({})
+            # insert terms and forms into termDictList
+            index = len(termNameList) - 1
+            termDictList[len(ngobj['content'])-1][ngobj['label']] = index
+            for label in ngobj['edges']['label'].iterkeys():
+                termDictList[len(label.split(" "))-1][label] = index
+
+        termNameList.sort()
         return termNameList, termDictList
 
     def _occurrences(self, termDictList, wordSequence, nDescriptors):
@@ -191,7 +192,7 @@ class ArchiveCounter():
             for ngram in ngrams[ngramsLengthMinusOne]:
                 currentTerm = ' '.join(ngram)
                 # mark presence of an ngram in the document
-                if termDictList[ngramsLengthMinusOne].has_key(currentTerm):
+                if currentTerm in termDictList[ngramsLengthMinusOne]:
                     correspondingDescriptorNumber = termDictList[ngramsLengthMinusOne][currentTerm]
                     if not markerList[correspondingDescriptorNumber]:
                         markerList[correspondingDescriptorNumber] = True
@@ -217,31 +218,37 @@ class ArchiveCounter():
                     markerList[c]
                 )
 
-    def writeMatrix(self, period, overwrite=True, minCooc=1):
+    def write_matrix(self, period, exporter, whitelist_exporter, minCooc=1):
         """
-        stores into Cooc DB table of the SEMI matrix
-        'corpus::ngramid' => '{ 'ngx' : y, 'ngy': z }'
-        where ngramid <= ngi
+        stores and optionally exports the cooc matrix
         """
         generator = self.matrix.extract_matrix(minCooc)
-        key = period+'::'
+        countcooc = 0
         try:
             while 1:
                 ngi, row = generator.next()
-                self.storage.updateCooc( key+ngi, row, overwrite )
-                yield None
+                self.storage.updateGraphPreprocess(period, "NGram", ngi, row)
+                internal_1 = self.matrix.id_index.index( ngi ) + 1
+                for ng2, cooc in row.iteritems():
+                    if cooc >= minCooc:
+                        internal_2 = self.matrix.id_index.index( ng2 ) + 1
+                        exporter.writeRow([ internal_1, internal_2, cooc, period ])
+                        countcooc += 1
+                yield countcooc
         except StopIteration, si:
-            self.storage.flushCoocQueue()
+            self.storage.flushGraphPreprocessQueue()
+            for lemma_label in self.descriptorNameList:
+                whitelist_exporter.writeRow([lemma_label])
             return
 
 
-    def readMatrix(self, termList, period):
+    def load_matrix(self, termList, period):
         """
-        OBSOLETE : TO UPDATE
+        UNUSED, to test
         """
         matrix = SymmetricMatrix(termList)
         try:
-            generator = self.storage.selectCorpusCooc( period )
+            generator = self.storage.selectCorpusGraphPreprocess(period, "NGram")
             while 1:
                 ngi,row = generator.next()
                 for ngj in row.iterkeys():

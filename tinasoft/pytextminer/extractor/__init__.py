@@ -16,13 +16,10 @@
 
 __author__="elishowk@nonutc.fr"
 
-from tinasoft.pytextminer import PyTextMiner
-from tinasoft.pytextminer import corpus, tagger, stopwords, tokenizer, filtering, whitelist
-from tinasoft.data import Engine, Reader, Writer
+from tinasoft.pytextminer import corpus, tagger, tokenizer, whitelist, stemmer
+from tinasoft.data import Reader, Writer
 
 import re
-import os.path
-import traceback
 
 import logging
 _logger = logging.getLogger('TinaAppLogger')
@@ -36,14 +33,10 @@ class Extractor():
     def __init__( self, storage, config, corpora, filters=None, stemmer=None ):
         self.reader = None
         self.config = config
-        # load Stopwords object
-        #self.stopwords = stopwds
         self.filters = []
         if filters is not None:
             self.filters = filters
         self.stemmer = stemmer
-        # keep duplicate document objects
-        self.duplicate = []
         # params from the controler
         self.corpora = corpora
         self.storage = storage
@@ -53,29 +46,32 @@ class Extractor():
             trained_pickle = self.config['tagger']
         )
 
-    def _openFile(self, path, format ):
+    def _open_reader(self, path, format ):
         """
         loads the source file
         automatically giving the Reader its config
         """
         dsn = format+"://"+path
+        config = self.config[format]
+        config['doc_extraction'] = self.config['doc_extraction']
         if format in self.config:
             return Reader( dsn, **self.config[format] )
         else:
-            return Reader( dsn )
+            raise RuntimeError("unable to load %s because its file definition was NOT found in the config file"%path)
+            return
 
 
-    def _walkFile( self, path, format ):
+    def _walk_file( self, path, format ):
         """Main parsing generator method"""
-        self.reader = self._openFile( path, format )
-        fileGenerator = self.reader.parseFile()
+        self.reader = self._open_reader( path, format )
+        fileGenerator = self.reader.parse_file()
         try:
             while 1:
                 yield fileGenerator.next()
         except StopIteration:
             return
 
-    def extract_file(self, path, format, extract_path, whitelistlabel=None, minoccs=1):
+    def extract_file(self, path, format, extract_path, whitelistlabel, minoccs):
         """
         parses a source file,
         tokenizes and filters,
@@ -83,7 +79,8 @@ class Extractor():
         then produces a whitelist,
         and finally export to a file
         """
-        fileGenerator = self._walkFile( path, format )
+        fileGenerator = self._walk_file(path, format)
+        self.corpusDict = {}
         if whitelistlabel is None:
             whitelistlabel = self.corpora['id']
         newwl = whitelist.Whitelist(whitelistlabel, whitelistlabel)
@@ -93,112 +90,120 @@ class Extractor():
             while 1:
                 # gets the next document
                 document, corpusNum = fileGenerator.next()
+                # if corpus DOES NOT already exist
+                if corpusNum not in self.corpusDict:
+                    # creates a new corpus and adds it to the global dict
+                    self.corpusDict[ corpusNum ] = corpus.Corpus( corpusNum )
                 document.addEdge( 'Corpus', corpusNum, 1 )
                 # extract and filter ngrams
                 docngrams = tokenizer.TreeBankWordTokenizer.extract(
                     document,
-                    #self.stopwords,
-                    self.config['ngramMin'],
-                    self.config['ngramMax'],
+                    self.config,
                     self.filters,
                     self.tagger,
                     self.stemmer
                 )
-                ### updates newwl to prepare export
+                # updates newwl to prepare export
                 if  corpusNum not in newwl['corpus']:
                     newwl['corpus'][corpusNum] = corpus.Corpus(corpusNum)
                 newwl['corpus'][corpusNum].addEdge('Document', document['id'], 1)
+
                 for ng in docngrams.itervalues():
                     newwl.addContent( ng, corpusNum, document['id'] )
-                    newwl.addEdge( 'NGram', ng['id'], 1 )
+                    newwl.addEdge("NGram", ng['id'], 1)
+                newwl.storage.flushNGramQueue()
+
                 doccount += 1
                 if doccount % NUM_DOC_NOTIFY == 0:
                     _logger.debug("%d documents parsed"%doccount)
                 yield doccount
 
         except StopIteration:
-            #whitelist storage still unused
-            newwl.storage.flushNGramQueue()
             _logger.debug("Total documents extracted = %d"%doccount)
             self.storage.updateCorpora( self.corpora, False )
             whitelist_exporter = Writer("whitelist://"+extract_path)
-            newwl = whitelist_exporter.write_whitelist(newwl, minoccs)
+            (filepath, newwl) = whitelist_exporter.write_whitelist(newwl, minoccs)
+            del newwl
             return
 
     def index_file(self, path, format, whitelist, overwrite=False):
         """given a white list, indexes a source file to storage"""
-        ### adds whitelist as an additional filter
+        ### adds whitelist as a unique filter
+        self.duplicate = []
         self.filters = [whitelist]
-        ### starts the parsing
-        fileGenerator = self._walkFile( path, format )
+        fileGenerator = self._walk_file( path, format )
+        self.corpusDict = {}
         doccount = 0
         try:
             while 1:
-                ### gets the next document
                 document, corpusNum = fileGenerator.next()
+                # if corpus DOES NOT already exist
+                if corpusNum not in self.corpusDict:
+                    # creates a new corpus and adds it to the global dict
+                    self.corpusDict[ corpusNum ] = corpus.Corpus( corpusNum )
                 document.addEdge( 'Corpus', corpusNum, 1 )
                 ### updates Corpora and Corpus objects edges
                 self.corpora.addEdge( 'Corpus', corpusNum, 1 )
-                self.reader.corpusDict[ corpusNum ].addEdge( 'Corpora', self.corpora['id'], 1)
+                self.corpusDict[ corpusNum ].addEdge( 'Corpora', self.corpora['id'], 1)
                 ### adds Corpus-Doc edge if possible
-                self.reader.corpusDict[ corpusNum ].addEdge( 'Document', document['id'], 1)
-                ### extract and filter ngrams
+                self.corpusDict[ corpusNum ].addEdge( 'Document', document['id'], 1)
+                ### extracts and filters ngrams
                 docngrams = tokenizer.TreeBankWordTokenizer.extract(
                     document,
-                    #self.stopwords,
-                    self.config['ngramMin'],
-                    self.config['ngramMax'],
+                    self.config,
                     self.filters,
                     self.tagger,
-                    self.stemmer
+                    stemmer.Identity()
                 )
+                nlemmas = tokenizer.TreeBankWordTokenizer.group(docngrams, whitelist)
                 #### inserts/updates NGram and update document obj
-                self._insert_NGrams(docngrams, document, corpusNum, overwrite)
-                # creates or OVERWRITES document into storage
-                #del document['content']
-                self.duplicate += self.storage.updateDocument( document, overwrite )
+                self._update_NGram_Document(nlemmas, document, corpusNum)
                 doccount += 1
                 if doccount % NUM_DOC_NOTIFY == 0:
                     _logger.debug("%d documents indexed"%doccount)
-                yield doccount
+                yield document['id']
 
         except StopIteration:
-            self.storage.updateCorpora( self.corpora, overwrite )
-            for corpusObj in self.reader.corpusDict.values():
-                self.storage.updateCorpus( corpusObj, overwrite )
+            self.storage.updateCorpora( self.corpora )
+            for corpusObj in self.corpusDict.values():
+                #import pdb; pdb.set_trace()
+                _logger.debug("%d NEW NGrams in corpus %s"%(len(corpusObj.edges['NGram'].keys()), corpusObj.id))
+                _logger.debug("found %d Documents in Corpus %s"%(len(corpusObj.edges['Document'].keys()), corpusObj.id))
+                self.storage.updateCorpus( corpusObj )
             return
 
-    def _insert_NGrams( self, docngrams, document, corpusNum, overwrite ):
+    def _update_NGram_Document( self, docngrams, document, corpusNum ):
         """
-        Inserts NGrams and its graphs to storage
-        MUST NOT BE USED FOR AN EXISTING DOCUMENT IN THE DB
-        OTHERWISE THIS METHOD WILL BREAK EXISTING DATA
+        Inserts NGrams and its relations to storage
+        Verifying previous storage contents preventing data corruption
+        Updates Document
         """
+        storedDoc = self.storage.loadDocument( document['id'] )
         for ngid, ng in docngrams.iteritems():
             # increments document-ngram edge
             docOccs = ng['occs']
             del ng['occs']
-            # updates NGram-Corpus edges
-            storedDoc = self.storage.loadDocument( document['id'] )
             ### document is not in the database
             if storedDoc is None:
                 ng.addEdge( 'Corpus', corpusNum, 1 )
-                self.reader.corpusDict[ corpusNum ].addEdge( 'NGram', ngid, 1 )
+                self.corpusDict[ corpusNum ].addEdge( 'NGram', ngid, 1 )
             else:
-                ### document exist but not attached to the current period
+                ### document exists but not attached to the current period
                 if corpusNum not in storedDoc['edges']['Corpus']:
                     ng.addEdge( 'Corpus', corpusNum, 1 )
-                    self.reader.corpusDict[ corpusNum ].addEdge( 'NGram', ngid, 1 )
+                    self.corpusDict[ corpusNum ].addEdge( 'NGram', ngid, 1 )
                 ### document exist but does not contains the current ngram
                 if ngid not in storedDoc['edges']['NGram']:
                     ng.addEdge( 'Corpus', corpusNum, 1 )
-                    self.reader.corpusDict[ corpusNum ].addEdge( 'NGram', ngid, 1 )
-            ### anyway attach document and ngram
+                    self.corpusDict[ corpusNum ].addEdge( 'NGram', ngid, 1 )
+            ### overwrites Doc-NGram edges
             ng.addEdge( 'Document', document['id'], docOccs )
-            # updates Doc-NGram edges
             document.addEdge( 'NGram', ng['id'], docOccs )
-            # queue the storage/update of the ngram
-            self.storage.updateNGram( ng, overwrite, document['id'], corpusNum )
-        # at the end of a document it's safe to flush the storage insert/update queue
-        self.storage.flushNGramQueue()
 
+            # queue the storage/update of the ngram
+            self.storage.updateManyNGram( ng )
+
+        self.storage.flushNGramQueue()
+        if storedDoc is not None:
+            self.duplicate += [storedDoc]
+        self.storage.updateDocument( document )

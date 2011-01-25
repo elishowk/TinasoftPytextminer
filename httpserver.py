@@ -87,14 +87,15 @@ class TinasoftServerRequest(resource.Resource):
                 parsed_args[key] = self._parse_args( self.argument_types[key](args[key][0]) )
             else:
                 parsed_args[key] = self.argument_types[key](args[key][0])
+
+        #self.logger.info( str(self.method) + " ---" + str(parsed_args) )
         return parsed_args
 
     def render(self, request):
         """
-        Prepares arguments and call the method
+        Prepares arguments and call the Cooperative method
         """
-        #self.logger.info( str(self.method) + " ---" + str(parsed_args) )
-        d = CooperativeExecution()._method_wrapper(request, self.callback.success, self.handler, self.method, self.logger)
+        d = CooperativeExecution()._method_wrapper(request, self.callback, self.handler, self.method, self.logger)
         d.addCallback(lambda ignored: request.finish())
         d.addErrback(self._method_failed, request)
         return server.NOT_DONE_YET
@@ -133,7 +134,10 @@ class CooperativeExecution(object):
         'alpha': float,
         'nodethreshold': list,
         'edgethreshold': list,
-        'exportedges': bool
+        'exportedges': bool,
+        'object': jsonpickle.decode,
+        'redondant': bool,
+        'is_keyword': bool
     }
 
     def _method_wrapper(self, request, serializer, handler, method, logger):
@@ -162,7 +166,7 @@ class CooperativeExecution(object):
                 lastValue = processGenerator.next()
                 yield None
         except StopIteration, si:
-            self.request.write( self.serializer( lastValue ) )
+            self.request.write( self.serializer.success( lastValue ) )
 
     def _parse_args(self, args):
         """
@@ -250,7 +254,8 @@ def value_to_gen(func):
 
 class POSTHandler(object):
     """
-    Pytextminer API mapping POST requests and Pytextminer API's methods
+    Pytextminer API mapping POST requests to database insert methods
+    if @redondant is True, update will also write updated edges values to all linked nodes
     """
     def __init__(self, pytmapi):
         self.pytmapi = pytmapi
@@ -263,38 +268,47 @@ class POSTHandler(object):
         """ generate a graph given a dataset db, a whitelist and some graph params"""
         return self.pytmapi.generate_graph(*args, **kwargs)
 
-    @value_to_gen
-    def dataset(self, corporaobj):
-        """ insert or update """
-        storage = self.pytmapi.get_storage( corporaobj['id'] )
-        if storage == self.pytmapi.STATUS_ERROR:
-            return self.pytmapi.STATUS_ERROR
-        return storage.insertCorpora(corporaobj)
+    def graph_preprocess(self, *args, **kwargs):
+        """ generate a graph given a dataset db, a whitelist and some graph params"""
+        return self.pytmapi.graph_preprocess(*args, **kwargs)
 
     @value_to_gen
-    def corpus(self, dataset, corpusobj):
-        """ insert or update """
-        storage = self.pytmapi.get_storage( dataset )
+    def dataset(self, object, redondant):
+        """ update """
+        storage = self.pytmapi.get_storage( object['id'], create=False )
         if storage == self.pytmapi.STATUS_ERROR:
             return self.pytmapi.STATUS_ERROR
-        return storage.insertCorpus(corpusobj)
+        return storage.updateCorpora(object, redondant)
 
     @value_to_gen
-    def document(self, dataset, documentobj):
-        """ insert or update """
-        storage = self.pytmapi.get_storage( dataset )
+    def corpus(self, dataset, object, redondant):
+        """ update """
+        storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
             return self.pytmapi.STATUS_ERROR
-        return storage.insertDocument(documentobj)
+        return storage.updateCorpus(object, redondant)
 
     @value_to_gen
-    def ngram(self, dataset, ngramobj):
-        """ insert or update """
-        storage = self.pytmapi.get_storage( dataset )
+    def document(self, dataset, object, redondant):
+        """ update """
+        storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
             return self.pytmapi.STATUS_ERROR
-        return storage.insertNGram(ngramobj)
+        return storage.updateDocument(object, redondant)
 
+    @value_to_gen
+    def ngram(self, dataset, object, redondant):
+        """ update """
+        storage = self.pytmapi.get_storage( dataset, create=False )
+        if storage == self.pytmapi.STATUS_ERROR:
+            return self.pytmapi.STATUS_ERROR
+        return storage.updateNGram(object, redondant)
+
+    def ngramform(self, dataset, label, id, is_keyword):
+        storage = self.pytmapi.get_storage( dataset, create=False )
+        if storage == self.pytmapi.STATUS_ERROR:
+            return self.pytmapi.STATUS_ERROR
+        return storage.addNGramForm( label, id, is_keyword )
 
 class GETHandler(object):
     """
@@ -329,8 +343,9 @@ class GETHandler(object):
         """
         if dataset is None:
             return self.pytmapi.walk_datasets()
-        storage = self.pytmapi.get_storage( dataset )
+        storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
+            self.pytmapi.logger.error("unable to connect to the database")
             return None
         else:
             return storage.loadCorpora(dataset)
@@ -340,8 +355,9 @@ class GETHandler(object):
         """
         returns a corpus json object from the database
         """
-        storage = self.pytmapi.get_storage( dataset )
+        storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
+            self.pytmapi.logger.error("unable to connect to the database")
             return None
         else:
             return storage.loadCorpus(id)
@@ -353,6 +369,7 @@ class GETHandler(object):
         """
         storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
+            self.pytmapi.logger.error("unable to connect to the database")
             return None
         else:
             return storage.loadDocument(id)
@@ -364,6 +381,7 @@ class GETHandler(object):
         """
         storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
+            self.pytmapi.logger.error("unable to connect to the database")
             return None
         else:
             return storage.loadNGram(id)
@@ -405,15 +423,45 @@ class GETHandler(object):
 
 class DELETEHandler(object):
     """
-    Pytextminer API mapping DELETE requests and Pytextminer API's methods
+    Pytextminer API mapping DELETE requests to storage methods
     """
     def __init__(self, pytmapi):
         self.pytmapi = pytmapi
 
     @value_to_gen
     def dataset(self, dataset):
-        """ deletes all the dataset's file """
+        """ deletes all the dataset's files and directory """
         return self.pytmapi.delete_dataset(dataset)
+
+    #@value_to_gen
+    #def corpus(self, dataset, id, redondant):
+    #    """ remove """
+    #    storage = self.pytmapi.get_storage( dataset, create=False )
+    #    if storage == self.pytmapi.STATUS_ERROR:
+    #        return self.pytmapi.STATUS_ERROR
+    #    return storage.delete(id, 'Corpus', redondant)
+    #
+    #@value_to_gen
+    #def document(self, dataset, id, redondant):
+    #    """ remove """
+    #    storage = self.pytmapi.get_storage( dataset, create=False )
+    #    if storage == self.pytmapi.STATUS_ERROR:
+    #        return self.pytmapi.STATUS_ERROR
+    #    return storage.delete(id, 'Document', redondant)
+    #
+    #@value_to_gen
+    #def ngram(self, dataset, id, redondant):
+    #    """ remove """
+    #    storage = self.pytmapi.get_storage( dataset, create=False )
+    #    if storage == self.pytmapi.STATUS_ERROR:
+    #        return self.pytmapi.STATUS_ERROR
+    #    return storage.delete(id, 'NGram', redondant)
+
+    def ngramform(self, dataset, label, id, is_keyword):
+        storage = self.pytmapi.get_storage( dataset, create=False )
+        if storage == self.pytmapi.STATUS_ERROR:
+            return self.pytmapi.STATUS_ERROR
+        return storage.deleteNGramForm( label, id, is_keyword )
 
 class NumpyFloatHandler(jsonpickle.handlers.BaseHandler):
     """
@@ -455,8 +503,8 @@ class Serializer(object):
         writes the success json string
         but still checks STATUS_ERROR in case of caught error during request
         """
-        if response == PytextminerFlowApi.STATUS_ERROR:
-            response = traceback.format_exc()
+        #if response == PytextminerFlowApi.STATUS_ERROR:
+        #    response = traceback.format_exc()
         if response == None:
             response = self.default
         return self.serialize( response )

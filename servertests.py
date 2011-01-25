@@ -23,8 +23,12 @@ import sys
 from datetime import datetime
 import httplib
 import urllib
-httplib.HTTPConnection.debuglevel = 1
+#httplib.HTTPConnection.debuglevel = 1
 import jsonpickle
+
+import tests
+
+from tinasoft.pytextminer import corpora, corpus, document, ngram
 
 class ServerTest(unittest.TestCase):
     def setUp(self):
@@ -33,11 +37,11 @@ class ServerTest(unittest.TestCase):
             "Accept": "application/json"
         }
         self.connection = httplib.HTTPConnection("localhost", 8888)
-        self.datasetId = argument3
-        self.period = argument5
+        self.datasetId = datasetId
+        self.period = period
         self.argument1 = argument1
         self.argument2 = argument2
-        self.whitelist = argument4
+        self.whitelist = whitelist
 
 
 class ExtractFile(ServerTest):
@@ -65,13 +69,13 @@ class IndexFile(ServerTest):
         index a whitelist against a source file
          and its network in the db
         """
-        params = urllib.urlencode( {
+        params = urllib.urlencode({
             'path': self.argument1,
             'dataset': self.datasetId,
             'whitelistpath': self.whitelist,
             'format': self.argument2,
             'overwrite': False
-        } )
+        })
         self.connection.request(
             'POST',
             '/file',
@@ -89,13 +93,14 @@ class GenerateGraph(ServerTest):
             'periods': self.period,
             'whitelistpath': self.whitelist,
             'outpath': 'test_graph',
+            # DOES ONT WORK : urlencode fails
             #'ngramgraphconfig': {
             #    'proximity': self.argument1
             #},
             #'documentgraphconfig': {
             #    'proximity': self.argument2
             #}
-        } )
+        })
         self.connection.request(
             'POST',
             '/graph',
@@ -105,50 +110,95 @@ class GenerateGraph(ServerTest):
         print self.connection.getresponse().read()
 
 
-class GetNodes(ServerTest):
-    def runTest(self):
-        """GetNodes : gets nodes from database after having generated a graph"""
+def getObject(connection, headers, object_type, dataset_id, obj_id=None):
+    """getCorpora : gets a corpora from database"""
+    if obj_id is None:
         params =  urllib.urlencode({
-            'dataset': self.datasetId,
-            'id': self.period
+            'dataset': dataset_id
         })
-        self.connection.request(
-            'GET',
-            '/corpus?'+params,
-            body = params,
-            headers = self.headers
-        )
-        data = self.connection.getresponse().read()
-        corpus = jsonpickle.decode( data )
-        print corpus
-        for ngid in corpus['edges']['NGram'].iterkeys():
-            params =  urllib.urlencode({
-                'dataset': self.datasetId,
-                'id': ngid
-            })
-            self.connection.request(
-                'GET',
-                '/ngram?'+params,
-                body = params,
-                headers = self.headers
-            )
-            data = self.connection.getresponse().read()
-            ngram = jsonpickle.decode( data )
-            print ngram.edges
-        for docid in corpus['edges']['Document'].iterkeys():
-            params =  urllib.urlencode({
-                'dataset': self.datasetId,
-                'id': docid
-            })
-            self.connection.request(
-                'GET',
-                '/document?'+params,
-                body = params,
-                headers = self.headers
-            )
-            data = self.connection.getresponse().read()
-            document = jsonpickle.decode( data )
-            print document
+    else:
+        params =  urllib.urlencode({
+            'dataset': dataset_id,
+            'id': obj_id
+        })
+    connection.request(
+        'GET',
+        '/'+object_type+'?'+params,
+        body = params,
+        headers = headers
+    )
+    data = connection.getresponse().read()
+    obj = jsonpickle.decode(data)
+    return obj
+
+class TestGraph(ServerTest):
+    def runTest(self):
+        """TestGraph :
+        gets nodes from database after having generated a graph
+        and test values agains the ones in tests/__init__.py
+        """
+        data = tests.get_tinacsv_test_3_data()
+        
+        corporaResult = getObject(self.connection, self.headers, 'dataset', self.datasetId)
+        self.failUnless( isinstance( corporaResult, corpora.Corpora ), "dataset request failed : %s"%self.datasetId )
+        
+        corpusResult = getObject(self.connection, self.headers, 'corpus', self.datasetId, self.period)
+        self.failUnless( isinstance( corpusResult, corpus.Corpus ), "corpus request failed" )
+        
+        print "Testing NGram nodes in period %s"%self.period
+        for ngid in corpusResult['edges']['NGram'].iterkeys():
+            ngramObj = getObject(self.connection, self.headers, 'ngram', self.datasetId, ngid)
+            self.failUnless( isinstance( ngramObj, ngram.NGram ), "ngram request failed" )
+            
+            print "testing NGram %s (%s)"%(ngramObj['label'],ngramObj['id'])
+            
+            self.failUnless( ("NGram::"+ngramObj['id'] in data['nodes']), "NGram not in the graph db" )
+            self.failUnlessEqual( ngramObj['label'], data['nodes']["NGram::"+ngramObj['id']]['label'], "NGram label test failed : %s"%ngramObj['label'] )
+            self.failUnlessEqual( data['nodes']["NGram::"+ngramObj['id']]['weight'], corpusResult.edges['NGram'][ngramObj['id']], "Corpus-NGram weight test failed : %s"%corpusResult.edges['NGram'][ngramObj['id']] )
+            
+            for targetgraphid, weight in data['edges']["NGram::"+ngid].iteritems():
+                category, targetid = targetgraphid.split("::")
+                self.failUnless( ( targetid in ngramObj['edges'][category]),
+                    "missing edge of NGram %s, target = %s::%s \n %s"%(ngramObj['label'], category, targetid, ngramObj['edges']) )
+            
+            for category in ["NGram", "Document"]:
+                for targetid, weight in ngramObj['edges'][category].iteritems():
+                    
+                    print "testing target cat=%s, target id=%s"%(category, targetid )
+                    
+                    self.failUnless( ( "NGram::"+ngramObj['id'] in data['edges']),
+                        "missing all ngram's edges: %s"%ngramObj['label'])
+                    self.failUnless( ( category+"::"+targetid in data['edges']["NGram::"+ngramObj['id']]),
+                        "invalid edge of NGram: %s, target = %s::%s"%(ngramObj['label'], category, targetid) )
+                    self.failUnlessEqual( weight,  data['edges']["NGram::"+ngramObj['id']][category+"::"+targetid],
+                        "bad ngram weight : %s"%ngramObj['label'] )
+                    
+        print "Testing Document nodes in period %s"%self.period
+        for docid in corpusResult['edges']['Document'].iterkeys():
+            documentObj = getObject(self.connection, self.headers, 'document', self.datasetId, docid)
+            self.failUnless( isinstance( documentObj, document.Document ), "document request failed" )
+            print "testing Document %s (%s)"%(documentObj['label'],documentObj['id'])
+                       
+            self.failUnless( ("Document::"+documentObj['id'] in data['nodes']), "Document not in the graph db" )
+            self.failUnlessEqual( documentObj['label'], data['nodes']["Document::"+documentObj['id']]['label'], "Document label test failed : %s"%documentObj['label'] )
+            self.failUnlessEqual( data['nodes']["Document::"+documentObj['id']]['weight'], corpusResult.edges['Document'][documentObj['id']], "Corpus-Document weight test failed : %s"%corpusResult.edges['Document'][documentObj['id']] )
+            
+            for targetgraphid, weight in data['edges']["Document::"+docid].iteritems():
+                category, targetid = targetgraphid.split("::")
+                self.failUnless( ( targetid in documentObj['edges'][category]),
+                    "missing edge of Document: %s, target = %s::%s"%(documentObj['label'], category, targetid) )
+            
+            for category in ["NGram", "Document"]:
+                for targetid, weight in documentObj['edges'][category].iteritems():
+                    
+                    print "testing target cat=%s, target id=%s"%(category, targetid)
+                    
+                    self.failUnless( ( "Document::"+documentObj['id'] in data['edges']),
+                        "missing all Document's edges s: %s"%documentObj['id'])
+                    self.failUnless( ( category+"::"+targetid in data['edges']["Document::"+documentObj['id']]),
+                        "invalid edge of Document %s : target = %s::%s"%(documentObj['id'], category, targetid)  )
+                    self.failUnlessEqual( weight,  data['edges']["Document::"+documentObj['id']][category+"::"+targetid],
+                        "Document weight test failed : source %s , target = %s"%(documentObj['id'],category+"::"+targetid) )
 
 def usage():
     print " servertests.py USAGE :\n"
@@ -156,16 +206,16 @@ def usage():
     print " python servertests.py ExtractFile source_filename source_file_format dataset_name whitelist_out_path\n"
     print " python servertests.py IndexFile source_filename source_file_format dataset_name whitelist_path\n"
     print " python servertests.py GenerateGraph dataset_name whitelist_path period\n"
-    print " python servertests.py GetNodes dataset_name period\n"
+    print " python servertests.py TestGraph dataset_name period\n"
 
 
 if __name__ == '__main__':
     print sys.argv
     argument1 = None
     argument2 = None
-    argument3 = None
-    argument4 = None
-    argument5 = None
+    datasetId = None
+    whitelist = None
+    period = None
     try:
         testclass = sys.argv[1]
     except Exception, e:
@@ -176,25 +226,27 @@ if __name__ == '__main__':
         try:
             argument1 = sys.argv[2]
             argument2 = sys.argv[3]
-            argument3 = sys.argv[4]
-            argument4 = sys.argv[5]
+            datasetId = sys.argv[4]
+            whitelist = sys.argv[5]
             del sys.argv[2:]
         except:
             usage()
             exit()
     elif testclass == 'GenerateGraph':
         try:
-            argument3 = sys.argv[2]
-            argument4 = sys.argv[3]
-            argument5 = sys.argv[4]
+            #argument1 = sys.argv[2]
+            #argument2 = sys.argv[3]
+            datasetId = sys.argv[2]
+            whitelist = sys.argv[3]
+            period = sys.argv[4]
             del sys.argv[2:]
         except:
             usage()
             exit()
-    elif testclass == 'GetNodes':
+    elif testclass == 'TestGraph':
         try:
-            argument3 = sys.argv[2]
-            argument5 = sys.argv[3]
+            datasetId = sys.argv[2]
+            period = sys.argv[3]
             del sys.argv[2:]
         except:
             usage()

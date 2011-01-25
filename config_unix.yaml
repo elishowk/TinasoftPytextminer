@@ -17,56 +17,63 @@ general:
     stopwords: 'stopwords/en.txt'
 # extraction settings
 datasets:
-    extract:
-        - 'titleField'
-        - 'contentField'
+    doc_extraction:
+        # the following values can be document object fields:
+        # - defined by one of the field's value
+        # - constants required fields : 'content'/'label'/'id'
+        - 'title'
+        - 'content'
+        #- 'keywords'
     # tina csv columns declaration
     # will ignore undeclared fields
     # and warn not found optional fields
     tinacsv:
-        doc_label: 'docField'
+        # doc_label represents one of the field's key
+        # if not found in the file, will use the field specified by "label"
+        doc_label: 'acronym'
         fields:
-            titleField: 'doc_titl'
-            contentField: 'doc_abst'
-            corpusField: 'corp_id'
-            docField: 'doc_id'
-            # next fields are optional
-            #authorField: 'doc_acrnm'
-            #index1Field: 'doc_index_1'
-            #index2Field: 'doc_index_2'
-            #dateField: 'doc_date'
-            keywordsField: 'doc_keywords'
+            # required fields
+            label: 'doc_id'
+            content: 'abstract'
+            corpus_id: 'corp_id'
+            id: 'doc_id'
+            # optionnal fields
+            keywords: 'keywords'
+            title: 'title'
+            acronym: 'acronym'
         # csv reader params
-        #delimiter: ','
-        #quotechar: '"'
-        encoding: 'utf-8'
+        encoding: 'utf_8'
         dialect: 'excel'
     # pubmed.gov "medline" file export
-    # same behaviour as tinacsv
-    # period_size = number first characters of pub date field "corpusField"
     medline:
-        doc_label: 'titleField'
+        # doc_label represents one of the field's key
+        # if not found in the file, will use the field specified by "label"
+        doc_label: 'title'
+        fields:
+            label: 'PMID'
+            content: 'AB'
+            corpus_id: 'DP'
+            id: 'PMID'
+            # optional fields
+            title: 'TI'
+        # period_size = number first characters of pub date field "corpusField"
         period_size: 4
         encoding: 'ascii'
-        fields:
-            titleField: 'TI'
-            contentField: 'AB'
-            corpusField: 'DP'
-            docField: 'PMID'
     # archive of pubmed.gov "medline" files, organized like this
     # Medline/
     #    period1/period1.txt
     #    period2/period2.txt
     #medlinearchive:
-        # nothing yet
+        # TODO
     # extraction size
     ngramMin: 1
     ngramMax: 4
     # tagger learning on 2 x training_tagger_size sentences of tagged nltk corpus
-    training_tagger_size: 8000
+    training_tagger_size: 10000
     # under "basedirectory" directory, delete this file to regenerate a new one on next starting
     tagger: 'shared/tagger.pickle'
-    postag_valid: '^((VB,|VBD,|VBG,|VBN,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?((PREP.?|DET.?,|IN.?,|CC.?,|\?,)((VB,|VBD,|VBG,|VBN,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?)*?$'
+    # change this Reg Expression to change NGram extraction filtering
+    postag_valid: '^((VB,|VBD,|VBG,|VBN,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,)(CD.,)?)+?((PREP.?|DET.?,|IN.?,|CC.?,|\?,)((VB,|VBD,|VBG,|VBN,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?)*?$'
     #postag_valid: '^((VB.?,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?((PREP.?|DET.?,|IN.?,|CC.?,|\?,)((VB.?,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?)*?$'
     #postag_valid: '^((VB.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?((IN.?,|CC.?,|\?,)((VB.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?)*?$'
 datamining:
@@ -77,16 +84,21 @@ datamining:
             - 0.0001
             - 'inf'
         nodethreshold:
-            - 1.0
+            - 1.00
             - 'inf'
-        proximity: 'logJaccard'
+        proximity: 'sharedNGrams'
+        #proximity: 'logJaccard'
     NGramGraph:
         edgethreshold:
             - 0.0001
             - 'inf'
         nodethreshold:
-            - 1.0
+            - 1.00
             - 'inf'
-        alpha: 0.1
-        hapax: 1
-        proximity: 'equivalenceIndex'
+        alpha: 0.10
+        #hapax: 1
+        proximity: 'Cooccurrences'
+        #proximity: 'EquivalenceIndex'
+        #proximity: 'PseudoInclusion'
+indexer:
+    minCooc: 10

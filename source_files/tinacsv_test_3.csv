@@ -1,4 +1,4 @@
-"corp_id","doc_id","doc_titl","doc_acrnm","doc_abst"
-"FET","59","TINA","TINA","TINA is a support action aiming to develop tools for the analysis and visualisation of the relationships between scientific research projects and proposals. proposals."
-"FET","60","VISMASTER","VISMASTER","TINA is a support action aiming to develop tools for the analysis and visualisation of the relationships between scientific research projects and proposals."
-"FET",55,"UNIQUE","UNIQUE","TINA is a support action"
+"corp_id","doc_id","title","acronym","abstract"
+"FET","59","Tools for INteractive Assessement of Projects Portfolio and Visualization of Scientific Landscapes","TINA","TINA is a support action aiming to develop tools for the analysis and visualisation of the relationships between scientific research projects and proposals. proposals."
+"FET","60","Title of a Duplicated Document","DUPLICATE","TINA is a support action aiming to develop tools for the analysis and visualisation of the relationships between scientific research projects and proposals."
+"FET","55","Unique Document","UNIQUE","TINA is a support action"

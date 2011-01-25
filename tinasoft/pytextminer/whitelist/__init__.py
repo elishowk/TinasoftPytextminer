@@ -43,9 +43,15 @@ class Whitelist(PyTextMiner,whitelist.WhitelistFile):
         whitelist.WhitelistFile.__init__(self)
         PyTextMiner.__init__(self, {}, id, label, edges, **metas)
         self.storage = self._get_storage()
+        
+    def __del__(self):
+        del self.storage
 
     def addEdge(self, type, key, value):
-        return self._addEdge( type, key, value )
+        if type in ['NGram', 'StopNGram']:
+            return self._overwriteEdge( type, key, value )
+        else:
+            return self._addEdge( type, key, value )
 
     def test(self, ng):
         """
@@ -70,7 +76,7 @@ class Whitelist(PyTextMiner,whitelist.WhitelistFile):
         _logger.debug(
             "new connection to a whitelist database at %s"%(tmp)
         )
-        options = {'home':"."}
+        options = {'home':".", 'drop_tables': True}
         return Engine("tinasqlite://%s"%tmp, **options)
 
     def addContent(self, ngram, corpus_id=None, document_id=None):
@@ -84,7 +90,7 @@ class Whitelist(PyTextMiner,whitelist.WhitelistFile):
             ngram.addEdge( 'Corpus', corpus_id, 1 )
         if document_id is not None:
             ngram.addEdge( 'Document', document_id, 1 )
-        if self.storage.updateNGram( ngram, False ) >= self.storage.MAX_INSERT_QUEUE:
+        if self.storage.updateManyNGram( ngram ) >= self.storage.MAX_INSERT_QUEUE:
             self.storage.flushNGramQueue()
 
     def getContent(self, id=None):

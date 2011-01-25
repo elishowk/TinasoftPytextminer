@@ -32,7 +32,8 @@ def apply_filters(ngram, filters=None):
     if filters is not None:
         for filt in filters:
             passFilter &= filt.test(ngram)
-            if passFilter is False: return passFilter
+            if passFilter is False:
+                return passFilter
     return passFilter
 
 
@@ -143,6 +144,25 @@ class Content():
         """returns True if ALL the tests passed"""
         return self._any(ng) and self._both(ng) and self._begin(ng) and self._end(ng)
 
+class WordSizeFilter(Content):
+    """
+    Word length filtering
+    """
+    rules = {}
+
+    def test(self, ng):
+        """returns True if ALL the tests passed"""
+        content = self.get_content(ng)
+        test = True
+        for word in content:
+            if len(word) < self.rules['minWordSize']:
+                test = False
+        return test
+
+    def get_content(self, ng):
+        """selects NGram's postag"""
+        return [word for word in ng['content']]
+
 class PosTagFilter(Content):
     """
     Rule-based POS tag filtering
@@ -158,11 +178,11 @@ class PosTagFilter(Content):
 
     def get_content(self, ng):
         """selects NGram's postag"""
-        return [token for token in ng['postag']]
+        return [tag for tag in ng['postag']]
 
 class PosTagValid(PosTagFilter):
     """
-    Regexp-based POS tag filteringvalidation
+    Regexp-based POS tag filtering validation
     """
     # default rules
     rules = re.compile(r"^.*$")
@@ -171,7 +191,7 @@ class PosTagValid(PosTagFilter):
         content = self.get_content(ng)
         pattern = ",".join(content)
         pattern += ","
-        if self.rules.match( pattern ) is None:
+        if self.rules.match(pattern) is None:
             return False
         else:
             return True

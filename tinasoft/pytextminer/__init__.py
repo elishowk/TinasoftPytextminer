@@ -16,7 +16,7 @@
 
 
 
-__author__="elishowk@nonutc.fr"
+__author__ = "elishowk@nonutc.fr"
 
 __all__ = [
     "corpora", "corpus", "document", "ngram", "whitelist"
@@ -46,7 +46,9 @@ class PyTextMiner(object):
         if id is None:
             self.id = PyTextMiner.getId( content )
         else:
-            self.id = str(id)
+            self.id = id
+        if label is None:
+            label = PyTextMiner.form_label( content )
         self.label = label
         self._loadEdges( edges )
         self._loadOptions( metas )
@@ -67,12 +69,35 @@ class PyTextMiner(object):
             defaultedges.update(edges)
         self.edges = defaultedges
 
+    def _cleanEdges(self, *args, **kwargs):
+        for targettype in self['edges'].keys():
+            for targetid in self['edges'][targettype].keys():
+                if self['edges'][targettype][targetid] <= 0:
+                    del self['edges'][targettype][targetid]
+
+    def updateEdges(self, updateedges):
+        """updates an object's edges with the candidate edges dictionnary"""
+        for targettype in updateedges.iterkeys():
+            for targetid, weight in updateedges[targettype].iteritems():
+                self.addEdge( targettype, targetid, weight )
+
+    def updateObject(self, obj):
+        """ overwrites all attributes then increment edges """
+        edges = obj['edges']
+        del obj['edges']
+        self.__dict__.update(obj.__dict__)
+        self.updateEdges( edges )
+
     @staticmethod
-    def form_label( tokens ):
+    def form_label(tokens):
         """
         common method forming clean labels from unicode token list
         """
-        return " ".join(tokens)
+        label = " ".join(tokens)
+        if not isinstance(label, unicode ):
+            return unicode(label , "utf_8", errors='ignore')
+        else:
+            return label
 
     @staticmethod
     def getId(content):
@@ -81,12 +106,8 @@ class PyTextMiner(object):
         @content must be a list of str
         """
         if type(content) == list:
-            #try:
             convert = PyTextMiner.form_label(content)
-            return str(sha256( convert.encode( 'ascii', 'ignore' ) ).hexdigest())
-            #except UnicodeError, uni:
-            #    _logger.error("impossible to create sha256 node ID : %s"%str(uni))
-            #    return "invalid"
+            return sha256( convert.encode( 'ascii', 'replace' ) ).hexdigest()
         else:
             return uuid4().hex
 
@@ -95,22 +116,6 @@ class PyTextMiner(object):
         returns the label
         """
         return self.label
-
-    @staticmethod
-    def updateObjectEdges(canditate, toupdate):
-        """increments an object's edges with the candidate object's edges"""
-        for targettype in canditate['edges'].iterkeys():
-            for id, weight in canditate['edges'][targettype].iteritems():
-                res = toupdate.addEdge( targettype, id, weight )
-        return toupdate
-
-    @staticmethod
-    def updateEdges(updateedges, toupdate):
-        """increments an object's edges with the candidate object's edges"""
-        for targettype in updateedges.iterkeys():
-            for id, weight in updateedges[targettype].iteritems():
-                res = toupdate.addEdge( targettype, id, weight )
-        return toupdate
 
     def _addUniqueEdge( self, type, key, value ):
         """
@@ -123,7 +128,6 @@ class PyTextMiner(object):
         else:
             self['edges'][type][key] = value
             return True
-
 
     def _overwriteEdge(self, type, key, value):
         """

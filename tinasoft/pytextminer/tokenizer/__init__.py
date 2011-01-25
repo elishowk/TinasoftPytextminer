@@ -33,16 +33,13 @@ nltk_treebank_tokenizer = nltk.TreebankWordTokenizer()
 # We consider following rules to apply whatever be the langage.
 # ... is an ellipsis, put spaces around before splitting on spaces
 # (make it a token)
-ellipfind_re = re.compile(ur"(\.\.\.)",
-                          re.IGNORECASE|re.VERBOSE)
+ellipfind_re = re.compile(ur"(\.\.\.)", re.IGNORECASE|re.VERBOSE)
 ellipfind_subst = ur" ... "
 # A regexp to put spaces if missing after alone marks.
-punct1find_re = re.compile(ur"(["+string.punctuation+"])([^ ])",
-                           re.IGNORECASE|re.VERBOSE)
+punct1find_re = re.compile(ur"(["+string.punctuation+"])([^ ])", re.IGNORECASE|re.VERBOSE)
 punct1find_subst = ur"\1 \2"
 # A regexp to put spaces if missing before alone marks.
-punct2find_re = re.compile(ur"([^ ])([["+string.punctuation+"])",
-                           re.IGNORECASE|re.VERBOSE)
+punct2find_re = re.compile(ur"([^ ])([["+string.punctuation+"])", re.IGNORECASE|re.VERBOSE)
 punct2find_subst = ur"\1 \2"
 
 class RegexpTokenizer():
@@ -92,6 +89,22 @@ class RegexpTokenizer():
                 if len(content) >= i + n:
                     ngrams[n-1].append(content[i:n + i])
         return ngrams
+    
+    @staticmethod
+    def selectcontent(config, doc):
+        """
+        Adds content fields from application's configuration
+        """
+        customContent = ""
+        for field in config['doc_extraction']:
+            try:
+                customContent += " . " + doc[ field ]
+            except Exception, exc:
+                _logger.warning("selectcontent : CANNOT ADD %s FIELD to EXTRACTION CONTENT"%field)
+        if len(customContent)==0:
+            _logger.error("document %s content is empty"%doc['id'])
+        return customContent
+
 
 class TreeBankWordTokenizer(RegexpTokenizer):
     """
@@ -132,24 +145,28 @@ class TreeBankWordTokenizer(RegexpTokenizer):
             yield tagger.tag(nltk_treebank_tokenizer.tokenize(sent))
 
     @staticmethod
-    def extract(doc, ngramMin, ngramMax, filters, tagger, stemmer):
+    def extract(doc, config, filters, tagger, stemmer):
         """
         sanitizes content and label texts
         tokenizes it
         POS tags the tokens
         constructs the resulting NGram objects
         """
+        ngramMin = config['ngramMin']
+        ngramMax = config['ngramMax']
+
         sentenceTaggedTokens = TreeBankWordTokenizer.tokenize(
             TreeBankWordTokenizer.sanitize(
-                doc['content'] +" . "+ doc['label']
+                TreeBankWordTokenizer.selectcontent(config, doc)
             ),
             tagger
         )
+
         try:
             aggregated_ngrams = {}
             while 1:
                 nextsent = sentenceTaggedTokens.next()
-                # updates ngrams
+                # updates the doc's ngrams
                 aggregated_ngrams = TreeBankWordTokenizer.ngramize(
                     aggregated_ngrams,
                     minSize = ngramMin,
@@ -164,11 +181,11 @@ class TreeBankWordTokenizer(RegexpTokenizer):
     @staticmethod
     def ngramize(ngrams, minSize, maxSize, tagTokens, filters, stemmer):
         """
-            common ngramizing method
-            returns a dict of NGram instances
-            using the optional stopwords object to filter by ngram length
-            tokens = [[sentence1 tokens], [sentence2 tokens], etc]
-            sentences = list of tuples = [(word,TAG_word), etc]
+        common ngramizing method
+        returns a dict of filtered NGram instances
+        using the optional stopwords object to filter by ngram length
+
+        @tagTokens == [[word1 tokens], [word2 tokens], etc]
         """
         # content is the list of words from tagTokens
         content = tagger.TreeBankPosTagger.getContent(tagTokens)
@@ -180,24 +197,47 @@ class TreeBankWordTokenizer(RegexpTokenizer):
         for i in range(len(content)):
             for n in range(minSize, maxSize + 1):
                 if len(content) >= i + n:
-                    # new NGram instance only if it doesn't exist
-                    id = ngram.NGram.getNormId(stemmedcontent[i:n+i])
-                    if id in ngrams:
-                        label = PyTextMiner.form_label( content[i:n+i] )
-                        postag = PyTextMiner.form_label( tags[i:n+i] )
-                        edges = { 'label': { label: 1 }, 'postag': { postag: 1 } }
-                        # already exists in document : increments occs and updates edges
-                        ngrams[id]['occs'] += 1
-                        ngrams[id] = PyTextMiner.updateEdges( edges, ngrams[id] )
+                    # updates document's ngrams cache
+                    ngid = ngram.NGram.getNormId(stemmedcontent[i:n+i])
+                    if ngid in ngrams:
+                        ngrams[ngid].addForm( content[i:n+i], tags[i:n+i], 1 )
+                        ngrams[ngid].updateMajorForm()
+                        ngrams[ngid]['occs'] += 1
                     else:
+                        # id made from the stemmedcontent and label from the real tokens
                         ng = ngram.NGram(
-                            stemmedcontent[i:n+i],
-                            id = id,
-                            label=PyTextMiner.form_label(content[i:n+i]),
-                            occs=1,
-                            postag=tags[i:n + i]
+                            content[i:n+i],
+                            id = ngid,
+                            label = PyTextMiner.form_label(content[i:n+i]),
+                            occs = 1,
+                            postag = tags[i:n+i]
                         )
                         # application defined filtering
                         if filtering.apply_filters(ng, filters) is True:
-                            ngrams[id] = ng
+                            ngrams[ngid] = ng
         return ngrams
+
+    @staticmethod
+    def group(ngrams, whitelist):
+        """
+        Reduces ngrams to nlemmas, merging both contents
+        """
+        nlemmas = {}
+        for whiteid, whiteng in ngrams.iteritems():
+            if whiteid not in whitelist['edges']['NGram']:
+                continue
+            whitenlemmaid = whitelist['edges']['NGram'][whiteid]
+            if whitenlemmaid in nlemmas:
+                nlemmas[whitenlemmaid].addForm( whiteng['content'], whiteng['postag'], whiteng['occs'] )
+                nlemmas[whitenlemmaid]['occs'] += whiteng['occs']
+            else:
+                try:
+                    nlemmas[whitenlemmaid] = whiteng
+                    nlemmas[whitenlemmaid]['id'] = whitenlemmaid
+                    nlemmas[whitenlemmaid]['label'] = whitelist['edges']['form_label'][whitenlemmaid]
+                    nlemmas[whitenlemmaid]['content'] = nlemmas[whitenlemmaid]['label'].split(" ")
+                except Exception, exc:
+                    _logger.error("unable to group ngram %s"%exc)
+                    continue
+                
+        return nlemmas

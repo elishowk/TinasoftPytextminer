@@ -16,12 +16,13 @@
 
 __author__="elishowk@nonutc.fr"
 
-from tinasoft.data import Importer
+from tinasoft.data import sourcefile
 from tinasoft.pytextminer import document, corpus
 
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
+from hashlib import sha256
 
 class Record(dict):
     """A dictionary holding information from a Medline record.
@@ -159,7 +160,7 @@ class Record(dict):
 
         self.undefined = []
 
-class Importer(Importer):
+class Importer(sourcefile.Importer):
     """
     Medline file importer class
     """
@@ -171,15 +172,8 @@ class Importer(Importer):
     }
 
     def __init__(self, path, **options):
-        self.loadOptions(options)
-        self.path = path
-        self.file = self.open(path)
-        self.line_num = 0
-
-    def parsePeriod(self, record):
-        if self.fields['corpusField'] not in record:
-            return None
-        return str( record[self.fields['corpusField']][ : self.period_size] )
+        sourcefile.Importer.__init__(self, path, **options)
+        self.reader = self.get_record()
 
     def get_record(self):
         # These keys point to string values
@@ -232,70 +226,27 @@ class Importer(Importer):
                 if key in record:
                     record[key] = " ".join(record[key])
 
+            record['DP'] = self._parse_period(record)
+
             yield record
             record = Record()
 
-    def parseFile(self):
-        """Read Medline records one by one from the handle.
-
-        The handle is either is a Medline file, a file-like object, or a list
-        of lines describing one or more Medline records.
-
-        """
-        recordGenerator = self.get_record()
-        countRecords = 0
-        countSkipped = 0
-        try:
-            while 1:
-                tmpfields = dict(self.fields)
-                record = recordGenerator.next()
-                corpusid = self.parsePeriod(record)
-                if corpusid is not None:
-                    if corpusid not in self.corpusDict:
-                        # creates a new corpus and adds it to the global dict
-                        self.corpusDict[ corpusid ] = corpus.Corpus( corpusid )
-                    newdoc = self.parseDocument( record, corpusid, tmpfields )
-                    if newdoc is not None:
-                        countRecords+=1;
-                        yield newdoc, corpusid
-                    else:
-                        countSkipped+=1
-                        _logger.error( "medline : skipping incomplete document at line %d"%self.line_num )
-        except StopIteration:
-            _logger.debug( "finished parsing %d pubmed articles"%countRecords )
-            _logger.debug( "skipped %d pubmed articles"%countSkipped )
-            return
-
-
-    def parseDocument(self, record, corpusid, tmpfields):
-        try:
-            content = record[tmpfields['contentField']]
-            title = record[ tmpfields[self.doc_label] ]
-            docid = record[tmpfields['docField']]
-            del record[tmpfields['docField']]
-            del record[ tmpfields[self.doc_label] ]
-            del record[tmpfields['contentField']]
-            del tmpfields['contentField']
-            del tmpfields['docField']
-            del tmpfields[self.doc_label]
-        except KeyError, ke:
-            _logger.error( "medline : skipping incomplete document, missing %s"%ke )
+    def _parse_period(self, record):
+        if self.fields['corpus_id'] not in record:
             return None
-        # parsing optional fields loop and TRY
-        docOpt = {}
-        for field in tmpfields.itervalues():
-            try:
-                docOpt[ field ] = record[ field ]
-                del record[ field ]
-            except Exception, exc:
-                _logger.warning("missing an optional field %s at line %d"%(field,self.line_num))
-        record.update(docOpt)
-        # document instance
-        newdoc = document.Document(
-            content,
-            docid,
-            title,
-            **record
-        )
-        return newdoc
+        return record[ self.fields['corpus_id'] ][ : self.period_size]
 
+    def next(self):
+        try:
+            row = self.reader.next()
+        except StopIteration, si:
+            raise StopIteration(si)
+        except Exception, ex:
+            _logger.error("basecsv reader error at line %d, reason : %s"%(self.reader.line_num, ex))
+            # returns None : child or using object should verify the returning value
+            return None
+        else:
+            return row
+
+    def __iter__(self):
+        return self

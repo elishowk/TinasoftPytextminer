@@ -6,12 +6,12 @@ A text-mining python 2.6 module producing bottom-up semantic network production.
 It uses :
 - NLTK, the natural language processing toolkit (http://www.nltk.org/),
 - SQLite3, the embedded database library (http://sqlite.org),
-- Twisted web server (http://twistedmatrix),
+- Twisted web server (http://twistedmatrix) with jsonpickle as a serializer (http://jsonpickle.github.com),
 - Numpy for n-dimensionnal arrays processing (http://numpy.scipy.org/),
 - pyTenjin for graph gexf files export (http://www.kuwata-lab.com/tenjin/)
 
 Classical task are :
-- multiple sources parsing
+- multiple kinds of source file support
 - extraction of key-phrases (ngrams) using various simple Natural Language Processing methods (stopwords, part-of-speech tagging, stemming, etc)
 - creation of document/corpus/ngram graphs databases
 - key-phrases cooccurrences calculation on a corpus basis
@@ -21,22 +21,6 @@ Classical task are :
 This software is part of TINA, an European Union FP7 coordination action - FP7-ICT-2009-C :
  - http://tinasoft.eu/
 The software implements scientific results by David Chavalarias (CREA lab; CNRS/Ecole Polytechnique UMR 7656, http://chavalarias.com) and Jean-Philippe Cointet (INRA SENS, http://jph.cointet.free.fr).
-
-COPYRIGHT AND LICENSE
-
-Copyright (C) 2009-2011 CREA Lab, CNRS/Ecole Polytechnique UMR 7656 (Fr)
-
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by
-
-    the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 SOURCE CODE REPOSITORY
 
@@ -57,8 +41,8 @@ MAINTAINER
 
 DOCUMENTATION, SUPPORT AND FEEDBACK
 
-    http://tinasoft.eu/
-    https://forge.iscpif.fr/projects/tinasoft-pytextminer
+    http://tinasoft.eu/ (project homepage)
+    https://forge.iscpif.fr/projects/tinasoft-pytextminer (software development)
 
 PYTEXTMINER AS A USER
 
@@ -108,7 +92,7 @@ PYTEXTMINER AS A DEVELOPER
 
             $ set NLTK_DATA="TinasoftPytextminer\shared\nltk_data"
             $ PATH C:\Python26;%PATH%
-            $ python httpserver.exe config_win.yaml
+            $ python apitests.py ... (see usage)
 
         - finally open your web browser at http://localhost:8888 (no internet connection needed)
 
@@ -116,9 +100,7 @@ PYTEXTMINER AS A DEVELOPER
         - use the standalone freezed httpserver software
 
             $ export NLTK_DATA=shared/nltk_data
-            $ python httpserver config_unix.yaml
-
-        - open your browser at http://localhost:8888
+            $ python apitests.py ... (see usage)
 
     DEVELOPER DOCUMENTATION
 
@@ -166,3 +148,19 @@ TESTED OPERATING SYSTEMS
         GNU/Linux (amd4, i386) with Python 2.6
         Windows XP (32bit) with Python 2.6
         Mac OS X >= 10.6
+
+COPYRIGHT AND LICENSE
+
+Copyright (C) 2009-2011 CREA Lab, CNRS/Ecole Polytechnique UMR 7656 (Fr)
+
+    This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by
+
+    the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/gpl.html>.

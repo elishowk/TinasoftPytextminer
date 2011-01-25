@@ -118,8 +118,8 @@ class StopWords(object):
         while len(self.words) < len(stopng) + 1:
             self.words+=[{}]
         stopngobj = NG.NGram( stopng )
-        #print stopngobj.id, type(stopngobj.id), stopngobj.label
-        self.words[len(stopng)][ stopngobj['id'] ] = stopngobj
+        #print stopngobj.label
+        self.words[len(stopng)][ stopngobj['label'] ] = 1
         return stopngobj
 
     def __len__(self):
@@ -140,10 +140,11 @@ class StopWords(object):
         """
         Checks a ngram object against the stop base using NGram['id']
         """
-        if ngramobj['id'] in self[len(ngramobj['content'])]:
-            return True
-        else:
-            return False
+        for label in ngramobj['edges']['label'].keys():
+            if label in self[len(label.split(" "))]:
+                return True
+            else:
+                return False
 
     def test(self, ngramobj):
         """
@@ -177,4 +178,3 @@ class StopWordFilter(StopWords):
                 record = nggenerator.next()
         except StopIteration, si:
             return
-

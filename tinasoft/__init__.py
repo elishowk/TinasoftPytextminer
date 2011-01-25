@@ -61,8 +61,8 @@ LOG_FILE = "tinasoft-log.txt"
 class PytextminerFlowApi(PytextminerFileApi):
     """
     Main application class
-    should be used in conjunction with ThreadPool()
-    see below the standard return codes
+    In a Server context, all public methods return python generators (see httpserver.py)
+    In a scripting context, better using PyTextMinerApi
     """
 
     STATUS_RUNNING = 0
@@ -75,16 +75,12 @@ class PytextminerFlowApi(PytextminerFileApi):
             custom_logger=None
         ):
         """
-        Init config, logger, locale, storage
+        Init config, logger, locale, and application directories
         """
         self.opened_storage = {}
         # import config yaml to self.config
-        try:
-            self.config = yaml.safe_load( file( configFilePath, 'rU' ) )
-        except yaml.YAMLError, exc:
-            print exc
-            print "bad config file path passed to PytextminerFlowApi : %s"%configFilePath
-            return self.STATUS_ERROR
+        self.config_path = configFilePath
+        self._load_config()
         # creates applications directories
         self.user = self._init_user_directory()
         self.source_file_directory = self._init_source_file_directory()
@@ -98,19 +94,18 @@ class PytextminerFlowApi(PytextminerFileApi):
         except:
             self.locale = ''
             self.logger.warning(
-                "configured locale not found, switching to default ='%s'"%self.locale
+                "locale %s not found on this system, switching to the default"%self.config['general']['locale']
             )
             locale.setlocale(locale.LC_ALL, self.locale)
+        self.logger.debug("===Pytextminer started===")
 
-        self.logger.debug("Pytextminer started")
-
-    def __del__(self):
-        """resumes the storage transactions when destroying this object"""
-        del self.opened_storage
+    def _load_config(self):
+        # import config yaml to self.config
+        self.config = yaml.safe_load( file( self.config_path, 'rU' ) )
 
     def set_logger(self, custom_logger=None):
         """
-        sets a customized or a default logger
+        sets a customized or the default logger
         """
         # Set up a specific logger with our desired output level
         self.LOG_FILE = LOG_FILE
@@ -142,15 +137,17 @@ class PytextminerFlowApi(PytextminerFileApi):
         logger.addHandler(rotatingFileHandler)
         self.logger = logger
 
-    def get_storage( self, dataset_id, create=True, **options ):
+    def get_storage(self, dataset_id, create=True, drop_tables=False, **options):
         """
-        unique DB connection handler
+        DB connection handler
         one separate database per dataset=corpora
-        always check storage is notad before using it
+        always check storage is not openend before using it
         """
         if dataset_id in self.opened_storage:
             return self.opened_storage[dataset_id]
+
         try:
+            options['drop_tables'] = drop_tables
             storagedir = join(
                 self.config['general']['basedirectory'],
                 self.config['general']['dbenv'],
@@ -184,28 +181,28 @@ class PytextminerFlowApi(PytextminerFileApi):
         tinasoft source extraction controler
         send a corpora and a storage handler to an Extractor() instance
         """
+        self._load_config()
         try:
             path = self._get_sourcefile_path(path)
         except IOError, ioe:
             self.logger.error(ioe)
             yield self.STATUS_ERROR
             return
-        storage = self.get_storage( dataset )
+        storage = self.get_storage(dataset, create=True, drop_tables=False)
         if storage == self.STATUS_ERROR:
             yield self.STATUS_ERROR
             return
+        if whitelistlabel is None:
+            whitelistlabel = dataset
         # prepares extraction export path
         if outpath is None:
-            if whitelistlabel is None:
-                whitelistlabel = dataset
             outpath = self._get_user_filepath(
                 dataset,
                 'whitelist',
-                "%s-extract_dataset.csv"%whitelistlabel
+                "%s-keyphrases.csv"%whitelistlabel
             )
         corporaObj = corpora.Corpora(dataset)
-        filters = []
-        filters += [filtering.PosTagValid(
+        filters = [filtering.PosTagValid(
             config = {
                 'rules': re.compile(self.config['datasets']['postag_valid'])
             }
@@ -235,10 +232,6 @@ class PytextminerFlowApi(PytextminerFileApi):
         except StopIteration, si:
             yield absolute_outpath
             return
-        except Exception, ex:
-            self.logger.error(traceback.format_exc())
-            yield self.STATUS_ERROR
-            return
 
     def index_file(self,
             path,
@@ -250,23 +243,16 @@ class PytextminerFlowApi(PytextminerFileApi):
         """
         Like import_file but limited to a given whitelist
         """
+        self._load_config()
         try:
             path = self._get_sourcefile_path(path)
             corporaObj = corpora.Corpora(dataset)
             whitelist = self._import_whitelist(whitelistpath)
-
-            storage = self.get_storage( dataset )
+            storage = self.get_storage(dataset, create=True, drop_tables=False)
             if storage == self.STATUS_ERROR:
                 yield self.STATUS_ERROR
                 return
-            # instanciate stopwords and extractor class
-            #stopwds = stopwords.StopWords(
-            #    "file://%s"%join(
-            #    self.config['general']['basedirectory'],
-            #    self.config['general']['shared'],
-            #    self.config['general']['stopwords'])
-            #)
-            #stemmer = import_module( self.config['datasets']['stemmer'] )
+
             extract = extractor.Extractor(
                 storage,
                 self.config['datasets'],
@@ -274,6 +260,7 @@ class PytextminerFlowApi(PytextminerFileApi):
                 filters=None,
                 stemmer=stemmer.Nltk()
             )
+
             extractorGenerator = extract.index_file(
                 path,
                 format,
@@ -284,62 +271,28 @@ class PytextminerFlowApi(PytextminerFileApi):
                 extractorGenerator.next()
                 yield self.STATUS_RUNNING
         except IOError, ioe:
-            self.logger.error(ioe)
+            self.logger.error("%s"%ioe)
+            yield self.STATUS_ERROR
             return
         except StopIteration, si:
-            yield extract.duplicate
-            return
-        except Exception, exc:
-            self.logger.error("%s"%exc)
-            self.logger.error(traceback.format_exc())
-            yield self.STATUS_ERROR
-            return
+            storage.flushNGramQueue()
+            preprocessgen = self.graph_preprocess(dataset)
+            try:
+                while 1:
+                    yield preprocessgen.next()
+            except StopIteration, si:
+                pass
+        yield extract.duplicate
+        return
 
-    def generate_graph(self,
-            dataset,
-            periods,
-            whitelistpath,
-            outpath=None,
-            ngramgraphconfig=None,
-            documentgraphconfig=None,
-            exportedges=True
-        ):
-        """
-        Generates the proximity matrices from indexed NGrams/Document/Corpus
-        given a list of periods and a whitelist
-        Then export the corresponding graph to storage and gexf
-        optionnaly export the complete graph to a gexf file for use in tinaweb
-
-        @return absolute path to the gexf file
-        """
-        if isinstance(periods, str) or isinstance(periods, unicode):
-            periods = [periods]
-        if not documentgraphconfig: documentgraphconfig = {}
-        if not ngramgraphconfig: ngramgraphconfig = {}
-
-        storage = self.get_storage( dataset )
-        if storage == self.STATUS_ERROR:
-            yield self.STATUS_ERROR
-            return
-
-        # outpath is an optional label but transformed to an absolute file path
-        params_string = "%s_%s"%(self._get_filepath_id(whitelistpath),"+".join(periods))
-        if outpath is None:
-            outpath = self._get_user_filepath(dataset, 'gexf', "%s-graph"%params_string)
-        else:
-            outpath = self._get_user_filepath(dataset, 'gexf',  "%s_%s-graph"%(params_string, outpath) )
-        outpath = abspath( outpath + ".gexf" )
-        # loads the whitelist
-        whitelist = self._import_whitelist(whitelistpath)
-        # creates the GEXF exporter
-        GEXFWriter = Writer('gexf://', **self.config['datamining'])
-
+    def _new_graph_writer(self, dataset, periods, whitelistid, storage=None, generate=True, preprocess=False):
+        """ creates the Graph exporter """
+        graphwriter = Writer('gexf://', **self.config['datamining'])
         # adds meta to the futur gexf file
         graphmeta = {
             'parameters': {
                 'periods' : "+".join(periods),
-                'whitelist': self._get_filepath_id(whitelistpath),
-                'location': outpath,
+                'whitelist': whitelistid,
                 'dataset': dataset,
                 'layout/algorithm': 'tinaforce',
                 'rendering/edge/shape': 'curve',
@@ -348,98 +301,215 @@ class PytextminerFlowApi(PytextminerFileApi):
             'description': "a tinasoft graph",
             'creators': ["CREA Lab, CNRS/Ecole Polytechnique UMR 7656 (Fr)"],
             'date': "%s"%datetime.now().strftime("%Y-%m-%d"),
+            'nodes': {
+                'NGram' : {},
+                'Document': {}
+            }
         }
+        graphwriter.new_graph( storage, graphmeta, periods, generate, preprocess)
+        return graphwriter
 
-        GEXFWriter.new_graph( storage, graphmeta )
+    def graph_preprocess(self, dataset):
+        """Preprocesses the whole graph database overwriting some cooccurrences used for graph generation"""
+        self.logger.debug("starting graph_preprocess")
+
+        storage = self.get_storage(dataset, create=True, drop_tables=False)
+        if storage == self.STATUS_ERROR:
+            yield self.STATUS_ERROR
+            return
+
+        yield self.STATUS_RUNNING
+        ngramgraphconfig = self.config['datamining']['NGramGraph']
+        ### cooccurrences calculated for each period
+        for corpusid in storage.loadCorpora(dataset).edges['Corpus'].keys():
+            period = storage.loadCorpus( corpusid )
+            if period is None: continue
+            ngram_index = set( period.edges['NGram'].keys() )
+            doc_index = set( period.edges['Document'].keys() )
+            if len(ngram_index) == 0:
+                self.logger.warning("period %s has NO NGram indexed, skipping graph_preprocess"%period.id)
+                continue
+            if len(doc_index) == 0:
+                self.logger.warning("period %s has NO Document indexed, skipping graph_preprocess"%period.id)
+                continue
+
+            yield self.STATUS_RUNNING
+            cooc_writer = self._new_graph_writer(
+                dataset,
+                [period['id']],
+                "preprocess tmp graph",
+                storage,
+                generate=False,
+                preprocess=True
+            )
+
+            yield self.STATUS_RUNNING
+            ngram_matrix_reducer = graph.MatrixReducer(ngram_index)
+            ngram_graph_preprocess = _dynamic_get_class("tinasoft.pytextminer.graph", "NgramGraphPreprocess")
+            ngramsubgraph_gen = graph.process_ngram_subgraph(
+                self.config,
+                dataset,
+                [period],
+                ngram_index,
+                doc_index,
+                ngram_matrix_reducer,
+                ngramgraphconfig,
+                cooc_writer,
+                storage,
+                ngram_graph_preprocess
+            )
+
+            try:
+                while 1:
+                    yield self.STATUS_RUNNING
+                    ngram_matrix_reducer_update = ngramsubgraph_gen.next()
+            except StopIteration, stopi:
+                pass
+
+    def generate_graph(self,
+            dataset,
+            periods,
+            outpath=None,
+            ngramgraphconfig=None,
+            documentgraphconfig=None,
+            exportedges=True
+        ):
+        """
+        Generates the proximity matrices from indexed NGrams/Document/Corpus
+        given a list of @periods
+        Then export the corresponding graph to storage and gexf
+        optionnaly exports the complete graph to a gexf file for use in tinaweb
+
+        @return absolute path to the tinasoft gexf file
+        """
+        self._load_config()
+        if not isinstance(periods, list):
+            periods = [periods]
+        if not documentgraphconfig: documentgraphconfig = {}
+        if not ngramgraphconfig: ngramgraphconfig = {}
+
+        storage = self.get_storage(dataset, create=False, drop_tables=False)
+        if storage == self.STATUS_ERROR:
+            yield self.STATUS_ERROR
+            return
+
+        # outpath is an optional label but transformed to an absolute file path
+        params_string = "%s"%("+".join(periods))
+        if outpath is None:
+            outpath = self._get_user_filepath(dataset, 'gexf', "%s-graph"%params_string)
+        else:
+            outpath = self._get_user_filepath(dataset, 'gexf',  "%s_%s-graph"%(params_string, outpath) )
+        outpath = abspath( outpath + ".gexf" )
+
+        ### TODO get list of whitelist in dataset object metadata
+
+        GEXFWriter = self._new_graph_writer(
+            dataset,
+            periods,
+            "None",
+            storage,
+            generate=True,
+            preprocess=False
+        )
 
         periods_to_process = []
         ngram_index = set([])
         doc_index = set([])
-
         # checks periods and construct nodes' indices
         for period in periods:
             corpus = storage.loadCorpus( period )
+            yield self.STATUS_RUNNING
             if corpus is not None:
-                periods_to_process += [period]
-                # unions
+                periods_to_process += [corpus]
+                # union
                 ngram_index |= set( corpus['edges']['NGram'].keys() )
+                yield self.STATUS_RUNNING
+                # union
                 doc_index |= set( corpus['edges']['Document'].keys() )
             else:
                 self.logger.debug('Period %s not found in database, skipping'%str(period))
-        # intersection with the whitelist
-        ngram_index &= set( whitelist['edges']['NGram'].keys() )
 
-        # TODO here's the key to replace actuel Matrix index handling
-        doc_index = list(doc_index)
-        doc_index.sort()
-        ngram_index = list(ngram_index)
-        ngram_index.sort()
+        if len(ngram_index) == 0 or len(doc_index) == 0:
+            yield self.STATUS_ERROR
+            errmsg = "Graph not generated because : NGram index length = %d, Document index length = %d"%(len(ngram_index),len(doc_index))
+            self.logger.warning(errmsg)
+            raise RuntimeError(errmsg)
+            return
 
         # updates default config with parameters
-        self.config['datamining']['NGramGraph'].update(ngramgraphconfig)
-        self.config['datamining']['DocumentGraph'].update(documentgraphconfig)
-        ngramconfig = self.config['datamining']['NGramGraph']
-        documentconfig = self.config['datamining']['DocumentGraph']
-        if len(ngram_index) != 0:
-            # hack
-            if ngramconfig['proximity']=='cooccurrences':
-                ngram_matrix_reducer = graph.MatrixReducerFilter( ngram_index )
-            if ngramconfig['proximity']=='pseudoInclusion':
-                ngram_matrix_reducer = graph.PseudoInclusionMatrix( ngram_index )
-            if ngramconfig['proximity']=='equivalenceIndex':
-                ngramconfig['nb_documents'] = len(doc_index)
-                ngram_matrix_reducer = graph.EquivalenceIndexMatrix( ngram_index )
-            # hack
-            ngramconfig['proximity']='cooccurrences'
-            for process_period in periods_to_process:
-                ngram_args = ( self.config, storage, process_period, ngramconfig, ngram_index, whitelist )
-                adj = graph.NgramGraph( *ngram_args )
-                adj.diagonal(ngram_matrix_reducer)
-                try:
-                    ngram_adj_gen = graph.ngram_submatrix_task( *ngram_args )
-                    while 1:
-                        ngram_matrix_reducer.add( ngram_adj_gen.next() )
-                        yield self.STATUS_RUNNING
-                except StopIteration, si:
-                    self.logger.debug("NGram matrix reduced for period %s"%process_period)
-            load_subgraph_gen = GEXFWriter.load_subgraph( 'NGram', ngram_matrix_reducer, subgraphconfig = ngramconfig)
-            try:
-                while 1:
-                    load_subgraph_gen.next()
-                    yield self.STATUS_RUNNING
-            except StopIteration, si:
-                del ngram_matrix_reducer
-        else:
-            self.logger.warning("NGram sub-graph not generated because there was no NGrams")
+        update_ngramconfig = self.config['datamining']['NGramGraph']
+        update_ngramconfig.update(ngramgraphconfig)
+        update_documentconfig = self.config['datamining']['DocumentGraph']
+        update_documentconfig.update(documentgraphconfig)
 
-        if len(doc_index) != 0:
-            doc_matrix_reducer = graph.MatrixReducerFilter( doc_index )
-            for process_period in periods_to_process:
-                doc_args = ( self.config, storage, process_period, documentconfig, doc_index, whitelist )
-                adj = graph.DocGraph( *doc_args )
-                adj.diagonal(doc_matrix_reducer)
-                try:
-                    doc_adj_gen = graph.document_submatrix_task( *doc_args )
-                    while 1:
-                        doc_matrix_reducer.add( doc_adj_gen.next() )
-                        yield self.STATUS_RUNNING
-                except StopIteration, si:
-                    self.logger.debug("Document matrix reduced for period %s"%process_period)
+        # hack resolving the proximity parameter ambiguity
+        #if update_ngramconfig['proximity']=='cooccurrences':
+        #    ngram_matrix_reducer = graph.MatrixReducerFilter( ngram_index )
+        #elif update_ngramconfig['proximity']=='pseudoInclusion':
+        #    ngram_matrix_reducer = graph.PseudoInclusionMatrix( ngram_index )
+        if update_ngramconfig['proximity']=='EquivalenceIndex':
+            update_ngramconfig['nb_documents'] = len(doc_index)
+        #    ngram_matrix_reducer = graph.EquivalenceIndexMatrix( ngram_index )
+        #else:
+        #    errmsg = "%s is not a valid NGram graph proximity"%update_ngramconfig['proximity']
+        #    self.logger.error(errmsg)
+        #    raise NotImplementedError(errmsg)
+        #    return
 
-            load_subgraph_gen = GEXFWriter.load_subgraph( 'Document',  doc_matrix_reducer, subgraphconfig = documentconfig)
-            try:
-                while 1:
-                    load_subgraph_gen.next()
-                    yield self.STATUS_RUNNING
-            except StopIteration, si:
-                del doc_matrix_reducer
+        ngram_graph_class = _dynamic_get_class("tinasoft.pytextminer.graph", "NgramGraph")
 
-        else:
-            self.logger.warning("Document sub-graph not generated because there was no Documents")
+        ngram_matrix_class = _dynamic_get_class("tinasoft.pytextminer.graph", update_ngramconfig['proximity'])
+        ngram_matrix_reducer = ngram_matrix_class(ngram_index)
+
+        # ngramgraph proximity is based on previously stored
+        ngramsubgraph_gen = graph.process_ngram_subgraph(
+            self.config,
+            dataset,
+            periods_to_process,
+            ngram_index,
+            doc_index,
+            ngram_matrix_reducer,
+            update_ngramconfig,
+            GEXFWriter,
+            storage,
+            ngram_graph_class
+        )
+        try:
+            while 1:
+                yield self.STATUS_RUNNING
+                ngramsubgraph_gen.next()
+        except StopIteration, stopi:
+            pass
+
+        doc_graph_class = _dynamic_get_class("tinasoft.pytextminer.graph", "DocGraph")
+
+        doc_matrix_reducer = graph.MatrixReducerFilter( doc_index )
+        docsubgraph_gen = graph.process_document_subgraph(
+            self.config,
+            dataset,
+            periods_to_process,
+            ngram_index,
+            doc_index,
+            doc_matrix_reducer,
+            update_documentconfig,
+            GEXFWriter,
+            storage,
+            doc_graph_class
+        )
+        try:
+            while 1:
+                yield self.STATUS_RUNNING
+                docsubgraph_gen.next()
+        except StopIteration, stopi:
+            pass
+
         if exportedges is True:
             self.logger.warning("exporting the full graph to current.gexf")
-            GEXFWriter.finalize("current.gexf", exportedges=True)
+            # TODO change graphmeta to switch "data/source" to "standalone"
+            GEXFWriter.graph['parameters']['data/source'] = "standalone"
+            GEXFWriter.finalize(join("static","current.gexf"), exportedges=True)
         # returns the absolute path of outpath
+        GEXFWriter.graph['parameters']['data/source'] = "browser"
         GEXFWriter.finalize(outpath, exportedges=False)
         yield outpath
         return
@@ -451,13 +521,15 @@ class PytextminerFlowApi(PytextminerFileApi):
             whitelistpath,
             format,
             outpath=None,
-            minCooc=1
+            minCooc=1,
+            store=None
         ):
         """
         Index a whitelist against an archive of articles,
         updates cooccurrences into storage,
         optionally exporting cooccurrence matrix
         """
+        self._load_config()
         try:
             # path is an archive directory
             path = self._get_sourcefile_path(path)
@@ -465,7 +537,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             self.logger.error(ioe)
             yield self.STATUS_ERROR
             return
-        storage = self.get_storage( dataset )
+        storage = self.get_storage(dataset, create=True, drop_tables=False)
         if storage == self.STATUS_ERROR:
             yield self.STATUS_ERROR
             return
@@ -477,23 +549,30 @@ class PytextminerFlowApi(PytextminerFileApi):
             outpath = self._get_user_filepath(
                 dataset,
                 'cooccurrences',
-                "%s-index_archive.csv"%(whitelist['label'])
+                "%s-matrix.csv"%(whitelist['label'])
             )
             exporter = Writer("coocmatrix://"+outpath)
+            whtelist_outpath = self._get_user_filepath(
+                dataset,
+                'cooccurrences',
+                "%s-terms.csv"%(whitelist['label'])
+            )
+            whitelist_exporter = Writer("basecsv://"+whtelist_outpath)
         else:
             exporter = None
+
         archive = Reader( format + "://" + path, **self.config['datasets'] )
         archive_walker = archive.walkArchive(periods)
         try:
             period_gen, period = archive_walker.next()
-            sc = indexer.ArchiveCounter(storage)
-            walkCorpusGen = sc.walkCorpus(whitelist, period_gen, period, exporter, minCooc)
+            sc = indexer.ArchiveCounter(self.config['datasets'], storage)
+            walkCorpusGen = sc.walk_period(whitelist, period_gen, period)
             try:
                 while 1:
                     yield walkCorpusGen.next()
             except StopIteration:
                 pass
-            writeMatrixGen = sc.writeMatrix(period, True, minCooc)
+            writeMatrixGen = sc.write_matrix(period, exporter, whitelist_exporter, minCooc)
             try:
                 while 1:
                     yield writeMatrixGen.next()
@@ -506,15 +585,15 @@ class PytextminerFlowApi(PytextminerFileApi):
     def export_cooc(self,
             dataset,
             periods,
-            whitelistpath=None,
-            outpath=None
+            outpath=None,
+            minCooc=1
         ):
         """
-        OBSOLETE : uses tinasqlite selectCorpusCooc
         returns a text file outpath containing the db cooc
         for a list of periods ans an ngrams whitelist
         """
-        storage = self.get_storage( dataset )
+        self._load_config()
+        storage = self.get_storage(dataset, create=True, drop_tables=False)
         if storage == self.STATUS_ERROR:
             return self.STATUS_ERROR
         if outpath is None:
@@ -527,26 +606,32 @@ class PytextminerFlowApi(PytextminerFileApi):
         if whitelistpath is not None:
             whitelist = self._import_whitelist(whitelistpath)
         exporter = Writer('coocmatrix://'+outpath)
-        return exporter.export_from_storage( storage, periods, whitelist )
+        # is a generator
+        return exporter.export_from_storage( storage, periods, minCooc )
 
     def _import_whitelist(
             self,
             whitelistpath,
             dataset = None,
             userstopwords = None,
-            **kwargs
+            dialect="excel",
+            encoding="utf_8"
         ):
         """
         import one or a list of whitelits files
         returns a whitelist object to be used as input of other methods
         """
         whitelist_id = self._get_filepath_id(whitelistpath)
+        kwargs = {
+            'dialect': dialect,
+            'encoding': encoding
+        }
         if whitelist_id is not None:
-            # whitelistpath EXISTS
+            ### whitelistpath EXISTS
             self.logger.debug("loading whitelist from %s (%s)"%(whitelistpath, whitelist_id))
             wlimport = Reader('whitelist://'+whitelistpath, **kwargs)
             wlimport.whitelist = whitelist.Whitelist( whitelist_id, whitelist_id )
-            new_wl = wlimport.parse_file(stemmer.Nltk())
+            new_wl = wlimport.parse_file()
         # OBSOLETE : TO CHECK
         elif dataset is not None:
             # whitelistpath is a whitelist label into storage
@@ -554,14 +639,14 @@ class PytextminerFlowApi(PytextminerFileApi):
             new_wl = whitelist.Whitelist( whitelist_id, whitelist_id )
             new_wl = whitelistdata.load_from_storage(new_wl, dataset, periods, userstopwords)
         elif exists(whitelistpath):
+            ### whitelist path is a real path but not in a correct format
             whitelist_id = dataset
             self.logger.debug("loading whitelist from %s (%s)"%(whitelistpath, whitelist_id))
             wlimport = Reader('whitelist://'+whitelistpath, **kwargs)
             wlimport.whitelist = whitelist.Whitelist( whitelist_id, whitelist_id )
-            new_wl = wlimport.parse_file(stemmer.Nltk())
+            new_wl = wlimport.parse_file()
         else:
             raise Exception("unable to find a whitelist at %s"%whitelistpath)
-        # TODO stores the whitelist ?
         return new_wl
 
     def _import_userstopwords(
@@ -578,6 +663,7 @@ class PytextminerFlowApi(PytextminerFileApi):
                 self.config['general']['basedirectory'],
                 self.config['general']['userstopwords']
             )
+        self.logger.warning("loading user stopwords from %s"%path)
         return [stopwords.StopWordFilter( "file://%s" % path )]
 
 
@@ -610,10 +696,7 @@ class PytextminerApi(PytextminerFlowApi):
         return self._eraseFlow( generator )
 
 
-def import_module(name):
-    """returns a imported module given its string name"""
-    try:
-        module =  __import__(name)
-        return sys.modules[name]
-    except ImportError, exc:
-        raise Exception("couldn't load module %s: %s"%(name,exc))
+def _dynamic_get_class(mod_name, class_name):
+    """returns a class given its name"""
+    mod = __import__(mod_name, globals(), locals(), [class_name])
+    return getattr(mod, class_name)
