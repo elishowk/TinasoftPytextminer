@@ -16,7 +16,7 @@
 
 __author__="elishowk@nonutc.fr"
 
-__all__ = ["pytextminer","data", "file"]
+__all__ = ["pytextminer","data", "fileapi"]
 
 # python utility modules
 import sys
