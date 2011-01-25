@@ -215,6 +215,8 @@ class TreeBankWordTokenizer(RegexpTokenizer):
                         # application defined filtering
                         if filtering.apply_filters(ng, filters) is True:
                             ngrams[ngid] = ng
+                        else:
+                            _logger.debug("tokenizer filtering rejected %s"%ng.label)
         return ngrams
 
     @staticmethod

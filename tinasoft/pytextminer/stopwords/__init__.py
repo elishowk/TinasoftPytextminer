@@ -18,6 +18,8 @@ __author__="elishowk@nonutc.fr"
 import codecs
 import pickle
 from tinasoft.pytextminer import ngram as NG
+import logging
+_logger = logging.getLogger('TinaAppLogger')
 
 class StopWords(object):
     """StopWords"""
@@ -142,9 +144,9 @@ class StopWords(object):
         """
         for label in ngramobj['edges']['label'].keys():
             if label in self[len(label.split(" "))]:
+                _logger.debug("%s blocked "%label)  
                 return True
-            else:
-                return False
+        return False
 
     def test(self, ngramobj):
         """

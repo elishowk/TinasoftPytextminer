@@ -26,15 +26,12 @@ def apply_filters(ngram, filters=None):
     if filtering.apply_filters(ngram_class_instance, filterslist) is False:
         block the ngram
     """
-    #import pdb
-    #pdb.set_trace()
-    passFilter = True
     if filters is not None:
         for filt in filters:
-            passFilter &= filt.test(ngram)
-            if passFilter is False:
-                return passFilter
-    return passFilter
+            if filt.test(ngram) is False:
+                _logger.debug("apply_filters rejected %s"%ngram.label)
+                return False
+    return True
 
 
 class Content():
