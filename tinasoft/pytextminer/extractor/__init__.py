@@ -30,7 +30,7 @@ class Extractor():
     """
     A universal source file extractor/importer
     """
-    def __init__( self, storage, config, corpora, filters=None, stemmer=None ):
+    def __init__( self, config, storage=None, corpora=None, filters=None, stemmer=None ):
         self.reader = None
         self.config = config
         self.filters = []
@@ -81,8 +81,8 @@ class Extractor():
         """
         fileGenerator = self._walk_file(path, format)
         self.corpusDict = {}
-        if whitelistlabel is None:
-            whitelistlabel = self.corpora['id']
+        #if whitelistlabel is None:
+        #    whitelistlabel = self.corpora['id']
         newwl = whitelist.Whitelist(whitelistlabel, whitelistlabel)
         # basic counter
         doccount = 0
@@ -120,7 +120,7 @@ class Extractor():
 
         except StopIteration:
             _logger.debug("Total documents extracted = %d"%doccount)
-            self.storage.updateCorpora( self.corpora, False )
+            #self.storage.updateCorpora( self.corpora, False )
             whitelist_exporter = Writer("whitelist://"+extract_path)
             (filepath, newwl) = whitelist_exporter.write_whitelist(newwl, minoccs)
             del newwl

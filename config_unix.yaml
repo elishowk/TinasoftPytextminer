@@ -9,8 +9,9 @@ general:
     dbenv: 'db'
     log: 'log'
     loglevel: 'debug'
-    user: 'user'
+    user: 'sessions'
     shared: 'shared'
+    whitelist_directory: 'whitelists'
     source_file_directory: 'source_files'
     userstopwords: 'user_stopwords.csv'
     # stopwords are under share
