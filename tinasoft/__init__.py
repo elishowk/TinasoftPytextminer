@@ -247,11 +247,12 @@ class PytextminerFlowApi(PytextminerFileApi):
         """
         self._load_config()
         try:
+            sourcefilename = path
             path = self._get_sourcefile_path(path)
             corporaObj = corpora.Corpora(dataset)
             whitelist = self._import_whitelist(whitelistpath)
             corporaObj.addEdge('Whitelist',whitelist['label'], whitelistpath)
-
+            corporaObj._overwriteEdge('Source', sourcefilename, abspath(path))
             storage = self.get_storage(dataset, create=True, drop_tables=False)
             if storage == self.STATUS_ERROR:
                 yield self.STATUS_ERROR
