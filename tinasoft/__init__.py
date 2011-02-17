@@ -467,7 +467,6 @@ class PytextminerFlowApi(PytextminerFileApi):
         #    return
 
         ngram_graph_class = _dynamic_get_class("tinasoft.pytextminer.graph", "NgramGraph")
-
         ngram_matrix_class = _dynamic_get_class("tinasoft.pytextminer.graph", update_ngramconfig['proximity'])
         ngram_matrix_reducer = ngram_matrix_class(ngram_index)
 
@@ -517,7 +516,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             self.logger.warning("exporting the full graph to current.gexf")
             # TODO change graphmeta to switch "data/source" to "standalone"
             GEXFWriter.graph['parameters']['data/source'] = "standalone"
-            GEXFWriter.finalize(join("static","current.gexf"), exportedges=True)
+            GEXFWriter.finalize(join(self.user,"current.gexf"), exportedges=True)
         # returns the absolute path of outpath
         GEXFWriter.graph['parameters']['data/source'] = "browser"
         GEXFWriter.finalize(outpath, exportedges=False)
