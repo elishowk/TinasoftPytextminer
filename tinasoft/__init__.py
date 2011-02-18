@@ -24,6 +24,7 @@ import traceback
 from os.path import exists
 from os.path import join
 from os.path import abspath
+from os.path import split
 
 import yaml
 from datetime import datetime
@@ -83,8 +84,9 @@ class PytextminerFlowApi(PytextminerFileApi):
         self._load_config()
         # creates applications directories
         self.user = self._init_user_directory()
-        self.source_file_directory = self._init_source_file_directory()
+        self._init_source_file_directory()
         self._init_db_directory()
+        self._init_whitelist_directory()
 
         self.set_logger(custom_logger)
         # tries to support the locale of the host system or empties it
@@ -170,7 +172,7 @@ class PytextminerFlowApi(PytextminerFileApi):
 
     def extract_file(self,
             path,
-            dataset,
+            #dataset,
             whitelistlabel=None,
             outpath=None,
             format='tinacsv',
@@ -178,8 +180,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             userstopwords=None
         ):
         """
-        tinasoft source extraction controler
-        send a corpora and a storage handler to an Extractor() instance
+        pytextminer's source file extraction controler : creates new whitelists
         """
         self._load_config()
         try:
@@ -188,20 +189,21 @@ class PytextminerFlowApi(PytextminerFileApi):
             self.logger.error(ioe)
             yield self.STATUS_ERROR
             return
-        storage = self.get_storage(dataset, create=True, drop_tables=False)
-        if storage == self.STATUS_ERROR:
-            yield self.STATUS_ERROR
-            return
+        #storage = self.get_storage(dataset, create=True, drop_tables=False)
+        #if storage == self.STATUS_ERROR:
+        #    yield self.STATUS_ERROR
+        #    return
         if whitelistlabel is None:
-            whitelistlabel = dataset
+            # TODO switch to source file name
+            whitelistlabel = split(path)[1]
+
         # prepares extraction export path
         if outpath is None:
-            outpath = self._get_user_filepath(
-                dataset,
-                'whitelist',
-                "%s-keyphrases.csv"%whitelistlabel
+            outpath = self._get_whitelist_filepath(
+                whitelistlabel
             )
-        corporaObj = corpora.Corpora(dataset)
+        #corporaObj = corpora.Corpora(dataset)
+
         filters = [filtering.PosTagValid(
             config = {
                 'rules': re.compile(self.config['datasets']['postag_valid'])
@@ -217,9 +219,9 @@ class PytextminerFlowApi(PytextminerFileApi):
         filters += self._import_userstopwords( userstopwords )
         # instanciate extractor class
         extract = extractor.Extractor(
-            storage,
             self.config['datasets'],
-            corporaObj,
+            storage=None,
+            corpora=None,
             filters=filters,
             stemmer=stemmer.Nltk()
         )
@@ -241,21 +243,24 @@ class PytextminerFlowApi(PytextminerFileApi):
             overwrite=False,
         ):
         """
-        Like import_file but limited to a given whitelist
+        pytextminer's indexation controler : whitelist + source file => session database
         """
         self._load_config()
         try:
+            sourcefilename = path
             path = self._get_sourcefile_path(path)
             corporaObj = corpora.Corpora(dataset)
             whitelist = self._import_whitelist(whitelistpath)
+            corporaObj.addEdge('Whitelist',whitelist['label'], whitelistpath)
+            corporaObj._overwriteEdge('Source', sourcefilename, abspath(path))
             storage = self.get_storage(dataset, create=True, drop_tables=False)
             if storage == self.STATUS_ERROR:
                 yield self.STATUS_ERROR
                 return
 
             extract = extractor.Extractor(
-                storage,
                 self.config['datasets'],
+                storage,
                 corporaObj,
                 filters=None,
                 stemmer=stemmer.Nltk()
@@ -286,7 +291,9 @@ class PytextminerFlowApi(PytextminerFileApi):
         return
 
     def _new_graph_writer(self, dataset, periods, whitelistid, storage=None, generate=True, preprocess=False):
-        """ creates the Graph exporter """
+        """
+        creates the GEXF Graph exporter
+        """
         graphwriter = Writer('gexf://', **self.config['datamining'])
         # adds meta to the futur gexf file
         graphmeta = {
@@ -310,7 +317,10 @@ class PytextminerFlowApi(PytextminerFileApi):
         return graphwriter
 
     def graph_preprocess(self, dataset):
-        """Preprocesses the whole graph database overwriting some cooccurrences used for graph generation"""
+        """
+        Preprocesses the whole graph database
+        specially cooccurrences used for further graph generation
+        """
         self.logger.debug("starting graph_preprocess")
 
         storage = self.get_storage(dataset, create=True, drop_tables=False)
@@ -375,12 +385,12 @@ class PytextminerFlowApi(PytextminerFileApi):
             exportedges=True
         ):
         """
-        Generates the proximity matrices from indexed NGrams/Document/Corpus
+        Generates the graphs from indexed NGrams/Document/Corpus
         given a list of @periods
         Then export the corresponding graph to storage and gexf
         optionnaly exports the complete graph to a gexf file for use in tinaweb
 
-        @return absolute path to the tinasoft gexf file
+        @return absolute path to the GEXF nodes file
         """
         self._load_config()
         if not isinstance(periods, list):
@@ -457,7 +467,6 @@ class PytextminerFlowApi(PytextminerFileApi):
         #    return
 
         ngram_graph_class = _dynamic_get_class("tinasoft.pytextminer.graph", "NgramGraph")
-
         ngram_matrix_class = _dynamic_get_class("tinasoft.pytextminer.graph", update_ngramconfig['proximity'])
         ngram_matrix_reducer = ngram_matrix_class(ngram_index)
 
@@ -507,7 +516,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             self.logger.warning("exporting the full graph to current.gexf")
             # TODO change graphmeta to switch "data/source" to "standalone"
             GEXFWriter.graph['parameters']['data/source'] = "standalone"
-            GEXFWriter.finalize(join("static","current.gexf"), exportedges=True)
+            GEXFWriter.finalize(join(self.user,"current.gexf"), exportedges=True)
         # returns the absolute path of outpath
         GEXFWriter.graph['parameters']['data/source'] = "browser"
         GEXFWriter.finalize(outpath, exportedges=False)
@@ -552,12 +561,12 @@ class PytextminerFlowApi(PytextminerFileApi):
                 "%s-matrix.csv"%(whitelist['label'])
             )
             exporter = Writer("coocmatrix://"+outpath)
-            whtelist_outpath = self._get_user_filepath(
+            whitelist_outpath = self._get_user_filepath(
                 dataset,
                 'cooccurrences',
                 "%s-terms.csv"%(whitelist['label'])
             )
-            whitelist_exporter = Writer("basecsv://"+whtelist_outpath)
+            whitelist_exporter = Writer("basecsv://"+whitelist_outpath)
         else:
             exporter = None
 

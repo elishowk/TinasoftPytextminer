@@ -35,8 +35,20 @@ class PytextminerFileApi(object):
     # type and name of the main database
     STORAGE_DSN = "tinasqlite://tinasoft.sqlite"
 
+    def _init_db_directory(self):
+        userpath = join(
+            self.config['general']['basedirectory'],
+            self.config['general']['dbenv']
+        )
+        if not exists(userpath):
+            makedirs(userpath)
+        return userpath
+
     def _init_user_directory(self):
-        userpath = join( self.config['general']['basedirectory'], self.config['general']['user'] )
+        userpath = join(
+            self.config['general']['basedirectory'],
+            self.config['general']['user']
+        )
         if not exists(userpath):
             makedirs(userpath)
         return userpath
@@ -50,27 +62,43 @@ class PytextminerFileApi(object):
             makedirs(sourcepath)
         return sourcepath
 
-    def _init_db_directory(self):
-        if not exists(join(
-                self.config['general']['basedirectory'],
-                self.config['general']['dbenv']
-            )
-            ):
+    def _init_whitelist_directory(self):
+        whitelist_path = join(
+            self.config['general']['basedirectory'],
+            self.config['general']['whitelist_directory']
+        )
+        if not exists(whitelist_path):
             makedirs(join(
                 self.config['general']['basedirectory'],
-                self.config['general']['dbenv']
+                self.config['general']['whitelist_directory']
                 )
             )
+        return
+
+    def _compose_user_filename(self, type, label, extension):
+        return "%s-%s.%s"%(label,type,extension)
+
+    def _get_whitelist_filepath(self, label):
+        """
+        returns a new relative file path into the whitelist directory
+        given a dataset, its type and a label
+        """
+        whitelist_path = join(
+            self.config['general']['basedirectory'],
+            self.config['general']['whitelist_directory'],
+        )
+        filename = self._compose_user_filename("keyphrases", label, "csv")
+        finalpath = join( whitelist_path, filename )
+        if not exists(whitelist_path):
+            makedirs(whitelist_path)
+        return finalpath
 
     def _get_user_filepath(self, dataset, filetype, label):
         """
         returns a new relative file path into the user directory
         given a dataset, its type and a label
         """
-        path = join( self.user, dataset, filetype )
-        now = "".join(str(datetime.now())[:10].split("-"))
-        # standard separator in filenames
-        filename = now + "-" + label
+        path = join(self.user, dataset, filetype)
         finalpath = join( path, label )
         if not exists(path):
             makedirs(path)
@@ -98,7 +126,11 @@ class PytextminerFileApi(object):
         Part of the File API
         returns the list of files in the user directory tree
         """
-        path = join( self.user, dataset, filetype )
+        if filetype == 'whitelist':
+            path = join( self.config['general']['basedirectory'],\
+                 self.config['general']['whitelist_directory'])
+        else:
+            path = join( self.user, dataset, filetype )
         if not exists( path ):
             return []
         return [

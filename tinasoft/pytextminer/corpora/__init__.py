@@ -37,5 +37,7 @@ class Corpora(PyTextMiner):
         # Corpora can link only once to a Corpus
         if type == 'Corpus':
             return self._addUniqueEdge( type, key, value )
+        elif type == 'Whitelist':
+            return self._overwriteEdge( type, key, value )
         else:
             return self._addEdge( type, key, value )
