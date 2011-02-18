@@ -56,8 +56,6 @@ class TreeBankPosTagger():
         (r'['+string.punctuation+']', 'PUN'),
     ]
 
-    default_training_corpus_size = 2000
-
     def __init__(self, training_corpus_size, trained_pickle):
         """
         Prepares the hybrid tagger
@@ -80,11 +78,14 @@ class TreeBankPosTagger():
 
     def _training(self, training_corpus_size, trained_pickle):
         # get the training sentences
+        _logger.debug( "Training and saving a new tagger" )
         if training_corpus_size is None:
-            training_corpus_size = default_training_corpus_size
-        _logger.debug( "Training tagger with training_corpus_size = %d"%training_corpus_size )
-        brown_train = list(nltk.corpus.brown.tagged_sents()[:training_corpus_size])
-        conll_train = list(nltk.corpus.conll2000.tagged_sents()[:training_corpus_size])
+            brown_train = list(nltk.corpus.brown.tagged_sents())
+            conll_train = list(nltk.corpus.conll2000.tagged_sents())
+        else:
+            brown_train = list(nltk.corpus.brown.tagged_sents()[:training_corpus_size])
+            conll_train = list(nltk.corpus.conll2000.tagged_sents()[:training_corpus_size])
+
         train_sents = list(itertools.chain( brown_train, conll_train ))
         # base tagger classes for initial tagger
         tagger_classes = [nltk.tag.AffixTagger, nltk.tag.UnigramTagger, nltk.tag.BigramTagger, nltk.tag.TrigramTagger]

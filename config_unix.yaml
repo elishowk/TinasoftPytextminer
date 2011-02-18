@@ -9,8 +9,9 @@ general:
     dbenv: 'db'
     log: 'log'
     loglevel: 'debug'
-    user: 'user'
+    user: 'sessions'
     shared: 'shared'
+    whitelist_directory: 'whitelists'
     source_file_directory: 'source_files'
     userstopwords: 'user_stopwords.csv'
     # stopwords are under share
@@ -69,7 +70,8 @@ datasets:
     ngramMin: 1
     ngramMax: 4
     # tagger learning on 2 x training_tagger_size sentences of tagged nltk corpus
-    training_tagger_size: 10000
+    # to train on the whole corpora, mark ~ instead of a number of phrases
+    training_tagger_size: ~
     # under "basedirectory" directory, delete this file to regenerate a new one on next starting
     tagger: 'shared/tagger.pickle'
     # change this Reg Expression to change NGram extraction filtering
