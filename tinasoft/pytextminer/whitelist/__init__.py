@@ -111,8 +111,8 @@ class Whitelist(PyTextMiner,whitelist.WhitelistFile):
             periods = corpora['edges']['Corpus'].keys()
         for corpusid in periods:
             # gets a corpus from the storage or continue
-            corpusobj = storage.loadCorpus(corpusid)
-            if corpusobj is None:
+            corpusObj = storage.loadCorpus(corpusid)
+            if corpusObj is None:
                 _logger.error( "corpus %s not found"%corpusid )
                 continue
 
@@ -121,10 +121,11 @@ class Whitelist(PyTextMiner,whitelist.WhitelistFile):
                 self['corpus'][corpusObj['id']] = corpusObj
 
             # occ is the number of docs in the corpus where ngid appears
-            for ngid, occ in corpusobj['edges']['NGram'].iteritems():
+            for ngid, occ in corpusObj['edges']['NGram'].iteritems():
                 ng = storage.loadNGram(ngid)
-                for docid in ng['edges']['Document'].keys():
-                    if docid in corpusObj['edges']['Document'].keys():
-                        self.addContent( ng, corpusObj['id'], docid )
+                if ng is None:
+                    _logger.error("ngram %s not found"%ngid)
+                    continue
+                self.addContent( ng )
                 self.addEdge("NGram", ng['id'], occ)
             self.storage.flushNGramQueue()

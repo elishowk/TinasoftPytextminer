@@ -165,7 +165,10 @@ class PyTextMiner(object):
         """
         compatibility with the dict class
         """
-        delattr(self, key)
+        try:
+            delattr(self, key)
+        except AttributeError:
+            return
 
     def __contains__(self, key):
         """
@@ -174,5 +177,5 @@ class PyTextMiner(object):
         try:
             getattr(self, key, None)
             return True
-        except AttributeError, a:
+        except AttributeError:
             return False

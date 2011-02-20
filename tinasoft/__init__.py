@@ -370,11 +370,11 @@ class PytextminerFlowApi(PytextminerFileApi):
                     ngramsubgraph_gen.next()
             except StopIteration:
                 self.logger.debug("exporting master whitelist")
-                whitelistlabel = "%s_master"%dataset['id']
+                whitelistlabel = "%s_master"%datasetObj['id']
                 outpath = self._get_whitelist_filepath(whitelistlabel)
                 newwl = whitelist.Whitelist(whitelistlabel, whitelistlabel)
                 yield self.STATUS_RUNNING
-                newwl.loadFromSession(storage, dataset)
+                newwl.loadFromSession(storage, datasetObj)
                 yield self.STATUS_RUNNING
                 whitelist_exporter = Writer("whitelist://"+outpath)
                 (filepath, newwl) = whitelist_exporter.write_whitelist(newwl)
