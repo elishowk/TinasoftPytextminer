@@ -172,7 +172,6 @@ class PytextminerFlowApi(PytextminerFileApi):
 
     def extract_file(self,
             path,
-            #dataset,
             whitelistlabel=None,
             outpath=None,
             format='tinacsv',
@@ -189,12 +188,8 @@ class PytextminerFlowApi(PytextminerFileApi):
             self.logger.error(ioe)
             yield self.STATUS_ERROR
             return
-        #storage = self.get_storage(dataset, create=True, drop_tables=False)
-        #if storage == self.STATUS_ERROR:
-        #    yield self.STATUS_ERROR
-        #    return
+
         if whitelistlabel is None:
-            # TODO switch to source file name
             whitelistlabel = split(path)[1]
 
         # prepares extraction export path
@@ -202,7 +197,6 @@ class PytextminerFlowApi(PytextminerFileApi):
             outpath = self._get_whitelist_filepath(
                 whitelistlabel
             )
-        #corporaObj = corpora.Corpora(dataset)
 
         filters = [filtering.PosTagValid(
             config = {
@@ -330,8 +324,9 @@ class PytextminerFlowApi(PytextminerFileApi):
 
         yield self.STATUS_RUNNING
         ngramgraphconfig = self.config['datamining']['NGramGraph']
+        datasetObj = storage.loadCorpora(dataset)
         ### cooccurrences calculated for each period
-        for corpusid in storage.loadCorpora(dataset).edges['Corpus'].keys():
+        for corpusid in datasetObj['edges']['Corpus'].keys():
             period = storage.loadCorpus( corpusid )
             if period is None: continue
             ngram_index = set( period.edges['NGram'].keys() )
@@ -372,9 +367,20 @@ class PytextminerFlowApi(PytextminerFileApi):
             try:
                 while 1:
                     yield self.STATUS_RUNNING
-                    ngram_matrix_reducer_update = ngramsubgraph_gen.next()
-            except StopIteration, stopi:
-                pass
+                    ngramsubgraph_gen.next()
+            except StopIteration:
+                self.logger.debug("exporting master whitelist")
+                whitelistlabel = "%s_master"%dataset['id']
+                outpath = self._get_whitelist_filepath(whitelistlabel)
+                newwl = whitelist.Whitelist(whitelistlabel, whitelistlabel)
+                yield self.STATUS_RUNNING
+                newwl.loadFromSession(storage, dataset)
+                yield self.STATUS_RUNNING
+                whitelist_exporter = Writer("whitelist://"+outpath)
+                (filepath, newwl) = whitelist_exporter.write_whitelist(newwl)
+                yield abspath(filepath)
+                return
+
 
     def generate_graph(self,
             dataset,
@@ -551,7 +557,6 @@ class PytextminerFlowApi(PytextminerFileApi):
             yield self.STATUS_ERROR
             return
 
-        corporaObj = corpora.Corpora(dataset)
         whitelist = self._import_whitelist(whitelistpath)
         # prepares extraction export path
         if outpath is not None:
@@ -641,12 +646,16 @@ class PytextminerFlowApi(PytextminerFileApi):
             wlimport = Reader('whitelist://'+whitelistpath, **kwargs)
             wlimport.whitelist = whitelist.Whitelist( whitelist_id, whitelist_id )
             new_wl = wlimport.parse_file()
-        # OBSOLETE : TO CHECK
-        elif dataset is not None:
+        # NOT USED : TO CHECK
+        elif isinstance(dataset, corpora.Corpora):
+            self._load_config()
+            storage = self.get_storage(dataset, create=False, drop_tables=False)
+            if storage == self.STATUS_ERROR:
+                return self.STATUS_ERROR
             # whitelistpath is a whitelist label into storage
             self.logger.debug("loading whitelist %s from storage"%whitelist_id)
             new_wl = whitelist.Whitelist( whitelist_id, whitelist_id )
-            new_wl = whitelistdata.load_from_storage(new_wl, dataset, periods, userstopwords)
+            new_wl.loadFromSession(storage, dataset)
         elif exists(whitelistpath):
             ### whitelist path is a real path but not in a correct format
             whitelist_id = dataset

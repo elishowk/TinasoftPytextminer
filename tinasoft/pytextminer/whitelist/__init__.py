@@ -102,3 +102,29 @@ class Whitelist(PyTextMiner,whitelist.WhitelistFile):
         else:
             return self.storage.loadNGram(id)
 
+    def loadFromSession(self, storage, corpora, periods=None):
+        """
+        Whitelist creator utility
+        Loads a whitelist from a session storage
+        """
+        if periods is None:
+            periods = corpora['edges']['Corpus'].keys()
+        for corpusid in periods:
+            # gets a corpus from the storage or continue
+            corpusobj = storage.loadCorpus(corpusid)
+            if corpusobj is None:
+                _logger.error( "corpus %s not found"%corpusid )
+                continue
+
+            # updates whitelist's corpus to prepare export
+            if  corpusObj['id'] not in self['corpus']:
+                self['corpus'][corpusObj['id']] = corpusObj
+
+            # occ is the number of docs in the corpus where ngid appears
+            for ngid, occ in corpusobj['edges']['NGram'].iteritems():
+                ng = storage.loadNGram(ngid)
+                for docid in ng['edges']['Document'].keys():
+                    if docid in corpusObj['edges']['Document'].keys():
+                        self.addContent( ng, corpusObj['id'], docid )
+                self.addEdge("NGram", ng['id'], occ)
+            self.storage.flushNGramQueue()
