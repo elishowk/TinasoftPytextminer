@@ -24,9 +24,8 @@ from os.path import split
 
 from os import makedirs
 from os import listdir
+from os import remove
 from shutil import rmtree
-
-from datetime import datetime
 
 class PytextminerFileApi(object):
     """
@@ -157,13 +156,26 @@ class PytextminerFileApi(object):
     def delete_dataset(self, dataset_id):
         """
         Part of the File API
-        remove a dataset db directory and suer directory
+        remove a dataset db and user directory given the dataset's name
         """
         # may be ? win32api.SetFileAttributes(path, win32con.FILE_ATTRIBUTE_NORMAL)
         del self.opened_storage[dataset_id]
         rmtree(join( self.config['general']['basedirectory'], self.config['general']['dbenv'], dataset_id ), True, lambda: True)
         rmtree(join( self.user, dataset_id ), True, lambda: True)
         return dataset_id
+
+    def delete_whitelist(self, whitelistpath):
+        """
+        Part of the File API
+        remove a whitelist file given its absolute path
+        """
+        wl_dir_abspath = abspath(join(
+            self.config['general']['basedirectory'],
+            self.config['general']['whitelist_directory'],
+        ))
+        if exists(whitelistpath) and isfile(whitelistpath) \
+            and split(whitelistpath)[0]==wl_dir_abspath:
+            remove(whitelistpath)
 
     def walk_source_files(self):
         """

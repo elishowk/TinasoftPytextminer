@@ -429,33 +429,40 @@ class DELETEHandler(object):
         self.pytmapi = pytmapi
 
     @value_to_gen
+    def file(self, whitelistpath):
+        """
+        deletes a whitelist given its absolute path
+        """
+        return self.pytmapi.delete_whitelist(whitelistpath)
+
+    @value_to_gen
     def dataset(self, dataset):
         """ deletes all the dataset's files and directory """
         return self.pytmapi.delete_dataset(dataset)
 
-    #@value_to_gen
-    #def corpus(self, dataset, id, redondant):
-    #    """ remove """
-    #    storage = self.pytmapi.get_storage( dataset, create=False )
-    #    if storage == self.pytmapi.STATUS_ERROR:
-    #        return self.pytmapi.STATUS_ERROR
-    #    return storage.delete(id, 'Corpus', redondant)
-    #
-    #@value_to_gen
-    #def document(self, dataset, id, redondant):
-    #    """ remove """
-    #    storage = self.pytmapi.get_storage( dataset, create=False )
-    #    if storage == self.pytmapi.STATUS_ERROR:
-    #        return self.pytmapi.STATUS_ERROR
-    #    return storage.delete(id, 'Document', redondant)
-    #
-    #@value_to_gen
-    #def ngram(self, dataset, id, redondant):
-    #    """ remove """
-    #    storage = self.pytmapi.get_storage( dataset, create=False )
-    #    if storage == self.pytmapi.STATUS_ERROR:
-    #        return self.pytmapi.STATUS_ERROR
-    #    return storage.delete(id, 'NGram', redondant)
+    @value_to_gen
+    def corpus(self, dataset, id, redondant):
+        """ remove """
+        storage = self.pytmapi.get_storage( dataset, create=False )
+        if storage == self.pytmapi.STATUS_ERROR:
+            return self.pytmapi.STATUS_ERROR
+        return storage.delete(id, 'Corpus', redondant)
+    
+    @value_to_gen
+    def document(self, dataset, id, redondant):
+        """ remove """
+        storage = self.pytmapi.get_storage( dataset, create=False )
+        if storage == self.pytmapi.STATUS_ERROR:
+            return self.pytmapi.STATUS_ERROR
+        return storage.delete(id, 'Document', redondant)
+    
+    @value_to_gen
+    def ngram(self, dataset, id, redondant):
+        """ remove """
+        storage = self.pytmapi.get_storage( dataset, create=False )
+        if storage == self.pytmapi.STATUS_ERROR:
+            return self.pytmapi.STATUS_ERROR
+        return storage.delete(id, 'NGram', redondant)
 
     def ngramform(self, dataset, label, id, is_keyword):
         storage = self.pytmapi.get_storage( dataset, create=False )
