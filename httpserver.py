@@ -23,7 +23,6 @@ from twisted.internet.task import cooperate
 from twisted.web import server, resource
 from twisted.internet import reactor
 from twisted.web.static import File
-from twisted.python.failure import Failure
 
 # error handling
 from twisted.web.resource import NoResource
@@ -31,8 +30,7 @@ from twisted.web.resource import NoResource
 # json encoder to communicate with the outer world
 import numpy
 import jsonpickle
-# traceback to print error traces
-import traceback
+
 
 # parsing uri components
 from urlparse import parse_qs
@@ -42,12 +40,10 @@ import webbrowser
 
 # OS utilities
 from os import fsync
-from os.path import join, exists
+from os.path import exists
 import sys
-import exceptions
 
 import logging
-import tempfile
 import platform
 
 class TinasoftServerRequest(resource.Resource):
