@@ -23,7 +23,7 @@ __all__ = [
     "filtering", "tokenizer", "tagger", "clustering",
     "stopwords", "extractor", "stemmer", "graph", "indexer"
 ]
-
+from re import sub
 from hashlib import sha256
 from uuid import uuid4
 import codecs
@@ -46,7 +46,7 @@ class PyTextMiner(object):
         if id is None:
             self.id = PyTextMiner.getId( content )
         else:
-            self.id = id
+            self.id = sub(r"[^a-zA-Z0-9]","",id)
         if label is None:
             label = PyTextMiner.form_label( content )
         self.label = label
