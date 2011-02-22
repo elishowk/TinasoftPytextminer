@@ -73,8 +73,8 @@ class Extractor():
 
     def _linkNGrams( self, docngrams, document, corpusId ):
         """
-        Verifying previous storage contents preventing data corruption
         Updates NGram's links
+        Verify storage contents preventing data corruption
         """
         if self.storage is not None:
             storedDoc = self.storage.loadDocument( document['id'] )
@@ -93,6 +93,8 @@ class Extractor():
                 self.corpusDict[ corpusId ].addEdge( 'NGram', ngid, 1 )
             ### document is already stored, safely increment links
             else:
+                # feeds back duplicates
+                self.duplicate += [storedDoc]
                 ### document exists but not attached to the current period
                 if corpusId not in storedDoc['edges']['Corpus']:
                     ng.addEdge( 'Corpus', corpusId, 1 )
@@ -103,11 +105,12 @@ class Extractor():
                     self.corpusDict[ corpusId ].addEdge( 'NGram', ngid, 1 )
         return docngrams
 
-    def _linkDocuments(self, document, corpusId):
+    def _linkDocuments(self, document, corpus):
+        corpusId = corpus['id']
         # if corpus DOES NOT already exist
-        if corpusId not in self.corpusDict:
+        if corpus['id'] not in self.corpusDict:
             # creates a new corpus and adds it to the global dict
-            self.corpusDict[ corpusId ] = corpus.Corpus( corpusId )
+            self.corpusDict[ corpusId ] = corpus
         document.addEdge( 'Corpus', corpusId, 1 )
         self.corpusDict[ corpusId ].addEdge( 'Document', document['id'], 1)
         if self.corpora is not None:
@@ -121,7 +124,7 @@ class Extractor():
         tokenizes and filters,
         stores Corpora and Corpus object
         then produces a whitelist,
-        and finally export to a file
+        and finally exports to a whitelist csv
         """
         fileGenerator = self._walk_file(path, format)
         self.corpusDict = {}
@@ -131,8 +134,8 @@ class Extractor():
         try:
             while 1:
                 # gets the next document
-                document, corpusId = fileGenerator.next()
-                sekf._linkDocuments(document, corpusId)
+                document, corpus = fileGenerator.next()
+                self._linkDocuments(document, corpus)
                 # extract and filter ngrams
                 docngrams = tokenizer.TreeBankWordTokenizer.extract(
                     document,
@@ -142,7 +145,7 @@ class Extractor():
                     self.stemmer
                 )
                 ### updates NGram Links
-                docngrams = self._linkNGrams(docngrams, document, corpusId)
+                docngrams = self._linkNGrams(docngrams, document, corpus['id'])
                 ### stores NGrams into the whitelist
                 for ng in docngrams.itervalues():
                     newwl.addContent( ng )
@@ -159,8 +162,6 @@ class Extractor():
             newwl['corpus'] = self.corpusDict
             whitelist_exporter = Writer("whitelist://"+extract_path)
             whitelist_exporter.write_whitelist(newwl, minoccs)
-            #(filepath, newwl) = whitelist_exporter.write_whitelist(newwl, minoccs)
-            #del newwl
             return
                 
     def index_file(self, path, format, whitelist, overwrite=False):
@@ -173,8 +174,8 @@ class Extractor():
         doccount = 0
         try:
             while 1:
-                document, corpusId = fileGenerator.next()
-                sekf._linkDocuments(document, corpusId)
+                document, corpus = fileGenerator.next()
+                self._linkDocuments(document, corpus)
                 ### extracts and filters ngrams
                 docngrams = tokenizer.TreeBankWordTokenizer.extract(
                     document,
@@ -185,14 +186,11 @@ class Extractor():
                 )
                 nlemmas = tokenizer.TreeBankWordTokenizer.group(docngrams, whitelist)
                 #### updates NGram
-                docngrams = self._linkNGrams(nlemmas, document, corpusId)
+                docngrams = self._linkNGrams(nlemmas, document, corpus['id'])
                 ### queues the storage/update of the ngram
-                for ngid, ng in docngrams.iteritems():
+                for ng in docngrams.itervalues():
                     self.storage.updateManyNGram( ng )
-
                 self.storage.flushNGramQueue()
-                if storedDoc is not None:
-                    self.duplicate += [storedDoc]
                     
                 self.storage.updateDocument( document )
                 doccount += 1

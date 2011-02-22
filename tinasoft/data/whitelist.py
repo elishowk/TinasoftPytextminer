@@ -109,7 +109,7 @@ class Exporter(basecsv.Exporter):
                 ngid, ng = ngramgenerator.next()
                 # checks inconsistency
                 if ngid not in newwl['edges']['NGram']:
-                    _logger.error( "%s is not in the whitelist edges but in the db"%ng['label'])
+                    # whitelist edges === all ngrams forms
                     continue
                 # sums all NGram-Corpus occurrences to get total occs
                 occs = sum(ng['edges']['Corpus'].itervalues())

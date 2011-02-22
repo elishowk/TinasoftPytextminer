@@ -51,7 +51,7 @@ class Importer(BaseImporter):
             # if error parsing the document
             if newdoc is None: continue
             # sends the document and the corpus id
-            yield newdoc, corpusID
+            yield newdoc, corpus.Corpus(corpusID)
         self.file.close()
         return
 
