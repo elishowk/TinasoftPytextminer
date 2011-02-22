@@ -112,8 +112,8 @@ class Exporter(basecsv.Exporter):
                     # whitelist edges === all ngrams forms
                     continue
                 # sums all NGram-Corpus occurrences to get total occs
-                occs = sum(ng['edges']['Corpus'].itervalues())
-                # filters ngram
+                occs = ng['edges']['NGram'][ng['id']]
+                # filters ngram by total occurrences
                 if occs < minOccs: continue
 
                 ng.updateMajorForm()

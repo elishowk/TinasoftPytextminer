@@ -120,5 +120,5 @@ class Whitelist(PyTextMiner, whitelist.WhitelistFile):
                     _logger.error("ngram %s not found"%ngid)
                     continue
                 self.addContent( ng )
-                self._overwriteEdge("NGram", ng['id'], occ)
+                self._addEdge("NGram", ng['id'], occ)
             self.storage.flushNGramQueue()
