@@ -377,8 +377,8 @@ class PytextminerFlowApi(PytextminerFileApi):
                 newwl.loadFromSession(storage, datasetObj)
                 yield self.STATUS_RUNNING
                 whitelist_exporter = Writer("whitelist://"+outpath)
-                (filepath, newwl) = whitelist_exporter.write_whitelist(newwl)
-                yield abspath(filepath)
+
+                yield abspath( whitelist_exporter.write_whitelist(newwl) )
                 return
 
 

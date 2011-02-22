@@ -71,6 +71,50 @@ class Extractor():
         except StopIteration:
             return
 
+    def _linkNGrams( self, docngrams, document, corpusId ):
+        """
+        Verifying previous storage contents preventing data corruption
+        Updates NGram's links
+        """
+        if self.storage is not None:
+            storedDoc = self.storage.loadDocument( document['id'] )
+        else:
+            storedDoc = None
+        for ngid, ng in docngrams.iteritems():
+            # increments document-ngram edge
+            docOccs = ng['occs']
+            del ng['occs']
+            ### overwrites Doc-NGram edges
+            ng.addEdge( 'Document', document['id'], docOccs )
+            document.addEdge( 'NGram', ng['id'], docOccs )
+            ### document is not in the storage OR there's no storage opened
+            if storedDoc is None:
+                ng.addEdge( 'Corpus', corpusId, 1 )
+                self.corpusDict[ corpusId ].addEdge( 'NGram', ngid, 1 )
+            ### document is already stored, safely increment links
+            else:
+                ### document exists but not attached to the current period
+                if corpusId not in storedDoc['edges']['Corpus']:
+                    ng.addEdge( 'Corpus', corpusId, 1 )
+                    self.corpusDict[ corpusId ].addEdge( 'NGram', ngid, 1 )
+                ### document exist but does not contains the current ngram
+                if ngid not in storedDoc['edges']['NGram']:
+                    ng.addEdge( 'Corpus', corpusId, 1 )
+                    self.corpusDict[ corpusId ].addEdge( 'NGram', ngid, 1 )
+        return docngrams
+
+    def _linkDocuments(self, document, corpusId):
+        # if corpus DOES NOT already exist
+        if corpusId not in self.corpusDict:
+            # creates a new corpus and adds it to the global dict
+            self.corpusDict[ corpusId ] = corpus.Corpus( corpusId )
+        document.addEdge( 'Corpus', corpusId, 1 )
+        self.corpusDict[ corpusId ].addEdge( 'Document', document['id'], 1)
+        if self.corpora is not None:
+            ### updates Corpora and Corpus objects edges
+            self.corpora.addEdge( 'Corpus', corpusId, 1 )
+            self.corpusDict[ corpusId ].addEdge( 'Corpora', self.corpora['id'], 1)
+
     def extract_file(self, path, format, extract_path, whitelistlabel, minoccs):
         """
         parses a source file,
@@ -81,20 +125,14 @@ class Extractor():
         """
         fileGenerator = self._walk_file(path, format)
         self.corpusDict = {}
-        #if whitelistlabel is None:
-        #    whitelistlabel = self.corpora['id']
         newwl = whitelist.Whitelist(whitelistlabel, whitelistlabel)
         # basic counter
         doccount = 0
         try:
             while 1:
                 # gets the next document
-                document, corpusNum = fileGenerator.next()
-                # if corpus DOES NOT already exist
-                if corpusNum not in self.corpusDict:
-                    # creates a new corpus and adds it to the global dict
-                    self.corpusDict[ corpusNum ] = corpus.Corpus( corpusNum )
-                document.addEdge( 'Corpus', corpusNum, 1 )
+                document, corpusId = fileGenerator.next()
+                sekf._linkDocuments(document, corpusId)
                 # extract and filter ngrams
                 docngrams = tokenizer.TreeBankWordTokenizer.extract(
                     document,
@@ -103,13 +141,11 @@ class Extractor():
                     self.tagger,
                     self.stemmer
                 )
-                # updates newwl to prepare export
-                if  corpusNum not in newwl['corpus']:
-                    newwl['corpus'][corpusNum] = corpus.Corpus(corpusNum)
-                newwl['corpus'][corpusNum].addEdge('Document', document['id'], 1)
-
+                ### updates NGram Links
+                docngrams = self._linkNGrams(docngrams, document, corpusId)
+                ### stores NGrams into the whitelist
                 for ng in docngrams.itervalues():
-                    newwl.addContent( ng, corpusNum, document['id'] )
+                    newwl.addContent( ng )
                     newwl.addEdge("NGram", ng['id'], 1)
                 newwl.storage.flushNGramQueue()
 
@@ -120,12 +156,13 @@ class Extractor():
 
         except StopIteration:
             _logger.debug("Total documents extracted = %d"%doccount)
-            #self.storage.updateCorpora( self.corpora, False )
+            newwl['corpus'] = self.corpusDict
             whitelist_exporter = Writer("whitelist://"+extract_path)
-            (filepath, newwl) = whitelist_exporter.write_whitelist(newwl, minoccs)
-            del newwl
+            whitelist_exporter.write_whitelist(newwl, minoccs)
+            #(filepath, newwl) = whitelist_exporter.write_whitelist(newwl, minoccs)
+            #del newwl
             return
-
+                
     def index_file(self, path, format, whitelist, overwrite=False):
         """given a white list, indexes a source file to storage"""
         ### adds whitelist as a unique filter
@@ -136,17 +173,8 @@ class Extractor():
         doccount = 0
         try:
             while 1:
-                document, corpusNum = fileGenerator.next()
-                # if corpus DOES NOT already exist
-                if corpusNum not in self.corpusDict:
-                    # creates a new corpus and adds it to the global dict
-                    self.corpusDict[ corpusNum ] = corpus.Corpus( corpusNum )
-                document.addEdge( 'Corpus', corpusNum, 1 )
-                ### updates Corpora and Corpus objects edges
-                self.corpora.addEdge( 'Corpus', corpusNum, 1 )
-                self.corpusDict[ corpusNum ].addEdge( 'Corpora', self.corpora['id'], 1)
-                ### adds Corpus-Doc edge if possible
-                self.corpusDict[ corpusNum ].addEdge( 'Document', document['id'], 1)
+                document, corpusId = fileGenerator.next()
+                sekf._linkDocuments(document, corpusId)
                 ### extracts and filters ngrams
                 docngrams = tokenizer.TreeBankWordTokenizer.extract(
                     document,
@@ -156,8 +184,17 @@ class Extractor():
                     stemmer.Identity()
                 )
                 nlemmas = tokenizer.TreeBankWordTokenizer.group(docngrams, whitelist)
-                #### inserts/updates NGram and update document obj
-                self._update_NGram_Document(nlemmas, document, corpusNum)
+                #### updates NGram
+                docngrams = self._linkNGrams(nlemmas, document, corpusId)
+                ### queues the storage/update of the ngram
+                for ngid, ng in docngrams.iteritems():
+                    self.storage.updateManyNGram( ng )
+
+                self.storage.flushNGramQueue()
+                if storedDoc is not None:
+                    self.duplicate += [storedDoc]
+                    
+                self.storage.updateDocument( document )
                 doccount += 1
                 if doccount % NUM_DOC_NOTIFY == 0:
                     _logger.debug("%d documents indexed"%doccount)
@@ -171,39 +208,3 @@ class Extractor():
                 _logger.debug("found %d Documents in Corpus %s"%(len(corpusObj.edges['Document'].keys()), corpusObj.id))
                 self.storage.updateCorpus( corpusObj )
             return
-
-    def _update_NGram_Document( self, docngrams, document, corpusNum ):
-        """
-        Inserts NGrams and its relations to storage
-        Verifying previous storage contents preventing data corruption
-        Updates Document
-        """
-        storedDoc = self.storage.loadDocument( document['id'] )
-        for ngid, ng in docngrams.iteritems():
-            # increments document-ngram edge
-            docOccs = ng['occs']
-            del ng['occs']
-            ### document is not in the database
-            if storedDoc is None:
-                ng.addEdge( 'Corpus', corpusNum, 1 )
-                self.corpusDict[ corpusNum ].addEdge( 'NGram', ngid, 1 )
-            else:
-                ### document exists but not attached to the current period
-                if corpusNum not in storedDoc['edges']['Corpus']:
-                    ng.addEdge( 'Corpus', corpusNum, 1 )
-                    self.corpusDict[ corpusNum ].addEdge( 'NGram', ngid, 1 )
-                ### document exist but does not contains the current ngram
-                if ngid not in storedDoc['edges']['NGram']:
-                    ng.addEdge( 'Corpus', corpusNum, 1 )
-                    self.corpusDict[ corpusNum ].addEdge( 'NGram', ngid, 1 )
-            ### overwrites Doc-NGram edges
-            ng.addEdge( 'Document', document['id'], docOccs )
-            document.addEdge( 'NGram', ng['id'], docOccs )
-
-            # queue the storage/update of the ngram
-            self.storage.updateManyNGram( ng )
-
-        self.storage.flushNGramQueue()
-        if storedDoc is not None:
-            self.duplicate += [storedDoc]
-        self.storage.updateDocument( document )

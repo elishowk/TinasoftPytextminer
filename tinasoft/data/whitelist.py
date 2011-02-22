@@ -18,7 +18,7 @@ __author__ = "elishowk@nonutc.fr"
 
 from tinasoft.data import basecsv
 from tinasoft.data import Importer as BaseImporter
-from tinasoft.pytextminer import ngram, corpus, filtering
+from tinasoft.pytextminer import ngram
 # tinasoft's logger
 import logging
 _logger = logging.getLogger('TinaAppLogger')
@@ -65,12 +65,6 @@ class Importer(basecsv.Importer, BaseImporter):
         """
         self.whitelist.addEdge( 'NGram', ngid, nglabelid )
 
-    def _add_stopword(self, dbid, occs):
-        """
-        adds a user defined stop-ngram
-        """
-        self.whitelist.addEdge( 'StopNGram', dbid, occs )
-
     def parse_file(self):
         """Reads a whitelist file and returns a whitelist object"""
         if self.whitelist is None: return False
@@ -88,7 +82,7 @@ class Importer(basecsv.Importer, BaseImporter):
             ngid = ngram.NGram.getNormId(label.split(" "))
             for form in forms_labels:
                 formobj = ngram.NGram(form.split(" "))
-                self._add_whitelist( formobj['id'], ngid )
+                self.whitelist.addEdge( "NGram", formobj['id'], ngid )
                 # form object storage only used by indexer.ArchiveCounter
                 self.whitelist.addContent( formobj )
             # these edges are used to cache labels
@@ -108,23 +102,28 @@ class Exporter(basecsv.Exporter):
         """
         self.writeRow([x[1] for x in self.filemodel.columns])
         totalexported = 0
+        # cursor of Whitelist NGram db
         ngramgenerator = newwl.getContent()
         try:
             while 1:
                 ngid, ng = ngramgenerator.next()
+                # checks inconsistency
                 if ngid not in newwl['edges']['NGram']:
                     _logger.error( "%s is not in the whitelist edges but in the db"%ng['label'])
                     continue
-                # filters ngram from the whitelist based on min occs
-                occs = 0
-                for occ in ng['edges']['Corpus'].itervalues():
-                    occs += occ
-                if not occs >= minOccs: continue
+                # sums all NGram-Corpus occurrences to get total occs
+                occs = sum(ng['edges']['Corpus'].itervalues())
+                # filters ngram
+                if occs < minOccs: continue
+
                 ng.updateMajorForm()
                 ng['status'] = ""
+
+                # prepares some score values
                 occsn = occs**len(ng['content'])
                 maxperiod = maxnormalizedperiod = lastmax = lastnormmax = 0.0
                 maxperiodid = maxnormalizedperiodid = None
+
                 for periodid, totalperiod in ng['edges']['Corpus'].iteritems():
                     if periodid not in newwl['corpus']: continue
                     totaldocs =  len(newwl['corpus'][periodid]['edges']['Document'].keys())
@@ -139,14 +138,14 @@ class Exporter(basecsv.Exporter):
                     if lastnormmax >= maxnormalizedperiod:
                         maxnormalizedperiod = lastnormmax
                         maxnormalizedperiodid = periodid
-                # get all forms and appropriate list of corpus to export
+                        
                 separator = " "+self.filemodel.forms_separator+" "
-                forms = separator.join(
-                    ng['edges']['label'].keys()
-                )
+
+                forms = separator.join( ng['edges']['label'].keys() )
                 corp_list = separator.join(
                     [corpid for corpid in ng['edges']['Corpus'].keys()]
                 )
+                
                 row = [
                     unicode(ng['status']),
                     unicode(ng.label),
@@ -168,4 +167,4 @@ class Exporter(basecsv.Exporter):
         except StopIteration, si:
             _logger.debug( "%d ngrams exported after filtering" %totalexported )
             self.file.close()
-            return (self.filepath, newwl)
+            return self.filepath

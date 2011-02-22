@@ -27,7 +27,7 @@ import tempfile
 from os.path import split
 
 
-class Whitelist(PyTextMiner,whitelist.WhitelistFile):
+class Whitelist(PyTextMiner, whitelist.WhitelistFile):
     """
     Whitelist class
     StopNGram edges represent a session's user stopwords
@@ -79,17 +79,10 @@ class Whitelist(PyTextMiner,whitelist.WhitelistFile):
         options = {'home':".", 'drop_tables': True}
         return Engine("tinasqlite://%s"%tmp, **options)
 
-    def addContent(self, ngram, corpus_id=None, document_id=None):
+    def addContent(self, ngram):
         """
         inserts or updates a ngram into the whitelist content
         """
-        #if status is None:
-        #    status = ""
-        #ngram["status"] = status
-        if corpus_id is not None:
-            ngram.addEdge( 'Corpus', corpus_id, 1 )
-        if document_id is not None:
-            ngram.addEdge( 'Document', document_id, 1 )
         if self.storage.updateManyNGram( ngram ) >= self.storage.MAX_INSERT_QUEUE:
             self.storage.flushNGramQueue()
 
@@ -127,5 +120,5 @@ class Whitelist(PyTextMiner,whitelist.WhitelistFile):
                     _logger.error("ngram %s not found"%ngid)
                     continue
                 self.addContent( ng )
-                self.addEdge("NGram", ng['id'], occ)
+                self._overwriteEdge("NGram", ng['id'], occ)
             self.storage.flushNGramQueue()
