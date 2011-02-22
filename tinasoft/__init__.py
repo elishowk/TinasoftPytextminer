@@ -16,7 +16,7 @@
 
 __author__="elishowk@nonutc.fr"
 
-__all__ = ["pytextminer","data", "fileapi"]
+#__all__ = ["pytextminer","data", "fileapi"]
 
 # python utility modules
 import sys
@@ -518,14 +518,13 @@ class PytextminerFlowApi(PytextminerFileApi):
         except StopIteration, stopi:
             pass
 
-        if exportedges is True:
-            self.logger.warning("exporting the full graph to current.gexf")
-            # TODO change graphmeta to switch "data/source" to "standalone"
-            GEXFWriter.graph['parameters']['data/source'] = "standalone"
-            GEXFWriter.finalize(join(self.user,"current.gexf"), exportedges=True)
+        #if exportedges is True:
+        self.logger.warning("exporting the full graph to current.gexf")
+        GEXFWriter.graph['parameters']['data/source'] = "standalone"
+        GEXFWriter.finalize(outpath, exportedges=True)
         # returns the absolute path of outpath
-        GEXFWriter.graph['parameters']['data/source'] = "browser"
-        GEXFWriter.finalize(outpath, exportedges=False)
+        #GEXFWriter.graph['parameters']['data/source'] = "browser"
+        #GEXFWriter.finalize(outpath, exportedges=False)
         yield outpath
         return
 
