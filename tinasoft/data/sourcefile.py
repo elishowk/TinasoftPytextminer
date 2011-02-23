@@ -46,7 +46,6 @@ class Importer(BaseImporter):
                 _logger.error( "sourcefile error : corpus id missing at line %d"%self.line_num )
                 _logger.error( exc )
                 continue
-            # TODO check if corpus already exists
             newdoc = self._parse_document( doc, tmpfields )
             # if error parsing the document
             if newdoc is None: continue

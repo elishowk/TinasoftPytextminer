@@ -59,9 +59,8 @@ class IndexFile(PytextminerApiTest):
         self.failIfEqual(self.tinasoft.index_file(
                 self.argument1,
                 self.datasetId,
-                self.whitelist,
-                format=self.argument2,
-                overwrite=False
+                whitelistpath=self.whitelist,
+                format=self.argument2
             ), PytextminerApi.STATUS_ERROR
         )
 

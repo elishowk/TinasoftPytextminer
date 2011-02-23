@@ -30,22 +30,37 @@ class Extractor():
     """
     A universal source file extractor/importer
     """
-    def __init__( self, config, storage=None, corpora=None, filters=None, stemmer=None ):
-        self.reader = None
+    def __init__( self,
+        config,
+        path,
+        format,
+        storage,
+        corpora,
+        filters,
+        stemmer,
+        tokenizer,
+        whitelist=None ):
+        """
+
+        """
         self.config = config
-        self.filters = []
-        if filters is not None:
-            self.filters = filters
-        self.stemmer = stemmer
+        self.fileGenerator = self._walk_file( path, format )
         # params from the controler
         self.corpora = corpora
         self.storage = storage
-        # instanciate the tagger, takes times on learning
+        self.filters = filters
+        self.stemmer = stemmer
+        self.tokenizer = tokenizer
+        self.whitelist = whitelist
+        # instanciate the tagger, takes times on learning if not already pickled
         self.tagger = tagger.TreeBankPosTagger(
             training_corpus_size = self.config['training_tagger_size'],
             trained_pickle = self.config['tagger']
         )
-
+        # caching objects
+        self.corpusDict = {}
+        self.duplicate = []
+        
     def _open_reader(self, path, format ):
         """
         loads the source file
@@ -63,23 +78,21 @@ class Extractor():
 
     def _walk_file( self, path, format ):
         """Main parsing generator method"""
-        self.reader = self._open_reader( path, format )
-        fileGenerator = self.reader.parse_file()
+        reader = self._open_reader( path, format )
+        fileGenerator = reader.parse_file()
         try:
             while 1:
                 yield fileGenerator.next()
         except StopIteration:
             return
 
-    def _linkNGrams( self, docngrams, document, corpusId ):
+    def _linkStoreNGrams( self, docngrams, document, corpusId ):
         """
         Updates NGram's links
         Verify storage contents preventing data corruption
         """
-        if self.storage is not None:
-            storedDoc = self.storage.loadDocument( document['id'] )
-        else:
-            storedDoc = None
+        storedDoc = self.storage.loadDocument( document['id'] )
+
         for ngid, ng in docngrams.iteritems():
             # increments document-ngram edge
             docOccs = ng['occs']
@@ -103,7 +116,9 @@ class Extractor():
                 if ngid not in storedDoc['edges']['NGram']:
                     ng.addEdge( 'Corpus', corpusId, 1 )
                     self.corpusDict[ corpusId ].addEdge( 'NGram', ngid, 1 )
-        return docngrams
+            self.storage.updateManyNGram( ng )
+        self.storage.flushNGramQueue()
+        return
 
     def _linkDocuments(self, document, corpus):
         corpusId = corpus['id']
@@ -111,88 +126,37 @@ class Extractor():
         if corpus['id'] not in self.corpusDict:
             # creates a new corpus and adds it to the global dict
             self.corpusDict[ corpusId ] = corpus
+
         document.addEdge( 'Corpus', corpusId, 1 )
         self.corpusDict[ corpusId ].addEdge( 'Document', document['id'], 1)
-        if self.corpora is not None:
-            ### updates Corpora and Corpus objects edges
-            self.corpora.addEdge( 'Corpus', corpusId, 1 )
-            self.corpusDict[ corpusId ].addEdge( 'Corpora', self.corpora['id'], 1)
 
-    def extract_file(self, path, format, extract_path, whitelistlabel, minoccs):
+        ### updates Corpora and Corpus objects edges
+        self.corpora.addEdge( 'Corpus', corpusId, 1 )
+        self.corpusDict[ corpusId ].addEdge( 'Corpora', self.corpora['id'], 1)
+
+    def index(self):
         """
-        parses a source file,
-        tokenizes and filters,
-        stores Corpora and Corpus object
-        then produces a whitelist,
-        and finally exports to a whitelist csv
+        Main method indexing a data source to the storage
+        parses a source file, then tokenizes, groups and filters NGrams
+        finally stores the whole graph database
         """
-        fileGenerator = self._walk_file(path, format)
-        self.corpusDict = {}
-        newwl = whitelist.Whitelist(whitelistlabel, whitelistlabel)
-        # basic counter
         doccount = 0
         try:
             while 1:
-                # gets the next document
-                document, corpus = fileGenerator.next()
-                self._linkDocuments(document, corpus)
-                # extract and filter ngrams
-                docngrams = tokenizer.TreeBankWordTokenizer.extract(
-                    document,
-                    self.config,
-                    self.filters,
-                    self.tagger,
-                    self.stemmer
-                )
-                ### updates NGram Links
-                docngrams = self._linkNGrams(docngrams, document, corpus['id'])
-                ### stores NGrams into the whitelist
-                for ng in docngrams.itervalues():
-                    newwl.addContent( ng )
-                    newwl.addEdge("NGram", ng['id'], 1)
-                newwl.storage.flushNGramQueue()
-
-                doccount += 1
-                if doccount % NUM_DOC_NOTIFY == 0:
-                    _logger.debug("%d documents parsed"%doccount)
-                yield doccount
-
-        except StopIteration:
-            _logger.debug("Total documents extracted = %d"%doccount)
-            newwl['corpus'] = self.corpusDict
-            whitelist_exporter = Writer("whitelist://"+extract_path)
-            whitelist_exporter.write_whitelist(newwl, minoccs)
-            return
-                
-    def index_file(self, path, format, whitelist, overwrite=False):
-        """given a white list, indexes a source file to storage"""
-        ### adds whitelist as a unique filter
-        self.duplicate = []
-        self.filters = [whitelist]
-        fileGenerator = self._walk_file( path, format )
-        self.corpusDict = {}
-        doccount = 0
-        try:
-            while 1:
-                document, corpus = fileGenerator.next()
+                document, corpus = self.fileGenerator.next()
                 self._linkDocuments(document, corpus)
                 ### extracts and filters ngrams
-                docngrams = tokenizer.TreeBankWordTokenizer.extract(
+                docngrams = self.tokenizer.extract(
                     document,
                     self.config,
                     self.filters,
                     self.tagger,
-                    stemmer.Identity()
+                    self.stemmer,
+                    self.whitelist
                 )
-                nlemmas = tokenizer.TreeBankWordTokenizer.group(docngrams, whitelist)
-                #### updates NGram
-                docngrams = self._linkNGrams(nlemmas, document, corpus['id'])
-                ### queues the storage/update of the ngram
-                for ng in docngrams.itervalues():
-                    self.storage.updateManyNGram( ng )
-                self.storage.flushNGramQueue()
-                    
+                self._linkStoreNGrams(docngrams, document, corpus['id'])
                 self.storage.updateDocument( document )
+
                 doccount += 1
                 if doccount % NUM_DOC_NOTIFY == 0:
                     _logger.debug("%d documents indexed"%doccount)
@@ -201,8 +165,49 @@ class Extractor():
         except StopIteration:
             self.storage.updateCorpora( self.corpora )
             for corpusObj in self.corpusDict.values():
-                #import pdb; pdb.set_trace()
                 _logger.debug("%d NEW NGrams in corpus %s"%(len(corpusObj.edges['NGram'].keys()), corpusObj.id))
                 _logger.debug("found %d Documents in Corpus %s"%(len(corpusObj.edges['Document'].keys()), corpusObj.id))
                 self.storage.updateCorpus( corpusObj )
             return
+
+
+#    def extract_file(self, path, format, extract_path, whitelistlabel, minoccs):
+#        """
+#
+#        """
+#        # basic counter
+#        doccount = 0
+#        try:
+#            while 1:
+#                # gets the next document
+#                document, corpus = fileGenerator.next()
+#                #
+#                self._linkDocuments(document, corpus)
+#                # extract and filter ngrams
+#                docngrams = tokenizer.extract(
+#                    document,
+#                    self.config,
+#                    self.filters,
+#                    self.tagger,
+#                    self.stemmer
+#                )
+#                ### updates NGram Links
+#                docngrams = self._linkNGrams(docngrams, document, corpus['id'])
+#                ### stores NGrams into the whitelist
+#                for ng in docngrams.itervalues():
+#                    newwl.addContent( ng )
+#                    newwl.addEdge("NGram", ng['id'], 1)
+#                newwl.storage.flushNGramQueue()
+#
+#                doccount += 1
+#                if doccount % NUM_DOC_NOTIFY == 0:
+#                    _logger.debug("%d documents parsed"%doccount)
+#                yield doccount
+#
+#        except StopIteration:
+#            _logger.debug("Total documents extracted = %d"%doccount)
+#            newwl.corpus = self.corpusDict
+#            whitelist_exporter = Writer("whitelist://"+extract_path)
+#            whitelist_exporter.write_whitelist(newwl, minoccs)
+#            return
+            

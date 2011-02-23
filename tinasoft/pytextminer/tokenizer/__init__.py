@@ -42,7 +42,7 @@ punct1find_subst = ur"\1 \2"
 punct2find_re = re.compile(ur"([^ ])([["+string.punctuation+"])", re.IGNORECASE|re.VERBOSE)
 punct2find_subst = ur"\1 \2"
 
-class RegexpTokenizer():
+class RegexpTokenizer(object):
     """
     A faster homemade tokenizer that splits a text into tokens
     given a regexp used as a separator
@@ -106,11 +106,10 @@ class RegexpTokenizer():
         return customContent
 
 
-class TreeBankWordTokenizer(RegexpTokenizer):
+class NGramTokenizer(RegexpTokenizer):
     """
-    A tokenizer that divides a text into sentences
-    then cleans the punctuation
-    before tokenizing using nltk.TreebankWordTokenizer()
+    A tokenizer that divides a text into sentences, words and POS tags
+    using nltk.TreebankWordTokenizer()
     """
     @staticmethod
     def sanitize(input):
@@ -143,40 +142,6 @@ class TreeBankWordTokenizer(RegexpTokenizer):
         sentences = nltk.sent_tokenize(text)
         for sent in sentences:
             yield tagger.tag(nltk_treebank_tokenizer.tokenize(sent))
-
-    @staticmethod
-    def extract(doc, config, filters, tagger, stemmer):
-        """
-        sanitizes content and label texts
-        tokenizes it
-        POS tags the tokens
-        constructs the resulting NGram objects
-        """
-        ngramMin = config['ngramMin']
-        ngramMax = config['ngramMax']
-
-        sentenceTaggedTokens = TreeBankWordTokenizer.tokenize(
-            TreeBankWordTokenizer.sanitize(
-                TreeBankWordTokenizer.selectcontent(config, doc)
-            ),
-            tagger
-        )
-
-        try:
-            aggregated_ngrams = {}
-            while 1:
-                nextsent = sentenceTaggedTokens.next()
-                # updates the doc's ngrams
-                aggregated_ngrams = TreeBankWordTokenizer.ngramize(
-                    aggregated_ngrams,
-                    minSize = ngramMin,
-                    maxSize = ngramMax,
-                    tagTokens = nextsent,
-                    filters = filters,
-                    stemmer = stemmer
-                )
-        except StopIteration, stopit:
-            return aggregated_ngrams
 
     @staticmethod
     def ngramize(ngrams, minSize, maxSize, tagTokens, filters, stemmer):
@@ -215,31 +180,72 @@ class TreeBankWordTokenizer(RegexpTokenizer):
                         # application defined filtering
                         if filtering.apply_filters(ng, filters) is True:
                             ngrams[ngid] = ng
-                        #else:
-                        #    _logger.debug("tokenizer filtering rejected %s"%ng.label)
         return ngrams
 
     @staticmethod
-    def group(ngrams, whitelist):
+    def extract(doc, config, filters, tagger, stemmer, whitelist=None):
+        """
+        sanitizes content and label texts
+        tokenizes it
+        POS tags the tokens
+        constructs the resulting NGram objects
+        """
+        ngramMin = config['ngramMin']
+        ngramMax = config['ngramMax']
+
+        sentenceTaggedTokens = NGramTokenizer.tokenize(
+            NGramTokenizer.sanitize(
+                NGramTokenizer.selectcontent(config, doc)
+            ),
+            tagger
+        )
+
+        try:
+            aggregated_ngrams = {}
+            while 1:
+                nextsent = sentenceTaggedTokens.next()
+                # updates the doc's ngrams
+                aggregated_ngrams = NGramTokenizer.ngramize(
+                    aggregated_ngrams,
+                    minSize = ngramMin,
+                    maxSize = ngramMax,
+                    tagTokens = nextsent,
+                    filters = filters,
+                    stemmer = stemmer
+                )
+        except StopIteration:
+            return aggregated_ngrams
+
+
+class NLemmaTokenizer(NGramTokenizer):
+    """
+    Child of NGramTokenizer adding a grouping step after tokenizing
+    """
+    @staticmethod
+    def extract(doc, config, filters, tagger, stemmer, whitel=None):
+        ngrams = NGramTokenizer.extract(doc, config, filters, tagger, stemmer)
+        if whitel is not None:
+            return NLemmaTokenizer.group(ngrams, whitel)
+        else:
+            return ngrams
+
+    @staticmethod
+    def group(ngrams, whitel):
         """
         Reduces ngrams to nlemmas, merging both contents
         """
         nlemmas = {}
-        for whiteid, whiteng in ngrams.iteritems():
-            if whiteid not in whitelist['edges']['NGram']:
+        for extracted_ngid, extracted_ng in ngrams.iteritems():
+            if extracted_ngid not in whitel['edges']['NGram']:
                 continue
-            whitenlemmaid = whitelist['edges']['NGram'][whiteid]
+            whitenlemmaid = whitel['edges']['NGram'][extracted_ngid]
             if whitenlemmaid in nlemmas:
-                nlemmas[whitenlemmaid].addForm( whiteng['content'], whiteng['postag'], whiteng['occs'] )
-                nlemmas[whitenlemmaid]['occs'] += whiteng['occs']
+                nlemmas[whitenlemmaid].addForm( extracted_ng['content'], extracted_ng['postag'], extracted_ng['occs'] )
+                nlemmas[whitenlemmaid]['occs'] += extracted_ng['occs']
             else:
-                try:
-                    nlemmas[whitenlemmaid] = whiteng
-                    nlemmas[whitenlemmaid]['id'] = whitenlemmaid
-                    nlemmas[whitenlemmaid]['label'] = whitelist['edges']['form_label'][whitenlemmaid]
-                    nlemmas[whitenlemmaid]['content'] = nlemmas[whitenlemmaid]['label'].split(" ")
-                except Exception, exc:
-                    _logger.error("unable to group ngram %s"%exc)
-                    continue
+                nlemmas[whitenlemmaid] = extracted_ng
+                nlemmas[whitenlemmaid]['id'] = whitenlemmaid
+                nlemmas[whitenlemmaid]['label'] = whitel['edges']['form_label'][whitenlemmaid]
+                nlemmas[whitenlemmaid]['content'] = extracted_ng['label'].split(" ")
 
         return nlemmas

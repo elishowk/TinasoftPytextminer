@@ -59,17 +59,12 @@ class Importer(basecsv.Importer, BaseImporter):
         BaseImporter.__init__(self, path, **kwargs)
         basecsv.Importer.__init__(self, path, **kwargs)
 
-    def _add_whitelist(self, ngid, nglabelid):
-        """
-        adds a whitelisted ngram
-        """
-        self.whitelist.addEdge( 'NGram', ngid, nglabelid )
-
     def parse_file(self):
         """Reads a whitelist file and returns a whitelist object"""
         if self.whitelist is None: return False
         for row in self:
             if row is None: continue
+            
             try:
                 status = self._coerce_unicode( row[self.filemodel.columns[0][1]] ).strip()
                 ### breaks if not whitelisted
@@ -79,14 +74,20 @@ class Importer(basecsv.Importer, BaseImporter):
             except KeyError, keyexc:
                 _logger.error( "%s column (required) not found importing the whitelist at line %d, import failed"%(keyexc, self.reader.line_num) )
                 continue
-            ngid = ngram.NGram.getNormId(label.split(" "))
+
+            ngobj = ngram.NGram(label.split(" "), label=label)
+            ngid = ngobj['id']
+
             for form in forms_labels:
-                formobj = ngram.NGram(form.split(" "))
+                formtokens = form.split(" ")
+                formobj = ngram.NGram(formtokens)
                 self.whitelist.addEdge( "NGram", formobj['id'], ngid )
-                # form object storage only used by indexer.ArchiveCounter
-                self.whitelist.addContent( formobj )
-            # these edges are used to cache labels
+                ngobj.addForm(formtokens)
+            # stores NGram into whitelist storage
+            self.whitelist.addNGram( ngobj )
+            # these edges are used to cache labels, see tokenizer
             self.whitelist.addEdge( 'form_label', ngid, label )
+            
         self.file.close()
         self.whitelist.storage.flushNGramQueue()
         return self.whitelist
@@ -96,23 +97,33 @@ class Exporter(basecsv.Exporter):
 
     filemodel = WhitelistFile()
 
-    def write_whitelist(self, newwl, minOccs=1):
+    def write_whitelist(self, newwl, corporaId, minOccs=1):
         """
         Writes a Whitelist object to a file
         """
         self.writeRow([x[1] for x in self.filemodel.columns])
         totalexported = 0
-        # cursor of Whitelist NGram db
-        ngramgenerator = newwl.getContent()
+
+        corpusCache = {}
+        corporaObj = newwl.storage.loadCorpora(corporaId)
+        if corporaObj is None:
+            raise Exception("corpora %s not found, impossible to export whitelist"%newwl.label)
+            return
+        
+        for corpusId in corporaObj['edges']['Corpus'].iterkeys():
+            corpusCache[corpusId] = newwl.storage.loadCorpus(corpusId)
+
+        # cursor of Whitelist NGrams db
+        ngramgenerator = newwl.getNGram()
         try:
             while 1:
                 ngid, ng = ngramgenerator.next()
                 # checks inconsistency
-                if ngid not in newwl['edges']['NGram']:
-                    # whitelist edges === all ngrams forms
-                    continue
+                #if ngid not in newwl['edges']['NGram']:
+                    # whitelist edges === all ngrams forms, avoid exporting all forms
+                #    continue
                 # sums all NGram-Corpus occurrences to get total occs
-                occs = ng['edges']['NGram'][ng['id']]
+                occs = sum( ng['edges']['Corpus'].values() )
                 # filters ngram by total occurrences
                 if occs < minOccs: continue
 
@@ -125,8 +136,7 @@ class Exporter(basecsv.Exporter):
                 maxperiodid = maxnormalizedperiodid = None
 
                 for periodid, totalperiod in ng['edges']['Corpus'].iteritems():
-                    if periodid not in newwl['corpus']: continue
-                    totaldocs =  len(newwl['corpus'][periodid]['edges']['Document'].keys())
+                    totaldocs =  len(corpusCache[periodid]['edges']['Document'].keys())
                     if totaldocs == 0: continue
                     # updates both per period max occs
                     lastmax = float(totalperiod) / float(totaldocs)
@@ -164,7 +174,7 @@ class Exporter(basecsv.Exporter):
                 totalexported += 1
                 self.writeRow(row)
 
-        except StopIteration, si:
+        except StopIteration:
             _logger.debug( "%d ngrams exported after filtering" %totalexported )
             self.file.close()
             return self.filepath

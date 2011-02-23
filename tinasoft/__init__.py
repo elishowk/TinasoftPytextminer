@@ -46,6 +46,7 @@ from tinasoft.pytextminer import stopwords
 from tinasoft.pytextminer import indexer
 from tinasoft.pytextminer import graph
 from tinasoft.pytextminer import stemmer
+from tinasoft.pytextminer import tokenizer
 from tinasoft.pytextminer import filtering
 
 LEVELS = {
@@ -55,9 +56,6 @@ LEVELS = {
     'error': logging.ERROR,
     'critical': logging.CRITICAL
 }
-
-# default log file
-LOG_FILE = "tinasoft-log.txt"
 
 class PytextminerFlowApi(PytextminerFileApi):
     """
@@ -109,8 +107,6 @@ class PytextminerFlowApi(PytextminerFileApi):
         """
         sets a customized or the default logger
         """
-        # Set up a specific logger with our desired output level
-        self.LOG_FILE = LOG_FILE
         # set default level to DEBUG
         if 'loglevel' in self.config['general']:
             loglevel = LEVELS[self.config['general']['loglevel']]
@@ -131,9 +127,9 @@ class PytextminerFlowApi(PytextminerFileApi):
             '%Y-%m-%d %H:%M:%S'
         )
         rotatingFileHandler = logging.handlers.RotatingFileHandler(
-            filename = self.LOG_FILE,
-            maxBytes = 1024000,
-            backupCount = 3
+            filename = self.config['general']['logfile'],
+            maxBytes = self.config['general']['logsize'],
+            backupCount = 2
         )
         rotatingFileHandler.setFormatter(formatter)
         logger.addHandler(rotatingFileHandler)
@@ -183,50 +179,61 @@ class PytextminerFlowApi(PytextminerFileApi):
         """
         self._load_config()
         try:
+            sourcefilename = path
             path = self._get_sourcefile_path(path)
+            if whitelistlabel is None:
+                whitelistlabel = split(path)[1]
+
+            # prepares extraction export path
+            if outpath is None:
+                outpath = self._get_whitelist_filepath(
+                    whitelistlabel
+                )
+
+            filters = [filtering.PosTagValid(
+                config = {
+                    'rules': re.compile(self.config['datasets']['postag_valid'])
+                }
+            )]
+            filters += [stopwords.StopWords(
+                "file://%s"%join(
+                    self.config['general']['basedirectory'],
+                    self.config['general']['shared'],
+                    self.config['general']['stopwords']
+                )
+            )]
+            filters += self._import_userstopwords( userstopwords )
+
+            newwl = whitelist.Whitelist(whitelistlabel, whitelistlabel)
+
+            yield self.STATUS_RUNNING
+            corporaObj = corpora.Corpora(whitelistlabel)
+            corporaObj.addEdge('Whitelist', newwl['label'], outpath)
+            corporaObj.addEdge('Source', sourcefilename, abspath(path))
+
+            extract = extractor.Extractor(
+                self.config['datasets'],
+                path,
+                format,
+                newwl.storage,
+                corporaObj,
+                filters,
+                stemmer.Nltk(),
+                tokenizer.NGramTokenizer
+            )
+            extractorGenerator = extract.index()
+            
+            while 1:
+                extractorGenerator.next()
+                yield self.STATUS_RUNNING
         except IOError, ioe:
-            self.logger.error(ioe)
+            self.logger.error("%s"%ioe)
             yield self.STATUS_ERROR
             return
-
-        if whitelistlabel is None:
-            whitelistlabel = split(path)[1]
-
-        # prepares extraction export path
-        if outpath is None:
-            outpath = self._get_whitelist_filepath(
-                whitelistlabel
-            )
-
-        filters = [filtering.PosTagValid(
-            config = {
-                'rules': re.compile(self.config['datasets']['postag_valid'])
-            }
-        )]
-        filters += [stopwords.StopWords(
-            "file://%s"%join(
-                self.config['general']['basedirectory'],
-                self.config['general']['shared'],
-                self.config['general']['stopwords']
-            )
-        )]
-        filters += self._import_userstopwords( userstopwords )
-        # instanciate extractor class
-        extract = extractor.Extractor(
-            self.config['datasets'],
-            storage=None,
-            corpora=None,
-            filters=filters,
-            stemmer=stemmer.Nltk()
-        )
-        extratorGenerator = extract.extract_file( path, format, outpath, whitelistlabel, minoccs )
-        absolute_outpath = abspath(outpath)
-        try:
-            while 1:
-                extratorGenerator.next()
-                yield self.STATUS_RUNNING
-        except StopIteration, si:
-            yield absolute_outpath
+        except StopIteration:
+            whitelist_exporter = Writer("whitelist://"+outpath)
+            whitelist_exporter.write_whitelist(newwl, whitelistlabel, minoccs=minoccs)
+            yield abspath(outpath)
             return
 
     def index_file(self,
@@ -243,29 +250,33 @@ class PytextminerFlowApi(PytextminerFileApi):
         try:
             sourcefilename = path
             path = self._get_sourcefile_path(path)
+
             corporaObj = corpora.Corpora(dataset)
-            whitelist = self._import_whitelist(whitelistpath)
-            corporaObj.addEdge('Whitelist',whitelist['label'], whitelistpath)
-            corporaObj._overwriteEdge('Source', sourcefilename, abspath(path))
+            importedwl = self._import_whitelist(whitelistpath)
+
+            corporaObj.addEdge('Whitelist', importedwl['label'], whitelistpath)
+            corporaObj.addEdge('Source', sourcefilename, abspath(path))
+
             storage = self.get_storage(dataset, create=True, drop_tables=False)
             if storage == self.STATUS_ERROR:
                 yield self.STATUS_ERROR
                 return
 
+            print len(importedwl['edges']['NGram'].keys())
+
             extract = extractor.Extractor(
                 self.config['datasets'],
-                storage,
-                corporaObj,
-                filters=None,
-                stemmer=stemmer.Nltk()
-            )
-
-            extractorGenerator = extract.index_file(
                 path,
                 format,
-                whitelist,
-                overwrite
+                storage,
+                corporaObj,
+                [importedwl],
+                stemmer.Identity(),
+                tokenizer.NLemmaTokenizer,
+                whitelist=importedwl
             )
+            extractorGenerator = extract.index()
+            
             while 1:
                 extractorGenerator.next()
                 yield self.STATUS_RUNNING
@@ -273,13 +284,13 @@ class PytextminerFlowApi(PytextminerFileApi):
             self.logger.error("%s"%ioe)
             yield self.STATUS_ERROR
             return
-        except StopIteration, si:
+        except StopIteration:
             storage.flushNGramQueue()
             preprocessgen = self.graph_preprocess(dataset)
             try:
                 while 1:
                     yield preprocessgen.next()
-            except StopIteration, si:
+            except StopIteration:
                 pass
         yield extract.duplicate
         return
@@ -372,13 +383,13 @@ class PytextminerFlowApi(PytextminerFileApi):
                 self.logger.debug("exporting master whitelist")
                 whitelistlabel = "%s_master"%datasetObj['id']
                 outpath = self._get_whitelist_filepath(whitelistlabel)
+                # this whitelist == dataset
                 newwl = whitelist.Whitelist(whitelistlabel, whitelistlabel)
+                newwl.storage = storage
                 yield self.STATUS_RUNNING
-                newwl.loadFromSession(storage, datasetObj)
-                yield self.STATUS_RUNNING
+                # exports the dataset's whitelist
                 whitelist_exporter = Writer("whitelist://"+outpath)
-
-                yield abspath( whitelist_exporter.write_whitelist(newwl) )
+                yield abspath( whitelist_exporter.write_whitelist(newwl, datasetObj['id']) )
                 return
 
 
@@ -515,11 +526,11 @@ class PytextminerFlowApi(PytextminerFileApi):
             while 1:
                 yield self.STATUS_RUNNING
                 docsubgraph_gen.next()
-        except StopIteration, stopi:
+        except StopIteration:
             pass
 
         #if exportedges is True:
-        self.logger.warning("exporting the full graph to current.gexf")
+        self.logger.warning("exporting the full graph to %s"%outpath)
         GEXFWriter.graph['parameters']['data/source'] = "standalone"
         GEXFWriter.finalize(outpath, exportedges=True)
         # returns the absolute path of outpath
@@ -654,7 +665,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             # whitelistpath is a whitelist label into storage
             self.logger.debug("loading whitelist %s from storage"%whitelist_id)
             new_wl = whitelist.Whitelist( whitelist_id, whitelist_id )
-            new_wl.loadFromSession(storage, dataset)
+            new_wl.loadFromStorage(storage, dataset)
         elif exists(whitelistpath):
             ### whitelist path is a real path but not in a correct format
             whitelist_id = dataset

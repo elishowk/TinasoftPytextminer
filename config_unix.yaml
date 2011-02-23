@@ -7,8 +7,9 @@ general:
     # following directories or files a under "basedirectory"
     index: 'index'
     dbenv: 'db'
-    log: 'log'
+    logsize: 1024000
     loglevel: 'debug'
+    logfile: 'tinasoft-log.txt'
     user: 'sessions'
     shared: 'shared'
     whitelist_directory: 'whitelists'
