@@ -20,7 +20,6 @@ __author__ = "elishowk@nonutc.fr"
 # core modules
 import unittest
 import sys
-from datetime import datetime
 from tinasoft import PytextminerApi
 
 
@@ -71,7 +70,7 @@ class GenerateGraph(PytextminerApiTest):
         print self.tinasoft.generate_graph(
             self.datasetId,
             self.period,
-            whitelistpath = self.whitelist,
+            #whitelistpath = self.whitelist,
             outpath = 'test_graph',
             ngramgraphconfig={
             #    'edgethreshold': [1.0,'inf'],
@@ -130,7 +129,7 @@ def usage():
     print " apitests.py USAGE :\n"
     print " python apitests.py ExtractFile configuration_file_path source_filename source_file_format dataset_name whitelist_out_path\n"
     print " python apitests.py IndexFile configuration_file_path source_filename source_file_format dataset_name whitelist_path\n"
-    print " python apitests.py GenerateGraph configuration_file_path ngram_proximity_name document_proximity_name dataset_name whitelist_path period\n"
+    print " python apitests.py GenerateGraph configuration_file_path ngram_proximity_name document_proximity_name dataset_name period\n"
     print " python apitests.py IndexArchive configuration_file_path source_filename source_file_format dataset_name whitelist_path period\n"
 
 if __name__ == '__main__':
@@ -158,7 +157,19 @@ if __name__ == '__main__':
             print e
             usage()
             exit()
-    if testclass in ['GenerateGraph','IndexArchive']:
+    if testclass in ['GenerateGraph']:
+        try:
+            argument1 = sys.argv[3]
+            argument2 = sys.argv[4]
+            argument3 = sys.argv[5]
+            #argument4 = sys.argv[6]
+            argument5 = sys.argv[6]
+            del sys.argv[2:]
+        except Exception, e:
+            print e
+            usage()
+            exit()
+    if testclass in ['IndexArchive']:
         try:
             argument1 = sys.argv[3]
             argument2 = sys.argv[4]

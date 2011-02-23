@@ -40,8 +40,8 @@ class WhitelistFile(object):
         ("maxperiod", "max occs period id"),
         ("maxperiodoccsn", "max occs  ^ length per period"),
         ("maxperiodn", "max occs ^ length period id"),
-        ("corplist", "period list"),
-        ("dbid", "db ID")
+        ("periods", "periods"),
+        ("documents", "documents")
     ]
     accept = "w"
     refuse = "s"
@@ -85,7 +85,7 @@ class Importer(basecsv.Importer, BaseImporter):
             # stores the NGram into whitelist storage
             self.whitelist.addNGram( ngobj )
             # these edges are used to cache labels, see tokenizer
-            #self.whitelist.addEdge( 'form_label', ngid, label )
+            self.whitelist.addEdge( 'form_label', ngid, label )
             
         self.file.close()
         self.whitelist.storage.flushNGramQueue()
@@ -96,7 +96,7 @@ class Exporter(basecsv.Exporter):
 
     filemodel = WhitelistFile()
 
-    def write_whitelist(self, newwl, corporaId, minOccs=1):
+    def write_whitelist(self, newwl, corporaId, minoccs=1):
         """
         Writes a Whitelist object to a file
         """
@@ -117,14 +117,10 @@ class Exporter(basecsv.Exporter):
         try:
             while 1:
                 ngid, ng = ngramgenerator.next()
-                # checks inconsistency
-                #if ngid not in newwl['edges']['NGram']:
-                    # whitelist edges === all ngrams forms, avoid exporting all forms
-                #    continue
                 # sums all NGram-Corpus occurrences to get total occs
                 occs = sum( ng['edges']['Corpus'].values() )
                 # filters ngram by total occurrences
-                if occs < minOccs: continue
+                if occs < minoccs: continue
 
                 ng.updateMajorForm()
                 ng['status'] = ""
@@ -154,7 +150,9 @@ class Exporter(basecsv.Exporter):
                 corp_list = separator.join(
                     [corpid for corpid in ng['edges']['Corpus'].keys()]
                 )
-                
+                doc_list = separator.join(
+                    [docid for docid in ng['edges']['Document'].keys()]
+                )
                 row = [
                     unicode(ng['status']),
                     unicode(ng.label),
@@ -168,7 +166,7 @@ class Exporter(basecsv.Exporter):
                     float(maxnormalizedperiod),
                     unicode(maxnormalizedperiodid),
                     unicode(corp_list),
-                    unicode(ngid)
+                    unicode(doc_list)
                 ]
                 totalexported += 1
                 self.writeRow(row)

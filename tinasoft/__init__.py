@@ -262,8 +262,6 @@ class PytextminerFlowApi(PytextminerFileApi):
                 yield self.STATUS_ERROR
                 return
 
-            print len(importedwl['edges']['NGram'].keys())
-
             extract = extractor.Extractor(
                 self.config['datasets'],
                 path,
@@ -283,6 +281,7 @@ class PytextminerFlowApi(PytextminerFileApi):
         except IOError, ioe:
             self.logger.error("%s"%ioe)
             yield self.STATUS_ERROR
+            raise ioe
             return
         except StopIteration:
             storage.flushNGramQueue()
@@ -336,6 +335,7 @@ class PytextminerFlowApi(PytextminerFileApi):
         yield self.STATUS_RUNNING
         ngramgraphconfig = self.config['datamining']['NGramGraph']
         datasetObj = storage.loadCorpora(dataset)
+
         ### cooccurrences calculated for each period
         for corpusid in datasetObj['edges']['Corpus'].keys():
             period = storage.loadCorpus( corpusid )
@@ -381,10 +381,12 @@ class PytextminerFlowApi(PytextminerFileApi):
                     ngramsubgraph_gen.next()
             except StopIteration:
                 self.logger.debug("exporting master whitelist")
+
                 whitelistlabel = "%s_master"%datasetObj['id']
                 outpath = self._get_whitelist_filepath(whitelistlabel)
                 # this whitelist == dataset
                 newwl = whitelist.Whitelist(whitelistlabel, whitelistlabel)
+                # dataset's storage == master whitelist's storage
                 newwl.storage = storage
                 yield self.STATUS_RUNNING
                 # exports the dataset's whitelist
@@ -412,6 +414,7 @@ class PytextminerFlowApi(PytextminerFileApi):
         self._load_config()
         if not isinstance(periods, list):
             periods = [periods]
+            
         if not documentgraphconfig: documentgraphconfig = {}
         if not ngramgraphconfig: ngramgraphconfig = {}
 
@@ -427,8 +430,6 @@ class PytextminerFlowApi(PytextminerFileApi):
         else:
             outpath = self._get_user_filepath(dataset, 'gexf',  "%s_%s-graph"%(params_string, outpath) )
         outpath = abspath( outpath + ".gexf" )
-
-        ### TODO get list of whitelist in dataset object metadata
 
         GEXFWriter = self._new_graph_writer(
             dataset,
@@ -704,6 +705,7 @@ class PytextminerApi(PytextminerFlowApi):
         try:
             while 1:
                 lastValue = generator.next()
+                print lastValue
         except StopIteration, si:
             return lastValue
 

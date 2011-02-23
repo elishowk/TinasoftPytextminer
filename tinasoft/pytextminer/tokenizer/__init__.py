@@ -243,8 +243,9 @@ class NLemmaTokenizer(NGramTokenizer):
                 nlemmas[whitenlemmaid].addForm( extracted_ng['content'], extracted_ng['postag'], extracted_ng['occs'] )
                 nlemmas[whitenlemmaid]['occs'] += extracted_ng['occs']
             else:
+                #ngObj = whitel.getNGram(whitenlemmaid)
                 nlemmas[whitenlemmaid] = extracted_ng
-                #nlemmas[whitenlemmaid]['id'] = whitenlemmaid
-                #nlemmas[whitenlemmaid]['label'] = whitel['edges']['form_label'][whitenlemmaid]
-                #nlemmas[whitenlemmaid]['content'] = extracted_ng['label'].split(" ")
+                nlemmas[whitenlemmaid]['id'] = whitenlemmaid
+                nlemmas[whitenlemmaid]['label'] = whitel['edges']['form_label'][whitenlemmaid]
+                nlemmas[whitenlemmaid]['content'] = extracted_ng['content']
         return nlemmas

@@ -216,7 +216,7 @@ class MatrixReducer(Matrix):
         yields all values of the upper part of the matrix
         associating ngrams with theirs tinasoft's id
         """
-        count = 0
+        #count = 0
         id_index = {}
         for key, idx in self.reverseindex.iteritems():
             id_index[idx] = key
@@ -231,11 +231,11 @@ class MatrixReducer(Matrix):
                 if prox <= 0: continue
                 if prox >= float(config['edgethreshold'][0]):
                     if max is None:
-                        count += 1
+                        #count += 1
                         nodej = id_index[j]
                         row[nodej] = prox
                     elif prox <= float(config['edgethreshold'][1]):
-                        count += 1
+                        #count += 1
                         nodej = id_index[j]
                         row[nodej] = prox
             if len(row.keys()) > 0:
