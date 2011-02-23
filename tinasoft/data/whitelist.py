@@ -48,7 +48,6 @@ class WhitelistFile(object):
     forms_separator = "***"
 
 
-
 class Importer(basecsv.Importer, BaseImporter):
     """A class for csv imports of selected ngrams whitelists"""
     storage = None
@@ -74,19 +73,19 @@ class Importer(basecsv.Importer, BaseImporter):
             except KeyError, keyexc:
                 _logger.error( "%s column (required) not found importing the whitelist at line %d, import failed"%(keyexc, self.reader.line_num) )
                 continue
-
+            # main NGram
             ngobj = ngram.NGram(label.split(" "), label=label)
             ngid = ngobj['id']
-
+            # restores all forms
             for form in forms_labels:
                 formtokens = form.split(" ")
                 formobj = ngram.NGram(formtokens)
                 self.whitelist.addEdge( "NGram", formobj['id'], ngid )
                 ngobj.addForm(formtokens)
-            # stores NGram into whitelist storage
+            # stores the NGram into whitelist storage
             self.whitelist.addNGram( ngobj )
             # these edges are used to cache labels, see tokenizer
-            self.whitelist.addEdge( 'form_label', ngid, label )
+            #self.whitelist.addEdge( 'form_label', ngid, label )
             
         self.file.close()
         self.whitelist.storage.flushNGramQueue()

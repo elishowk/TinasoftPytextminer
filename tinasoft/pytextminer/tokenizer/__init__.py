@@ -244,8 +244,7 @@ class NLemmaTokenizer(NGramTokenizer):
                 nlemmas[whitenlemmaid]['occs'] += extracted_ng['occs']
             else:
                 nlemmas[whitenlemmaid] = extracted_ng
-                nlemmas[whitenlemmaid]['id'] = whitenlemmaid
-                nlemmas[whitenlemmaid]['label'] = whitel['edges']['form_label'][whitenlemmaid]
-                nlemmas[whitenlemmaid]['content'] = extracted_ng['label'].split(" ")
-
+                #nlemmas[whitenlemmaid]['id'] = whitenlemmaid
+                #nlemmas[whitenlemmaid]['label'] = whitel['edges']['form_label'][whitenlemmaid]
+                #nlemmas[whitenlemmaid]['content'] = extracted_ng['label'].split(" ")
         return nlemmas

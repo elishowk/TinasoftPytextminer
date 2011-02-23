@@ -50,7 +50,10 @@ class Whitelist(PyTextMiner, whitelist.WhitelistFile):
         """
         NGram edges are used in def test and represents all NGram _forms_ whithin the whitelist
         """
-        return self._addEdge( type, key, value )
+        if type in ['NGram', 'StopNGram']:
+            return self._overwriteEdge( type, key, value )
+        else:
+            return self._addEdge( type, key, value )
 
     def test(self, ng):
         """
