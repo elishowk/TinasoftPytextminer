@@ -47,16 +47,16 @@ def process_ngram_subgraph(
         adj.diagonal(ngram_matrix_reducer)
         try:
             submatrix_gen = adj.generator()
-            doccount = 0
+            count = 0
             while 1:
                 ngram_matrix_reducer.add( submatrix_gen.next() )
-                doccount += 1
-                yield doccount
+                count += 1
+                yield count
         except Warning, warn:
             _logger.warning( str(warn) )
             return
         except StopIteration, si:
-            _logger.debug("NGram sub-graph processed (%s) for period %s"%(
+            _logger.debug("NGram sub-graph (%s) finished period %s"%(
                     ngram_matrix_reducer.__class__.__name__,
                     process_period.id
                 )
@@ -106,7 +106,7 @@ def process_document_subgraph(
         _logger.warning( str(warn) )
         return
     except StopIteration, si:
-        _logger.debug("Document sub-graph processed (%s) for period %s"%(
+        _logger.debug("Document sub-graph (%s) finished period %s"%(
                 doc_matrix_reducer.__class__.__name__,
                 metacorpus.id
             )
@@ -481,8 +481,12 @@ class NgramGraph(SubGraph):
         walks through a list of documents into a corpus
         to process proximities
         """
+        count = 0
         for ngid in self.ngram_index:
             yield self.getsubgraph( ngid )
+            count += 1
+            if count % 20:
+                _logger.debug("NgramGraph done : %d"%round(100*(float(count)/float(len(self.ngram_index)))))
 
 
 class NgramGraphPreprocess(NgramGraph):
@@ -506,9 +510,13 @@ class NgramGraphPreprocess(NgramGraph):
         to process proximities
         """
         docgenerator = self.walkDocuments()
+        count = 0
         try:
             while 1:
                 yield self.getsubgraph( docgenerator.next() )
+                count += 1
+                if count % 20:
+                    _logger.debug("NgramGraphPreProcess done : %d"%round(100*(float(count)/float(len(self.doc_index)))))
         except StopIteration, si:
             return
 
@@ -580,11 +588,15 @@ class DocGraph(SubGraph):
         uses SubGraph.walkDocuments() to yield processed proximities
         """
         generator = self.walkDocuments()
+        count = 0
         try:
             while 1:
                 document = generator.next()
                 yield self.getsubgraph( document )
                 #### CAUTION : this limits processing to an half of the matrix
                 del self.documentngrams[document['id']]
+                count += 1
+                if count % 20:
+                    _logger.debug("DocGraph done %d"%round(100*(float(count)/float(len(self.doc_index)))))
         except StopIteration, si:
             return

@@ -175,7 +175,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             userstopwords=None
         ):
         """
-        pytextminer's source file extraction controler : creates new whitelists
+        pytextminer's NGrams extraction controler : creates new whitelists of proposed topics
         """
         self._load_config()
         try:
@@ -487,7 +487,7 @@ class PytextminerFlowApi(PytextminerFileApi):
         ngram_graph_class = _dynamic_get_class("tinasoft.pytextminer.graph", "NgramGraph")
         ngram_matrix_class = _dynamic_get_class("tinasoft.pytextminer.graph", update_ngramconfig['proximity'])
         ngram_matrix_reducer = ngram_matrix_class(ngram_index)
-
+        self.logger.debug("finished preparing params for generate_graph")
         # ngramgraph proximity is based on previously stored
         ngramsubgraph_gen = graph.process_ngram_subgraph(
             self.config,
@@ -505,7 +505,8 @@ class PytextminerFlowApi(PytextminerFileApi):
             while 1:
                 yield self.STATUS_RUNNING
                 ngramsubgraph_gen.next()
-        except StopIteration, stopi:
+        except StopIteration:
+            self.logger.debug("finished NGramGraph")
             pass
 
         doc_graph_class = _dynamic_get_class("tinasoft.pytextminer.graph", "DocGraph")
@@ -528,6 +529,7 @@ class PytextminerFlowApi(PytextminerFileApi):
                 yield self.STATUS_RUNNING
                 docsubgraph_gen.next()
         except StopIteration:
+            self.logger.debug("finished DocGraph")
             pass
 
         #if exportedges is True:

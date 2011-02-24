@@ -1,7 +1,7 @@
 ---
 # application main params
 general:
-    # where all path and following file are located
+    # where all paths and following files are located
     basedirectory: '.'
     locale: 'en_US.UTF-8'
     # following directories or files a under "basedirectory"
