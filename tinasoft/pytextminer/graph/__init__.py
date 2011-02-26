@@ -445,7 +445,7 @@ class SubGraph(object):
         return
 
     def notify(self, doccount, totaldocs):
-        if doccount % 50 == 0:
+        if doccount % 20 == 0:
             _logger.debug(
                 '%s processed %d of %d documents in period %s'\
                     %(self.name, doccount, totaldocs, self.corpusid)
@@ -485,7 +485,7 @@ class NgramGraph(SubGraph):
         for ngid in self.ngram_index:
             yield self.getsubgraph( ngid )
             count += 1
-            if count % 20:
+            if count % 100:
                 _logger.debug("NgramGraph done : %d"%round(100*(float(count)/float(len(self.ngram_index)))))
 
 

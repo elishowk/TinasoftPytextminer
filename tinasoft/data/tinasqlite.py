@@ -18,7 +18,7 @@
 __author__="elishowk@nonutc.fr"
 
 from tinasoft.data import Handler
-from tinasoft.pytextminer import PyTextMiner, ngram
+from tinasoft.pytextminer import ngram
 
 import sqlite3
 
@@ -78,7 +78,7 @@ class Backend(Handler):
     def _connect(self):
         """connection method, need to have self.home directory created"""
         try:
-            self._db = sqlite3.connect(join(self.home,self.path))
+            self._db = sqlite3.connect(join(self.home,self.path), isolation_level=None)
             # row factory provides named columns
             self._db.row_factory = sqlite3.Row
             self.__open = True
@@ -111,19 +111,20 @@ class Backend(Handler):
 
     def commit(self):
         """
-        commits
+        commit or rollback
         """
         try:
             self._db.commit()
-        except Exception, e:
+        except Exception, commitexc:
             self.rollback()
+            raise Exception("cannot commit() : %s"%commitexc)
 
     def rollback(self):
         """
         rollbacks
         """
         self._db.rollback()
-        _logger.warning("rolled back an sql statement")
+        #_logger.warning("rolled back an sql statement")
 
     def pickle( self, obj ):
         return pickle.dumps(obj)
@@ -137,31 +138,30 @@ class Backend(Handler):
         """returns ONE db value or return None"""
         if type(key) != str:
             key = str(key)
-        try:
-            cur = self._db.cursor()
-            cur.execute("select pickle from %s where id=?"%tabname, (key,))
-            row = cur.fetchone()
-            if row is not None:
-                return row["pickle"]
-            else:
-                return None
-        except Exception, read_exc:
-            _logger.error( "saferead exception : %s"%read_exc )
+            
+        cur = self._db.cursor()
+        cur.execute("select pickle from %s where id=?"%tabname, (key,))
+        row = cur.fetchone()
+        if row is not None:
+            return row["pickle"]
+        else:
             return None
+
+    def safereadall(self, tabname):
+        """returns a list of records from an entire table"""
+        cur = self._db.cursor()
+        cur.execute("select id, pickle from %s"%tabname)
+        return cur.fetchall()
 
     def safereadrange(self, tabname):
         """returns a cursor of a whole table"""
-        try:
-            cur = self._db.cursor()
-            cur.execute("select id, pickle from %s"%tabname)
+        cur = self._db.cursor()
+        cur.execute("select id, pickle from %s"%tabname)
+        next_val = cur.fetchone()
+        while next_val is not None:
+            yield next_val
             next_val = cur.fetchone()
-            while next_val is not None:
-                yield next_val
-                next_val = cur.fetchone()
-            return
-        except Exception, readrange_exc:
-            _logger.error( "exception during safereadrange on table %s : %s"%(tabname,readrange_exc) )
-            return
+        return
 
     def safewrite( self, tabname, list_of_tuples ):
         """
@@ -169,13 +169,18 @@ class Backend(Handler):
         then execute many inserts of this transformed list of tuples
         """
         pickled_list = [(key,buffer(self.pickle(obj))) for (key, obj) in list_of_tuples]
+        if tabname=="NGram":
+            for (key, obj) in list_of_tuples:
+                if len(obj['edges']['Corpus'].keys())==0:
+                    _logger.warning( "writing empty NGram-Corpus" )
         try:
-            cur = self._db.cursor()
-            cur.executemany("insert or replace into %s(id, pickle) values(?,?)"%tabname, pickled_list)
-            self.commit()
-        except Exception, insert_exc:
-            _logger.error( "exception during safewrite on table %s : %s"%(tabname,insert_exc) )
-            self.rollback()
+            with self._db:
+                #cur = self._db.cursor()
+                self._db.executemany("insert or replace into %s (id, pickle) values (?,?)"%tabname, pickled_list)
+                #self.commit()
+        except sqlite3.Error, insert_exc:
+            raise Exception( "error on safewrite(), table %s : %s"%(tabname,insert_exc) )
+            #self.rollback()
 
     def safedelete(self, tabname, key):
         """
@@ -185,8 +190,8 @@ class Backend(Handler):
             cur = self._db.cursor()
             cur.execute("DELETE FROM %s WHERE id=?"%tabname, (key,))
             self.commit()
-        except Exception, _exc:
-            _logger.error( "exception during safedelete on table %s : %s"%(tabname,_exc) )
+        except Exception, del_exc:
+            raise Exception( "exception on safedelete(), table %s : %s"%(tabname,del_exc) )
             self.rollback()
 
 
@@ -201,7 +206,7 @@ class Engine(Backend):
     ngramqueueindex = []
     graphpreprocessqueue = {}
     # used for an indexation session
-    ngramindex = []
+    #ngramindex = []
 
     options = {
         'home' : 'db',
@@ -232,22 +237,32 @@ class Engine(Backend):
         else:
             return None
 
-    def loadMany(self, target, raw=False):
+    def loadAll(self, target, raw=False):
         """
         returns a generator of tuples (id, pickled_obj)
         """
-        cursor = self.safereadrange(target)
-        try:
-            while 1:
-                record = cursor.next()
-                # if cursor is empty
-                if record is None: return
-                if not raw:
-                    yield ( record["id"], self.unpickle(str(record["pickle"])))
-                else:
-                    yield record
-        except StopIteration, si:
-            return
+        allrecords = self.safereadall(target)
+        _logger.debug("loadAll found %d %s records"%(len(allrecords), target))
+        for record in allrecords:
+            if not raw:
+                yield ( record["id"], self.unpickle(str(record["pickle"])))
+            else:
+                yield record
+
+#    def loadMany(self, target, raw=False):
+#        """
+#        returns a generator of tuples (id, pickled_obj)
+#        """
+#        read_gen = self.safereadrange(target)
+#        try:
+#            while 1:
+#                record = read_gen.next()
+#                if not raw:
+#                    yield ( record["id"], self.unpickle(str(record["pickle"])))
+#                else:
+#                    yield record
+#        except StopIteration, si:
+#            return
 
     def loadCorpora(self, id, raw=False ):
         return self.load(id, 'Corpora', raw)
@@ -381,21 +396,21 @@ class Engine(Backend):
         """
         self.update( obj, 'NGram', redondantupdate )
 
-    def updateManyNGram( self, obj ):
-        """
-        updates a ngram and associations using the ngram insert queue
-        if ngram is already into queue,
-        will flush it first to ensure incremental updates
-        """
-        if obj['id'] in self.ngramqueueindex:
-            self.flushNGramQueue()
-        stored = self.loadNGram(obj['id'])
-        if stored is not None:
-            stored.updateObject(obj)
-            obj = stored
-        # adds object to the INSERT the queue and returns its length
-        return self._ngramQueue( obj['id'], obj )
-
+#    def updateManyNGram( self, obj ):
+#        """
+#        updates a ngram and associations using the ngram insert queue
+#        if ngram is already into queue,
+#        will flush it first to ensure incremental updates
+#        """
+#        #if obj['id'] in self.ngramqueueindex:
+#        #    self.flushNGramQueue()
+#        stored = self.load( obj['id'], 'NGram' )
+#        if stored is not None:
+#            stored.updateObject(obj)
+#            return self._ngramQueue( stored['id'], stored )
+#        else:
+#            return self._ngramQueue( obj['id'], obj )
+        
     def updateGraphPreprocess(self, period, category, id, row):
         """
         updates a graph preprocess row
@@ -423,8 +438,8 @@ class Engine(Backend):
 
     def flushQueues(self):
         self.flushGraphPreprocessQueue()
-        self.flushNGramQueue()
-        self.ngramindex = []
+        #self.flushNGramQueue()
+        #self.ngramindex = []
         _logger.debug("flushed insert queues for database %s"%self.path)
 
     def _ngramQueue( self, id, ng ):
@@ -433,7 +448,7 @@ class Engine(Backend):
         """
         self.ngramqueueindex += [id]
         self.ngramqueue += [(id, ng)]
-        self.ngramindex += [id]
+        #self.ngramindex += [id]
         queue = len( self.ngramqueue )
         return queue
 
@@ -532,7 +547,7 @@ class Engine(Backend):
         # updated NGram
         self.insertNGram(new_ngram)
         # first and only dataset
-        dataset_gen = self.loadMany("Corpora")
+        dataset_gen = self.loadAll("Corpora")
         (dataset_id, dataset) = dataset_gen.next()
         doc_count = 0
 

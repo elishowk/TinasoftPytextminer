@@ -18,7 +18,7 @@ __author__="elishowk@nonutc.fr"
 
 #from tinasoft import threadpool
 from tinasoft.data import Handler
-from tinasoft.pytextminer import PyTextMiner, ngram
+#from tinasoft.pytextminer import PyTextMiner, ngram
 
 
 # Tenjin, the fastest template engine in the world !
@@ -49,7 +49,7 @@ tenjin._write_binary_file = _write_binary_file
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
-NODE_COUNT_LOGGING = 10
+NODE_COUNT_LOGGING = 100
 
 class Exporter(Handler):
     """

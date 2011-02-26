@@ -14,9 +14,8 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/gpl.html>.
 
-from tinasoft.data import Importer as BaseImporter
-from tinasoft.data import Exporter as BaseExporter
 
+from tinasoft.data import Exporter as BaseExporter
 
 import codecs
 import csv

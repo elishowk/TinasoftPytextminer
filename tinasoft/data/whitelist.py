@@ -61,6 +61,7 @@ class Importer(basecsv.Importer, BaseImporter):
     def parse_file(self):
         """Reads a whitelist file and returns a whitelist object"""
         if self.whitelist is None: return False
+        ngramqueue=[]
         for row in self:
             if row is None: continue
             
@@ -73,6 +74,7 @@ class Importer(basecsv.Importer, BaseImporter):
             except KeyError, keyexc:
                 _logger.error( "%s column (required) not found importing the whitelist at line %d, import failed"%(keyexc, self.reader.line_num) )
                 continue
+                
             # main NGram
             ngobj = ngram.NGram(label.split(" "), label=label)
             ngid = ngobj['id']
@@ -83,11 +85,15 @@ class Importer(basecsv.Importer, BaseImporter):
                 self.whitelist.addEdge( "NGram", formobj['id'], ngid )
                 ngobj.addForm(formtokens)
             # stores the NGram into whitelist storage
-            self.whitelist.addNGram( ngobj )
+            #self.whitelist.addNGram( ngobj )
+            ngramqueue += [(ngobj['id'], ngobj)]
             # these edges are used to cache labels, see tokenizer
             self.whitelist.addEdge( 'form_label', ngid, label )
             
         self.file.close()
+        ### insert/update document
+        #self.storage.flushNGramQueue()
+        self.whitelist.storage.insertManyNGram( ngramqueue )
         self.whitelist.storage.flushNGramQueue()
         return self.whitelist
 
@@ -117,10 +123,15 @@ class Exporter(basecsv.Exporter):
         try:
             while 1:
                 ngid, ng = ngramgenerator.next()
+                
                 # sums all NGram-Corpus occurrences to get total occs
                 occs = sum( ng['edges']['Corpus'].values() )
+                #_logger.debug("sum = %d"%occs)
                 # filters ngram by total occurrences
-                if occs < minoccs: continue
+                if occs < minoccs:
+                    #print "sum = %d"%occs
+                    #print ng['edges']['Corpus'].keys()
+                    continue
 
                 ng.updateMajorForm()
                 ng['status'] = ""
@@ -153,6 +164,7 @@ class Exporter(basecsv.Exporter):
                 doc_list = separator.join(
                     [docid for docid in ng['edges']['Document'].keys()]
                 )
+                
                 row = [
                     unicode(ng['status']),
                     unicode(ng.label),

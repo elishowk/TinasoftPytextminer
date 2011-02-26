@@ -38,9 +38,9 @@ class Document(PyTextMiner):
             self.edges['keyword']={}
 
     def addEdge(self, type, key, value):
-        if type in ["Document","NGram","keyword"]:
+        if type in ["Document","keyword"]:
             return self._overwriteEdge( type, key, value )
-        elif type in ['Corpus']:
+        elif type in ['Corpus','NGram']:
             return self._addUniqueEdge( type, key, value )
         else:
             return self._addEdge( type, key, value )
@@ -55,13 +55,13 @@ class Document(PyTextMiner):
                         # decrement the edge
                         self._updateNGramCorpusEdge(storage, targetid, -1)
 
-    def _updateNGramCorpusEdge(self, storage, ngid, value):
+    def _updateNGramCorpusEdge(self, storage, ngid, incrvalue):
         """
         decrement or increment the Corpus-NGram edges, symmetrically
         """
         incrementedges = {
             "NGram": {
-                ngid : value
+                ngid : incrvalue
             }
         }
         # updates Corpus-NGram edges, symmetrically ONLY if exists

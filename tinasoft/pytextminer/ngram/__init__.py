@@ -47,12 +47,13 @@ class NGram(PyTextMiner):
         The NGram object accepts only one edge write to a Document object
         All other edges are multiples
         """
-        #if type in ["Document"]:
-        #    return self._addUniqueEdge( type, key, value )
-        if type in ["NGram", "postag","Document"]:
+        if type in ["Document"]:
+            return self._addUniqueEdge( type, key, value )
+        if type in ["NGram", "postag"]:
             return self._overwriteEdge( type, key, value )
         else:
             return self._addEdge( type, key, value )
+
 
     @staticmethod
     def normalize(word):
@@ -98,3 +99,39 @@ class NGram(PyTextMiner):
         form_label = PyTextMiner.form_label( form_tokens )
         self.addEdge('label', form_label, form_occs)
         self.addEdge('postag', form_label, form_postag)
+
+    def newToGraph(self, document, corpus):
+        """
+        Used to index a new NGram within a graph, given @document and a @corpus
+        """
+        corpusId = corpus['id']
+        ngid = self['id']
+        docOccs = self['occs']
+        del self['occs']
+        ### write if not already exists Doc-NGram edges
+        self.addEdge( 'Document', document['id'], docOccs )
+        document.addEdge( 'NGram', ngid, docOccs )
+        ### updates Corpus-NGrams edges
+        self.addEdge( 'Corpus', corpusId, 1 )
+        corpus.addEdge( 'NGram', ngid, 1 )
+        #return document, corpus
+
+#    def mergeToGraph(self, document, corpus):
+#        corpusId = corpus['id']
+#        ngid = self['id']
+#        # increments document-ngram edge
+#        docOccs = self['occs']
+#        del self['occs']
+#        ### write if not already exists Doc-NGram edges
+#        self.addEdge( 'Document', document['id'], docOccs )
+#        document.addEdge( 'NGram', ngid, docOccs )
+        ### document exists but not attached to the current period
+#        if corpusId not in document['edges']['Corpus']:
+#            self.addEdge( 'Corpus', corpusId, 1 )
+#            corpus.addEdge( 'NGram', ngid, 1 )
+#        ### document exist but does not contains the current ngram
+#        if ngid not in document['edges']['NGram']:
+#            self.addEdge( 'Corpus', corpusId, 1 )
+#            corpus.addEdge( 'NGram', ngid, 1 )
+        
+        return document, corpus

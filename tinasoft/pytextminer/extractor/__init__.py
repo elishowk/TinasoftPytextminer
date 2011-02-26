@@ -41,7 +41,7 @@ class Extractor():
         tokenizer,
         whitelist=None ):
         """
-
+        Reads documents, extracts NGrams, filters and fills the database
         """
         self.config = config
         self.fileGenerator = self._walk_file( path, format )
@@ -86,38 +86,39 @@ class Extractor():
         except StopIteration:
             return
 
-    def _linkStoreNGrams( self, docngrams, document, corpusId ):
+    def _linkAndStore( self, docngrams, document, corpusId ):
         """
         Updates NGram's links
         Verify storage contents preventing data corruption
         """
+        ngramqueue = []
         storedDoc = self.storage.loadDocument( document['id'] )
-
         for ngid, ng in docngrams.iteritems():
-            # increments document-ngram edge
-            docOccs = ng['occs']
-            del ng['occs']
-            ### overwrites Doc-NGram edges
-            ng.addEdge( 'Document', document['id'], docOccs )
-            document.addEdge( 'NGram', ng['id'], docOccs )
-            ### document is not in the storage OR there's no storage opened
+            ### document is new
             if storedDoc is None:
-                ng.addEdge( 'Corpus', corpusId, 1 )
-                self.corpusDict[ corpusId ].addEdge( 'NGram', ngid, 1 )
-            ### document is already stored, safely increment links
+                ng.newToGraph(document, self.corpusDict[ corpusId ])
+            ### document already exists in the DB but it's a new NGram
+            elif corpusId not in storedDoc['edges']['Corpus'] or ngid not in storedDoc['edges']['NGram']:
+                ng.newToGraph(document, self.corpusDict[ corpusId ])
+            ###
             else:
-                # feeds back duplicates
-                self.duplicate += [storedDoc]
-                ### document exists but not attached to the current period
-                if corpusId not in storedDoc['edges']['Corpus']:
-                    ng.addEdge( 'Corpus', corpusId, 1 )
-                    self.corpusDict[ corpusId ].addEdge( 'NGram', ngid, 1 )
-                ### document exist but does not contains the current ngram
-                if ngid not in storedDoc['edges']['NGram']:
-                    ng.addEdge( 'Corpus', corpusId, 1 )
-                    self.corpusDict[ corpusId ].addEdge( 'NGram', ngid, 1 )
-            self.storage.updateManyNGram( ng )
-        self.storage.flushNGramQueue()
+                #_logger.debug("skipping NGram, already in the graph")
+                continue
+                #document, self.corpusDict[ corpus['id'] ] = ng.mergeToGraph(storedDoc, self.corpusDict[ corpus['id'] ])
+            ### queue to insert queue
+#            if len(ng['edges']['Corpus'].keys())==0:
+#                _logger.warning("ZERO CORPUS IN NEW NGRAM %s"%ng['id'])
+
+            stored = self.storage.load( ng['id'], 'NGram' )
+            if stored is not None:
+                stored.updateObject(ng)
+                ngramqueue += [(stored['id'], stored)]
+            else:
+                ngramqueue += [(ng['id'], ng)]
+        ### insert/update document
+        #self.storage.flushNGramQueue()
+        self.storage.insertManyNGram( ngramqueue )
+        self.storage.updateDocument(document)
         return
 
     def _linkDocuments(self, document, corpus):
@@ -154,9 +155,7 @@ class Extractor():
                     self.stemmer,
                     self.whitelist
                 )
-                self._linkStoreNGrams(docngrams, document, corpus['id'])
-                self.storage.updateDocument( document )
-
+                self._linkAndStore(docngrams, document, corpus['id'])
                 doccount += 1
                 if doccount % NUM_DOC_NOTIFY == 0:
                     _logger.debug("%d documents indexed"%doccount)
@@ -165,7 +164,7 @@ class Extractor():
         except StopIteration:
             self.storage.updateCorpora( self.corpora )
             for corpusObj in self.corpusDict.values():
-                _logger.debug("%d NEW NGrams in corpus %s"%(len(corpusObj.edges['NGram'].keys()), corpusObj.id))
+                _logger.debug("%d NEW NGrams in corpus %s"%(len(corpusObj.edges['NGram'].keys()), corpusObj['id']))
                 _logger.debug("found %d Documents in Corpus %s"%(len(corpusObj.edges['Document'].keys()), corpusObj.id))
                 self.storage.updateCorpus( corpusObj )
             return

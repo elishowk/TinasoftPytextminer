@@ -284,7 +284,8 @@ class PytextminerFlowApi(PytextminerFileApi):
             raise ioe
             return
         except StopIteration:
-            storage.flushNGramQueue()
+            #storage.flushNGramQueue()
+            del storage
             preprocessgen = self.graph_preprocess(dataset)
             try:
                 while 1:
@@ -387,6 +388,7 @@ class PytextminerFlowApi(PytextminerFileApi):
                 # this whitelist == dataset
                 newwl = whitelist.Whitelist(whitelistlabel, whitelistlabel)
                 # dataset's storage == master whitelist's storage
+                del newwl.storage
                 newwl.storage = storage
                 yield self.STATUS_RUNNING
                 # exports the dataset's whitelist
@@ -707,7 +709,7 @@ class PytextminerApi(PytextminerFlowApi):
         try:
             while 1:
                 lastValue = generator.next()
-                print lastValue
+                #print lastValue
         except StopIteration, si:
             return lastValue
 
