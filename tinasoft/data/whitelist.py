@@ -94,7 +94,7 @@ class Importer(basecsv.Importer, BaseImporter):
         ### insert/update document
         #self.storage.flushNGramQueue()
         self.whitelist.storage.insertManyNGram( ngramqueue )
-        self.whitelist.storage.flushNGramQueue()
+        #self.whitelist.storage.flushNGramQueue()
         return self.whitelist
 
 class Exporter(basecsv.Exporter):

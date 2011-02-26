@@ -224,10 +224,12 @@ class ArchiveCounter():
         """
         generator = self.matrix.extract_matrix(minCooc)
         countcooc = 0
+        insertqueue = []
         try:
             while 1:
                 ngi, row = generator.next()
-                self.storage.updateGraphPreprocess(period, "NGram", ngi, row)
+                #self.storage.updateGraphPreprocess(period, "NGram", ngi, row)
+                insertqueue += [(period+"::"+ngi, row)]
                 internal_1 = self.matrix.id_index.index( ngi ) + 1
                 for ng2, cooc in row.iteritems():
                     if cooc >= minCooc:
@@ -236,7 +238,8 @@ class ArchiveCounter():
                         countcooc += 1
                 yield countcooc
         except StopIteration, si:
-            self.storage.flushGraphPreprocessQueue()
+            #self.storage.flushGraphPreprocessQueue()
+            self.storage.insertManyGraphPreprocess( insertqueue, "NGram" )
             for lemma_label in self.descriptorNameList:
                 whitelist_exporter.writeRow([lemma_label])
             return

@@ -169,10 +169,6 @@ class Backend(Handler):
         then execute many inserts of this transformed list of tuples
         """
         pickled_list = [(key,buffer(self.pickle(obj))) for (key, obj) in list_of_tuples]
-        if tabname=="NGram":
-            for (key, obj) in list_of_tuples:
-                if len(obj['edges']['Corpus'].keys())==0:
-                    _logger.warning( "writing empty NGram-Corpus" )
         try:
             with self._db:
                 #cur = self._db.cursor()
@@ -187,12 +183,13 @@ class Backend(Handler):
         DELETE an object from database within a transaction
         """
         try:
-            cur = self._db.cursor()
-            cur.execute("DELETE FROM %s WHERE id=?"%tabname, (key,))
-            self.commit()
-        except Exception, del_exc:
+            with self._db:
+                #cur = self._db.cursor()
+                self._db.execute("DELETE FROM %s WHERE id=?"%tabname, (key,))
+            #self.commit()
+        except sqlite3.Error, del_exc:
             raise Exception( "exception on safedelete(), table %s : %s"%(tabname,del_exc) )
-            self.rollback()
+            #self.rollback()
 
 
 class Engine(Backend):
@@ -202,8 +199,8 @@ class Engine(Backend):
     # max-size to automatically flush insert queues
     MAX_INSERT_QUEUE = 500
     # caches current insert queues data
-    ngramqueue = []
-    ngramqueueindex = []
+    #ngramqueue = []
+    #ngramqueueindex = []
     graphpreprocessqueue = {}
     # used for an indexation session
     #ngramindex = []
@@ -225,7 +222,7 @@ class Engine(Backend):
 
     def __del__(self):
         """safely closes db and dbenv"""
-        self.flushQueues()
+        #self.flushQueues()
         self.close()
 
     def load(self, id, target, raw=False):
@@ -411,46 +408,46 @@ class Engine(Backend):
 #        else:
 #            return self._ngramQueue( obj['id'], obj )
         
-    def updateGraphPreprocess(self, period, category, id, row):
-        """
-        updates a graph preprocess row
-        transaction queue grouping by self.MAX_INSERT_QUEUE
-        """
-        if category not in self.graphpreprocessqueue:
-            self.graphpreprocessqueue[category] = []
-        self.graphpreprocessqueue[category] += [(period+"::"+id, row)]
-        queuesize = len( self.graphpreprocessqueue[category] )
-        if queuesize > self.MAX_INSERT_QUEUE:
-            self.flushGraphPreprocessQueue()
-            return 0
-        else:
-            return queuesize
+#    def updateGraphPreprocess(self, period, category, id, row):
+#        """
+#        updates a graph preprocess row
+#        transaction queue grouping by self.MAX_INSERT_QUEUE
+#        """
+#        if category not in self.graphpreprocessqueue:
+#            self.graphpreprocessqueue[category] = []
+#        self.graphpreprocessqueue[category] += [(period+"::"+id, row)]
+#        queuesize = len( self.graphpreprocessqueue[category] )
+#        if queuesize > self.MAX_INSERT_QUEUE:
+#            self.flushGraphPreprocessQueue()
+#            return 0
+#        else:
+#            return queuesize
 
-    def flushNGramQueue(self):
-        self.insertManyNGram( self.ngramqueue )
-        self.ngramqueue = []
-        self.ngramqueueindex = []
+#    def flushNGramQueue(self):
+#        self.insertManyNGram( self.ngramqueue )
+#        self.ngramqueue = []
+#        self.ngramqueueindex = []
+#
+#    def flushGraphPreprocessQueue(self):
+#        for category, queue in self.graphpreprocessqueue.iteritems():
+#            self.insertManyGraphPreprocess(queue, category)
+#            self.graphpreprocessqueue[category]=[]
 
-    def flushGraphPreprocessQueue(self):
-        for category, queue in self.graphpreprocessqueue.iteritems():
-            self.insertManyGraphPreprocess(queue, category)
-            self.graphpreprocessqueue[category]=[]
-
-    def flushQueues(self):
-        self.flushGraphPreprocessQueue()
-        #self.flushNGramQueue()
-        #self.ngramindex = []
-        _logger.debug("flushed insert queues for database %s"%self.path)
-
-    def _ngramQueue( self, id, ng ):
-        """
-        add a ngram to the queue and session index
-        """
-        self.ngramqueueindex += [id]
-        self.ngramqueue += [(id, ng)]
-        #self.ngramindex += [id]
-        queue = len( self.ngramqueue )
-        return queue
+#    def flushQueues(self):
+#        self.flushGraphPreprocessQueue()
+#        #self.flushNGramQueue()
+#        #self.ngramindex = []
+#        _logger.debug("flushed insert queues for database %s"%self.path)
+##
+#    def _ngramQueue( self, id, ng ):
+#        """
+#        add a ngram to the queue and session index
+#        """
+#        self.ngramqueueindex += [id]
+#        self.ngramqueue += [(id, ng)]
+#        #self.ngramindex += [id]
+#        queue = len( self.ngramqueue )
+#        return queue
 
     def selectCorpusGraphPreprocess(self, corpusId, tabname):
         """

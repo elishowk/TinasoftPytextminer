@@ -86,6 +86,7 @@ class Exporter(Handler):
         self.periods = periods
         self.generate = generate
         self.preprocess = preprocess
+        self.insertqueue = []
 
     def notify(self, count):
         if count % NODE_COUNT_LOGGING == 0:
@@ -113,7 +114,8 @@ class Exporter(Handler):
                 yield nodecount
         except StopIteration, si:
             if self.storage is not None:
-                self.storage.flushQueues()
+                #self.storage.flushQueues()
+                self.storage.insertManyGraphPreprocess( self.insertqueue, category )
             return
 
     def _update_preprocess_db(self, nodeid, row, category):
@@ -122,7 +124,8 @@ class Exporter(Handler):
         """
         if self.storage is None: return
         for period in self.periods:
-            self.storage.updateGraphPreprocess(period, category, nodeid, row)
+            self.insertqueue += [(period+"::"+nodeid, row)]
+            #self.storage.updateGraphPreprocess(period, category, nodeid, row)
 
     def _update_graph_db(self, nodeid, row, category):
         """
@@ -131,8 +134,6 @@ class Exporter(Handler):
         if self.storage is None: return
         obj = self.storage.load(nodeid, category)
         if obj is None: return
-        # temp edges row for the target category
-        partialgraphedges = { category: row }
         # overwrites the object edges to category
         obj.edges[category] = row
         #obj.updateEdges(partialgraphedges)
