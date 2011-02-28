@@ -26,6 +26,9 @@ from tinasoft.pytextminer import PyTextMiner, corpus
 import logging
 _logger = logging.getLogger('TinaAppLogger')
 
+def defaultdict_factory(valuetype):
+    return itertools.repeat(defaultdict(valuetype)).next
+
 def process_ngram_subgraph(
         config,
         dataset,
@@ -122,34 +125,72 @@ def process_document_subgraph(
         yield doc_matrix_reducer
         return
 
-class MatrixDict(defaultdict):
+class MatrixDict(object):
     """
     Testing Prototype
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, index, valuesize=float):
         """
-        Sublcassing a defaultdict which automatically creates rows
+        includes a defaultdict which automatically creates rows
         of nested defaultdict of integers values
         """
-        defaultdict.__init__(self, defaultdict(int))
+        self.matrix = defaultdict(defaultdict_factory(valuesize))
 
     def get( self, key1, key2=None ):
         """
         Getter returning an entire row or a cell value
         """
         if key2 is None:
-            return self[key1]
+            return self.matrix[key1]
         else:
-            return self[key1][key2]
+            return self.matrix[key1][key2]
 
     def set( self, key1, key2, value=1, overwrite=False ):
         """
         Setter using sums to increment cooc values
         """
         if overwrite is False:
-            self[key1][key2] += value
+            self.matrix[key1][key2] += value
         else:
-            self[key1][key2] = value
+            self.matrix[key1][key2] = value
+
+class MatrixReducerDict(MatrixDict):
+    """
+    Generic matrix additioner
+    One must use at least MatrixReducerFilter to get filtered graphs
+    """
+    def __init__(self, index, valuesize=float):
+        MatrixDict.__init__(self, index, valuesize=valuesize)
+
+    def add(self, submatrix):
+        """"callback adding a submatrix into the self-contained matrix"""
+        if submatrix is not None:
+            for key1, subrow in submatrix.matrix.iteritems():
+                for key2, subvalue in subrow.iteritems():
+                    self.set(key1, key2, value=subvalue, overwrite=False)
+
+    def extract_matrix(self, config, **kwargs):
+        """
+        yields all rows from the matrix in a dictionary form
+        filtering only nodes at this step (edges in a second step)
+        yielded IDs are real tinasoft storage IDs
+        """
+        minnode = float(config['nodethreshold'][0])
+        maxnode = float(config['nodethreshold'][1])
+        for key1, row in self.matrix.iteritems():
+            # node key1 filter
+            if key1 in row:
+                if row[key1] < minnode or row[key1] > maxnode:
+                    continue
+            valid_row = {}
+            # node key2 filter
+            for key2, value in row.iteritems():
+                if self.matrix[key2][key2] < minnode or self.matrix[key2][key2] > maxnode:
+                    continue
+                if key2 == key1: continue
+                # converts any numpy.float to python float
+                valid_row[key2] = float(value)
+            yield (key1, valid_row)
 
 class Matrix(object):
     """
@@ -288,7 +329,7 @@ class MatrixReducer(Matrix):
         savetxt( fh, self.array, "%.2f", ",")
 
 
-class MatrixReducerFilter(MatrixReducer):
+class MatrixReducerFilter(MatrixReducerDict):
     """
     Simple matrix reducer : use it if there's no second level proximity calculation
     Only filtering edges values from MatrixReducer
@@ -316,10 +357,14 @@ class MatrixReducerFilter(MatrixReducer):
             _logger.debug("MatrixReducerFilter generated %d valid edges"%count)
 
 
-class Cooccurrences(MatrixReducerFilter): pass
+class Cooccurrences(MatrixReducerFilter):
+    """
+    nothing more than a MatrixReducerFilter
+    """
+    pass
 
 
-class PseudoInclusion(MatrixReducer):
+class PseudoInclusion(MatrixReducerDict):
     """
     Matrix Reducer used to store cooccurrence matrix,
     then extract pseudo-inclusion on the fly
@@ -338,7 +383,7 @@ class PseudoInclusion(MatrixReducer):
                     cooc = row[nodej]
                     occj = self.get(nodej, nodej)
                     # calculates the pseudo-inclusion prox
-                    value = (( cooc / occi )**alpha) * (( cooc / occj )**(1/alpha))
+                    value = (float( cooc / occi )**float(alpha)) * (float( cooc / occj )**float(1/alpha))
                     if maxedges is None and value < minedges:
                         del row[nodej]
                     elif value > maxedges or value < minedges:
@@ -351,7 +396,7 @@ class PseudoInclusion(MatrixReducer):
             _logger.debug("PseudoInclusionMatrix generated %d valid edges"%count)
 
 
-class EquivalenceIndex(MatrixReducer):
+class EquivalenceIndex(MatrixReducerDict):
     """
     Implements Equivalence Index distance between two NGram nodes
     based on the mutual information of two NGrams
@@ -464,7 +509,7 @@ class NgramGraph(SubGraph):
         """
         gets preprocessed proximities from storage
         """
-        submatrix = Matrix( list(self.ngram_index), valuesize=float32 )
+        submatrix = MatrixDict( list(self.ngram_index), valuesize=float32 )
         ngirow = self.storage.loadGraphPreprocess(self.corpusid+"::"+ngid, "NGram")
         if ngirow is None: return submatrix
         for ngj, stored_prox in ngirow.iteritems():
@@ -497,7 +542,7 @@ class NgramGraphPreprocess(NgramGraph):
         """
         simple document cooccurrences matrix calculator
         """
-        submatrix = Matrix( document['edges']['NGram'].keys(), valuesize=float32 )
+        submatrix = MatrixDict( document['edges']['NGram'].keys(), valuesize=float32 )
         # only walks through a half of the matrix
         for (ngi, ngj) in itertools.combinations(document['edges']['NGram'].keys(), 2):
             submatrix.set( ngi, ngj, 1 )
@@ -539,7 +584,7 @@ class DocGraph(SubGraph):
         """
         number of ngrams shared by 2 documents
         """
-        submatrix = Matrix( self.doc_index, valuesize=float32 )
+        submatrix = MatrixDict( self.doc_index, valuesize=float32 )
         doc1ngrams = self.documentngrams[document['id']]
         for docid in self.documentngrams.keys():
             if docid != document['id']:
@@ -555,7 +600,7 @@ class DocGraph(SubGraph):
         Jaccard-like similarity distance
         Invalid if summing values avor many periods
         """
-        submatrix = Matrix( self.doc_index, valuesize=float32 )
+        submatrix = MatrixDict( self.doc_index, valuesize=float32 )
         doc1ngrams = self.documentngrams[document['id']]
 
         for docid in self.documentngrams.keys():
