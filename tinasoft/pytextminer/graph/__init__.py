@@ -497,7 +497,6 @@ class SubGraph(object):
             )
 
 
-
 class NgramGraph(SubGraph):
     """
     A NGram subgraph edges processor
@@ -509,7 +508,7 @@ class NgramGraph(SubGraph):
         """
         gets preprocessed proximities from storage
         """
-        submatrix = MatrixDict( list(self.ngram_index), valuesize=float32 )
+        submatrix = MatrixDict( list(self.ngram_index), valuesize=float )
         ngirow = self.storage.loadGraphPreprocess(self.corpusid+"::"+ngid, "NGram")
         if ngirow is None: return submatrix
         for ngj, stored_prox in ngirow.iteritems():
@@ -531,7 +530,7 @@ class NgramGraph(SubGraph):
             yield self.getsubgraph( ngid )
             count += 1
             if count % 100:
-                _logger.debug("NgramGraph done : %d"%round(100*(float(count)/float(len(self.ngram_index)))))
+                _logger.debug("NgramGraph done : %d percent"%round(100*(float(count)/float(len(self.ngram_index)))))
 
 
 class NgramGraphPreprocess(NgramGraph):
@@ -542,7 +541,7 @@ class NgramGraphPreprocess(NgramGraph):
         """
         simple document cooccurrences matrix calculator
         """
-        submatrix = MatrixDict( document['edges']['NGram'].keys(), valuesize=float32 )
+        submatrix = MatrixDict( document['edges']['NGram'].keys(), valuesize=float )
         # only walks through a half of the matrix
         for (ngi, ngj) in itertools.combinations(document['edges']['NGram'].keys(), 2):
             submatrix.set( ngi, ngj, 1 )
@@ -561,7 +560,7 @@ class NgramGraphPreprocess(NgramGraph):
                 yield self.getsubgraph( docgenerator.next() )
                 count += 1
                 if count % 20:
-                    _logger.debug("NgramGraphPreProcess done : %d"%round(100*(float(count)/float(len(self.doc_index)))))
+                    _logger.debug("NgramGraphPreProcess done : %d percent"%round(100*(float(count)/float(len(self.doc_index)))))
         except StopIteration, si:
             return
 
@@ -584,14 +583,14 @@ class DocGraph(SubGraph):
         """
         number of ngrams shared by 2 documents
         """
-        submatrix = MatrixDict( self.doc_index, valuesize=float32 )
+        submatrix = MatrixDict( self.doc_index, valuesize=float )
         doc1ngrams = self.documentngrams[document['id']]
         for docid in self.documentngrams.keys():
             if docid != document['id']:
                 doc2ngrams = self.documentngrams[docid]
                 prox = len( doc1ngrams & doc2ngrams )
                 submatrix.set( document['id'], docid, value=prox, overwrite=True )
-                submatrix.set( docid, document['id'], value=prox, overwrite=True )
+                #submatrix.set( docid, document['id'], value=prox, overwrite=True )
 
         return submatrix
 
@@ -600,7 +599,7 @@ class DocGraph(SubGraph):
         Jaccard-like similarity distance
         Invalid if summing values avor many periods
         """
-        submatrix = MatrixDict( self.doc_index, valuesize=float32 )
+        submatrix = MatrixDict( self.doc_index, valuesize=float )
         doc1ngrams = self.documentngrams[document['id']]
 
         for docid in self.documentngrams.keys():
@@ -621,7 +620,7 @@ class DocGraph(SubGraph):
                 if denominator > 0:
                     weight = numerator / denominator
                 submatrix.set(document['id'], docid, value=weight, overwrite=True)
-                submatrix.set(docid, document['id'], value=weight, overwrite=True)
+                #submatrix.set(docid, document['id'], value=weight, overwrite=True)
         return submatrix
 
     def diagonal( self, matrix_reducer ):
@@ -642,6 +641,6 @@ class DocGraph(SubGraph):
                 del self.documentngrams[document['id']]
                 count += 1
                 if count % 20:
-                    _logger.debug("DocGraph done %d"%round(100*(float(count)/float(len(self.doc_index)))))
+                    _logger.debug("DocGraph done %d percent"%round(100*(float(count)/float(len(self.doc_index)))))
         except StopIteration, si:
             return
