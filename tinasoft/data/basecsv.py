@@ -79,7 +79,10 @@ class Importer(object):
         unicoderow = {}
         for k,s in row.iteritems():
             try:
-                unicoderow[k] = unicode(s, encoding="utf_8", errors='ignore')
+                if isinstance(s, str):
+                    unicoderow[k] = unicode(s, encoding="utf_8", errors='ignore')
+                else:
+                    unicoderow[k] = s
             except Exception, ex:
                 _logger.error("basecsv._row_to_unicode(), line %d, reason : %s"%(self.reader.line_num, ex))  
         return unicoderow

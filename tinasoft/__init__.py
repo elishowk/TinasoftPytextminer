@@ -231,6 +231,8 @@ class PytextminerFlowApi(PytextminerFileApi):
             yield self.STATUS_ERROR
             return
         except StopIteration:
+#            import time
+#            time.sleep(3)
             whitelist_exporter = Writer("whitelist://"+outpath)
             whitelist_exporter.write_whitelist(newwl, whitelistlabel, minoccs=minoccs)
             yield abspath(outpath)

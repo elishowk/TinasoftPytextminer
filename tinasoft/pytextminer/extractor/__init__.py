@@ -94,6 +94,8 @@ class Extractor():
         ngramqueue = []
         storedDoc = self.storage.loadDocument( document['id'] )
         for ngid, ng in docngrams.iteritems():
+            if ng['label']=='vehicle':
+                _logger.debug(document['id'])
             ### document is new
             if storedDoc is None:
                 ng.newToGraph(document, self.corpusDict[ corpusId ])

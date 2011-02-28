@@ -66,14 +66,12 @@ class Backend(Handler):
 
     def _drop_tables(self):
         try:
-            cur = self._db.cursor()
-            for tabname in self.tables:
-                sql = "DROP TABLE IF EXISTS %s"%tabname
-                cur.execute(sql)
-            self.commit()
-        except Exception, exc:
-            _logger.error("_drop_tables() error : %s"%exc)
-            raise Exception(exc)
+            with self._db:
+                for tabname in self.tables:
+                    sql = "DROP TABLE IF EXISTS %s"%tabname
+                    self._db.execute(sql)
+        except sqlite3.Error, _exc:
+            raise Exception( "error on _drop_tables(): %s"%_exc )
 
     def _connect(self):
         """connection method, need to have self.home directory created"""
@@ -88,16 +86,24 @@ class Backend(Handler):
 
     def _create_tables(self):
         try:
-            cur = self._db.cursor()
-            sql = "PRAGMA SYNCHRONOUS=0;"
-            cur.execute(sql)
-            for tabname in self.tables:
-                sql = "CREATE TABLE IF NOT EXISTS %s (id VARCHAR(256) PRIMARY KEY, pickle BLOB)"%tabname
-                cur.execute(sql)
-            self.commit()
-        except Exception, connect_exc:
-            _logger.error("_connect() error : %s"%connect_exc)
-            raise Exception(connect_exc)
+            with self._db:
+                self._db.execute("PRAGMA SYNCHRONOUS=0;")
+                for tabname in self.tables:
+                    sql = "CREATE TABLE IF NOT EXISTS %s (id VARCHAR(256) PRIMARY KEY, pickle BLOB)"%tabname
+                    self._db.execute(sql)
+        except sqlite3.Error, _exc:
+            raise Exception( "error on _create_tables(): %s"%_exc )
+#        try:
+#            cur = self._db.cursor()
+#            sql = "PRAGMA SYNCHRONOUS=1;"
+#            cur.execute(sql)
+#            for tabname in self.tables:
+#                sql = "CREATE TABLE IF NOT EXISTS %s (id VARCHAR(256) PRIMARY KEY, pickle BLOB)"%tabname
+#                cur.execute(sql)
+#            self.commit()
+#        except Exception, connect_exc:
+#            _logger.error("_connect() error : %s"%connect_exc)
+#            raise Exception(connect_exc)
 
     def close(self):
         """
@@ -171,9 +177,8 @@ class Backend(Handler):
         pickled_list = [(key,buffer(self.pickle(obj))) for (key, obj) in list_of_tuples]
         try:
             with self._db:
-                #cur = self._db.cursor()
                 self._db.executemany("insert or replace into %s (id, pickle) values (?,?)"%tabname, pickled_list)
-                #self.commit()
+                self._db.commit()
         except sqlite3.Error, insert_exc:
             raise Exception( "error on safewrite(), table %s : %s"%(tabname,insert_exc) )
             #self.rollback()
@@ -184,9 +189,8 @@ class Backend(Handler):
         """
         try:
             with self._db:
-                #cur = self._db.cursor()
                 self._db.execute("DELETE FROM %s WHERE id=?"%tabname, (key,))
-            #self.commit()
+                self._db.commit()
         except sqlite3.Error, del_exc:
             raise Exception( "exception on safedelete(), table %s : %s"%(tabname,del_exc) )
             #self.rollback()
@@ -197,11 +201,11 @@ class Engine(Backend):
     High level database Engine of Pytextminer
     """
     # max-size to automatically flush insert queues
-    MAX_INSERT_QUEUE = 500
+    #MAX_INSERT_QUEUE = 500
     # caches current insert queues data
     #ngramqueue = []
     #ngramqueueindex = []
-    graphpreprocessqueue = {}
+    #graphpreprocessqueue = {}
     # used for an indexation session
     #ngramindex = []
 

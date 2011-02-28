@@ -29,7 +29,9 @@ def apply_filters(ngram, filters=None):
     if filters is not None:
         for filt in filters:
             if filt.test(ngram) is False:
-                #_logger.debug("apply_filters rejected %s"%ngram.label)
+                if ngram['label']=='vehicles':
+
+                    print filt, "refused %s"%ngram['label']
                 return False
     return True
 
@@ -182,7 +184,7 @@ class PosTagValid(PosTagFilter):
     Regexp-based POS tag filtering validation
     """
     # default rules
-    rules = re.compile(r"^.*$")
+    rules = re.compile(r"^.*$", re.I|re.U)
 
     def _validate(self, ng):
         content = self.get_content(ng)

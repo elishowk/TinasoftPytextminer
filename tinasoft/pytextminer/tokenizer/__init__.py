@@ -164,21 +164,20 @@ class NGramTokenizer(RegexpTokenizer):
                 if len(content) >= i + n:
                     # updates document's ngrams cache
                     ngid = ngram.NGram.getNormId(stemmedcontent[i:n+i])
-                    if ngid in ngrams:
-                        ngrams[ngid].addForm( content[i:n+i], tags[i:n+i], 1 )
-                        ngrams[ngid].updateMajorForm()
-                        ngrams[ngid]['occs'] += 1
-                    else:
-                        # id made from the stemmedcontent and label from the real tokens
-                        ng = ngram.NGram(
-                            content[i:n+i],
-                            id = ngid,
-                            label = PyTextMiner.form_label(content[i:n+i]),
-                            occs = 1,
-                            postag = tags[i:n+i]
-                        )
-                        # application defined filtering
-                        if filtering.apply_filters(ng, filters) is True:
+                    # id made from the stemmedcontent and label from the real tokens
+                    ng = ngram.NGram(
+                        content[i:n+i],
+                        id = ngid,
+                        label = PyTextMiner.form_label(content[i:n+i]),
+                        occs = 1,
+                        postag = tags[i:n+i]
+                    )
+                    if filtering.apply_filters(ng, filters) is True:
+                        if ngid in ngrams:
+                            ngrams[ngid].addForm( content[i:n+i], tags[i:n+i], 1 )
+                            ngrams[ngid].updateMajorForm()
+                            ngrams[ngid]['occs'] += ng['occs']
+                        else:
                             ngrams[ngid] = ng
         return ngrams
 
