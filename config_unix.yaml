@@ -7,9 +7,10 @@ general:
     # following directories or files a under "basedirectory"
     index: 'index'
     dbenv: 'db'
+    # log options, file is "pytextminer-log.txt"
     logsize: 1024000
     loglevel: 'debug'
-    logfile: 'tinasoft-log.txt'
+
     user: 'sessions'
     shared: 'shared'
     whitelist_directory: 'whitelists'

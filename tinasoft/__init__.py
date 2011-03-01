@@ -16,9 +16,7 @@
 
 __author__="elishowk@nonutc.fr"
 
-#__all__ = ["pytextminer","data", "fileapi"]
-
-# python utility modules
+# python core modules
 import sys
 import traceback
 from os.path import exists
@@ -33,6 +31,7 @@ import locale
 import logging
 import logging.handlers
 import re
+
 # tinasoft core modules
 from tinasoft.fileapi import PytextminerFileApi
 from tinasoft.data import Engine, _factory, _check_protocol
@@ -56,6 +55,8 @@ LEVELS = {
     'error': logging.ERROR,
     'critical': logging.CRITICAL
 }
+
+LOG_FILE = "pytextminer-log.txt"
 
 class PytextminerFlowApi(PytextminerFileApi):
     """
@@ -127,7 +128,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             '%Y-%m-%d %H:%M:%S'
         )
         rotatingFileHandler = logging.handlers.RotatingFileHandler(
-            filename = self.config['general']['logfile'],
+            filename = LOG_FILE,
             maxBytes = self.config['general']['logsize'],
             backupCount = 2
         )
@@ -401,7 +402,7 @@ class PytextminerFlowApi(PytextminerFileApi):
 
     def generate_graph(self,
             dataset,
-            periods,
+            periods=None,
             outpath=None,
             ngramgraphconfig=None,
             documentgraphconfig=None,
@@ -416,8 +417,7 @@ class PytextminerFlowApi(PytextminerFileApi):
         @return absolute path to the GEXF nodes file
         """
         self._load_config()
-        if not isinstance(periods, list):
-            periods = [periods]
+
             
         if not documentgraphconfig: documentgraphconfig = {}
         if not ngramgraphconfig: ngramgraphconfig = {}
@@ -426,6 +426,15 @@ class PytextminerFlowApi(PytextminerFileApi):
         if storage == self.STATUS_ERROR:
             yield self.STATUS_ERROR
             return
+
+        if periods is None:
+            self.logger.debug("no periods parameters, will use all periods from the dataset")
+            periods = storage.loadCorpora(dataset)['edges']['Corpus'].keys()
+
+
+        if not isinstance(periods, list):
+            periods = [periods]
+
 
         # outpath is an optional label but transformed to an absolute file path
         params_string = "%s"%("+".join(periods))

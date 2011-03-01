@@ -162,8 +162,10 @@ if __name__ == '__main__':
             argument1 = sys.argv[3]
             argument2 = sys.argv[4]
             argument3 = sys.argv[5]
-            #argument4 = sys.argv[6]
-            argument5 = sys.argv[6]
+            if len(sys.argv) == 7:
+                argument5 = sys.argv[6]
+            else:
+                argument5 = None
             del sys.argv[2:]
         except Exception, e:
             print e
