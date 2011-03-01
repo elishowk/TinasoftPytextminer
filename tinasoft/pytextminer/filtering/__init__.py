@@ -29,9 +29,6 @@ def apply_filters(ngram, filters=None):
     if filters is not None:
         for filt in filters:
             if filt.test(ngram) is False:
-                if ngram['label']=='vehicles':
-
-                    print filt, "refused %s"%ngram['label']
                 return False
     return True
 
