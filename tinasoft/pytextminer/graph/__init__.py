@@ -125,7 +125,7 @@ def process_document_subgraph(
         yield doc_matrix_reducer
         return
 
-class MatrixDict(object):
+class Matrix(object):
     """
     Testing Prototype
     """
@@ -154,13 +154,13 @@ class MatrixDict(object):
         else:
             self.matrix[key1][key2] = value
 
-class MatrixReducerDict(MatrixDict):
+class MatrixReducer(Matrix):
     """
     Generic matrix additioner
     One must use at least MatrixReducerFilter to get filtered graphs
     """
     def __init__(self, index, valuesize=float):
-        MatrixDict.__init__(self, index, valuesize=valuesize)
+        Matrix.__init__(self, index, valuesize=valuesize)
 
     def add(self, submatrix):
         """"callback adding a submatrix into the self-contained matrix"""
@@ -192,144 +192,144 @@ class MatrixReducerDict(MatrixDict):
                 valid_row[key2] = float(value)
             yield (key1, valid_row)
 
-class Matrix(object):
-    """
-    Matrix class to build adjacency matrix using numpy
-    Manages external IDs with an auto-incremented internal index
-    """
-    def __init__(self, index, valuesize=float64):
-        """
-        Creates the numpy array and the index dictionary
-        """
-        self.reverseindex = {}
-        for i, key in enumerate(index):
-            self.reverseindex[key] = i
-        size = len(index)
-        try:
-            self.array = zeros((size, size), dtype=valuesize)
-        except Exception, exc:
-            _logger.error(exc)
-            raise Exception(str(exc))
+#class Matrix(object):
+#    """
+#    Matrix class to build adjacency matrix using numpy
+#    Manages external IDs with an auto-incremented internal index
+#    """
+#    def __init__(self, index, valuesize=float64):
+#        """
+#        Creates the numpy array and the index dictionary
+#        """
+#        self.reverseindex = {}
+#        for i, key in enumerate(index):
+#            self.reverseindex[key] = i
+#        size = len(index)
+#        try:
+#            self.array = zeros((size, size), dtype=valuesize)
+#        except Exception, exc:
+#            _logger.error(exc)
+#            raise Exception(str(exc))
+#
+#
+#    def _getindex(self, key):
+#        """
+#        returns the internal auto-incremented index from an external ID
+#        """
+#        return self.reverseindex[key]
+#
+#    def get( self, key1, key2=None ):
+#        """
+#        Getter returning rows or cell from the array
+#        """
+#        if key2 is None:
+#            return self.array[ self._getindex(key1), : ]
+#        else:
+#            return self.array[ self._getindex(key1), self._getindex(key2) ]
+#
+#    def set( self, key1, key2, value=1, overwrite=False ):
+#        """Setter using sums to increment cooc values"""
+#        index1 = self._getindex(key1)
+#        index2 = self._getindex(key2)
+#        # then writes the value
+#        if overwrite is False:
+#            self.array[ index1, index2 ] += value
+#        else:
+#            self.array[ index1, index2 ] = value
 
 
-    def _getindex(self, key):
-        """
-        returns the internal auto-incremented index from an external ID
-        """
-        return self.reverseindex[key]
-
-    def get( self, key1, key2=None ):
-        """
-        Getter returning rows or cell from the array
-        """
-        if key2 is None:
-            return self.array[ self._getindex(key1), : ]
-        else:
-            return self.array[ self._getindex(key1), self._getindex(key2) ]
-
-    def set( self, key1, key2, value=1, overwrite=False ):
-        """Setter using sums to increment cooc values"""
-        index1 = self._getindex(key1)
-        index2 = self._getindex(key2)
-        # then writes the value
-        if overwrite is False:
-            self.array[ index1, index2 ] += value
-        else:
-            self.array[ index1, index2 ] = value
-
-
-class MatrixReducer(Matrix):
-    """
-    Generic matrix additioner
-    Must use at least MatrixReducerFilter to get filtered graphs
-    """
-    def __init__(self, index, valuesize=float32):
-        Matrix.__init__(self, index, valuesize=valuesize)
-
-    def add(self, submatrix):
-        """"callback adding a submatrix into the self-contained matrix"""
-        if submatrix is not None:
-            for (external1, external2) in itertools.permutations( submatrix.reverseindex.keys(), 2):
-                self.set(external1, external2, value=submatrix.get( external1, external2 ), overwrite=False)
-
-    def extract_semiupper_matrix(self, config, **kwargs):
-        """
-        yields all values of the upper part of the matrix
-        associating ngrams with theirs tinasoft's id
-        """
-        #count = 0
-        id_index = {}
-        for key, idx in self.reverseindex.iteritems():
-            id_index[idx] = key
-        for i in range(self.array.shape[0]):
-            # node filter
-            if self.array[i,i] < float(config['nodethreshold'][0]) or self.array[i,i] > float(config['nodethreshold'][1]): continue
-            nodei = id_index[i]
-            row = {}
-            for j in range(self.array.shape[0] - i):
-                if self.array[i+j,i+j] < float(config['nodethreshold'][0]) or self.array[i+j,i+j] > float(config['nodethreshold'][1]): continue
-                prox = float(self.array[i,i+j])
-                if prox <= 0: continue
-                if prox >= float(config['edgethreshold'][0]):
-                    if max is None:
-                        #count += 1
-                        nodej = id_index[j]
-                        row[nodej] = prox
-                    elif prox <= float(config['edgethreshold'][1]):
-                        #count += 1
-                        nodej = id_index[j]
-                        row[nodej] = prox
-            if len(row.keys()) > 0:
-                yield (nodei, row)
-
-    def extract_matrix(self, config, **kwargs):
-        """
-        yields all rows from the matrix in a dictionary form
-        filtering only nodes at this step (edges in a second step)
-        yielded IDs are real tinasoft storage IDs
-        """
-        minnode = float(config['nodethreshold'][0])
-        maxnode = float(config['nodethreshold'][1])
-        # reverses the matrix reverse index
-        id_index = {}
-        for key, idx in self.reverseindex.iteritems():
-            id_index[idx] = key
-        # iterate over all rows and columns of the numpy matrix
-        for i in range(self.array.shape[0]):
-            # node filter
-            nodeiweight = float(self.array[i,i])
-            if nodeiweight < minnode or nodeiweight > maxnode:
-                del id_index[i]
-                continue
-            row = {}
-            nodei = id_index[i]
-            for j in range(self.array.shape[0]):
-                if i == j : continue
-                nodejweight = float(self.array[j,j])
-                # node filter
-                if nodejweight < minnode or nodejweight > maxnode:
-                    del id_index[j]
-                    continue
-                # converts any numpy.float to python float
-                prox = float(self.array[i,j])
-                #if prox <= 0:
-                #    continue
-                nodej = id_index[j]
-                row[nodej] = prox
-            #if len(row.keys()) > 0:
-            yield (nodei, row)
-        _logger.debug("MatrixReducer extracted %d valid nodes"%len(id_index.keys()))
-
-    def export(self, path, index):
-        """
-        Utility for raw exports of the matrix
-        """
-        fh = open(path, 'w+')
-        fh.write(",".join(index))
-        savetxt( fh, self.array, "%.2f", ",")
+#class MatrixReducer(Matrix):
+#    """
+#    Generic matrix additioner
+#    Must use at least MatrixReducerFilter to get filtered graphs
+#    """
+#    def __init__(self, index, valuesize=float32):
+#        Matrix.__init__(self, index, valuesize=valuesize)
+#
+#    def add(self, submatrix):
+#        """"callback adding a submatrix into the self-contained matrix"""
+#        if submatrix is not None:
+#            for (external1, external2) in itertools.permutations( submatrix.reverseindex.keys(), 2):
+#                self.set(external1, external2, value=submatrix.get( external1, external2 ), overwrite=False)
+#
+#    def extract_semiupper_matrix(self, config, **kwargs):
+#        """
+#        yields all values of the upper part of the matrix
+#        associating ngrams with theirs tinasoft's id
+#        """
+#        #count = 0
+#        id_index = {}
+#        for key, idx in self.reverseindex.iteritems():
+#            id_index[idx] = key
+#        for i in range(self.array.shape[0]):
+#            # node filter
+#            if self.array[i,i] < float(config['nodethreshold'][0]) or self.array[i,i] > float(config['nodethreshold'][1]): continue
+#            nodei = id_index[i]
+#            row = {}
+#            for j in range(self.array.shape[0] - i):
+#                if self.array[i+j,i+j] < float(config['nodethreshold'][0]) or self.array[i+j,i+j] > float(config['nodethreshold'][1]): continue
+#                prox = float(self.array[i,i+j])
+#                if prox <= 0: continue
+#                if prox >= float(config['edgethreshold'][0]):
+#                    if max is None:
+#                        #count += 1
+#                        nodej = id_index[j]
+#                        row[nodej] = prox
+#                    elif prox <= float(config['edgethreshold'][1]):
+#                        #count += 1
+#                        nodej = id_index[j]
+#                        row[nodej] = prox
+#            if len(row.keys()) > 0:
+#                yield (nodei, row)
+#
+#    def extract_matrix(self, config, **kwargs):
+#        """
+#        yields all rows from the matrix in a dictionary form
+#        filtering only nodes at this step (edges in a second step)
+#        yielded IDs are real tinasoft storage IDs
+#        """
+#        minnode = float(config['nodethreshold'][0])
+#        maxnode = float(config['nodethreshold'][1])
+#        # reverses the matrix reverse index
+#        id_index = {}
+#        for key, idx in self.reverseindex.iteritems():
+#            id_index[idx] = key
+#        # iterate over all rows and columns of the numpy matrix
+#        for i in range(self.array.shape[0]):
+#            # node filter
+#            nodeiweight = float(self.array[i,i])
+#            if nodeiweight < minnode or nodeiweight > maxnode:
+#                del id_index[i]
+#                continue
+#            row = {}
+#            nodei = id_index[i]
+#            for j in range(self.array.shape[0]):
+#                if i == j : continue
+#                nodejweight = float(self.array[j,j])
+#                # node filter
+#                if nodejweight < minnode or nodejweight > maxnode:
+#                    del id_index[j]
+#                    continue
+#                # converts any numpy.float to python float
+#                prox = float(self.array[i,j])
+#                #if prox <= 0:
+#                #    continue
+#                nodej = id_index[j]
+#                row[nodej] = prox
+#            #if len(row.keys()) > 0:
+#            yield (nodei, row)
+#        _logger.debug("MatrixReducer extracted %d valid nodes"%len(id_index.keys()))
+#
+#    def export(self, path, index):
+#        """
+#        Utility for raw exports of the matrix
+#        """
+#        fh = open(path, 'w+')
+#        fh.write(",".join(index))
+#        savetxt( fh, self.array, "%.2f", ",")
 
 
-class MatrixReducerFilter(MatrixReducerDict):
+class MatrixReducerFilter(MatrixReducer):
     """
     Simple matrix reducer : use it if there's no second level proximity calculation
     Only filtering edges values from MatrixReducer
@@ -364,7 +364,7 @@ class Cooccurrences(MatrixReducerFilter):
     pass
 
 
-class PseudoInclusion(MatrixReducerDict):
+class PseudoInclusion(MatrixReducer):
     """
     Matrix Reducer used to store cooccurrence matrix,
     then extract pseudo-inclusion on the fly
@@ -396,7 +396,7 @@ class PseudoInclusion(MatrixReducerDict):
             _logger.debug("PseudoInclusionMatrix generated %d valid edges"%count)
 
 
-class EquivalenceIndex(MatrixReducerDict):
+class EquivalenceIndex(MatrixReducer):
     """
     Implements Equivalence Index distance between two NGram nodes
     based on the mutual information of two NGrams
@@ -508,7 +508,7 @@ class NgramGraph(SubGraph):
         """
         gets preprocessed proximities from storage
         """
-        submatrix = MatrixDict( list(self.ngram_index), valuesize=float )
+        submatrix = Matrix( list(self.ngram_index), valuesize=float )
         ngirow = self.storage.loadGraphPreprocess(self.corpusid+"::"+ngid, "NGram")
         if ngirow is None: return submatrix
         for ngj, stored_prox in ngirow.iteritems():
@@ -541,7 +541,7 @@ class NgramGraphPreprocess(NgramGraph):
         """
         simple document cooccurrences matrix calculator
         """
-        submatrix = MatrixDict( document['edges']['NGram'].keys(), valuesize=float )
+        submatrix = Matrix( document['edges']['NGram'].keys(), valuesize=float )
         # only walks through a half of the matrix
         for (ngi, ngj) in itertools.combinations(document['edges']['NGram'].keys(), 2):
             submatrix.set( ngi, ngj, 1 )
@@ -583,7 +583,7 @@ class DocGraph(SubGraph):
         """
         number of ngrams shared by 2 documents
         """
-        submatrix = MatrixDict( self.doc_index, valuesize=float )
+        submatrix = Matrix( self.doc_index, valuesize=float )
         doc1ngrams = self.documentngrams[document['id']]
         for docid in self.documentngrams.keys():
             if docid != document['id']:
@@ -599,7 +599,7 @@ class DocGraph(SubGraph):
         Jaccard-like similarity distance
         Invalid if summing values avor many periods
         """
-        submatrix = MatrixDict( self.doc_index, valuesize=float )
+        submatrix = Matrix( self.doc_index, valuesize=float )
         doc1ngrams = self.documentngrams[document['id']]
 
         for docid in self.documentngrams.keys():
