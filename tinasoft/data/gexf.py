@@ -97,6 +97,7 @@ class Exporter(Handler):
         uses a Graph.MatrixReducer type object
         to update the storage with new node edges
         """
+        self.insertqueue = []
         nodecount = 0
         _logger.debug("loading %s edges into graph"%category)
         rows = matrix.extract_matrix( subgraphconfig )
@@ -114,7 +115,6 @@ class Exporter(Handler):
                 yield nodecount
         except StopIteration, si:
             if self.storage is not None:
-                #self.storage.flushQueues()
                 self.storage.insertManyGraphPreprocess( self.insertqueue, category )
             return
 
@@ -125,7 +125,6 @@ class Exporter(Handler):
         if self.storage is None: return
         for period in self.periods:
             self.insertqueue += [(period+"::"+nodeid, row)]
-            #self.storage.updateGraphPreprocess(period, category, nodeid, row)
 
     def _update_graph_db(self, nodeid, row, category):
         """
@@ -134,9 +133,8 @@ class Exporter(Handler):
         if self.storage is None: return
         obj = self.storage.load(nodeid, category)
         if obj is None: return
-        # overwrites the object edges to category
-        obj.edges[category] = row
-        #obj.updateEdges(partialgraphedges)
+        # overwrites the object edges to its own category
+        obj['edges'][category] = row
         self.storage.insert(obj, category, obj['id'])
 
     def finalize(self, path, exportedges=False):

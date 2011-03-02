@@ -43,7 +43,8 @@ from tinasoft.pytextminer import extractor
 from tinasoft.pytextminer import whitelist
 from tinasoft.pytextminer import stopwords
 from tinasoft.pytextminer import indexer
-from tinasoft.pytextminer import graph
+from tinasoft.pytextminer.graph import process_document_subgraph, process_ngram_subgraph
+from tinasoft.pytextminer.graph import subgraph, matrix
 from tinasoft.pytextminer import stemmer
 from tinasoft.pytextminer import tokenizer
 from tinasoft.pytextminer import filtering
@@ -232,8 +233,6 @@ class PytextminerFlowApi(PytextminerFileApi):
             yield self.STATUS_ERROR
             return
         except StopIteration:
-#            import time
-#            time.sleep(3)
             whitelist_exporter = Writer("whitelist://"+outpath)
             whitelist_exporter.write_whitelist(newwl, whitelistlabel, minoccs=minoccs)
             yield abspath(outpath)
@@ -364,9 +363,9 @@ class PytextminerFlowApi(PytextminerFileApi):
             )
 
             yield self.STATUS_RUNNING
-            ngram_matrix_reducer = graph.MatrixReducer(ngram_index)
-            ngram_graph_preprocess = _dynamic_get_class("tinasoft.pytextminer.graph", "NgramGraphPreprocess")
-            ngramsubgraph_gen = graph.process_ngram_subgraph(
+            ngram_matrix_reducer = matrix.MatrixReducer(ngram_index)
+            ngram_graph_preprocess = _dynamic_get_class("tinasoft.pytextminer.graph.subgraph", "NgramGraphPreprocess")
+            ngramsubgraph_gen = process_ngram_subgraph(
                 self.config,
                 dataset,
                 [period],
@@ -429,8 +428,14 @@ class PytextminerFlowApi(PytextminerFileApi):
 
         if periods is None:
             self.logger.debug("no periods parameters, will use all periods from the dataset")
-            periods = storage.loadCorpora(dataset)['edges']['Corpus'].keys()
+            corpora = storage.loadCorpora(dataset)
 
+            if corpora is None:
+                yield self.STATUS_ERROR
+                raise Exception("%s dataset not found in database")
+                return
+            else:
+                periods = corpora['edges']['Corpus'].keys()
 
         if not isinstance(periods, list):
             periods = [periods]
@@ -497,12 +502,12 @@ class PytextminerFlowApi(PytextminerFileApi):
         #    raise NotImplementedError(errmsg)
         #    return
 
-        ngram_graph_class = _dynamic_get_class("tinasoft.pytextminer.graph", "NgramGraph")
-        ngram_matrix_class = _dynamic_get_class("tinasoft.pytextminer.graph", update_ngramconfig['proximity'])
+        ngram_graph_class = _dynamic_get_class("tinasoft.pytextminer.graph.subgraph", "NgramGraph")
+        ngram_matrix_class = _dynamic_get_class("tinasoft.pytextminer.graph.matrix", update_ngramconfig['proximity'])
         ngram_matrix_reducer = ngram_matrix_class(ngram_index)
         self.logger.debug("finished preparing params for generate_graph")
         # ngramgraph proximity is based on previously stored
-        ngramsubgraph_gen = graph.process_ngram_subgraph(
+        ngramsubgraph_gen = process_ngram_subgraph(
             self.config,
             dataset,
             periods_to_process,
@@ -522,10 +527,10 @@ class PytextminerFlowApi(PytextminerFileApi):
             self.logger.debug("finished NGramGraph")
             pass
 
-        doc_graph_class = _dynamic_get_class("tinasoft.pytextminer.graph", "DocGraph")
+        doc_graph_class = _dynamic_get_class("tinasoft.pytextminer.graph.subgraph", "DocGraph")
 
-        doc_matrix_reducer = graph.MatrixReducerFilter( doc_index )
-        docsubgraph_gen = graph.process_document_subgraph(
+        doc_matrix_reducer = matrix.MatrixReducerFilter( doc_index )
+        docsubgraph_gen = process_document_subgraph(
             self.config,
             dataset,
             periods_to_process,

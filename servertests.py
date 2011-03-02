@@ -91,7 +91,6 @@ class GenerateGraph(ServerTest):
         params =  urllib.urlencode({
             'dataset': self.datasetId,
             'periods': self.period,
-            'whitelistpath': self.whitelist,
             'outpath': 'test_graph',
             # DOES ONT WORK : urlencode fails
             #'ngramgraphconfig': {
@@ -171,7 +170,8 @@ class TestGraph(ServerTest):
                     self.failUnless( ( category+"::"+targetid in data['edges']["NGram::"+ngramObj['id']]),
                         "invalid edge of NGram: %s, target = %s::%s"%(ngramObj['label'], category, targetid) )
                     self.failUnlessEqual( weight,  data['edges']["NGram::"+ngramObj['id']][category+"::"+targetid],
-                        "bad ngram weight : %s"%ngramObj['label'] )
+                        "bad NGram edge weight (source=%s, target=%s) : found %d, should be %d"\
+                            %(ngramObj['id'], targetid, weight, data['edges']["NGram::"+ngramObj['id']][category+"::"+targetid]) )
                     
         print "Testing Document nodes in period %s"%self.period
         for docid in corpusResult['edges']['Document'].iterkeys():
@@ -205,7 +205,7 @@ def usage():
     print " first, launch the server : python httpserver.py configuration_file_path \n"
     print " python servertests.py ExtractFile source_filename source_file_format dataset_name whitelist_out_path\n"
     print " python servertests.py IndexFile source_filename source_file_format dataset_name whitelist_path\n"
-    print " python servertests.py GenerateGraph dataset_name whitelist_path period\n"
+    print " python servertests.py GenerateGraph dataset_name period\n"
     print " python servertests.py TestGraph dataset_name period\n"
 
 
@@ -234,11 +234,11 @@ if __name__ == '__main__':
             exit()
     elif testclass == 'GenerateGraph':
         try:
-            #argument1 = sys.argv[2]
-            #argument2 = sys.argv[3]
             datasetId = sys.argv[2]
-            whitelist = sys.argv[3]
-            period = sys.argv[4]
+            if len(sys.argv)==4:
+                period = sys.argv[3]
+            else:
+                period=None
             del sys.argv[2:]
         except:
             usage()
