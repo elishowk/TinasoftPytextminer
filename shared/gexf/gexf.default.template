@@ -57,8 +57,8 @@
                         <?py for target, weight in sourceobj['edges'][targetcategory].iteritems(): ?>
                             <?py if target not in nodes[targetcategory]: continue ?>
                             <?py #endif ?>
+                            <?py if weight == 0.0: continue?>
                             <?py weight = "%.6f"%round(weight,6) ?>
-                            <?py if weight == "0.000000": continue?>
                             <?py #endif ?>
                             <?py sourcegraphid = sourcecategory + "::" + source ?>
                             <?py targetgraphid = targetcategory + "::" + target ?>

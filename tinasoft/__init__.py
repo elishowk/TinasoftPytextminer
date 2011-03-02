@@ -440,9 +440,13 @@ class PytextminerFlowApi(PytextminerFileApi):
         if not isinstance(periods, list):
             periods = [periods]
 
-
-        # outpath is an optional label but transformed to an absolute file path
-        params_string = "%s"%("+".join(periods))
+        # params_string formed with the periods
+        if len(periods) > 1:
+            sortedperiods = sorted(periods)
+            params_string = "from_%s_to_%s"%(sortedperiods[0],sortedperiods[-1])
+        else:
+            params_string = periods[0]
+        # outpath is an optional label but used into the file path
         if outpath is None:
             outpath = self._get_user_filepath(dataset, 'gexf', "%s-graph"%params_string)
         else:
