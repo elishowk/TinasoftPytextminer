@@ -159,7 +159,8 @@ class PytextminerFileApi(object):
         remove a dataset db and user directory given the dataset's name
         """
         # may be ? win32api.SetFileAttributes(path, win32con.FILE_ATTRIBUTE_NORMAL)
-        del self.opened_storage[dataset_id]
+        if dataset_id in self.opened_storage:
+            del self.opened_storage[dataset_id]
         rmtree(join( self.config['general']['basedirectory'], self.config['general']['dbenv'], dataset_id ), True, lambda: True)
         rmtree(join( self.user, dataset_id ), True, lambda: True)
         return dataset_id

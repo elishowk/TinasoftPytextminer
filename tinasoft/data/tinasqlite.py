@@ -18,7 +18,7 @@
 __author__="elishowk@nonutc.fr"
 
 from tinasoft.data import Handler
-from tinasoft.pytextminer import ngram
+from tinasoft.pytextminer import ngram, PyTextMiner
 
 import sqlite3
 
@@ -93,17 +93,6 @@ class Backend(Handler):
                     self._db.execute(sql)
         except sqlite3.Error, _exc:
             raise Exception( "error on _create_tables(): %s"%_exc )
-#        try:
-#            cur = self._db.cursor()
-#            sql = "PRAGMA SYNCHRONOUS=1;"
-#            cur.execute(sql)
-#            for tabname in self.tables:
-#                sql = "CREATE TABLE IF NOT EXISTS %s (id VARCHAR(256) PRIMARY KEY, pickle BLOB)"%tabname
-#                cur.execute(sql)
-#            self.commit()
-#        except Exception, connect_exc:
-#            _logger.error("_connect() error : %s"%connect_exc)
-#            raise Exception(connect_exc)
 
     def close(self):
         """
@@ -537,16 +526,16 @@ class Engine(Backend):
         adds a NGram as a form to all the dataset's Documents
         """
         new_ngram = ngram.NGram(form.split(" "), label=form)
+        new_ngram['edges']['label'][PyTextMiner.form_label(form.split(" "))] -= 1
         stored_ngram = self.loadNGram(new_ngram.id)
 
         if stored_ngram is not None:
             _logger.debug("%s exists in database"%new_ngram.label)
-            stored_ngram.addForm(form.split(" "), ["None"])
             # only updates form attributes
             new_ngram = stored_ngram
 
-        # updated NGram
-        self.insertNGram(new_ngram)
+
+        new_ngram._overwriteEdge("keyword", form, True)
         # first and only dataset
         dataset_gen = self.loadAll("Corpora")
         (dataset_id, dataset) = dataset_gen.next()
@@ -559,14 +548,17 @@ class Engine(Backend):
                 total_occs = 0
                 doc = self.loadDocument(docid)
                 if docid != target_doc_id:
-                    total_occs += doc.addNGramForm(form, new_ngram.id, self, False)
+                    total_occs += doc.addNGramForm(new_ngram, self, False)
                 else:
-                    total_occs += doc.addNGramForm(form, new_ngram.id, self, is_keyword)
-                self.insertDocument(doc)
+                    # if is_keyword is True, forces NGram-Document linking
+                    total_occs += doc.addNGramForm(new_ngram, self, is_keyword)
+
                 if total_occs > 0:
+                    # saves the modified document
+                    self.insertDocument(doc)
                     doc_count += 1
                     _logger.debug("adding %d times %s in document %s"%(total_occs, form, docid))
                 yield None
-
+        #self._db.commit()
         yield [form, doc_count]
         return

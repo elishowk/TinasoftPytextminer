@@ -84,14 +84,16 @@ class Document(PyTextMiner):
         if is_keyword is True and form in self.edges["keyword"]:
              del self.edges["keyword"][form]
 
-    def addNGramForm(self, form, ngid, storage, is_keyword=False):
+    def addNGramForm(self, ngObj, storage, is_keyword=False):
         """
         Adds a NGram form, optionally a keyword
         And updates Corpus if needed
         """
+        ngid = ngObj.id
         occs = 0
-        for target in self['target']:
-            occs += len(re.findall(r"\b%s\b"%form,self[target], re.I|re.U))
+        for form in ngObj['edges']['label'].keys():
+            for target in self['target']:
+                occs += len(re.findall(r"\b%s\b"%form,self[target], re.I|re.U))
         # if it occurs
         if occs > 0:
             # if it's new
@@ -105,4 +107,8 @@ class Document(PyTextMiner):
             self.addEdge("NGram", ngid, 1)
             self._updateNGramCorpusEdge(storage, ngid, 1)
             occs = 1
+        if occs > 0:
+            ngObj._overwriteEdge("Document", self.id, occs)
+            ngObj.addForm( ngObj.content, form_postag=ngObj.postag, form_occs=occs )
+            storage.updateNGram(ngObj, False)
         return occs
