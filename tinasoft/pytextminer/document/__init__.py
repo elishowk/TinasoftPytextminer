@@ -17,7 +17,7 @@
 __author__ = "elishowk@nonutc.fr"
 import datetime
 import re
-from tinasoft.pytextminer import PyTextMiner, corpus
+from tinasoft.pytextminer import PyTextMiner, corpus, ngram
 
 import logging
 _logger = logging.getLogger('TinaAppLogger')
@@ -108,7 +108,8 @@ class Document(PyTextMiner):
             self._updateNGramCorpusEdge(storage, ngid, 1)
             occs = 1
         if occs > 0:
-            ngObj._overwriteEdge("Document", self.id, occs)
-            ngObj.addForm( ngObj.content, form_postag=ngObj.postag, form_occs=occs )
-            storage.updateNGram(ngObj, False)
+            # increments NGram-Document edges
+            new_ngram = ngram.NGram(ngObj['content'], label=ngObj['label'])
+            new_ngram.addEdge("Document", self.id, occs)
+            storage.updateNGram(new_ngram, False)
         return occs

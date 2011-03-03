@@ -343,6 +343,7 @@ class Engine(Backend):
                         if obj['id'] in neighbourobj['edges'][target]:
                             del neighbourobj['edges'][target][obj['id']]
                     else:
+                        _logger.debug("updating neighbour node %s edge to %s"%(neighbourobj['id'], obj['id']))
                         neighbourobj['edges'][target][obj['id']] = obj['edges'][category][neighbourid]
                     self.insert(neighbourobj, category)
                 else:
@@ -385,62 +386,6 @@ class Engine(Backend):
         updates a ngram and associations
         """
         self.update( obj, 'NGram', redondantupdate )
-
-#    def updateManyNGram( self, obj ):
-#        """
-#        updates a ngram and associations using the ngram insert queue
-#        if ngram is already into queue,
-#        will flush it first to ensure incremental updates
-#        """
-#        #if obj['id'] in self.ngramqueueindex:
-#        #    self.flushNGramQueue()
-#        stored = self.load( obj['id'], 'NGram' )
-#        if stored is not None:
-#            stored.updateObject(obj)
-#            return self._ngramQueue( stored['id'], stored )
-#        else:
-#            return self._ngramQueue( obj['id'], obj )
-        
-#    def updateGraphPreprocess(self, period, category, id, row):
-#        """
-#        updates a graph preprocess row
-#        transaction queue grouping by self.MAX_INSERT_QUEUE
-#        """
-#        if category not in self.graphpreprocessqueue:
-#            self.graphpreprocessqueue[category] = []
-#        self.graphpreprocessqueue[category] += [(period+"::"+id, row)]
-#        queuesize = len( self.graphpreprocessqueue[category] )
-#        if queuesize > self.MAX_INSERT_QUEUE:
-#            self.flushGraphPreprocessQueue()
-#            return 0
-#        else:
-#            return queuesize
-
-#    def flushNGramQueue(self):
-#        self.insertManyNGram( self.ngramqueue )
-#        self.ngramqueue = []
-#        self.ngramqueueindex = []
-#
-#    def flushGraphPreprocessQueue(self):
-#        for category, queue in self.graphpreprocessqueue.iteritems():
-#            self.insertManyGraphPreprocess(queue, category)
-#            self.graphpreprocessqueue[category]=[]
-
-#    def flushQueues(self):
-#        self.flushGraphPreprocessQueue()
-#        #self.flushNGramQueue()
-#        #self.ngramindex = []
-#        _logger.debug("flushed insert queues for database %s"%self.path)
-##
-#    def _ngramQueue( self, id, ng ):
-#        """
-#        add a ngram to the queue and session index
-#        """
-#        self.ngramqueueindex += [id]
-#        self.ngramqueue += [(id, ng)]
-#        #self.ngramindex += [id]
-#        queue = len( self.ngramqueue )
-#        return queue
 
     def selectCorpusGraphPreprocess(self, corpusId, tabname):
         """
@@ -534,8 +479,9 @@ class Engine(Backend):
             # only updates form attributes
             new_ngram = stored_ngram
 
-
         new_ngram._overwriteEdge("keyword", form, True)
+        # pre-saves the NGram, in order to permit further redondant updates
+        self.insertNGram(new_ngram, new_ngram.id)
         # first and only dataset
         dataset_gen = self.loadAll("Corpora")
         (dataset_id, dataset) = dataset_gen.next()
@@ -552,12 +498,10 @@ class Engine(Backend):
                 else:
                     # if is_keyword is True, forces NGram-Document linking
                     total_occs += doc.addNGramForm(new_ngram, self, is_keyword)
-
                 if total_occs > 0:
                     # saves the modified document
                     self.insertDocument(doc)
                     doc_count += 1
-                    _logger.debug("adding %d times %s in document %s"%(total_occs, form, docid))
                 yield None
         #self._db.commit()
         yield [form, doc_count]
