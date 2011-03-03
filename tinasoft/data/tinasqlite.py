@@ -471,9 +471,10 @@ class Engine(Backend):
         adds a NGram as a form to all the dataset's Documents
         """
         new_ngram = ngram.NGram(form.split(" "), label=form)
-        new_ngram['edges']['label'][PyTextMiner.form_label(form.split(" "))] -= 1
+        # decrements label count
+        new_ngram['edges']['label'][new_ngram['edges']['label'].keys()[0]] -= 1
+        # checks existing NGram with the same id
         stored_ngram = self.loadNGram(new_ngram.id)
-
         if stored_ngram is not None:
             _logger.debug("%s exists in database"%new_ngram.label)
             # only updates form attributes
