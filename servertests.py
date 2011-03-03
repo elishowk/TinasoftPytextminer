@@ -23,7 +23,7 @@ import sys
 from uuid import uuid4
 import httplib
 import urllib
-#httplib.HTTPConnection.debuglevel = 1
+httplib.HTTPConnection.debuglevel = 1
 import jsonpickle
 
 import tests
@@ -125,7 +125,7 @@ class NGramForm(ServerTest):
 
         if self.label is None:
             self.label = uuid4().hex
-            print "adding auto-gen keyword %s to document %s"%(label, docid)
+        print "adding keyword %s to document %s"%(self.label, docid)
 
         params =  urllib.urlencode({
             'dataset': self.datasetId,
@@ -158,10 +158,9 @@ class NGramForm(ServerTest):
         #print documentObj['edges']
         for form, ngid in documentObj['edges']['keyword'].iteritems():
             print "testing keyword %s in the graph db"%form
-            self.failUnless( (ngid in documentObj['edges']['NGram']), "NGram not in document %s NGram edges"%docid )
+            self.failUnless( (ngid in documentObj['edges']['NGram']), "NGram not in document %s edges"%docid )
             self.failUnlessEqual( documentObj['edges']['NGram'][ngid], 1, "NGram %s edge weight from Document %s is NOT valid"%(ngid, docid) )
             ngramObj = getObject(self.connection, self.headers, 'ngram', self.datasetId, ngid)
-
             #print "NGram edges"
             #print ngramObj['edges']
             self.failUnlessEqual( ngramObj['edges']['Document'][docid], 1, "Document %s edge from NGram %s is NOT valid"%(docid, ngid) )
@@ -173,7 +172,47 @@ class NGramForm(ServerTest):
                 weight = ngramObj['edges']['Corpus'][corpid]
                 self.failUnlessEqual( corpusObj['edges']['NGram'][ngid], weight, "NGram %s edge weight from Corpus %s is NOT valid"%(ngid, corpid) )
                 #self.failUnlessEqual( ngramObj['edges']['Corpus'][corpid], 1, "Corpus %s edge weight from NGram %s is NOT valid"%(corpid, ngid) )
+        
+        print "removing keyword %s from document %s"%(self.label, docid)
+        params = urllib.urlencode({
+            'dataset': self.datasetId,
+            'id': ngid,
+            'label': self.label,
+            'is_keyword': False
+        })
+        self.connection.request(
+            'DELETE',
+            '/ngramform'+'?'+params,
+            body = params,
+            headers = self.headers
+        )
+        print self.connection.getresponse().read()
 
+        print "calling graph_preprocess"
+        params =  urllib.urlencode({
+            'dataset': self.datasetId
+        })
+        self.connection.request(
+            'POST',
+            '/graph_preprocess',
+            body = params,
+            headers = self.headers
+        )
+        print self.connection.getresponse().read()
+        
+        print "checking document %s keywords"%docid
+        documentObj = getObject(self.connection, self.headers, 'document', self.datasetId, docid)
+        #print documentObj['edges']
+        for form, ngid in documentObj['edges']['keyword'].iteritems():
+            print "testing keyword %s in the graph db"%form
+            self.failIf( (ngid in documentObj['edges']['NGram']), "NGram still is in document %s edges"%docid )
+            ngramObj = getObject(self.connection, self.headers, 'ngram', self.datasetId, ngid)
+            self.failUnless(ngramObj, None, "NGram %s is still in database"%ngid)
+            print "checking keywords-Corpus edges"
+            for corpid in documentObj['edges']['Corpus'].keys():
+                corpusObj = getObject(self.connection, self.headers, 'corpus', self.datasetId, corpid)
+                self.failIf( (ngid in corpusObj['edges']['NGram']), "NGram %s still is in Corpus %s edges"%(ngid, corpid) )
+                
 
 def getObject(connection, headers, object_type, dataset_id, obj_id=None):
     """getCorpora : gets a corpora from database"""
