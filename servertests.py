@@ -20,7 +20,7 @@ __author__ = "elishowk@nonutc.fr"
 # core modules
 import unittest
 import sys
-from datetime import datetime
+from uuid import uuid4
 import httplib
 import urllib
 #httplib.HTTPConnection.debuglevel = 1
@@ -107,6 +107,64 @@ class GenerateGraph(ServerTest):
             headers = self.headers
         )
         print self.connection.getresponse().read()
+
+class NGramForm(ServerTest):
+    def runTest(self):
+        """
+        NGramForm : adds a keywords, update database, check new value,
+        then remove it, update the database, and check the initial value
+        """
+        corpusObj = getObject(self.connection, self.headers, 'corpus', self.datasetId, self.period)
+        docid =corpusObj['edges']['Document'].keys()[0]
+        for docid in corpusObj['edges']['Document'].iterkeys():
+            documentObj = getObject(self.connection, self.headers, 'document', self.datasetId, docid)
+            if 'keyword' not in documentObj['edges'] or len(documentObj['edges']['keyword'].keys()) == 0:
+                break
+        kwd = uuid4().hex
+        print "adding keyword %s to document %s"%(kwd, docid)
+        params =  urllib.urlencode({
+            'dataset': self.datasetId,
+            'id': documentObj['id'],
+            'label': kwd,
+            'is_keyword': True
+        })
+        self.connection.request(
+            'POST',
+            '/ngramform',
+            body = params,
+            headers = self.headers
+        )
+        print self.connection.getresponse().read()
+
+        print "calling graph_preprocess"
+        params =  urllib.urlencode({
+            'dataset': self.datasetId
+        })
+        self.connection.request(
+            'POST',
+            '/graph_preprocess',
+            body = params,
+            headers = self.headers
+        )
+        print self.connection.getresponse().read()
+        print "checking document %s keywords"%docid
+        documentObj = getObject(self.connection, self.headers, 'document', self.datasetId, docid)
+        #print documentObj['edges']
+        for form, ngid in documentObj['edges']['keyword'].iteritems():
+            print "testing keyword %s in the graph db"%form
+            self.failUnless( (ngid in documentObj['edges']['NGram']), "NGram not in document %s NGram edges"%docid )
+            self.failUnlessEqual( documentObj['edges']['NGram'][ngid], 1, "NGram %s edge weight from Document %s is NOT valid"%(ngid, docid) )
+            ngramObj = getObject(self.connection, self.headers, 'ngram', self.datasetId, ngid)
+            print ngramObj['edges']
+            self.failUnlessEqual( ngramObj['edges']['Document'][docid], 1, "Document %s edge from NGram %s is NOT valid"%(docid, ngid) )
+            
+            print "checking keywords-Corpus edges"
+            for corpid in documentObj['edges']['Corpus'].keys():
+                corpusObj = getObject(self.connection, self.headers, 'corpus', self.datasetId, corpid)
+                self.failUnless( (ngid in corpusObj['edges']['NGram']), "NGram %s not in Corpus %s edges"%(ngid, corpid) )
+                self.failUnlessEqual( corpusObj['edges']['NGram'][ngid], 1, "NGram %s edge weight from Corpus %s is NOT valid"%(ngid, corpid) )
+                self.failUnless( (corpid in ngramObj['edges']['Corpus']), "Corpus %s not in NGram %s edges"%(corpid, ngid) )
+                self.failUnlessEqual( ngramObj['edges']['Corpus'][corpid], 1, "Corpus %s edge weight from NGram %s is NOT valid"%(corpid, ngid) )
 
 
 def getObject(connection, headers, object_type, dataset_id, obj_id=None):
@@ -239,6 +297,14 @@ if __name__ == '__main__':
                 period = sys.argv[3]
             else:
                 period=None
+            del sys.argv[2:]
+        except:
+            usage()
+            exit()
+    elif testclass == 'NGramForm':
+        try:
+            datasetId = sys.argv[2]
+            period = sys.argv[3]
             del sys.argv[2:]
         except:
             usage()
