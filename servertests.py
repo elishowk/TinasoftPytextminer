@@ -42,6 +42,7 @@ class ServerTest(unittest.TestCase):
         self.argument1 = argument1
         self.argument2 = argument2
         self.whitelist = whitelist
+        self.label = label
 
 
 class ExtractFile(ServerTest):
@@ -114,18 +115,22 @@ class NGramForm(ServerTest):
         NGramForm : adds a keywords, update database, check new value,
         then remove it, update the database, and check the initial value
         """
+        print "selecting the first document without keyword in period %s"%self.period
         corpusObj = getObject(self.connection, self.headers, 'corpus', self.datasetId, self.period)
-        docid =corpusObj['edges']['Document'].keys()[0]
+
         for docid in corpusObj['edges']['Document'].iterkeys():
             documentObj = getObject(self.connection, self.headers, 'document', self.datasetId, docid)
             if 'keyword' not in documentObj['edges'] or len(documentObj['edges']['keyword'].keys()) == 0:
                 break
-        kwd = uuid4().hex
-        print "adding keyword %s to document %s"%(kwd, docid)
+
+        if self.label is None:
+            self.label = uuid4().hex
+            print "adding auto-gen keyword %s to document %s"%(label, docid)
+
         params =  urllib.urlencode({
             'dataset': self.datasetId,
             'id': documentObj['id'],
-            'label': kwd,
+            'label': self.label,
             'is_keyword': True
         })
         self.connection.request(
@@ -147,6 +152,7 @@ class NGramForm(ServerTest):
             headers = self.headers
         )
         print self.connection.getresponse().read()
+        
         print "checking document %s keywords"%docid
         documentObj = getObject(self.connection, self.headers, 'document', self.datasetId, docid)
         #print documentObj['edges']
@@ -155,16 +161,18 @@ class NGramForm(ServerTest):
             self.failUnless( (ngid in documentObj['edges']['NGram']), "NGram not in document %s NGram edges"%docid )
             self.failUnlessEqual( documentObj['edges']['NGram'][ngid], 1, "NGram %s edge weight from Document %s is NOT valid"%(ngid, docid) )
             ngramObj = getObject(self.connection, self.headers, 'ngram', self.datasetId, ngid)
-            print ngramObj['edges']
+
+            #print "NGram edges"
+            #print ngramObj['edges']
             self.failUnlessEqual( ngramObj['edges']['Document'][docid], 1, "Document %s edge from NGram %s is NOT valid"%(docid, ngid) )
-            
             print "checking keywords-Corpus edges"
             for corpid in documentObj['edges']['Corpus'].keys():
                 corpusObj = getObject(self.connection, self.headers, 'corpus', self.datasetId, corpid)
                 self.failUnless( (ngid in corpusObj['edges']['NGram']), "NGram %s not in Corpus %s edges"%(ngid, corpid) )
-                self.failUnlessEqual( corpusObj['edges']['NGram'][ngid], 1, "NGram %s edge weight from Corpus %s is NOT valid"%(ngid, corpid) )
                 self.failUnless( (corpid in ngramObj['edges']['Corpus']), "Corpus %s not in NGram %s edges"%(corpid, ngid) )
-                self.failUnlessEqual( ngramObj['edges']['Corpus'][corpid], 1, "Corpus %s edge weight from NGram %s is NOT valid"%(corpid, ngid) )
+                weight = ngramObj['edges']['Corpus'][corpid]
+                self.failUnlessEqual( corpusObj['edges']['NGram'][ngid], weight, "NGram %s edge weight from Corpus %s is NOT valid"%(ngid, corpid) )
+                #self.failUnlessEqual( ngramObj['edges']['Corpus'][corpid], 1, "Corpus %s edge weight from NGram %s is NOT valid"%(corpid, ngid) )
 
 
 def getObject(connection, headers, object_type, dataset_id, obj_id=None):
@@ -305,6 +313,10 @@ if __name__ == '__main__':
         try:
             datasetId = sys.argv[2]
             period = sys.argv[3]
+            if len(sys.argv)>4:
+                label = sys.argv[4]
+            else:
+                label = None
             del sys.argv[2:]
         except:
             usage()
