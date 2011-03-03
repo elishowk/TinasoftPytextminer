@@ -741,6 +741,10 @@ class PytextminerApi(PytextminerFlowApi):
         generator = super(PytextminerApi, self).index_file(*arg, **kwargs)
         return self._eraseFlow( generator )
 
+    def graph_preprocess(self, *arg, **kwargs):
+        generator = super(PytextminerApi, self).graph_preprocess(*arg, **kwargs)
+        return self._eraseFlow( generator )
+
     def generate_graph(self, *arg, **kwargs):
         generator = super(PytextminerApi, self).generate_graph(*arg, **kwargs)
         return self._eraseFlow( generator )
