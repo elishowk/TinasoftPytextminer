@@ -90,6 +90,9 @@ class Document(PyTextMiner):
         And updates Corpus if needed
         """
         ngid = ngObj.id
+        if ngid in self['edges']['NGram']:
+            _logger.warning("keyword %s is already in document %s, aborting"%(ngObj['label'], self.id))
+            return
         occs = 0
         for form in ngObj['edges']['label'].keys():
             for target in self['target']:

@@ -343,11 +343,11 @@ class Engine(Backend):
                         if obj['id'] in neighbourobj['edges'][target]:
                             del neighbourobj['edges'][target][obj['id']]
                     else:
-                        _logger.debug("updating neighbour node %s edge to %s"%(neighbourobj['id'], obj['id']))
+                        #_logger.debug("updating neighbour node %s edge to %s"%(neighbourobj['id'], obj['id']))
                         neighbourobj['edges'][target][obj['id']] = obj['edges'][category][neighbourid]
                     self.insert(neighbourobj, category)
                 else:
-                    _logger.warning("missing neighbour %s for node %s"%(neighbourid,obj.id))
+                    _logger.warning("neighbour %s for node %s is missing in database"%(neighbourid,obj.id))
 
     def update( self, obj, target, redondantupdate=False ):
         """updates an object and its edges"""
