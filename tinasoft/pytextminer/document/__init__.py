@@ -78,6 +78,7 @@ class Document(PyTextMiner):
         matched = 0
         for target in self['target']:
             matched += len(re.findall(r"\b%s\b"%form,self[target], re.I|re.U))
+        _logger.debug("found %d occurences of form %s in doc %s"%(matched, form, self.id))
         # decrement Document-NGram with count + redondant
         self._addEdge("NGram", ngid, -matched)
         # if removing a keyword
