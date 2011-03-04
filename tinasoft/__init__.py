@@ -395,7 +395,7 @@ class PytextminerFlowApi(PytextminerFileApi):
                 yield self.STATUS_RUNNING
                 # exports the dataset's whitelist
                 whitelist_exporter = Writer("whitelist://"+outpath)
-                yield abspath( whitelist_exporter.write_whitelist(newwl, datasetObj['id']) )
+                yield abspath( whitelist_exporter.write_whitelist(newwl, datasetObj['id'], status="w"))
                 return
 
 
