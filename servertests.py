@@ -111,6 +111,68 @@ class GenerateGraph(ServerTest):
         )
         print self.connection.getresponse().read()
 
+class DeleteOneNGram(ServerTest):
+    def runTest(self):
+        """
+        DeleteOneNGram : chooses the first Document
+        and decrements an occurrence to zero
+        update database, check new value
+        """
+        print "selecting the first document without keyword in period %s"%self.period
+        corpusObj = getObject(self.connection, self.headers, 'corpus', self.datasetId, self.period)
+
+        for docid1 in corpusObj['edges']['Document'].keys():
+            documentObj1 = getObject(self.connection, self.headers, 'document', self.datasetId, docid1)
+            if 1 not in documentObj1['edges']['NGram'].values(): continue
+            for ngid1 in documentObj1['edges']['NGram'].iterkeys():
+                if corpusObj['edges']['NGram'][ngid1] > 1:
+                    print "Will delete an 1 doc-occs NGram %s (with Corpus occs > 1)"%ngid1
+                    break
+
+        for docid2 in corpusObj['edges']['Document'].keys():
+            documentObj2 = getObject(self.connection, self.headers, 'document', self.datasetId, docid2)
+            for ngid2 in documentObj2['edges']['NGram'].iterkeys():
+                if corpusObj['edges']['NGram'][ngid2] == 1:
+                    print "Will delete an 1 occurrence NGram %s (with Corpus occs = 1)"%ngid2
+                    break
+
+        for docid3 in corpusObj['edges']['Document'].keys():
+            documentObj3 = getObject(self.connection, self.headers, 'document', self.datasetId, docid3)
+            for ngid3 in documentObj3['edges']['NGram'].iterkeys():
+                if documentObj['edges']['NGram'][ngid3] > 1:
+                    print "Will delete an 1 occurrence NGram %s (with Corpus occs = 1)"%ngid3
+                    break
+
+        updateDocument = {
+            "py/object": "tinasoft.pytextminer.document.Document",
+            'id': documentObj.id,
+            'edges': {
+                    'NGram' : {
+                        ngid: -documentObj['edges']['NGram'][ngid]
+                    }
+                }
+        }
+        print "decrementing"
+        params =  urllib.urlencode({
+            'dataset': self.datasetId,
+            'object': updateDocument,
+            'redondant': True
+        })
+        self.connection.request(
+            'POST',
+            '/document',
+            body = params,
+            headers = self.headers
+        )
+        answer = self.connection.getresponse().read()
+        print answer
+
+        corpusObj2 = getObject(self.connection, self.headers, 'corpus', self.datasetId, self.period)
+        documentObj2 = getObject(self.connection, self.headers, 'document', self.datasetId, corpusObj['edges']['Document'].keys()[0])
+        self.failUnlessEqual(corpusObj['edges']['NGram'][], second, msg)( (ngid in corpusObj['edges']['NGram']), "NGram %s still is in Corpus %s edges"%(ngid, corpid) )
+
+
+
 class NGramForm(ServerTest):
     def runTest(self):
         """
