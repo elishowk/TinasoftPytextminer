@@ -79,7 +79,7 @@ class Document(PyTextMiner):
         for target in self['target']:
             matched += len(re.findall(r"\b%s\b"%form,self[target], re.I|re.U))
         # decrement Document-NGram with count + redondant
-        self.addEdge("NGram", ngid, -matched)
+        self._addEdge("NGram", ngid, -matched)
         # if removing a keyword
         if is_keyword is True and form in self.edges["keyword"]:
              del self.edges["keyword"][form]

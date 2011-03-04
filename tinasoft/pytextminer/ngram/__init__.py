@@ -114,24 +114,15 @@ class NGram(PyTextMiner):
         ### updates Corpus-NGrams edges
         self.addEdge( 'Corpus', corpusId, 1 )
         corpus.addEdge( 'NGram', ngid, 1 )
-        #return document, corpus
-
-#    def mergeToGraph(self, document, corpus):
-#        corpusId = corpus['id']
-#        ngid = self['id']
-#        # increments document-ngram edge
-#        docOccs = self['occs']
-#        del self['occs']
-#        ### write if not already exists Doc-NGram edges
-#        self.addEdge( 'Document', document['id'], docOccs )
-#        document.addEdge( 'NGram', ngid, docOccs )
-        ### document exists but not attached to the current period
-#        if corpusId not in document['edges']['Corpus']:
-#            self.addEdge( 'Corpus', corpusId, 1 )
-#            corpus.addEdge( 'NGram', ngid, 1 )
-#        ### document exist but does not contains the current ngram
-#        if ngid not in document['edges']['NGram']:
-#            self.addEdge( 'Corpus', corpusId, 1 )
-#            corpus.addEdge( 'NGram', ngid, 1 )
-        
         return document, corpus
+
+    def deleteForm(self, form, is_keyword=False):
+        """
+        removes a form
+        """
+        if form in self['edges']['label']:
+            del self['edges']['label'][form]
+        if form in self['edges']['postag']:
+            del self['edges']['postag'][form]
+        if is_keyword and form in self['edges']['keyword']:
+            del self['edges']['keyword'][form]

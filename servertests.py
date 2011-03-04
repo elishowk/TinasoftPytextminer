@@ -23,7 +23,7 @@ import sys
 from uuid import uuid4
 import httplib
 import urllib
-httplib.HTTPConnection.debuglevel = 1
+#httplib.HTTPConnection.debuglevel = 1
 import jsonpickle
 
 import tests
@@ -89,9 +89,8 @@ class IndexFile(ServerTest):
 class GenerateGraph(ServerTest):
     def runTest(self):
         """ExportGraph : processes a graph, and exports a gexf graph,"""
-        params =  urllib.urlencode({
+        paramsdict = {
             'dataset': self.datasetId,
-            'periods': self.period,
             'outpath': 'test_graph',
             # DOES ONT WORK : urlencode fails
             #'ngramgraphconfig': {
@@ -100,7 +99,10 @@ class GenerateGraph(ServerTest):
             #'documentgraphconfig': {
             #    'proximity': self.argument2
             #}
-        })
+        }
+        if self.period is not None:
+            paramsdict['periods'] = self.period
+        params =  urllib.urlencode(paramsdict)
         self.connection.request(
             'POST',
             '/graph',
@@ -204,10 +206,9 @@ class NGramForm(ServerTest):
         documentObj = getObject(self.connection, self.headers, 'document', self.datasetId, docid)
         #print documentObj['edges']
         for form, ngid in documentObj['edges']['keyword'].iteritems():
-            print "testing keyword %s in the graph db"%form
             self.failIf( (ngid in documentObj['edges']['NGram']), "NGram still is in document %s edges"%docid )
             ngramObj = getObject(self.connection, self.headers, 'ngram', self.datasetId, ngid)
-            self.failUnless(ngramObj, None, "NGram %s is still in database"%ngid)
+            self.failUnlessEqual(ngramObj, "", "NGram %s is still in database"%ngid)
             print "checking keywords-Corpus edges"
             for corpid in documentObj['edges']['Corpus'].keys():
                 corpusObj = getObject(self.connection, self.headers, 'corpus', self.datasetId, corpid)
@@ -321,6 +322,7 @@ if __name__ == '__main__':
     datasetId = None
     whitelist = None
     period = None
+    label = None
     try:
         testclass = sys.argv[1]
     except Exception, e:
@@ -342,8 +344,6 @@ if __name__ == '__main__':
             datasetId = sys.argv[2]
             if len(sys.argv)==4:
                 period = sys.argv[3]
-            else:
-                period=None
             del sys.argv[2:]
         except:
             usage()
@@ -354,8 +354,6 @@ if __name__ == '__main__':
             period = sys.argv[3]
             if len(sys.argv)>4:
                 label = sys.argv[4]
-            else:
-                label = None
             del sys.argv[2:]
         except:
             usage()

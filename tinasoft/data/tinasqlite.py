@@ -18,7 +18,7 @@
 __author__="elishowk@nonutc.fr"
 
 from tinasoft.data import Handler
-from tinasoft.pytextminer import ngram, PyTextMiner
+from tinasoft.pytextminer import ngram
 
 import sqlite3
 
@@ -131,9 +131,10 @@ class Backend(Handler):
 
     def saferead(self, tabname, key):
         """returns ONE db value or return None"""
+        if tabname not in self.tables:
+            return
         if type(key) != str:
-            key = str(key)
-            
+            key = str(key) 
         cur = self._db.cursor()
         cur.execute("select pickle from %s where id=?"%tabname, (key,))
         row = cur.fetchone()
@@ -144,12 +145,16 @@ class Backend(Handler):
 
     def safereadall(self, tabname):
         """returns a list of records from an entire table"""
+        if tabname not in self.tables:
+            return
         cur = self._db.cursor()
         cur.execute("select id, pickle from %s"%tabname)
         return cur.fetchall()
 
     def safereadrange(self, tabname):
         """returns a cursor of a whole table"""
+        if tabname not in self.tables:
+            return
         cur = self._db.cursor()
         cur.execute("select id, pickle from %s"%tabname)
         next_val = cur.fetchone()
@@ -163,6 +168,8 @@ class Backend(Handler):
         Pickles a list of tuples
         then execute many inserts of this transformed list of tuples
         """
+        if tabname not in self.tables:
+            return
         pickled_list = [(key,buffer(self.pickle(obj))) for (key, obj) in list_of_tuples]
         try:
             with self._db:
@@ -176,6 +183,8 @@ class Backend(Handler):
         """
         DELETE an object from database within a transaction
         """
+        if tabname not in self.tables:
+            return
         try:
             with self._db:
                 self._db.execute("DELETE FROM %s WHERE id=?"%tabname, (key,))
@@ -447,11 +456,14 @@ class Engine(Backend):
         """
         # updates the NGram first
         ng = self.loadNGram(ngid)
-        if form in ng['edges']['label']:
-            del ng['edges']['label'][form]
-        if form in ng['edges']['postag']:
-            del ng['edges']['postag'][form]
-        self.insertNGram(ng)
+        ng.deleteForm(form, is_keyword)
+
+        if len(ng['edges']['label'].keys())==0:
+            _logger.debug("removing NGram %s and all references from its neighbours"%ngid)
+            self.delete(ngid, "NGram", True)
+            return
+        else:
+            self.insertNGram(ng)
 
         doc_count = 0
         for doc_id in ng['edges']['Document'].keys():
