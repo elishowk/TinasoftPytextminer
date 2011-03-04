@@ -234,7 +234,7 @@ class PytextminerFlowApi(PytextminerFileApi):
             return
         except StopIteration:
             whitelist_exporter = Writer("whitelist://"+outpath)
-            whitelist_exporter.write_whitelist(newwl, whitelistlabel, minoccs=minoccs)
+            whitelist_exporter.write_whitelist(newwl, corporaObj.id, minoccs=minoccs)
             yield abspath(outpath)
             return
 
