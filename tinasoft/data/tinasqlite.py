@@ -478,7 +478,7 @@ class Engine(Backend):
         yield [form, doc_count]
         return
 
-    def addNGramForm(self, form, target_doc_id, is_keyword):
+    def addNGramForm(self, form, keyword_doc_id, is_keyword):
         """
         adds a NGram as a form to all the dataset's Documents
         """
@@ -506,7 +506,7 @@ class Engine(Backend):
             for docid in corpus_obj['edges']['Document'].keys():
                 total_occs = 0
                 doc = self.loadDocument(docid)
-                if docid != target_doc_id:
+                if docid != keyword_doc_id:
                     total_occs += doc.addNGramForm(new_ngram, self, False)
                 else:
                     # if is_keyword is True, forces NGram-Document linking

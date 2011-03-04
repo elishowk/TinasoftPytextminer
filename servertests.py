@@ -114,8 +114,9 @@ class GenerateGraph(ServerTest):
 class NGramForm(ServerTest):
     def runTest(self):
         """
-        NGramForm : adds a keywords, update database, check new value,
-        then remove it, update the database, and check the initial value
+        NGramForm : given a period, chooses the first Document without keyword
+        - adds a keywords, update database, check new value,
+        - then remove it, update the database, and check the final value
         """
         print "selecting the first document without keyword in period %s"%self.period
         corpusObj = getObject(self.connection, self.headers, 'corpus', self.datasetId, self.period)
@@ -141,7 +142,11 @@ class NGramForm(ServerTest):
             body = params,
             headers = self.headers
         )
-        print self.connection.getresponse().read()
+        answer = self.connection.getresponse().read()
+        print answer
+        if answer[0] == 0:
+            print "keyword %s was not added"%self.label
+            return
 
         print "calling graph_preprocess"
         params =  urllib.urlencode({
@@ -173,14 +178,13 @@ class NGramForm(ServerTest):
                 self.failUnless( (corpid in ngramObj['edges']['Corpus']), "Corpus %s not in NGram %s edges"%(corpid, ngid) )
                 weight = ngramObj['edges']['Corpus'][corpid]
                 self.failUnlessEqual( corpusObj['edges']['NGram'][ngid], weight, "NGram %s edge weight from Corpus %s is NOT valid"%(ngid, corpid) )
-                #self.failUnlessEqual( ngramObj['edges']['Corpus'][corpid], 1, "Corpus %s edge weight from NGram %s is NOT valid"%(corpid, ngid) )
         
         print "removing keyword %s from document %s"%(self.label, docid)
         params = urllib.urlencode({
             'dataset': self.datasetId,
             'id': ngid,
             'label': self.label,
-            'is_keyword': False
+            'is_keyword': True
         })
         self.connection.request(
             'DELETE',
