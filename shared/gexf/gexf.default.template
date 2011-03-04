@@ -35,9 +35,11 @@
                 <attvalue for="1" value="${ category }" />
         <?py if category == 'Document': ?>
                 <attvalue for="2" value="${ nodeobj['content'] }" />
+        <?py #endif ?>
+        <?py if 'keyword' in nodeobj['edges']: ?>
             <?py for kwd in nodeobj['edges']['keyword'].keys(): ?>
                 <attvalue for="3" value="${ kwd }" />
-            <?py #endif ?>
+            <?py #endfor ?>
         <?py #endif ?>
             </attvalues>
         </node>
