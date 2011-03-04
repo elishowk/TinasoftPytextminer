@@ -201,18 +201,28 @@ class NGramForm(ServerTest):
             headers = self.headers
         )
         print self.connection.getresponse().read()
-        
-        print "checking document %s keywords"%docid
-        documentObj = getObject(self.connection, self.headers, 'document', self.datasetId, docid)
-        #print documentObj['edges']
-        for form, ngid in documentObj['edges']['keyword'].iteritems():
-            self.failIf( (ngid in documentObj['edges']['NGram']), "NGram still is in document %s edges"%docid )
-            ngramObj = getObject(self.connection, self.headers, 'ngram', self.datasetId, ngid)
-            self.failUnlessEqual(ngramObj, "", "NGram %s is still in database"%ngid)
-            print "checking keywords-Corpus edges"
-            for corpid in documentObj['edges']['Corpus'].keys():
+        print "testing NGram form %s removal from database"%self.label
+        ngramObj = getObject(self.connection, self.headers, 'ngram', self.datasetId, ngid)
+        # check edges of all other documents and corpus
+        if ngramObj =="":
+            print "NGram %s was erased from the database, testing its removal in the whole database"%ngid
+            corporaResult = getObject(self.connection, self.headers, 'dataset', self.datasetId)
+            for corpid in corporaResult['edges']['Corpus'].keys():
                 corpusObj = getObject(self.connection, self.headers, 'corpus', self.datasetId, corpid)
                 self.failIf( (ngid in corpusObj['edges']['NGram']), "NGram %s still is in Corpus %s edges"%(ngid, corpid) )
+                for documentid in corpusObj['edges']['Document'].keys():
+                    documentObj = getObject(self.connection, self.headers, 'document', self.datasetId, documentid)
+                    self.failIf( (ngid in documentObj['edges']['NGram']), "NGram still is in document %s edges"%docid )
+
+        else:
+            print "NGram %s is still in database, testing all symmetric edges"%ngid
+            for corpid in ngramObj['edges']['Corpus'].keys():
+                corpusObj = getObject(self.connection, self.headers, 'corpus', self.datasetId, corpid)
+                self.failUnlessEqual( ngramObj['edges']['Corpus'][corpid], corpusObj['edges']['NGram'][ngid], "edge between NGram %s and Corpus %s NOT SYMETRIC"%(ngid, corpid) )
+                for documentid in ngramObj['edges']['Document'].keys():
+                    documentObj = getObject(self.connection, self.headers, 'document', self.datasetId, documentid)
+                    self.failUnlessEqual( ngramObj['edges']['Document'][documentid], documentObj['edges']['NGram'][ngid], "edge between NGram %s and Document %s NOT SYMETRIC"%(ngid, documentid) )
+
                 
 
 def getObject(connection, headers, object_type, dataset_id, obj_id=None):
