@@ -95,7 +95,7 @@ class GenerateGraph(ServerTest):
             'dataset': self.datasetId,
             'outpath': 'test_graph',
             # WOrk only with json.dumps....
-            #'ngramgraphconfig': 
+            #'ngramgraphconfig':
             #    'proximity': self.argument1
             #},
             #'documentgraphconfig': {
@@ -124,57 +124,94 @@ class DeleteOneNGram(ServerTest):
         corpusObj = getObject(self.connection, self.headers, 'corpus', self.datasetId, self.period)
 
         documentObj1, ngid1 = self.selectUniqueInDoc(corpusObj)
+        ngramObj1 = getObject(self.connection, self.headers, 'ngram', self.datasetId, ngid1)
         documentObj2, ngid2 = self.selectUnique(corpusObj)
+        ngramObj2 = getObject(self.connection, self.headers, 'ngram', self.datasetId, ngid2)
         documentObj3, ngid3 = self.selectMulti(corpusObj)
+        ngramObj3 = getObject(self.connection, self.headers, 'ngram', self.datasetId, ngid3)
 
-
+        print "test case : Document-NGram == 1 and Corpus-NGram > 1"
         if documentObj1 is not None:
             updateDocumentObj1 = self.updateDocument(documentObj1.id, ngid1)
-            print "testing that NGram was removed from its document"
+            updateNgramObj1 = getObject(self.connection, self.headers, 'ngram', self.datasetId, ngid1)
+            print "testing that Document-NGram edge was removed"
             self.failIf(\
-                (ngid1 in updateDocumentObj1['edges']['Document'].keys()),\
-                "NGram %s was NOT removed from document %s"%(ngid1, documentObj1.id)\
+                (ngid1 in updateDocumentObj1['edges']['NGram'].keys()),\
+                "Document %s to NGram %s was NOT removed "%(documentObj1.id, ngid1)\
+            )
+            self.failUnless(\
+                (documentObj1.id not in updateNgramObj1['edges']['Document']),\
+                "NGram %s to Document %s NOT removed "%(ngid1, documentObj1.id)\
             )
             corpusObj1 = getObject(self.connection, self.headers, 'corpus', self.datasetId, self.period)
             print "testing that Corpus-NGram edge was decremented"
             self.failUnlessEqual(\
                 corpusObj1['edges']['NGram'][ngid1],\
                 corpusObj['edges']['NGram'][ngid1]-1,\
-                "NGram %s occurences was NOT decremented from Corpus %s"%(ngid1, self.period)\
+                "Corpus %s to NGram %s edge was NOT decremented"%(self.period, ngid1)\
             )
+            self.failUnlessEqual(\
+                corpusObj1['edges']['NGram'][ngid1],\
+                updateNgramObj1['edges']['Corpus'][corpusObj1.id],\
+                "NGram %s to Corpus %s NOT equal "%(ngid1, corpusObj1.id)\
+            )
+
         else:
             print "Could NOT test case : Document-NGram == 1 and Corpus-NGram > 1, try another Corpus"
-
+        
+        print "test case : Document-NGram == 1 and Corpus-NGram == 1"
         if documentObj2 is not None:
             updateDocumentObj2 = self.updateDocument(documentObj2.id, ngid2)
-            print "testing that NGram was removed from its document"
+            updateNgramObj2 = getObject(self.connection, self.headers, 'ngram', self.datasetId, ngid2)
+            print "testing that Document-NGram edge was removed"
             self.failIf(\
-                (ngid2 in updateDocumentObj2['edges']['Document'].keys()),\
-                "NGram %s was NOT removed from document %s"%(ngid2, documentObj2.id)\
+                (ngid2 in updateDocumentObj2['edges']['NGram'].keys()),\
+                "Document %s to NGram %s was NOT removed "%(documentObj1.id, ngid2)\
+            )
+            self.failUnless(\
+                (documentObj2.id not in updateNgramObj2['edges']['Document']),\
+                "NGram %s to Document %s NOT removed "%(ngid2, documentObj2.id)\
             )
             corpusObj2 = getObject(self.connection, self.headers, 'corpus', self.datasetId, self.period)
             print "testing that Corpus-NGram edge was removed"
             self.failIf(\
                 (ngid2 in corpusObj2['edges']['NGram']),\
-                "NGram %s was NOT removed from Corpus %s"%(ngid2, self.period)\
+                "Corpus %s to NGram %s edge was NOT removed"%(self.period, ngid2)\
+            )
+            self.failUnless(\
+                (corpusObj2.id not in updateNgramObj2['edges']['Corpus']),\
+                "NGram %s to Corpus %s NOT removed "%(ngid2, corpusObj2.id)\
             )
         else:
             print "Could NOT test case : Document-NGram == 1 and Corpus-NGram == 1, try another Corpus"
-        
+
+        print "test case : Document-NGram > 1 and Corpus-NGram > 1"
         if documentObj3 is not None:
             updateDocumentObj3 = self.updateDocument(documentObj3.id, ngid3)
-            print "testing that NGram occ was decremented from its document"
+            updateNgramObj3 = getObject(self.connection, self.headers, 'ngram', self.datasetId, ngid3)
+            print "testing that Document-NGram edge was decremented"
             self.failUnlessEqual(\
-                updateDocumentObj3['edges']['Document'][ngid3],\
-                documentObj3['edges']['Document'][ngid3]-1,\
-                "NGram %s was NOT removed from document %s"%(ngid3, documentObj3.id)\
+                updateDocumentObj3['edges']['NGram'][ngid3],\
+                documentObj3['edges']['NGram'][ngid3]-1,\
+                "Document %s to NGram %s was NOT decremented "%(documentObj3.id, ngid3)\
             )
+            self.failUnlessEqual(\
+                updateDocumentObj3['edges']['NGram'][ngid3],\
+                updateNgramObj3['edges']['Document'][documentObj3.id],\
+                "NGram %s to Document %s NOT equal "%(ngid3, documentObj3.id)\
+            )
+
             corpusObj3 = getObject(self.connection, self.headers, 'corpus', self.datasetId, self.period)
-            print "testing that Corpus-NGram edge was removed"
+            print "testing that Corpus-NGram edge was decremented"
             self.failUnlessEqual(\
                 corpusObj3['edges']['NGram'][ngid3],\
-                corpusObj['edges']['NGram'][ngid3]-1,\
-                "NGram %s occurences was NOT decremented from Corpus %s"%(ngid3, self.period)\
+                corpusObj['edges']['NGram'][ngid3],\
+                "Corpus %s to NGram %s edge was NOT decremented"%(self.period, ngid3)\
+            )
+            self.failUnlessEqual(\
+                corpusObj3['edges']['NGram'][ngid3],\
+                updateNgramObj3['edges']['Corpus'][corpusObj3.id],\
+                "NGram %s to Corpus %s NOT equal "%(ngid3, corpusObj3.id)\
             )
         else:
             print "Could NOT test case : Document-NGram > 1 and Corpus-NGram > 1, try another Corpus"
@@ -290,7 +327,7 @@ class NGramForm(ServerTest):
             headers = self.headers
         )
         print self.connection.getresponse().read()
-        
+
         print "checking document %s keywords"%docid
         documentObj = getObject(self.connection, self.headers, 'document', self.datasetId, docid)
         #print documentObj['edges']
@@ -309,7 +346,7 @@ class NGramForm(ServerTest):
                 self.failUnless( (corpid in ngramObj['edges']['Corpus']), "Corpus %s not in NGram %s edges"%(corpid, ngid) )
                 weight = ngramObj['edges']['Corpus'][corpid]
                 self.failUnlessEqual( corpusObj['edges']['NGram'][ngid], weight, "NGram %s edge weight from Corpus %s is NOT valid"%(ngid, corpid) )
-        
+
         print "removing keyword %s from document %s"%(self.label, docid)
         params = urllib.urlencode({
             'dataset': self.datasetId,
@@ -358,7 +395,7 @@ class NGramForm(ServerTest):
                     documentObj = getObject(self.connection, self.headers, 'document', self.datasetId, documentid)
                     self.failUnlessEqual( ngramObj['edges']['Document'][documentid], documentObj['edges']['NGram'][ngid], "edge between NGram %s and Document %s NOT SYMETRIC"%(ngid, documentid) )
 
-                
+
 
 def getObject(connection, headers, object_type, dataset_id, obj_id=None):
     """getCorpora : gets a corpora from database"""
@@ -388,34 +425,34 @@ class TestGraph(ServerTest):
         and test values agains the ones in tests/__init__.py
         """
         data = tests.get_tinacsv_test_3_data()
-        
+
         corporaResult = getObject(self.connection, self.headers, 'dataset', self.datasetId)
         self.failUnless( isinstance( corporaResult, corpora.Corpora ), "dataset request failed : %s"%self.datasetId )
-        
+
         corpusResult = getObject(self.connection, self.headers, 'corpus', self.datasetId, self.period)
         self.failUnless( isinstance( corpusResult, corpus.Corpus ), "corpus request failed" )
-        
+
         print "Testing NGram nodes in period %s"%self.period
         for ngid in corpusResult['edges']['NGram'].iterkeys():
             ngramObj = getObject(self.connection, self.headers, 'ngram', self.datasetId, ngid)
             self.failUnless( isinstance( ngramObj, ngram.NGram ), "ngram request failed" )
-            
+
             print "testing NGram %s (%s)"%(ngramObj['label'],ngramObj['id'])
-            
+
             self.failUnless( ("NGram::"+ngramObj['id'] in data['nodes']), "NGram not in the graph db" )
             self.failUnlessEqual( ngramObj['label'], data['nodes']["NGram::"+ngramObj['id']]['label'], "NGram label test failed : %s"%ngramObj['label'] )
             self.failUnlessEqual( data['nodes']["NGram::"+ngramObj['id']]['weight'], corpusResult.edges['NGram'][ngramObj['id']], "Corpus-NGram weight test failed : %s"%corpusResult.edges['NGram'][ngramObj['id']] )
-            
+
             for targetgraphid, weight in data['edges']["NGram::"+ngid].iteritems():
                 category, targetid = targetgraphid.split("::")
                 self.failUnless( ( targetid in ngramObj['edges'][category]),
                     "missing edge of NGram %s, target = %s::%s \n %s"%(ngramObj['label'], category, targetid, ngramObj['edges']) )
-            
+
             for category in ["NGram", "Document"]:
                 for targetid, weight in ngramObj['edges'][category].iteritems():
-                    
+
                     print "testing target cat=%s, target id=%s"%(category, targetid )
-                    
+
                     self.failUnless( ( "NGram::"+ngramObj['id'] in data['edges']),
                         "missing all ngram's edges: %s"%ngramObj['label'])
                     self.failUnless( ( category+"::"+targetid in data['edges']["NGram::"+ngramObj['id']]),
@@ -423,27 +460,27 @@ class TestGraph(ServerTest):
                     self.failUnlessEqual( weight,  data['edges']["NGram::"+ngramObj['id']][category+"::"+targetid],
                         "bad NGram edge weight (source=%s, target=%s) : found %d, should be %d"\
                             %(ngramObj['id'], targetid, weight, data['edges']["NGram::"+ngramObj['id']][category+"::"+targetid]) )
-                    
+
         print "Testing Document nodes in period %s"%self.period
         for docid in corpusResult['edges']['Document'].iterkeys():
             documentObj = getObject(self.connection, self.headers, 'document', self.datasetId, docid)
             self.failUnless( isinstance( documentObj, document.Document ), "document request failed" )
             print "testing Document %s (%s)"%(documentObj['label'],documentObj['id'])
-                       
+
             self.failUnless( ("Document::"+documentObj['id'] in data['nodes']), "Document not in the graph db" )
             self.failUnlessEqual( documentObj['label'], data['nodes']["Document::"+documentObj['id']]['label'], "Document label test failed : %s"%documentObj['label'] )
             self.failUnlessEqual( data['nodes']["Document::"+documentObj['id']]['weight'], corpusResult.edges['Document'][documentObj['id']], "Corpus-Document weight test failed : %s"%corpusResult.edges['Document'][documentObj['id']] )
-            
+
             for targetgraphid, weight in data['edges']["Document::"+docid].iteritems():
                 category, targetid = targetgraphid.split("::")
                 self.failUnless( ( targetid in documentObj['edges'][category]),
                     "missing edge of Document: %s, target = %s::%s"%(documentObj['label'], category, targetid) )
-            
+
             for category in ["NGram", "Document"]:
                 for targetid, weight in documentObj['edges'][category].iteritems():
-                    
+
                     print "testing target cat=%s, target id=%s"%(category, targetid)
-                    
+
                     self.failUnless( ( "Document::"+documentObj['id'] in data['edges']),
                         "missing all Document's edges s: %s"%documentObj['id'])
                     self.failUnless( ( category+"::"+targetid in data['edges']["Document::"+documentObj['id']]),
