@@ -1,3 +1,4 @@
+import json
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 #  Copyright (C) 2009-2011 CREA Lab, CNRS/Ecole Polytechnique UMR 7656 (Fr)
@@ -25,6 +26,7 @@ import httplib
 import urllib
 #httplib.HTTPConnection.debuglevel = 1
 import jsonpickle
+import json
 
 import tests
 
@@ -92,8 +94,8 @@ class GenerateGraph(ServerTest):
         paramsdict = {
             'dataset': self.datasetId,
             'outpath': 'test_graph',
-            # DOES ONT WORK : urlencode fails
-            #'ngramgraphconfig': {
+            # WOrk only with json.dumps....
+            #'ngramgraphconfig': 
             #    'proximity': self.argument1
             #},
             #'documentgraphconfig': {
@@ -118,41 +120,108 @@ class DeleteOneNGram(ServerTest):
         and decrements an occurrence to zero
         update database, check new value
         """
-        print "selecting the first document without keyword in period %s"%self.period
+        print "selecting documents and ngrams from period %s"%self.period
         corpusObj = getObject(self.connection, self.headers, 'corpus', self.datasetId, self.period)
 
-        for docid1 in corpusObj['edges']['Document'].keys():
-            documentObj1 = getObject(self.connection, self.headers, 'document', self.datasetId, docid1)
-            if 1 not in documentObj1['edges']['NGram'].values(): continue
-            for ngid1 in documentObj1['edges']['NGram'].iterkeys():
-                if corpusObj['edges']['NGram'][ngid1] > 1:
-                    print "Will delete an 1 doc-occs NGram %s (with Corpus occs > 1)"%ngid1
-                    break
+        documentObj1, ngid1 = self.selectUniqueInDoc(corpusObj)
+        documentObj2, ngid2 = self.selectUnique(corpusObj)
+        documentObj3, ngid3 = self.selectMulti(corpusObj)
 
-        for docid2 in corpusObj['edges']['Document'].keys():
-            documentObj2 = getObject(self.connection, self.headers, 'document', self.datasetId, docid2)
-            for ngid2 in documentObj2['edges']['NGram'].iterkeys():
-                if corpusObj['edges']['NGram'][ngid2] == 1:
-                    print "Will delete an 1 occurrence NGram %s (with Corpus occs = 1)"%ngid2
-                    break
 
-        for docid3 in corpusObj['edges']['Document'].keys():
-            documentObj3 = getObject(self.connection, self.headers, 'document', self.datasetId, docid3)
-            for ngid3 in documentObj3['edges']['NGram'].iterkeys():
-                if documentObj['edges']['NGram'][ngid3] > 1:
-                    print "Will delete an 1 occurrence NGram %s (with Corpus occs = 1)"%ngid3
-                    break
+        if documentObj1 is not None:
+            updateDocumentObj1 = self.updateDocument(documentObj1.id, ngid1)
+            print "testing that NGram was removed from its document"
+            self.failIf(\
+                (ngid1 in updateDocumentObj1['edges']['Document'].keys()),\
+                "NGram %s was NOT removed from document %s"%(ngid1, documentObj1.id)\
+            )
+            corpusObj1 = getObject(self.connection, self.headers, 'corpus', self.datasetId, self.period)
+            print "testing that Corpus-NGram edge was decremented"
+            self.failUnlessEqual(\
+                corpusObj1['edges']['NGram'][ngid1],\
+                corpusObj['edges']['NGram'][ngid1]-1,\
+                "NGram %s occurences was NOT decremented from Corpus %s"%(ngid1, self.period)\
+            )
+        else:
+            print "Could NOT test case : Document-NGram == 1 and Corpus-NGram > 1, try another Corpus"
 
-        updateDocument = {
+        if documentObj2 is not None:
+            updateDocumentObj2 = self.updateDocument(documentObj2.id, ngid2)
+            print "testing that NGram was removed from its document"
+            self.failIf(\
+                (ngid2 in updateDocumentObj2['edges']['Document'].keys()),\
+                "NGram %s was NOT removed from document %s"%(ngid2, documentObj2.id)\
+            )
+            corpusObj2 = getObject(self.connection, self.headers, 'corpus', self.datasetId, self.period)
+            print "testing that Corpus-NGram edge was removed"
+            self.failIf(\
+                (ngid2 in corpusObj2['edges']['NGram']),\
+                "NGram %s was NOT removed from Corpus %s"%(ngid2, self.period)\
+            )
+        else:
+            print "Could NOT test case : Document-NGram == 1 and Corpus-NGram == 1, try another Corpus"
+        
+        if documentObj3 is not None:
+            updateDocumentObj3 = self.updateDocument(documentObj3.id, ngid3)
+            print "testing that NGram occ was decremented from its document"
+            self.failUnlessEqual(\
+                updateDocumentObj3['edges']['Document'][ngid3],\
+                documentObj3['edges']['Document'][ngid3]-1,\
+                "NGram %s was NOT removed from document %s"%(ngid3, documentObj3.id)\
+            )
+            corpusObj3 = getObject(self.connection, self.headers, 'corpus', self.datasetId, self.period)
+            print "testing that Corpus-NGram edge was removed"
+            self.failUnlessEqual(\
+                corpusObj3['edges']['NGram'][ngid3],\
+                corpusObj['edges']['NGram'][ngid3]-1,\
+                "NGram %s occurences was NOT decremented from Corpus %s"%(ngid3, self.period)\
+            )
+        else:
+            print "Could NOT test case : Document-NGram > 1 and Corpus-NGram > 1, try another Corpus"
+
+    def selectMulti(self, corpusObj):
+        for docid in corpusObj['edges']['Document'].keys():
+            documentObj = getObject(self.connection, self.headers, 'document', self.datasetId, docid)
+            for ngid in documentObj['edges']['NGram'].iterkeys():
+                if documentObj['edges']['NGram'][ngid] > 1 and corpusObj['edges']['NGram'][ngid] > 1:
+                    documentObj3 = documentObj
+                    ngid3 = ngid
+                    #corpusId3 = corpusObj.id
+                    print "choosen NGram %s: Document-NGram >1 and Corpus-NGram > 1"%ngid3
+                    return documentObj3, ngid3
+
+    def selectUnique(self, corpusObj):
+        for docid in corpusObj['edges']['Document'].keys():
+            documentObj = getObject(self.connection, self.headers, 'document', self.datasetId, docid)
+            for ngid in documentObj['edges']['NGram'].iterkeys():
+                if corpusObj['edges']['NGram'][ngid] == 1 and documentObj['edges']['NGram'][ngid] == 1:
+                    documentObj2 = documentObj
+                    ngid2 = ngid
+                    #corpusId2 = corpusObj.id
+                    print "choosen NGram %s: Document-NGram == 1 and Corpus-NGram == 1"%ngid2
+                    return documentObj2, ngid2
+
+    def selectUniqueInDoc(self, corpusObj):
+        for docid in corpusObj['edges']['Document'].keys():
+            documentObj = getObject(self.connection, self.headers, 'document', self.datasetId, docid)
+            for ngid in documentObj['edges']['NGram'].iterkeys():
+                if corpusObj['edges']['NGram'][ngid] > 1  and documentObj['edges']['NGram'][ngid] == 1:
+                    documentObj1 = documentObj
+                    ngid1 = ngid
+                    #corpusId1 = corpusObj.id
+                    print "choosen NGram %s:  Document-NGram == 1 and Corpus-NGram > 1"%ngid1
+                    return documentObj1, ngid1
+
+    def updateDocument(self, docid, ngid):
+        updateDocument = json.dumps({
             "py/object": "tinasoft.pytextminer.document.Document",
-            'id': documentObj.id,
+            'id': docid,
             'edges': {
                     'NGram' : {
-                        ngid: -documentObj['edges']['NGram'][ngid]
+                        ngid: -1
                     }
                 }
-        }
-        print "decrementing"
+        })
         params =  urllib.urlencode({
             'dataset': self.datasetId,
             'object': updateDocument,
@@ -164,14 +233,14 @@ class DeleteOneNGram(ServerTest):
             body = params,
             headers = self.headers
         )
-        answer = self.connection.getresponse().read()
-        print answer
-
-        corpusObj2 = getObject(self.connection, self.headers, 'corpus', self.datasetId, self.period)
-        documentObj2 = getObject(self.connection, self.headers, 'document', self.datasetId, corpusObj['edges']['Document'].keys()[0])
-        self.failUnlessEqual(corpusObj['edges']['NGram'][], second, msg)( (ngid in corpusObj['edges']['NGram']), "NGram %s still is in Corpus %s edges"%(ngid, corpid) )
-
-
+        self.connection.getresponse().read()
+        return getObject(\
+            self.connection,\
+            self.headers,\
+            'document',\
+            self.datasetId,\
+            docid\
+        )
 
 class NGramForm(ServerTest):
     def runTest(self):
@@ -425,6 +494,16 @@ if __name__ == '__main__':
             usage()
             exit()
     elif testclass == 'NGramForm':
+        try:
+            datasetId = sys.argv[2]
+            period = sys.argv[3]
+            if len(sys.argv)>4:
+                label = sys.argv[4]
+            del sys.argv[2:]
+        except:
+            usage()
+            exit()
+    elif testclass == 'DeleteOneNGram':
         try:
             datasetId = sys.argv[2]
             period = sys.argv[3]
