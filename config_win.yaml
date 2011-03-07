@@ -7,10 +7,12 @@ general:
     # following directories or files a under "basedirectory"
     index: 'index'
     dbenv: 'db'
-    log: 'log'
+    # log options, file is "pytextminer-log.txt"
+    logsize: 1024000
     loglevel: 'debug'
-    user: 'user'
+    user: 'sessions'
     shared: 'shared'
+    whitelist_directory: 'whitelists'
     source_file_directory: 'source_files'
     userstopwords: 'user_stopwords.csv'
     # stopwords are under share
@@ -40,7 +42,7 @@ datasets:
             # optionnal fields
             title: 'title'
             acronym: 'acronym'
-            keywords: 'doc_keywords'
+            keywords: 'keywords'
         # csv reader params
         encoding: 'utf_8'
         dialect: 'excel'
@@ -69,13 +71,11 @@ datasets:
     ngramMin: 1
     ngramMax: 4
     # tagger learning on 2 x training_tagger_size sentences of tagged nltk corpus
-    training_tagger_size: 10000
+    training_tagger_size: ~
     # under "basedirectory" directory, delete this file to regenerate a new one on next starting
-    tagger: 'shared_tagger.pickle'
+    tagger: 'shared\tagger.pickle'
     # change this Reg Expression to change NGram extraction filtering
-    postag_valid: '^((VB,|VBD,|VBG,|VBN,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,)(CD.,)?)+?((PREP.?|DET.?,|IN.?,|CC.?,|\?,)((VB,|VBD,|VBG,|VBN,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?)*?$'
-    #postag_valid: '^((VB.?,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?((PREP.?|DET.?,|IN.?,|CC.?,|\?,)((VB.?,|CD.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?)*?$'
-    #postag_valid: '^((VB.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?((IN.?,|CC.?,|\?,)((VB.?,|JJ.?,|\?,){0,2}?(N.?,|\?,))+?)*?$'
+    postag_valid: '^((VBD,|VBG,|VBN,|CD.?,|JJ.?,|\?,){0,2}?(N.?.?,|\?,)+?(CD.,)??)+?((PREP.?|DET.?,|IN.?,|CC.?,|\?,)((VBD,|VBG,|VBN,|CD.?,|JJ.?,|\?,){0,2}?(N.?.?,|\?,)+?)+?)*?$'
 datamining:
     template: 'shared/gexf/gexf.default.template'
     # default values if no params are passed to gexf exporter
@@ -86,8 +86,8 @@ datamining:
         nodethreshold:
             - 1.00
             - 'inf'
-        proximity: 'sharedNGrams'
-        #proximity: 'logJaccard'
+        #proximity: 'sharedNGrams'
+        proximity: 'logJaccard'
     NGramGraph:
         edgethreshold:
             - 0.0001
