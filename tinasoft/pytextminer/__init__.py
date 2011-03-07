@@ -74,7 +74,7 @@ class PyTextMiner(object):
         """merges an object's edges with the candidate edges dictionary"""
         for targettype in updateedges.iterkeys():
             for targetid, weight in updateedges[targettype].iteritems():
-                self.addEdge( targettype, targetid, weight )
+                self._addEdge( targettype, targetid, weight )
 
     def updateObject(self, obj):
         """ overwrites all attributes then updates edges """

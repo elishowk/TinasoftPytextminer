@@ -46,10 +46,8 @@ class Backend(Handler):
         """loads options, connect or create db"""
         self.loadOptions(opts)
         self.path = path
-        ###  mkdirectory
         if not exists(self.home):
             makedirs(self.home)
-        ### connection
         self._connect()
         ### empty database if needed
         if self.drop_tables is True:
@@ -57,7 +55,7 @@ class Backend(Handler):
             self._drop_tables()
         ### create  tables if needed
         self._create_tables()
-        ### chacks success
+        ### checks success
         if self.is_open() is False:
             raise Exception("Unable to open a tinasqlite database")
 
@@ -119,7 +117,6 @@ class Backend(Handler):
         rollbacks
         """
         self._db.rollback()
-        #_logger.warning("rolled back an sql statement")
 
     def pickle( self, obj ):
         return pickle.dumps(obj)
@@ -177,7 +174,6 @@ class Backend(Handler):
                 self._db.commit()
         except sqlite3.Error, insert_exc:
             raise Exception( "error on safewrite(), table %s : %s"%(tabname,insert_exc) )
-            #self.rollback()
 
     def safedelete(self, tabname, key):
         """
@@ -191,22 +187,12 @@ class Backend(Handler):
                 self._db.commit()
         except sqlite3.Error, del_exc:
             raise Exception( "exception on safedelete(), table %s : %s"%(tabname,del_exc) )
-            #self.rollback()
 
 
 class Engine(Backend):
     """
     High level database Engine of Pytextminer
     """
-    # max-size to automatically flush insert queues
-    #MAX_INSERT_QUEUE = 500
-    # caches current insert queues data
-    #ngramqueue = []
-    #ngramqueueindex = []
-    #graphpreprocessqueue = {}
-    # used for an indexation session
-    #ngramindex = []
-
     options = {
         'home' : 'db',
         'drop_tables': False,
@@ -241,27 +227,11 @@ class Engine(Backend):
         returns a generator of tuples (id, pickled_obj)
         """
         allrecords = self.safereadall(target)
-        _logger.debug("loadAll found %d %s records"%(len(allrecords), target))
         for record in allrecords:
             if not raw:
                 yield ( record["id"], self.unpickle(str(record["pickle"])))
             else:
                 yield record
-
-#    def loadMany(self, target, raw=False):
-#        """
-#        returns a generator of tuples (id, pickled_obj)
-#        """
-#        read_gen = self.safereadrange(target)
-#        try:
-#            while 1:
-#                record = read_gen.next()
-#                if not raw:
-#                    yield ( record["id"], self.unpickle(str(record["pickle"])))
-#                else:
-#                    yield record
-#        except StopIteration, si:
-#            return
 
     def loadCorpora(self, id, raw=False ):
         return self.load(id, 'Corpora', raw)
@@ -348,11 +318,10 @@ class Engine(Backend):
                 neighbourobj = self.load(neighbourid, category)
                 if neighbourobj is not None:
                     if obj['edges'][category][neighbourid] <= 0:
-                        del obj['edges'][category][neighbourid]
+                        #del obj['edges'][category][neighbourid]
                         if obj['id'] in neighbourobj['edges'][target]:
                             del neighbourobj['edges'][target][obj['id']]
                     else:
-                        #_logger.debug("updating neighbour node %s edge to %s"%(neighbourobj['id'], obj['id']))
                         neighbourobj['edges'][target][obj['id']] = obj['edges'][category][neighbourid]
                     self.insert(neighbourobj, category)
                 else:
@@ -366,7 +335,7 @@ class Engine(Backend):
             obj = stored
         if redondantupdate is True:
             self._neighboursUpdate(obj, target)
-        # sends a storage object in case it's a Document otherwise it's not used
+        # storage object in case it's a Document otherwise it's not used
         obj._cleanEdges(storage=self)
         self.insert( obj, target )
 
@@ -459,7 +428,6 @@ class Engine(Backend):
         ng.deleteForm(form, is_keyword)
 
         if len(ng['edges']['label'].keys())==0:
-            _logger.debug("removing NGram %s and all references from its neighbours"%ngid)
             self.delete(ngid, "NGram", True)
             return
         else:
@@ -488,7 +456,6 @@ class Engine(Backend):
         # checks existing NGram with the same id
         stored_ngram = self.loadNGram(new_ngram.id)
         if stored_ngram is not None:
-            _logger.debug("%s exists in database"%new_ngram.label)
             # only updates form attributes
             new_ngram = stored_ngram
 
@@ -516,6 +483,5 @@ class Engine(Backend):
                     self.insertDocument(doc)
                     doc_count += 1
                 yield None
-        #self._db.commit()
         yield [form, doc_count]
         return

@@ -52,6 +52,7 @@ class Document(PyTextMiner):
                     del self['edges'][targettype][targetid]
                     # special trigger for NGram-Corpus edge
                     if targettype == "NGram":
+                        _logger.warning("decrementing Corpus-NGram edge")
                         # decrement the edge
                         self._updateNGramCorpusEdge(storage, targetid, -1)
 
@@ -78,7 +79,6 @@ class Document(PyTextMiner):
         matched = 0
         for target in self['target']:
             matched += len(re.findall(r"\b%s\b"%form,self[target], re.I|re.U))
-        _logger.debug("found %d occurences of form %s in doc %s"%(matched, form, self.id))
         # decrement Document-NGram with count + redondant
         self._addEdge("NGram", ngid, -matched)
         # if removing a keyword
