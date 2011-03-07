@@ -85,7 +85,7 @@ def process_document_subgraph(
     metacorpus = corpus.Corpus("meta")
     for process_period in periods:
         metacorpus.updateEdges(process_period.edges)
-        #metacorpus = PyTextMiner.updateEdges(process_period.edges, metacorpus)
+        yield 0
 
     doc_args = ( config, storage, metacorpus, docgraphconfig, ngram_index, doc_index )
     adj = doc_graph_class( *doc_args )
@@ -98,7 +98,7 @@ def process_document_subgraph(
             doccount += 1
             yield doccount
     except Warning, warn:
-        _logger.warning( str(warn) )
+        _logger.warning( "%s"%warn )
         return
     except StopIteration, si:
         _logger.debug("Document sub-graph (%s) finished period %s"%(
