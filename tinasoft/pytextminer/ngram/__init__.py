@@ -124,5 +124,5 @@ class NGram(PyTextMiner):
             del self['edges']['label'][form]
         if form in self['edges']['postag']:
             del self['edges']['postag'][form]
-        if is_keyword and form in self['edges']['keyword']:
+        if is_keyword and 'keyword' in self['edges'] and form in self['edges']['keyword']:
             del self['edges']['keyword'][form]
