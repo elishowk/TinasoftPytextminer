@@ -1,4 +1,4 @@
-﻿#!/usr/bin/python
+#!/usr/env/python
 # -*- coding: utf-8 -*-
 #  Copyright (C) 2009-2011 CREA Lab, CNRS/Ecole Polytechnique UMR 7656 (Fr)
 #
@@ -84,7 +84,6 @@ class TinasoftServerRequest(resource.Resource):
             else:
                 parsed_args[key] = self.argument_types[key](args[key][0])
 
-        #self.logger.info( str(self.method) + " ---" + str(parsed_args) )
         return parsed_args
 
     def render(self, request):
@@ -133,7 +132,8 @@ class CooperativeExecution(object):
         'exportedges': bool,
         'object': jsonpickle.decode,
         'redondant': bool,
-        'is_keyword': bool
+        'is_keyword': bool,
+        'docid': str
     }
 
     def _method_wrapper(self, request, serializer, handler, method, logger):
@@ -460,11 +460,11 @@ class DELETEHandler(object):
             return self.pytmapi.STATUS_ERROR
         return storage.delete(id, 'NGram', redondant)
 
-    def ngramform(self, dataset, label, id, is_keyword):
+    def ngramform(self, dataset, label, id, is_keyword, docid=None):
         storage = self.pytmapi.get_storage( dataset, create=False )
         if storage == self.pytmapi.STATUS_ERROR:
             return self.pytmapi.STATUS_ERROR
-        return storage.deleteNGramForm( label, id, is_keyword )
+        return storage.deleteNGramForm( label, id, is_keyword, docid )
 
 class NumpyFloatHandler(jsonpickle.handlers.BaseHandler):
     """
