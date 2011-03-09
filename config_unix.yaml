@@ -10,7 +10,6 @@ general:
     # log options, file is "pytextminer-log.txt"
     logsize: 1024000
     loglevel: 'debug'
-
     user: 'sessions'
     shared: 'shared'
     whitelist_directory: 'whitelists'
@@ -91,8 +90,8 @@ datamining:
         nodethreshold:
             - 1.00
             - 'inf'
-        proximity: 'sharedNGrams'
-        #proximity: 'logJaccard'
+        #proximity: 'sharedNGrams'
+        proximity: 'logJaccard'
     NGramGraph:
         edgethreshold:
             - 0.0001
