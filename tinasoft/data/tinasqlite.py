@@ -419,28 +419,33 @@ class Engine(Backend):
                     self.insert(neighbour_obj, cat)
         self.safedelete(target, id)
 
-    def deleteNGramForm(self, form, ngid, is_keyword):
+    def deleteNGramForm(self, form, ngid, is_keyword, docid=None):
         """
         removes a NGram's form if every Documents it's linked to
         """
+#        import pdb
+#        pdb.set_trace()
         # updates the NGram first
         ng = self.loadNGram(ngid)
-        ng.deleteForm(form, is_keyword)
-
-        if len(ng['edges']['label'].keys())==0:
-            self.delete(ngid, "NGram", True)
-            return
+        if docid is None:
+            doclist = ng['edges']['Document'].keys()
+            ng.deleteForm(form, is_keyword)
+            if len(ng['edges']['label'].keys())==0:
+                _logger.warning("deleting NGram %s"%ng.id)
+                self.delete(ngid, "NGram", True)
+                return
+            else:
+                self.insertNGram(ng)
         else:
-            self.insertNGram(ng)
-
+            doclist = [docid]
         doc_count = 0
-        for doc_id in ng['edges']['Document'].keys():
+        for doc_id in doclist:
             doc = self.loadDocument(doc_id)
             doc.deleteNGramForm(form, ngid, is_keyword)
-            doc._cleanEdges(self)
-            self.insertDocument(doc)
             # propagates decremented edges to its neighbours
             self._neighboursUpdate(doc, 'Document')
+            doc._cleanEdges(self)
+            self.insertDocument(doc)
             doc_count += 1
             yield None
         yield [form, doc_count]

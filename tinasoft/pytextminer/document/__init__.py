@@ -15,6 +15,7 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 __author__ = "elishowk@nonutc.fr"
+
 import datetime
 import re
 from tinasoft.pytextminer import PyTextMiner, corpus, ngram
@@ -52,7 +53,6 @@ class Document(PyTextMiner):
                     del self['edges'][targettype][targetid]
                     # special trigger for NGram-Corpus edge
                     if targettype == "NGram":
-                        _logger.warning("decrementing Corpus-NGram edge")
                         # decrement the edge
                         self._updateNGramCorpusEdge(storage, targetid, -1)
 

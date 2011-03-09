@@ -94,7 +94,7 @@ class GenerateGraph(ServerTest):
         paramsdict = {
             'dataset': self.datasetId,
             'outpath': 'test_graph',
-            # WOrk only with json.dumps....
+            # Works only with json.dumps....
             #'ngramgraphconfig':
             #    'proximity': self.argument1
             #},
@@ -127,13 +127,14 @@ class DeleteOneNGram(ServerTest):
         ngramObj1 = getObject(self.connection, self.headers, 'ngram', self.datasetId, ngid1)
         documentObj2, ngid2 = self.selectUnique(corpusObj)
         ngramObj2 = getObject(self.connection, self.headers, 'ngram', self.datasetId, ngid2)
-        documentObj3, ngid3 = self.selectMulti(corpusObj)
-        ngramObj3 = getObject(self.connection, self.headers, 'ngram', self.datasetId, ngid3)
+#        documentObj3, ngid3 = self.selectMulti(corpusObj)
+#        ngramObj3 = getObject(self.connection, self.headers, 'ngram', self.datasetId, ngid3)
 
         print "test case : Document-NGram == 1 and Corpus-NGram > 1"
         if documentObj1 is not None:
-            updateDocumentObj1 = self.updateDocument(documentObj1.id, ngid1)
+            updateDocumentObj1 = self.deleteNGramFromDocument(documentObj1.id, ngramObj1)
             updateNgramObj1 = getObject(self.connection, self.headers, 'ngram', self.datasetId, ngid1)
+            #self.failUnlessEqual( updateNgramObj1, "",
             print "testing that Document-NGram edge was removed"
             self.failIf(\
                 (ngid1 in updateDocumentObj1['edges']['NGram'].keys()),\
@@ -155,13 +156,12 @@ class DeleteOneNGram(ServerTest):
                 updateNgramObj1['edges']['Corpus'][corpusObj1.id],\
                 "NGram %s to Corpus %s NOT equal "%(ngid1, corpusObj1.id)\
             )
-
         else:
             print "Could NOT test case : Document-NGram == 1 and Corpus-NGram > 1, try another Corpus"
         
         print "test case : Document-NGram == 1 and Corpus-NGram == 1"
         if documentObj2 is not None:
-            updateDocumentObj2 = self.updateDocument(documentObj2.id, ngid2)
+            updateDocumentObj2 = self.deleteNGramFromDocument(documentObj2.id, ngramObj2)
             updateNgramObj2 = getObject(self.connection, self.headers, 'ngram', self.datasetId, ngid2)
             print "testing that Document-NGram edge was removed"
             self.failIf(\
@@ -185,41 +185,43 @@ class DeleteOneNGram(ServerTest):
         else:
             print "Could NOT test case : Document-NGram == 1 and Corpus-NGram == 1, try another Corpus"
 
-        print "test case : Document-NGram > 1 and Corpus-NGram > 1"
-        if documentObj3 is not None:
-            updateDocumentObj3 = self.updateDocument(documentObj3.id, ngid3)
-            updateNgramObj3 = getObject(self.connection, self.headers, 'ngram', self.datasetId, ngid3)
-            print "testing that Document-NGram edge was decremented"
-            self.failUnlessEqual(\
-                updateDocumentObj3['edges']['NGram'][ngid3],\
-                documentObj3['edges']['NGram'][ngid3]-1,\
-                "Document %s to NGram %s was NOT decremented "%(documentObj3.id, ngid3)\
-            )
-            self.failUnlessEqual(\
-                updateDocumentObj3['edges']['NGram'][ngid3],\
-                updateNgramObj3['edges']['Document'][documentObj3.id],\
-                "NGram %s to Document %s NOT equal "%(ngid3, documentObj3.id)\
-            )
-
-            corpusObj3 = getObject(self.connection, self.headers, 'corpus', self.datasetId, self.period)
-            print "testing that Corpus-NGram edge was decremented"
-            self.failUnlessEqual(\
-                corpusObj3['edges']['NGram'][ngid3],\
-                corpusObj['edges']['NGram'][ngid3],\
-                "Corpus %s to NGram %s edge was NOT decremented"%(self.period, ngid3)\
-            )
-            self.failUnlessEqual(\
-                corpusObj3['edges']['NGram'][ngid3],\
-                updateNgramObj3['edges']['Corpus'][corpusObj3.id],\
-                "NGram %s to Corpus %s NOT equal "%(ngid3, corpusObj3.id)\
-            )
-        else:
-            print "Could NOT test case : Document-NGram > 1 and Corpus-NGram > 1, try another Corpus"
+#        print "test case : Document-NGram > 1 and Corpus-NGram > 1"
+#        if documentObj3 is not None:
+#            updateDocumentObj3 = self.deleteNGramFromDocument(documentObj3.id, ngramObj3)
+#            updateNgramObj3 = getObject(self.connection, self.headers, 'ngram', self.datasetId, ngid3)
+#            print "testing that Document-NGram edge was decremented"
+#            self.failUnlessEqual(\
+#                updateDocumentObj3['edges']['NGram'][ngid3],\
+#                documentObj3['edges']['NGram'][ngid3]-1,\
+#                "Document %s to NGram %s was NOT decremented "%(documentObj3.id, ngid3)\
+#            )
+#            self.failUnlessEqual(\
+#                updateDocumentObj3['edges']['NGram'][ngid3],\
+#                updateNgramObj3['edges']['Document'][documentObj3.id],\
+#                "NGram %s to Document %s NOT equal "%(ngid3, documentObj3.id)\
+#            )
+#
+#            corpusObj3 = getObject(self.connection, self.headers, 'corpus', self.datasetId, self.period)
+#            print "testing that Corpus-NGram edge was decremented"
+#            self.failUnlessEqual(\
+#                corpusObj3['edges']['NGram'][ngid3],\
+#                corpusObj['edges']['NGram'][ngid3],\
+#                "Corpus %s to NGram %s edge was NOT decremented"%(self.period, ngid3)\
+#            )
+#            self.failUnlessEqual(\
+#                corpusObj3['edges']['NGram'][ngid3],\
+#                updateNgramObj3['edges']['Corpus'][corpusObj3.id],\
+#                "NGram %s to Corpus %s NOT equal "%(ngid3, corpusObj3.id)\
+#            )
+#        else:
+#            print "Could NOT test case : Document-NGram > 1 and Corpus-NGram > 1, try another Corpus"
 
     def selectMulti(self, corpusObj):
         for docid in corpusObj['edges']['Document'].keys():
             documentObj = getObject(self.connection, self.headers, 'document', self.datasetId, docid)
             for ngid in documentObj['edges']['NGram'].iterkeys():
+                ngObj = getObject(self.connection, self.headers, 'ngram', self.datasetId, ngid)
+                #if [ngObj.label] != ngObj['edges']['label'].keys(): continue
                 if documentObj['edges']['NGram'][ngid] > 1 and corpusObj['edges']['NGram'][ngid] > 1:
                     documentObj3 = documentObj
                     ngid3 = ngid
@@ -231,6 +233,8 @@ class DeleteOneNGram(ServerTest):
         for docid in corpusObj['edges']['Document'].keys():
             documentObj = getObject(self.connection, self.headers, 'document', self.datasetId, docid)
             for ngid in documentObj['edges']['NGram'].iterkeys():
+                ngObj = getObject(self.connection, self.headers, 'ngram', self.datasetId, ngid)
+                if [ngObj.label] != ngObj['edges']['label'].keys(): continue
                 if corpusObj['edges']['NGram'][ngid] == 1 and documentObj['edges']['NGram'][ngid] == 1:
                     documentObj2 = documentObj
                     ngid2 = ngid
@@ -242,6 +246,8 @@ class DeleteOneNGram(ServerTest):
         for docid in corpusObj['edges']['Document'].keys():
             documentObj = getObject(self.connection, self.headers, 'document', self.datasetId, docid)
             for ngid in documentObj['edges']['NGram'].iterkeys():
+                ngObj = getObject(self.connection, self.headers, 'ngram', self.datasetId, ngid)
+                if [ngObj.label] != ngObj['edges']['label'].keys(): continue
                 if corpusObj['edges']['NGram'][ngid] > 1  and documentObj['edges']['NGram'][ngid] == 1:
                     documentObj1 = documentObj
                     ngid1 = ngid
@@ -249,24 +255,30 @@ class DeleteOneNGram(ServerTest):
                     print "choosen NGram %s:  Document-NGram == 1 and Corpus-NGram > 1"%ngid1
                     return documentObj1, ngid1
 
-    def updateDocument(self, docid, ngid):
-        updateDocument = json.dumps({
-            "py/object": "tinasoft.pytextminer.document.Document",
-            'id': docid,
-            'edges': {
-                    'NGram' : {
-                        ngid: -1
-                    }
-                }
-        })
-        params =  urllib.urlencode({
+    def deleteNGramFromDocument(self, docid, ng):
+        print "removing keyword %s from document %s"%(ng.label, docid)
+        params = urllib.urlencode({
             'dataset': self.datasetId,
-            'object': updateDocument,
-            'redondant': True
+            'id': ng.id,
+            'label': ng.label,
+            'is_keyword': False,
+            'docid': docid
+        })
+        self.connection.request(
+            'DELETE',
+            '/ngramform'+'?'+params,
+            body = params,
+            headers = self.headers
+        )
+        print self.connection.getresponse().read()
+
+        print "calling graph_preprocess"
+        params =  urllib.urlencode({
+            'dataset': self.datasetId
         })
         self.connection.request(
             'POST',
-            '/document',
+            '/graph_preprocess',
             body = params,
             headers = self.headers
         )
