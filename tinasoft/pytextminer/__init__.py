@@ -70,18 +70,25 @@ class PyTextMiner(object):
                 if self['edges'][targettype][targetid] <= 0:
                     del self['edges'][targettype][targetid]
 
-    def updateEdges(self, updateedges):
-        """merges an object's edges with the candidate edges dictionary"""
+    def updateEdges(self, updateedges, force=False):
+        """
+        merges an object's edges with the candidate edges dictionary
+        FORCING to sum values
+        """
         for targettype in updateedges.iterkeys():
             for targetid, weight in updateedges[targettype].iteritems():
+#                if force is True:
+#                    self._addEdge( targettype, targetid, weight )
+#                else:
+#                    self.addEdge( targettype, targetid, weight )
                 self._addEdge( targettype, targetid, weight )
 
-    def updateObject(self, obj):
+    def updateObject(self, obj, force=False):
         """ overwrites all attributes then updates edges """
         for key in obj.__dict__.keys():
             if key == "edges": continue
             self[key]=obj[key]
-        self.updateEdges( obj["edges"] )
+        self.updateEdges( obj["edges"], force )
         
     @staticmethod
     def form_label(tokens):
