@@ -65,7 +65,6 @@ class StopWords(object):
                 self.__nltk(path)
             elif protocol == "pickle":
                 self.__pickle(path)
-
             self.protocol = protocol
 
     def __pickle(self, path):
@@ -120,7 +119,6 @@ class StopWords(object):
         while len(self.words) < len(stopng) + 1:
             self.words+=[{}]
         stopngobj = NG.NGram( stopng )
-        #print stopngobj.label
         self.words[len(stopng)][ stopngobj['label'] ] = 1
         return stopngobj
 
@@ -144,7 +142,6 @@ class StopWords(object):
         """
         for label in ngramobj['edges']['label'].keys():
             if label in self[len(label.split(" "))]:
-                #_logger.debug("%s blocked "%label)
                 return True
         return False
 
@@ -159,7 +156,7 @@ class StopWords(object):
         """
         copy the stopwords in-memory database to file
         """
-        file = codecs.open( filepath, "w" )
+        file = codecs.open( filepath, "w+" )
         pickle.dump( self.words, file )
 
 class StopWordFilter(StopWords):

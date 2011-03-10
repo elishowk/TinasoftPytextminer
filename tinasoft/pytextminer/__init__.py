@@ -77,11 +77,11 @@ class PyTextMiner(object):
         """
         for targettype in updateedges.iterkeys():
             for targetid, weight in updateedges[targettype].iteritems():
-#                if force is True:
-#                    self._addEdge( targettype, targetid, weight )
-#                else:
-#                    self.addEdge( targettype, targetid, weight )
-                self._addEdge( targettype, targetid, weight )
+                if force is True:
+                    self._addEdge( targettype, targetid, weight )
+                else:
+                    self.addEdge( targettype, targetid, weight )
+#                self._addEdge( targettype, targetid, weight )
 
     def updateObject(self, obj, force=False):
         """ overwrites all attributes then updates edges """

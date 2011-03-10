@@ -41,8 +41,8 @@ class Document(PyTextMiner):
     def addEdge(self, type, key, value):
         if type in ["Document","keyword"]:
             return self._overwriteEdge( type, key, value )
-        elif type in ['Corpus','NGram']:
-            return self._addUniqueEdge( type, key, value )
+#        elif type in ['Corpus','NGram']:
+#            return self._addUniqueEdge( type, key, value )
         else:
             return self._addEdge( type, key, value )
 

@@ -423,8 +423,6 @@ class Engine(Backend):
         """
         removes a NGram's form if every Documents it's linked to
         """
-#        import pdb
-#        pdb.set_trace()
         # updates the NGram first
         ng = self.loadNGram(ngid)
         if docid is None:
