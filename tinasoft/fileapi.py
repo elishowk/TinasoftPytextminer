@@ -117,7 +117,7 @@ class PytextminerFileApi(object):
             return None
         filename_components = tail.split("-")
         if len(filename_components) == 1:
-            return None
+            return tail
         return filename_components[0]
 
     def walk_user_path(self, dataset, filetype):
