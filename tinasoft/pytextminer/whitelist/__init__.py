@@ -51,8 +51,8 @@ class Whitelist(PyTextMiner, whitelist.WhitelistFile):
         NGram edges are used in def test and represents all NGram _forms_ whithin the whitelist
         """
         if type in ['NGram', 'StopNGram']:
-            if key in self[edges][type]:
-                _logger.warning("Redondancies in Ngram Form %s association with several labels, only the last association is kept %s"%key)
+            if key in self['edges'][type]:
+                _logger.warning("Redondancies in Ngram Form %s association with several labels, only the last association is kept"%key)
             return self._overwriteEdge( type, key, value )
         else:
             return self._addEdge( type, key, value )
