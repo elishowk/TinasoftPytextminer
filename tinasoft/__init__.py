@@ -286,7 +286,6 @@ class PytextminerFlowApi(PytextminerFileApi):
             raise ioe
             return
         except StopIteration:
-            #storage.flushNGramQueue()
             del storage
             preprocessgen = self.graph_preprocess(dataset)
             try:
@@ -420,6 +419,11 @@ class PytextminerFlowApi(PytextminerFileApi):
             
         if not documentgraphconfig: documentgraphconfig = {}
         if not ngramgraphconfig: ngramgraphconfig = {}
+        # updates default config with parameters
+        update_ngramconfig = self.config['datamining']['NGramGraph']
+        update_ngramconfig.update(ngramgraphconfig)
+        update_documentconfig = self.config['datamining']['DocumentGraph']
+        update_documentconfig.update(documentgraphconfig)
 
         storage = self.get_storage(dataset, create=False, drop_tables=False)
         if storage == self.STATUS_ERROR:
@@ -441,11 +445,12 @@ class PytextminerFlowApi(PytextminerFileApi):
             periods = [periods]
 
         # params_string formed with the periods
+        params_string = "%s_%s"%(update_ngramconfig['proximity'], update_documentconfig['proximity'])
         if len(periods) > 1:
             sortedperiods = sorted(periods)
-            params_string = "from_%s_to_%s"%(sortedperiods[0],sortedperiods[-1])
+            params_string += "_from_%s_to_%s"%(sortedperiods[0],sortedperiods[-1])
         else:
-            params_string = periods[0]
+            params_string += "_"+periods[0]
         # outpath is an optional label but used into the file path
         if outpath is None:
             outpath = self._get_user_filepath(dataset, 'gexf', "%s-graph"%params_string)
@@ -485,12 +490,6 @@ class PytextminerFlowApi(PytextminerFileApi):
             self.logger.warning(errmsg)
             raise RuntimeError(errmsg)
             return
-
-        # updates default config with parameters
-        update_ngramconfig = self.config['datamining']['NGramGraph']
-        update_ngramconfig.update(ngramgraphconfig)
-        update_documentconfig = self.config['datamining']['DocumentGraph']
-        update_documentconfig.update(documentgraphconfig)
 
         # hack resolving the proximity parameter ambiguity
         #if update_ngramconfig['proximity']=='cooccurrences':
