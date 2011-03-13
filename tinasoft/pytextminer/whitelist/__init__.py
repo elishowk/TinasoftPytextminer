@@ -51,6 +51,8 @@ class Whitelist(PyTextMiner, whitelist.WhitelistFile):
         NGram edges are used in def test and represents all NGram _forms_ whithin the whitelist
         """
         if type in ['NGram', 'StopNGram']:
+            if key in self[edges][type]:
+                _logger.warning("Redondancies in Ngram Form %s association with several labels, only the last association is kept %s"%key)
             return self._overwriteEdge( type, key, value )
         else:
             return self._addEdge( type, key, value )
@@ -81,13 +83,6 @@ class Whitelist(PyTextMiner, whitelist.WhitelistFile):
         options = {'home':".", 'drop_tables': True}
         return Engine("tinasqlite://%s"%tmp, **options)
 
-#    def addNGram(self, ngram):
-#        """
-#        inserts or updates a ngram into the whitelist content
-#        """
-#        if self.storage.updateManyNGram( ngram ) >= self.storage.MAX_INSERT_QUEUE:
-#            self.storage.flushNGramQueue()
-
     def getNGram(self, id=None):
         """
         returns a generator of ngrams into the whitelist
@@ -96,31 +91,3 @@ class Whitelist(PyTextMiner, whitelist.WhitelistFile):
             return self.storage.loadAll("NGram")
         else:
             return self.storage.loadNGram(id)
-
-#    def loadFromStorage(self, storage, corpora, periods=None):
-#        """
-#        Whitelist creator utility
-#        Loads a whitelist from a session storage
-#        """
-#        if periods is None:
-#            periods = corpora['edges']['Corpus'].keys()
-#        for corpusid in periods:
-#            # gets a corpus from the storage or continue
-#            corpusObj = storage.loadCorpus(corpusid)
-#            if corpusObj is None:
-#                _logger.error("corpus %s not found"%corpusid)
-#                continue
-#
-#            # updates whitelist's corpus to prepare export
-#            if  corpusObj['id'] not in self.corpus:
-#                self.corpus[corpusObj['id']] = corpusObj
-#
-#            # occ is the number of docs in the corpus where ngid appears
-#            for ngid, occ in corpusObj['edges']['NGram'].iteritems():
-#                ng = storage.loadNGram(ngid)
-#                if ng is None:
-#                    _logger.error("ngram %s not found"%ngid)
-#                    continue
-#                self.addContent( ng )
-#                self.addEdge("NGram", ng['id'], occ)
-#            self.storage.flushNGramQueue()
