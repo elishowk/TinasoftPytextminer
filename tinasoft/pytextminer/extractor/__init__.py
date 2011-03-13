@@ -104,13 +104,8 @@ class Extractor():
                 ng.newToGraph(document, self.corpusDict[ corpusId ])
             ###
             else:
-                #_logger.debug("skipping NGram, already in the graph")
                 continue
-                #document, self.corpusDict[ corpus['id'] ] = ng.mergeToGraph(storedDoc, self.corpusDict[ corpus['id'] ])
             ### queue to insert queue
-#            if len(ng['edges']['Corpus'].keys())==0:
-#                _logger.warning("ZERO CORPUS IN NEW NGRAM %s"%ng['id'])
-
             stored = self.storage.load( ng['id'], 'NGram' )
             if stored is not None:
                 stored.updateObject(ng)
@@ -118,7 +113,6 @@ class Extractor():
             else:
                 ngramqueue += [(ng['id'], ng)]
         ### insert/update document
-        #self.storage.flushNGramQueue()
         self.storage.insertManyNGram( ngramqueue )
         self.storage.updateDocument(document)
         return
@@ -170,45 +164,3 @@ class Extractor():
                 _logger.debug("found %d Documents in Corpus %s"%(len(corpusObj.edges['Document'].keys()), corpusObj.id))
                 self.storage.updateCorpus( corpusObj )
             return
-
-
-#    def extract_file(self, path, format, extract_path, whitelistlabel, minoccs):
-#        """
-#
-#        """
-#        # basic counter
-#        doccount = 0
-#        try:
-#            while 1:
-#                # gets the next document
-#                document, corpus = fileGenerator.next()
-#                #
-#                self._linkDocuments(document, corpus)
-#                # extract and filter ngrams
-#                docngrams = tokenizer.extract(
-#                    document,
-#                    self.config,
-#                    self.filters,
-#                    self.tagger,
-#                    self.stemmer
-#                )
-#                ### updates NGram Links
-#                docngrams = self._linkNGrams(docngrams, document, corpus['id'])
-#                ### stores NGrams into the whitelist
-#                for ng in docngrams.itervalues():
-#                    newwl.addContent( ng )
-#                    newwl.addEdge("NGram", ng['id'], 1)
-#                newwl.storage.flushNGramQueue()
-#
-#                doccount += 1
-#                if doccount % NUM_DOC_NOTIFY == 0:
-#                    _logger.debug("%d documents parsed"%doccount)
-#                yield doccount
-#
-#        except StopIteration:
-#            _logger.debug("Total documents extracted = %d"%doccount)
-#            newwl.corpus = self.corpusDict
-#            whitelist_exporter = Writer("whitelist://"+extract_path)
-#            whitelist_exporter.write_whitelist(newwl, minoccs)
-#            return
-            
