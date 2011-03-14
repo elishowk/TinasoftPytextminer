@@ -445,7 +445,7 @@ class Engine(Backend):
             doc._cleanEdges(self)
             self.insertDocument(doc)
             doc_count += 1
-            yield None
+            #yield None
         yield [form, doc_count]
         return
 
@@ -485,6 +485,6 @@ class Engine(Backend):
                     # saves the modified document
                     self.insertDocument(doc)
                     doc_count += 1
-                yield None
+                #yield None
         yield [form, doc_count]
         return
