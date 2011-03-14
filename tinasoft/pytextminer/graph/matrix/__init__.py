@@ -19,6 +19,7 @@ __author__ = "elishowk@nonutc.fr"
 import itertools
 import math
 from collections import defaultdict
+import operator
 
 import logging
 _logger = logging.getLogger('TinaAppLogger')
@@ -114,8 +115,6 @@ class MatrixReducer(Matrix):
                 continue
 
 
-
-
 class MatrixReducerFilter(MatrixReducer):
     """
     Simple matrix reducer : Only filtering edges values from MatrixReducer
@@ -149,6 +148,31 @@ class MatrixReducerFilter(MatrixReducer):
         except StopIteration, si:
             _logger.debug("MatrixReducerFilter generated %d valid edges"%count)
 
+class MatrixReducerMaxDegree(MatrixReducerFilter):
+    """
+    Simple matrix reducer : Only filtering edges values from MatrixReducer
+    use it if there's no second level proximity to calculate
+    """
+    def extract_matrix( self, config, **kwargs ):
+        """
+        Gets row of filtered nodes and yields row of filtered edges
+        """
+        matrix = super(MatrixReducerMaxDegree, self).extract_matrix( config )
+        maxdegree = config['maxdegree']
+        try:
+            while 1:
+                nodei, filteredrow = matrix.next()
+                if len(filteredrow.keys()) <= maxdegree:
+                    yield (nodei, filteredrow)
+                    continue
+                sortedtuples = sorted(filteredrow.iteritems(), key=operator.itemgetter(1), reverse=True)
+                validrow = dict( sortedtuples[:maxdegree] )
+                #_logger.debug("document %s have %d neighbours, weights between %f and %f"%\
+                #    (nodei, len(validrow.keys()), sortedtuples[0][1], sortedtuples[-1][1]))
+                if len(validrow.keys())>0:
+                    yield (nodei, validrow)
+        except StopIteration, si:
+            return
 
 class Cooccurrences(MatrixReducerFilter):
     """

@@ -532,7 +532,7 @@ class PytextminerFlowApi(PytextminerFileApi):
 
         doc_graph_class = _dynamic_get_class("tinasoft.pytextminer.graph.subgraph", "DocGraph")
 
-        doc_matrix_reducer = matrix.MatrixReducerFilter( doc_index )
+        doc_matrix_reducer = matrix.MatrixReducerMaxDegree( doc_index )
         docsubgraph_gen = process_document_subgraph(
             self.config,
             dataset,

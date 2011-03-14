@@ -88,6 +88,7 @@ datamining:
             - 'inf'
         #proximity: 'sharedNGrams'
         proximity: 'logJaccard'
+        maxdegree: 100
     NGramGraph:
         edgethreshold:
             - 0.0001
